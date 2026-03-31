@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMS Project Tracker — Nguyễn Quốc Huy</title>
+<style>
+  :root {
+    --accent: #1A56DB;
+    --accent-l: #EBF2FF;
+    --accent-d: #1241A6;
+    --success: #057A55;
+    --success-l: #DEF7EC;
+    --warn: #B45309;
+    --warn-l: #FEF3C7;
+    --danger: #C81E1E;
+    --danger-l: #FDE8E8;
+    --gray: #6B7280;
+    --gray-l: #F9FAFB;
+    --border: #E5E7EB;
+    --text: #111827;
+    --text2: #4B5563;
+    --bg: #F3F4F6;
+    --white: #FFFFFF;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 260px; background: var(--white); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; overflow-y: auto; z-index: 100; }
+  .main { margin-left: 260px; flex: 1; padding: 24px; }
+
+  /* SIDEBAR */
+  .sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-header h1 { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .sidebar-header p { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .sidebar-section { padding: 8px 8px 0; }
+  .sidebar-section-label { font-size: 10px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: .05em; padding: 8px 8px 4px; }
+  .phase-btn { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 10px; border-radius: 7px; border: none; background: transparent; cursor: pointer; font-size: 13px; color: var(--text2); transition: background .15s; margin-bottom: 2px; }
+  .phase-btn:hover { background: var(--accent-l); color: var(--accent); }
+  .phase-btn.active { background: var(--accent-l); color: var(--accent); font-weight: 600; }
+  .phase-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .phase-progress-mini { font-size: 10px; color: var(--gray); margin-left: auto; }
+
+  /* STATS BAR */
+  .stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--gray); margin-top: 2px; }
+  .stat-accent { color: var(--accent); }
+  .stat-success { color: var(--success); }
+  .stat-warn { color: var(--warn); }
+
+  /* PROGRESS BAR */
+  .prog-bar-wrap { background: var(--border); border-radius: 99px; height: 6px; overflow: hidden; margin-top: 6px; }
+  .prog-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .4s; }
+  .prog-bar-fill.green { background: var(--success); }
+  .prog-bar-fill.amber { background: #D97706; }
+
+  /* PHASE HEADER */
+  .phase-header { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .phase-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .phase-title { font-size: 17px; font-weight: 700; }
+  .phase-meta { font-size: 12px; color: var(--gray); margin-top: 2px; }
+  .phase-pct { font-size: 22px; font-weight: 700; color: var(--accent); margin-left: auto; }
+
+  /* WEEK BLOCK */
+  .week-block { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 12px; overflow: hidden; }
+  .week-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; user-select: none; background: var(--gray-l); border-bottom: 1px solid var(--border); }
+  .week-header:hover { background: var(--accent-l); }
+  .week-label { font-weight: 600; font-size: 13px; }
+  .week-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+  .badge-pending  { background: var(--border); color: var(--gray); }
+  .badge-progress { background: var(--warn-l); color: var(--warn); }
+  .badge-done     { background: var(--success-l); color: var(--success); }
+  .week-chevron { margin-left: auto; color: var(--gray); transition: transform .2s; font-size: 12px; }
+  .week-chevron.open { transform: rotate(90deg); }
+  .week-tasks { display: none; }
+  .week-tasks.open { display: block; }
+
+  /* TASK ROW */
+  .task-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); transition: background .1s; }
+  .task-row:last-child { border-bottom: none; }
+  .task-row:hover { background: #FAFAFA; }
+  .task-check { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border); cursor: pointer; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+  .task-check.checked { background: var(--success); border-color: var(--success); }
+  .task-check.checked::after { content: "✓"; color: white; font-size: 11px; font-weight: 700; }
+  .task-body { flex: 1; }
+  .task-title { font-size: 13px; color: var(--text); line-height: 1.4; }
+  .task-title.done { text-decoration: line-through; color: var(--gray); }
+  .task-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
+  .tag-jd  { background: #EDE9FE; color: #5B21B6; }
+  .tag-be  { background: #DBEAFE; color: #1E40AF; }
+  .tag-fe  { background: #D1FAE5; color: #065F46; }
+  .tag-ai  { background: #FEF9C3; color: #854D0E; }
+  .tag-mob { background: #FFE4E6; color: #9F1239; }
+  .tag-ops { background: #F3F4F6; color: #374151; }
+  .task-priority { font-size: 10px; padding: 1px 7px; border-radius: 99px; margin-left: auto; flex-shrink: 0; }
+  .pri-high { background: #FDE8E8; color: var(--danger); }
+  .pri-med  { background: var(--warn-l); color: var(--warn); }
+  .pri-low  { background: var(--success-l); color: var(--success); }
+
+  /* ADD TASK */
+  .add-task-row { display: flex; gap: 8px; padding: 10px 16px; background: var(--gray-l); }
+  .add-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; background: var(--white); }
+  .add-input:focus { outline: none; border-color: var(--accent); }
+  .add-btn { padding: 6px 14px; background: var(--accent); color: white; border: none; border-radius: 7px; font-size: 13px; cursor: pointer; font-weight: 500; }
+  .add-btn:hover { background: var(--accent-d); }
+
+  /* NOTE SECTION */
+  .notes-section { margin-top: 20px; }
+  .notes-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .daily-note { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+  .daily-note textarea { width: 100%; border: none; resize: vertical; font-size: 13px; font-family: inherit; color: var(--text); background: transparent; min-height: 80px; outline: none; line-height: 1.6; }
+  .save-note-btn { margin-top: 8px; padding: 5px 14px; background: var(--accent-l); color: var(--accent); border: 1px solid #BFDBFE; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
+  .save-note-btn:hover { background: var(--accent); color: white; }
+  .note-saved { font-size: 11px; color: var(--success); margin-left: 8px; opacity: 0; transition: opacity .3s; }
+
+  /* OVERVIEW VIEW */
+  .overview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .phase-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; cursor: pointer; transition: box-shadow .15s, border-color .15s; }
+  .phase-card:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-l); }
+  .phase-card-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .phase-card-meta { font-size: 11px; color: var(--gray); margin-bottom: 10px; }
+  .phase-card-stats { display: flex; gap: 12px; font-size: 12px; }
+
+  @media (max-width: 700px) {
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .overview-grid { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <h1>🎯 LMS Project Tracker</h1>
+    <p>Nguyễn Quốc Huy — Apply tháng 8/2026</p>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Navigation</div>
+    <button class="phase-btn active" onclick="showView('overview')" id="nav-overview">
+      <span>📊</span> Tổng quan
+    </button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Phases</div>
+    <div id="sidebar-phases"></div>
+  </div>
+  <div class="sidebar-section" style="margin-top:auto; padding-bottom:16px;">
+    <div class="sidebar-section-label">Deadline</div>
+    <div style="padding:8px 10px; background:#FEF3C7; border-radius:8px; font-size:12px; color:#92400E;">
+      ⏰ <strong>31/07/2026</strong> — Hoàn thiện đồ án<br>
+      📅 <strong>01/08/2026</strong> — Apply CV
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div id="stats-bar" class="stats-bar"></div>
+  <div id="content"></div>
+</main>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════
+const PHASES = [
+  {
+    id: "p0", icon: "📘", label: "Học Vue + Nuxt", color: "#F59E0B", bg: "#FEF3C7",
+    period: "Tháng 4 – tháng 5", jd: true,
+    weeks: [
+      { id: "w0_1", label: "Tuần 1 — Vue 3 Composition API", tasks: [
+        { id: "t001", text: "Đọc docs Vue 3: ref, reactive, computed, watch", tags: ["jd","fe"], pri: "high" },
+        { id: "t002", text: "Thực hành <script setup> syntax — viết component Todo", tags: ["fe"], pri: "high" },
+        { id: "t003", text: "Hiểu lifecycle hooks: onMounted, onUnmounted", tags: ["fe"], pri: "med" },
+        { id: "t004", text: "Tạo repo frontend Nuxt trên GitHub", tags: ["ops"], pri: "med" },
+      ]},
+      { id: "w0_2", label: "Tuần 2 — Pinia + Vue Router", tasks: [
+        { id: "t005", text: "Setup Pinia store: useAuthStore, useCourseStore", tags: ["jd","fe"], pri: "high" },
+        { id: "t006", text: "Vue Router: nested routes, navigation guards, lazy load", tags: ["jd","fe"], pri: "high" },
+        { id: "t007", text: "Axios instance với interceptor gắn Bearer token", tags: ["fe","be"], pri: "med" },
+      ]},
+      { id: "w0_3", label: "Tuần 3 — Nuxt.js 3", tasks: [
+        { id: "t008", text: "File-based routing, layouts, middleware trong Nuxt 3", tags: ["jd","fe"], pri: "high" },
+        { id: "t009", text: "useFetch, useAsyncData — SSR data fetching", tags: ["jd","fe"], pri: "high" },
+        { id: "t010", text: "Nuxt server routes (nitro) cơ bản", tags: ["fe"], pri: "med" },
+        { id: "t011", text: "Deploy Nuxt lên VPS thử nghiệm", tags: ["ops"], pri: "low" },
+      ]},
+      { id: "w0_4", label: "Tuần 4–5 — SSO + CI/CD + NoSQL", tasks: [
+        { id: "t012", text: "Google OAuth2 với Laravel Socialite — flow đăng nhập SSO", tags: ["jd","be"], pri: "high" },
+        { id: "t013", text: "GitHub Actions: workflow CI test Laravel (PHPUnit)", tags: ["jd","ops"], pri: "high" },
+        { id: "t014", text: "GitHub Actions: workflow CD deploy lên VPS qua SSH", tags: ["jd","ops"], pri: "high" },
+        { id: "t015", text: "MongoDB cài bằng Docker — lưu chat history collection", tags: ["jd","be"], pri: "med" },
+        { id: "t016", text: "Redis: cache khóa học, queue job upload video", tags: ["be","ops"], pri: "med" },
+      ]},
+    ]
+  },
+  {
+    id: "p1", icon: "🔧", label: "Setup & Docker", color: "#7C3AED", bg: "#EDE9FE",
+    period: "Tuần 1 tháng 4",
+    weeks: [
+      { id: "w1_1", label: "Tuần 1 — Khởi tạo dự án", tasks: [
+        { id: "t101", text: "Tạo Laravel project, cấu hình .env, kết nối MySQL", tags: ["be"], pri: "high" },
+        { id: "t102", text: "Cài Laravel Sanctum + cấu hình CORS cho SPA", tags: ["be"], pri: "high" },
+        { id: "t103", text: "Docker Compose: mysql, redis, minio, laravel, nuxt, fastapi", tags: ["ops"], pri: "high" },
+        { id: "t104", text: "Tạo Nuxt 3 project — kết nối được với Laravel API", tags: ["fe"], pri: "high" },
+        { id: "t105", text: "Cấu hình MinIO — test upload/download file", tags: ["ops"], pri: "med" },
+        { id: "t106", text: "Viết Makefile / script shortcut cho Docker", tags: ["ops"], pri: "low" },
+      ]}
+    ]
+  },
+  {
+    id: "p2", icon: "🔐", label: "Auth & User", color: "#1A56DB", bg: "#EBF2FF",
+    period: "Tuần 2–3 tháng 4",
+    weeks: [
+      { id: "w2_1", label: "Tuần 2–3 — Authentication", tasks: [
+        { id: "t201", text: "Migration: users, roles, password_reset_tokens", tags: ["be"], pri: "high" },
+        { id: "t202", text: "Cài spatie/laravel-permission — setup 3 role: admin/instructor/student", tags: ["be"], pri: "high" },
+        { id: "t203", text: "API: POST /auth/register, /login, /logout, GET /me", tags: ["be"], pri: "high" },
+        { id: "t204", text: "Google SSO với Laravel Socialite (JD yêu cầu SSO)", tags: ["jd","be"], pri: "high" },
+        { id: "t205", text: "Frontend Nuxt: trang Login, Register + Pinia useAuthStore", tags: ["fe"], pri: "high" },
+        { id: "t206", text: "Route middleware Nuxt: redirect nếu chưa login", tags: ["fe"], pri: "med" },
+        { id: "t207", text: "Trang Profile: update thông tin, đổi mật khẩu", tags: ["fe","be"], pri: "med" },
+      ]}
+    ]
+  },
+  {
+    id: "p3", icon: "📚", label: "Course & Lesson", color: "#0D9488", bg: "#CCFBF1",
+    period: "Tuần 3–4 tháng 4 → tuần 1 tháng 5",
+    weeks: [
+      { id: "w3_1", label: "Tuần 3–5 — Course CRUD", tasks: [
+        { id: "t301", text: "Migration: courses, categories, lessons, lesson_videos", tags: ["be"], pri: "high" },
+        { id: "t302", text: "API CRUD course cho instructor (policy + gate phân quyền)", tags: ["be"], pri: "high" },
+        { id: "t303", text: "Upload video/tài liệu bài học — queue job → MinIO", tags: ["be","ops"], pri: "high" },
+        { id: "t304", text: "Presigned URL MinIO (expire 1h) để bảo vệ video trả phí", tags: ["be"], pri: "high" },
+        { id: "t305", text: "Trang danh sách khóa học — filter, search, phân trang", tags: ["fe"], pri: "med" },
+        { id: "t306", text: "Trang chi tiết khóa học + danh sách bài học (nếu đã mua)", tags: ["fe"], pri: "high" },
+        { id: "t307", text: "Form tạo/chỉnh sửa khóa học cho Instructor", tags: ["fe"], pri: "med" },
+      ]}
+    ]
+  },
+  {
+    id: "p4", icon: "💳", label: "Marketplace & Payment", color: "#059669", bg: "#D1FAE5",
+    period: "Tuần 5–8 tháng 5",
+    weeks: [
+      { id: "w4_1", label: "Tuần 5–8 — Purchase Flow", tasks: [
+        { id: "t401", text: "Migration: orders, enrollments", tags: ["be"], pri: "high" },
+        { id: "t402", text: "Tích hợp VNPay sandbox — tạo URL thanh toán, xử lý callback", tags: ["be"], pri: "high" },
+        { id: "t403", text: "Webhook payment: cập nhật order → tạo enrollment tự động", tags: ["be"], pri: "high" },
+        { id: "t404", text: "Middleware check enrollment trước khi cho xem bài học", tags: ["be"], pri: "high" },
+        { id: "t405", text: "Trang checkout + redirect sang VNPay", tags: ["fe"], pri: "high" },
+        { id: "t406", text: "Trang 'Khóa học của tôi' — hiển thị enrolled courses", tags: ["fe"], pri: "med" },
+        { id: "t407", text: "Trang lịch sử đơn hàng", tags: ["fe"], pri: "low" },
+      ]}
+    ]
+  },
+  {
+    id: "p5", icon: "📈", label: "Learning & Quiz", color: "#0891B2", bg: "#CFFAFE",
+    period: "Tuần 9–10 tháng 5 → tuần 1 tháng 6",
+    weeks: [
+      { id: "w5_1", label: "Tuần 9–11 — Progress & Quiz", tasks: [
+        { id: "t501", text: "Migration: lesson_progress, quizzes, questions, answers, quiz_attempts", tags: ["be"], pri: "high" },
+        { id: "t502", text: "API track tiến độ: POST /lessons/{id}/complete", tags: ["be"], pri: "high" },
+        { id: "t503", text: "API quiz: lấy câu hỏi, nộp bài, tính điểm", tags: ["be"], pri: "high" },
+        { id: "t504", text: "Video player trong bài học (iframe / video tag với presigned URL)", tags: ["fe"], pri: "high" },
+        { id: "t505", text: "Progress bar hiển thị % hoàn thành khóa học", tags: ["fe"], pri: "med" },
+        { id: "t506", text: "Giao diện làm quiz", tags: ["fe"], pri: "med" },
+        { id: "t507", text: "Auto-generate certificate PDF khi hoàn thành 100%", tags: ["be"], pri: "low" },
+      ]}
+    ]
+  },
+  {
+    id: "p6", icon: "🤖", label: "AI Chatbot", color: "#D97706", bg: "#FEF3C7",
+    period: "Tuần 9–12 tháng 6", jd: true,
+    weeks: [
+      { id: "w6_1", label: "Tuần 9–12 — FastAPI + OpenAI", tasks: [
+        { id: "t601", text: "Khởi tạo FastAPI project — Dockerfile, endpoint POST /chat", tags: ["ai","ops"], pri: "high" },
+        { id: "t602", text: "Thiết kế system prompt với course context (title, outline, lessons)", tags: ["ai"], pri: "high" },
+        { id: "t603", text: "Tích hợp OpenAI API (gpt-4o-mini cho rẻ) — stream response", tags: ["ai","jd"], pri: "high" },
+        { id: "t604", text: "MongoDB collection chat_messages — lưu history per user/course", tags: ["ai","jd"], pri: "high" },
+        { id: "t605", text: "Laravel AI Bridge: route /api/chat → HTTP call FastAPI", tags: ["be"], pri: "high" },
+        { id: "t606", text: "Giao diện chat trong trang học (bubble chat + typing indicator)", tags: ["fe"], pri: "med" },
+        { id: "t607", text: "Rate limiting chatbot: giới hạn 50 message/ngày/user", tags: ["be"], pri: "low" },
+      ]}
+    ]
+  },
+  {
+    id: "p7", icon: "📱", label: "Flutter Mobile", color: "#DB2777", bg: "#FCE7F3",
+    period: "Tuần 13–15 tháng 6 → tháng 7",
+    weeks: [
+      { id: "w7_1", label: "Tuần 13–15 — Flutter App", tasks: [
+        { id: "t701", text: "Setup Flutter project — dio, flutter_riverpod, go_router", tags: ["mob"], pri: "high" },
+        { id: "t702", text: "Màn hình Login/Register — lưu token vào flutter_secure_storage", tags: ["mob"], pri: "high" },
+        { id: "t703", text: "Trang chủ: danh sách khóa học, search, filter", tags: ["mob"], pri: "high" },
+        { id: "t704", text: "Chi tiết khóa học + nút mua (mở WebView VNPay)", tags: ["mob"], pri: "high" },
+        { id: "t705", text: "Video player bài học với video_player package", tags: ["mob"], pri: "high" },
+        { id: "t706", text: "Màn hình AI chatbot", tags: ["mob","ai"], pri: "med" },
+        { id: "t707", text: "Progress tracker màn hình", tags: ["mob"], pri: "med" },
+      ]}
+    ]
+  },
+  {
+    id: "p8", icon: "🛡️", label: "Admin + Deploy", color: "#374151", bg: "#F3F4F6",
+    period: "Tuần 15–17 tháng 7", jd: true,
+    weeks: [
+      { id: "w8_1", label: "Tuần 15–16 — Admin Panel", tasks: [
+        { id: "t801", text: "Dashboard admin: thống kê doanh thu, user, khóa học", tags: ["fe","be"], pri: "high" },
+        { id: "t802", text: "Quản lý User — ban/unban, đổi role", tags: ["be"], pri: "med" },
+        { id: "t803", text: "Duyệt/từ chối khóa học của Instructor", tags: ["be"], pri: "med" },
+        { id: "t804", text: "Quản lý Order, Enrollment", tags: ["be"], pri: "med" },
+      ]},
+      { id: "w8_2", label: "Tuần 17 — Deploy & Polish", tasks: [
+        { id: "t805", text: "Viết README chi tiết: setup, API docs, screenshots", tags: ["ops"], pri: "high" },
+        { id: "t806", text: "Deploy lên VPS (domain thật) — Nginx + SSL Let's Encrypt", tags: ["ops","jd"], pri: "high" },
+        { id: "t807", text: "GitHub Actions CI/CD pipeline hoàn chỉnh", tags: ["jd","ops"], pri: "high" },
+        { id: "t808", text: "Quay video demo 5–10 phút", tags: ["ops"], pri: "high" },
+        { id: "t809", text: "Cập nhật CV với link GitHub + live demo URL", tags: ["ops"], pri: "high" },
+        { id: "t810", text: "Test toàn bộ luồng: register → mua → học → chat AI", tags: ["ops"], pri: "high" },
+      ]}
+    ]
+  }
+];
+
+// ══════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════
+let checked = {};
+let currentView = 'overview';
+let notes = {};
+
+function save() {
+  localStorage.setItem('lms_checked', JSON.stringify(checked));
+  localStorage.setItem('lms_notes', JSON.stringify(notes));
+}
+function load() {
+  try { checked = JSON.parse(localStorage.getItem('lms_checked') || '{}'); } catch(e) { checked = {}; }
+  try { notes = JSON.parse(localStorage.getItem('lms_notes') || '{}'); } catch(e) { notes = {}; }
+}
+
+// ══════════════════════════════════════════════════
+// COMPUTED
+// ══════════════════════════════════════════════════
+function phaseStats(phase) {
+  let total = 0, done = 0;
+  phase.weeks.forEach(w => w.tasks.forEach(t => { total++; if(checked[t.id]) done++; }));
+  return { total, done, pct: total ? Math.round(done/total*100) : 0 };
+}
+
+function globalStats() {
+  let total = 0, done = 0, jdTotal = 0, jdDone = 0;
+  PHASES.forEach(p => {
+    p.weeks.forEach(w => w.tasks.forEach(t => {
+      total++; if(checked[t.id]) done++;
+      if(t.tags.includes('jd')) { jdTotal++; if(checked[t.id]) jdDone++; }
+    }));
+  });
+  // Days to deadline
+  const deadline = new Date('2026-07-31');
+  const now = new Date();
+  const days = Math.ceil((deadline - now) / 86400000);
+  return { total, done, pct: Math.round(done/total*100), jdTotal, jdDone, days };
+}
+
+// ══════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════
+const PHASE_COLORS = {};
+PHASES.forEach(p => PHASE_COLORS[p.id] = p.color);
+
+function renderSidebar() {
+  const cont = document.getElementById('sidebar-phases');
+  cont.innerHTML = PHASES.map(p => {
+    const s = phaseStats(p);
+    return `<button class="phase-btn ${currentView===p.id?'active':''}" onclick="showView('${p.id}')" id="nav-${p.id}">
+      <span class="phase-dot" style="background:${p.color}"></span>
+      <span style="flex:1">${p.label}</span>
+      <span class="phase-progress-mini">${s.done}/${s.total}</span>
+    </button>`;
+  }).join('');
+}
+
+function renderStats() {
+  const g = globalStats();
+  const phaseDone = PHASES.filter(p => phaseStats(p).pct === 100).length;
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Tiến độ tổng</div>
+      <div class="stat-value stat-accent">${g.pct}%</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${g.pct}%"></div></div>
+      <div class="stat-sub">${g.done} / ${g.total} tasks</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">JD Requirements</div>
+      <div class="stat-value stat-success">${g.jdDone}/${g.jdTotal}</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill green" style="width:${g.jdTotal?Math.round(g.jdDone/g.jdTotal*100):0}%"></div></div>
+      <div class="stat-sub">Tasks từ JD đã hoàn thành</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Phases hoàn thành</div>
+      <div class="stat-value">${phaseDone}<span style="font-size:14px;color:var(--gray)">/${PHASES.length}</span></div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill amber" style="width:${Math.round(phaseDone/PHASES.length*100)}%"></div></div>
+      <div class="stat-sub">${PHASES.length - phaseDone} phases còn lại</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Còn lại đến 31/7</div>
+      <div class="stat-value stat-warn">${g.days}</div>
+      <div class="stat-sub">ngày — deadline apply CV</div>
+    </div>
+  `;
+}
+
+function renderOverview() {
+  const html = `
+    <div style="margin-bottom:16px;font-size:15px;font-weight:600;">Tổng quan tất cả phases</div>
+    <div class="overview-grid">
+      ${PHASES.map(p => {
+        const s = phaseStats(p);
+        const color = s.pct===100?'var(--success)':s.pct>0?'var(--warn)':'var(--gray)';
+        return `<div class="phase-card" onclick="showView('${p.id}')">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:20px">${p.icon}</span>
+            <div>
+              <div class="phase-card-title">${p.label}</div>
+              <div class="phase-card-meta">${p.period}</div>
+            </div>
+            <div style="margin-left:auto;font-size:18px;font-weight:700;color:${color}">${s.pct}%</div>
+          </div>
+          <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${s.pct}%;background:${p.color}"></div></div>
+          <div class="phase-card-stats">
+            <span style="color:var(--success)">✓ ${s.done} done</span>
+            <span style="color:var(--gray)">○ ${s.total-s.done} left</span>
+            ${p.jd?'<span class="tag tag-jd" style="margin-left:auto">JD match</span>':''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderPhase(phaseId) {
+  const phase = PHASES.find(p => p.id === phaseId);
+  if (!phase) return;
+  const s = phaseStats(phase);
+
+  const weeksHtml = phase.weeks.map((week, wi) => {
+    const wDone = week.tasks.filter(t => checked[t.id]).length;
+    const wStatus = wDone === 0 ? 'pending' : wDone === week.tasks.length ? 'done' : 'progress';
+    const statusLabel = wStatus === 'done' ? 'Xong' : wStatus === 'progress' ? 'Đang làm' : 'Chưa bắt đầu';
+
+    const tasksHtml = week.tasks.map(t => {
+      const isDone = !!checked[t.id];
+      const tagMap = { jd:'tag-jd', be:'tag-be', fe:'tag-fe', ai:'tag-ai', mob:'tag-mob', ops:'tag-ops' };
+      const tagLabels = { jd:'JD', be:'Backend', fe:'Frontend', ai:'AI', mob:'Mobile', ops:'DevOps' };
+      const tagsHtml = t.tags.map(tg => `<span class="tag ${tagMap[tg]||''}">${tagLabels[tg]||tg}</span>`).join('');
+      const priClass = t.pri==='high'?'pri-high':t.pri==='med'?'pri-med':'pri-low';
+      const priLabel = t.pri==='high'?'Cao':t.pri==='med'?'Trung bình':'Thấp';
+      return `<div class="task-row">
+        <div class="task-check ${isDone?'checked':''}" onclick="toggleTask('${t.id}')"></div>
+        <div class="task-body">
+          <div class="task-title ${isDone?'done':''}">${t.text}</div>
+          <div class="task-tags">${tagsHtml}</div>
+        </div>
+        <span class="task-priority ${priClass}">${priLabel}</span>
+      </div>`;
+    }).join('');
+
+    const customTasks = (JSON.parse(localStorage.getItem('custom_tasks_'+week.id)||'[]'));
+    const customHtml = customTasks.map((ct,ci) => {
+      const isDone = !!checked['c_'+week.id+'_'+ci];
+      return `<div class="task-row">
+        <div class="task-check ${isDone?'checked':''}" onclick="toggleTask('c_${week.id}_${ci}')"></div>
+        <div class="task-body"><div class="task-title ${isDone?'done':''}">${ct}</div></div>
+        <span class="task-priority pri-low">Tự thêm</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="week-block">
+      <div class="week-header" onclick="toggleWeek('wc_${week.id}')">
+        <span class="week-badge badge-${wStatus}">${statusLabel}</span>
+        <span class="week-label">${week.label}</span>
+        <span style="font-size:12px;color:var(--gray);margin-left:8px">${wDone}/${week.tasks.length}</span>
+        <span class="week-chevron ${wi===0?'open':''}" id="chev_${week.id}">▶</span>
+      </div>
+      <div class="week-tasks ${wi===0?'open':''}" id="wc_${week.id}">
+        ${tasksHtml}
+        ${customHtml}
+        <div class="add-task-row">
+          <input class="add-input" type="text" placeholder="+ Thêm task của bạn..." id="inp_${week.id}" onkeydown="if(event.key==='Enter')addTask('${week.id}')">
+          <button class="add-btn" onclick="addTask('${week.id}')">Thêm</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const noteKey = 'note_'+phaseId;
+  const savedNote = notes[noteKey] || '';
+
+  document.getElementById('content').innerHTML = `
+    <div class="phase-header">
+      <div class="phase-icon" style="background:${phase.bg}">${phase.icon}</div>
+      <div>
+        <div class="phase-title">${phase.label}</div>
+        <div class="phase-meta">${phase.period} ${phase.jd?'· <span class="tag tag-jd">JD Match</span>':''}</div>
+      </div>
+      <div class="phase-pct">${s.pct}%</div>
+    </div>
+    ${weeksHtml}
+    <div class="notes-section">
+      <h3>📝 Ghi chú phase này</h3>
+      <div class="daily-note">
+        <textarea id="note_area_${phaseId}" placeholder="Ghi lại progress, vấn đề gặp phải, link tài liệu hữu ích...">${savedNote}</textarea>
+        <button class="save-note-btn" onclick="saveNote('${phaseId}')">Lưu ghi chú</button>
+        <span class="note-saved" id="note_saved_${phaseId}">✓ Đã lưu</span>
+      </div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════════════
+function showView(viewId) {
+  currentView = viewId;
+  document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('nav-'+viewId);
+  if(btn) btn.classList.add('active');
+  if(viewId === 'overview') renderOverview();
+  else renderPhase(viewId);
+  renderStats();
+  renderSidebar();
+}
+
+function toggleTask(taskId) {
+  checked[taskId] = !checked[taskId];
+  save();
+  showView(currentView);
+}
+
+function toggleWeek(elId) {
+  const el = document.getElementById(elId);
+  const weekId = elId.replace('wc_','');
+  const chev = document.getElementById('chev_'+weekId);
+  if(!el) return;
+  el.classList.toggle('open');
+  if(chev) chev.classList.toggle('open');
+}
+
+function addTask(weekId) {
+  const inp = document.getElementById('inp_'+weekId);
+  if(!inp || !inp.value.trim()) return;
+  const key = 'custom_tasks_'+weekId;
+  const tasks = JSON.parse(localStorage.getItem(key)||'[]');
+  tasks.push(inp.value.trim());
+  localStorage.setItem(key, JSON.stringify(tasks));
+  showView(currentView);
+}
+
+function saveNote(phaseId) {
+  const area = document.getElementById('note_area_'+phaseId);
+  if(!area) return;
+  notes['note_'+phaseId] = area.value;
+  save();
+  const saved = document.getElementById('note_saved_'+phaseId);
+  if(saved) { saved.style.opacity='1'; setTimeout(()=>saved.style.opacity='0', 2000); }
+}
+
+// ══════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════
+load();
+renderStats();
+renderSidebar();
+renderOverview();
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: lms_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: lms_db
+      MYSQL_PASSWORD: lms_password
+      MYSQL_USER: lms_user
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:alpine
+    container_name: lms_redis
+    ports:
+      - "6379:6379"
+
+  mongodb:
+    image: mongo:latest
+    container_name: lms_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  minio:
+    image: minio/minio
+    container_name: lms_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  mysql_data:
+  mongo_data:
+  minio_data:
