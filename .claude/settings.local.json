@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(open -a Docker)",
+      "Bash(echo \"exit: $?\")"
+    ]
+  }
+}

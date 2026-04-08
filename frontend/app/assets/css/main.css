@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans text-gray-900 bg-[#F8FAFC] antialiased; /* Switched to slate-50 for a cooler base */
+  }
+}
+
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+  
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+  
+  .gradient-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-emerald-500;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-primary to-emerald-500 text-white hover:from-primary-dark hover:to-primary shadow-sm hover:shadow-md focus:ring-primary border border-transparent;
+  }
+  .btn-secondary {
+    @apply btn border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 focus:ring-gray-200 shadow-sm;
+  }
+  .btn-danger {
+    @apply btn bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 shadow-sm hover:shadow-md focus:ring-red-500 border border-transparent;
+  }
+  .btn-ghost {
+    @apply btn text-gray-600 hover:bg-gray-100 focus:ring-gray-300 hover:text-gray-900;
+  }
+  
+  /* Export Button */
+  .btn-export {
+    @apply btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-primary hover:border-primary-300 shadow-sm relative overflow-hidden;
+  }
+  
+  .input {
+    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary-light transition-all duration-200 shadow-sm;
+  }
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1.5;
+  }
+  
+  /* Upgraded Cards */
+  .card {
+    @apply bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  
+  .card-glass {
+    @apply glass-effect rounded-2xl;
+  }
+  
+  /* Stat Cards */
+  .stat-card {
+    @apply card p-5 relative overflow-hidden;
+  }
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-300 to-transparent opacity-0 transition-opacity duration-300;
+  }
+  .stat-card:hover::before {
+    opacity: 1;
+  }
+  
+  /* Table Styles */
+  .admin-table {
+    @apply w-full text-left border-collapse;
+  }
+  .admin-table th {
+    @apply px-5 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 bg-gray-50/50 backdrop-blur-sm sticky top-0 z-10;
+  }
+  .admin-table td {
+    @apply px-5 py-4 border-b border-gray-50 transition-colors duration-150;
+  }
+  .admin-table tr {
+    @apply hover:bg-[#F8FAFC] transition-colors duration-150 relative;
+  }
+  .admin-table tr::after {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-1 bg-primary scale-y-0 transition-transform duration-200 origin-center;
+  }
+  .admin-table tr:hover::after {
+    transform: scaleY(1);
+  }
+  
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide border;
+  }
+  .badge-success {
+    @apply badge bg-emerald-50 text-emerald-700 border-emerald-100;
+  }
+  .badge-warning {
+    @apply badge bg-amber-50 text-amber-700 border-amber-100;
+  }
+  .badge-danger {
+    @apply badge bg-rose-50 text-rose-700 border-rose-100;
+  }
+  .badge-gray {
+    @apply badge bg-slate-50 text-slate-600 border-slate-200;
+  }
+  
+  /* Pagination */
+  .pagination-wrapper {
+    @apply flex items-center justify-between border-t border-gray-100 px-5 py-4 bg-white/50 backdrop-blur-sm rounded-b-2xl;
+  }
+  .pagination-btn {
+    @apply w-9 h-9 flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-200 select-none;
+  }
+  .pagination-btn-active {
+    @apply bg-primary text-white shadow-md shadow-primary/20 scale-105;
+  }
+  .pagination-btn-inactive {
+    @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent hover:border-gray-200;
+  }
+  .pagination-btn-disabled {
+    @apply text-gray-300 cursor-not-allowed border border-transparent;
+  }
+}

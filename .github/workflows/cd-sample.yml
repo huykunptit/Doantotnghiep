@@ -1,0 +1,33 @@
+name: CD Sample
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Sample Deploy Job
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy placeholder
+        run: |
+          echo "CD sample is running on branch: ${GITHUB_REF_NAME}"
+          echo "Replace this step with real deploy command (SSH, Docker, or cloud CLI)."
+
+      # Example (commented): Deploy via SSH
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1.0.3
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     script: |
+      #       cd /var/www/lms
+      #       git pull origin main
+      #       docker compose up -d --build
