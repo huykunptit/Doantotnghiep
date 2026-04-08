@@ -1,0 +1,20 @@
+# Secrets / environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Sensitive docs (new markdown files)
+*.md
+**/*.md
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Dependencies / build outputs
+**/node_modules/
+**/.nuxt/
+**/.output/
+**/dist/
