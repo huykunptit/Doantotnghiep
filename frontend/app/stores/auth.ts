@@ -32,13 +32,12 @@ export const useAuthStore = defineStore('auth', {
 
     setToken(token: string | null) {
       this.token = token
-      if (import.meta.client) {
-        if (token) {
-          localStorage.setItem('token', token)
-        } else {
-          localStorage.removeItem('token')
-        }
-      }
+      const tokenCookie = useCookie('token', {
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: '/',
+        watch: true,
+      })
+      tokenCookie.value = token
     },
 
     async register(payload: { name: string; email: string; password: string }) {
@@ -56,6 +55,25 @@ export const useAuthStore = defineStore('auth', {
       const data = await useApi<AuthPayload>('/auth/login', {
         method: 'POST',
         body: payload,
+      })
+
+      this.setToken(data.access_token)
+      this.setUser(data.user)
+      this.isReady = true
+    },
+
+    async getGoogleLoginUrl() {
+      const data = await useApi<{ url: string }>('/auth/google/url', {
+        method: 'GET',
+      })
+
+      return data.url
+    },
+
+    async loginWithGoogleCallback(queryString: string) {
+      const path = queryString ? `/auth/google/callback?${queryString}` : '/auth/google/callback'
+      const data = await useApi<AuthPayload>(path, {
+        method: 'GET',
       })
 
       this.setToken(data.access_token)
@@ -103,8 +121,9 @@ export const useAuthStore = defineStore('auth', {
     },
 
     initFromStorage() {
-      if (import.meta.client && !this.token) {
-        this.token = localStorage.getItem('token')
+      const tokenCookie = useCookie('token')
+      if (tokenCookie.value) {
+        this.token = tokenCookie.value
       }
       this.isReady = true
     },

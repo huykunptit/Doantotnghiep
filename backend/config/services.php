@@ -41,11 +41,13 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
-    'vnpay' => [
-        'url'        => env('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
-        'tmn_code'   => env('VNPAY_TMN_CODE'),
-        'hash_secret' => env('VNPAY_HASH_SECRET'),
-        'return_url'  => env('VNPAY_RETURN_URL', 'http://localhost/api/vnpay/return'),
+    'payos' => [
+        'client_id' => env('PAYOS_CLIENT_ID'),
+        'api_key' => env('PAYOS_API_KEY'),
+        'checksum_key' => env('PAYOS_CHECKSUM_KEY'),
+        'return_url' => env('PAYOS_RETURN_URL', 'http://localhost/payment/payos/callback'),
+        'cancel_url' => env('PAYOS_CANCEL_URL', 'http://localhost/payment/payos/callback?cancelled=1'),
+        'webhook_url' => env('PAYOS_WEBHOOK_URL', 'http://localhost/api/payos/webhook'),
     ],
 
     'ai_service' => [

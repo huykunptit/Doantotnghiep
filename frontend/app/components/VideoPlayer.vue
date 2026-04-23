@@ -3,15 +3,15 @@
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
       <div class="spinner"></div>
-      <p class="text-sm text-gray-600 mt-4">Loading video...</p>
+      <p class="text-sm text-on-surface-variant mt-4">Loading video...</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="error" class="error-state">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-12 h-12 text-red-500">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-12 h-12 text-error">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
-      <p class="text-red-600 font-semibold mt-4">{{ error }}</p>
+      <p class="text-error font-semibold mt-4">{{ error }}</p>
       <button @click="retryLoad" class="btn-retry">Retry</button>
     </div>
 
@@ -39,16 +39,18 @@
 
     <!-- No Video -->
     <div v-else class="no-video-state">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-12 h-12 text-gray-400">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-12 h-12 text-outline">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
       </svg>
-      <p class="text-gray-600 mt-4">No video available</p>
+      <p class="text-on-surface-variant mt-4">No video available</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { useApi } from '~/composables/useApi'
 
 const props = defineProps<{
   courseId: number

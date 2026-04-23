@@ -1,120 +1,156 @@
 <template>
-  <div class="section-manager">
-    <!-- Header -->
-    <div class="header">
-      <h3 class="title">Course Curriculum</h3>
-      <button @click="showAddSection = true" class="btn-primary">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Add Section
+  <div class="section-manager w-full">
+    <!-- Header Controls -->
+    <div class="flex justify-between items-center mb-8 pb-4 border-b border-surface-dim/30">
+      <h3 class="title text-xl font-bold font-headline text-on-surface">Cấu trúc Giáo trình</h3>
+      <button @click="showAddSection = true" class="flex items-center gap-2 px-5 py-2.5 bg-surface-low text-primary text-sm font-bold rounded-lg hover:bg-surface-high transition-colors">
+        <span class="material-symbols-outlined text-[18px]">add_circle</span>
+        Chương mới
       </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Loading curriculum...</p>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-16 text-outline">
+      <span class="material-symbols-outlined animate-spin text-4xl mb-4">settings</span>
+      <p class="text-sm font-medium">Đang tải biểu đồ giáo trình...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="sections.length === 0" class="py-16 text-center bg-surface-low rounded-2xl border-2 border-dashed border-surface-dim mt-4">
+      <span class="material-symbols-outlined text-5xl text-outline mb-4">account_tree</span>
+      <p class="text-on-surface-variant font-medium">Chưa có nội dung nào. Cùng xây dựng những chương học đầu tiên nhé!</p>
+      <button @click="showAddSection = true" class="mt-6 px-6 py-2 cta-gradient text-white font-bold text-sm rounded-lg shadow-md hover:shadow-lg transition-all">
+        Bắt đầu tạo Chương
+      </button>
     </div>
 
     <!-- Sections List -->
-    <div v-else class="sections-list">
-      <div
-        v-for="(section, index) in sections"
-        :key="section.id"
-        class="section-card"
-      >
-        <!-- Section Header -->
-        <div class="section-header">
-          <div class="section-info">
-            <span class="section-number">Section {{ index + 1 }}</span>
-            <h4 class="section-title">{{ section.title }}</h4>
-            <p v-if="section.description" class="section-description">{{ section.description }}</p>
-            <div class="section-meta">
-              <span>{{ section.lessons?.length || 0 }} lessons</span>
-              <span v-if="section.total_duration">{{ formatDuration(section.total_duration) }}</span>
+    <div v-else class="space-y-8">
+      <div v-for="(section, index) in sections" :key="section.id" class="group/section">
+        
+        <!-- Section Header Bar -->
+        <div class="flex items-center gap-4 p-4 mb-4 bg-surface-low rounded-xl group-hover/section:bg-surface-high transition-all border border-surface-dim/0 group-hover/section:border-surface-dim">
+          <span class="material-symbols-outlined text-outline cursor-grab active:cursor-grabbing hover:text-primary transition-colors">drag_indicator</span>
+          <div class="flex-1 min-w-0">
+            <span class="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded">Chương {{ index + 1 }}</span>
+            <h4 class="font-headline font-bold text-lg text-on-surface mt-1 truncate">{{ section.title }}</h4>
+            <p v-if="section.description" class="text-xs text-on-surface-variant truncate">{{ section.description }}</p>
+            <div class="flex items-center gap-4 mt-2 text-xs font-medium text-outline">
+              <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">format_list_bulleted</span> {{ section.lessons?.length || 0 }} Bài học</span>
+              <span v-if="section.total_duration" class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> {{ formatDuration(section.total_duration) }}</span>
             </div>
           </div>
-
-          <div class="section-actions">
-            <button @click="editSection(section)" class="btn-icon" title="Edit">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
+          <div class="flex items-center gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+            <button @click="editSection(section)" class="p-2 hover:bg-surface-lowest rounded-lg text-outline transition-colors shadow-sm" title="Sửa tên chương">
+              <span class="material-symbols-outlined text-[18px]">edit</span>
             </button>
-            <button @click="deleteSection(section.id)" class="btn-icon text-red-600" title="Delete">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
+            <button @click="deleteSection(section.id)" class="p-2 hover:bg-error-container rounded-lg text-error transition-colors shadow-sm" title="Xóa chương này">
+              <span class="material-symbols-outlined text-[18px]">delete</span>
             </button>
           </div>
         </div>
 
         <!-- Lessons in Section -->
-        <div v-if="section.lessons && section.lessons.length > 0" class="lessons-list">
-          <div
-            v-for="lesson in section.lessons"
-            :key="lesson.id"
-            class="lesson-item"
-          >
-            <div class="lesson-info">
-              <!-- Video icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-5 h-5 text-gray-400">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span class="lesson-title">{{ lesson.title }}</span>
-              <span v-if="lesson.is_preview" class="preview-badge">Preview</span>
-              <span v-if="lesson.duration" class="lesson-duration">{{ formatDuration(lesson.duration) }}</span>
-              <!-- Video status badge -->
-              <span v-if="lesson.video_status === 'ready'" class="video-badge video-badge--ready">✓ Video</span>
-              <span v-else-if="lesson.video_status === 'processing'" class="video-badge video-badge--processing">⏳ Xử lý</span>
-              <span v-else-if="lesson.video_status === 'failed'" class="video-badge video-badge--failed">✗ Lỗi</span>
-              <span v-else-if="lesson.video_url" class="video-badge video-badge--ready">✓ Video</span>
-              <span v-else class="video-badge video-badge--pending">Chưa có video</span>
+        <div class="pl-8 md:pl-12 space-y-3 relative before:absolute before:left-6 before:top-0 before:bottom-0 before:w-[2px] before:bg-surface-high">
+          
+          <div v-for="lesson in section.lessons" :key="lesson.id" class="bg-surface-lowest p-4 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center gap-4 border border-surface-dim/10 hover:border-primary/30 group/lesson relative z-10">
+            <div class="flex items-center gap-4 w-full md:w-auto flex-1">
+              <span class="material-symbols-outlined text-outline-variant cursor-grab active:cursor-grabbing hover:text-primary transition-colors">menu</span>
+              
+              <!-- Video / Media Type Icon -->
+              <div class="w-10 h-10 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">{{ lesson.video_url || lesson.video_status === 'ready' ? 'play_circle' : 'article' }}</span>
+              </div>
+              
+              <div class="flex-1 min-w-0">
+                <p class="font-bold text-sm text-on-surface truncate">{{ lesson.title }}</p>
+                <div class="flex items-center gap-3 mt-1">
+                   <span v-if="lesson.is_preview" class="text-[9px] bg-secondary-container/30 text-secondary px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Preview</span>
+                   <span v-if="lesson.duration" class="text-xs text-on-surface-variant font-medium">{{ formatDuration(lesson.duration) }}</span>
+                </div>
+              </div>
             </div>
-            <div class="lesson-actions">
-              <button @click="$emit('edit-lesson', lesson)" class="btn-icon-sm" title="Chỉnh sửa">Edit</button>
-              <button @click="$emit('upload-video', lesson)" class="btn-icon-sm btn-upload" title="Upload video">
-                📹 Upload
+            
+            <!-- Video Status -->
+            <div class="flex items-center shrink-0">
+               <span v-if="lesson.video_status === 'ready' || lesson.video_url" class="text-[10px] bg-secondary/10 text-secondary px-2 py-1 rounded font-bold uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> Video</span>
+               <span v-else-if="lesson.video_status === 'processing'" class="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-1 rounded font-bold uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px] animate-spin">refresh</span> Xử lý</span>
+               <span v-else-if="lesson.video_status === 'failed'" class="text-[10px] bg-error/10 text-error px-2 py-1 rounded font-bold uppercase tracking-widest flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">error</span> Lỗi</span>
+               <span v-else class="text-[10px] bg-surface-high text-outline px-2 py-1 rounded font-bold uppercase tracking-widest flex items-center gap-1 hidden sm:flex"><span class="material-symbols-outlined text-[14px]">hourglass_empty</span> Trống</span>
+            </div>
+
+            <!-- Actions Panel -->
+            <div class="flex items-center justify-end gap-2 w-full md:w-auto pt-4 md:pt-0 border-t md:border-t-0 border-surface-dim opacity-100 md:opacity-0 md:group-hover/lesson:opacity-100 transition-opacity">
+              <button @click="$emit('edit-lesson', lesson)" class="px-2.5 py-1.5 text-[11px] font-bold text-on-surface-variant bg-surface-low hover:bg-surface-high hover:text-primary rounded shadow-sm transition-all flex items-center gap-1" title="Chỉnh sửa thông tin">
+                <span class="material-symbols-outlined text-[14px]">edit</span>
               </button>
-              <button @click="$emit('delete-lesson', lesson)" class="btn-icon-sm btn-danger" title="Xóa bài học">Delete</button>
+              <button @click="$emit('upload-video', lesson)" class="px-3 py-1.5 text-[11px] font-bold text-white cta-gradient rounded shadow-sm hover:shadow-md transition-all flex items-center gap-1" title="Tải Video Giáo trình">
+                <span class="material-symbols-outlined text-[14px]">video_library</span> Video
+              </button>
+              <NuxtLink :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/quiz`" class="px-2.5 py-1.5 text-[11px] font-bold text-on-surface-variant bg-surface-low hover:bg-surface-high hover:text-primary rounded shadow-sm transition-all flex items-center gap-1" title="Quản lý Quiz (Bài Test)">
+                <span class="material-symbols-outlined text-[14px]">quiz</span>
+              </NuxtLink>
+              <NuxtLink :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/attachments`" class="px-2.5 py-1.5 text-[11px] font-bold text-on-surface-variant bg-surface-low hover:bg-surface-high hover:text-primary rounded shadow-sm transition-all flex items-center gap-1" title="Thêm tài liệu (PDF, File đính kèm)">
+                <span class="material-symbols-outlined text-[14px]">attach_file</span>
+              </NuxtLink>
+              <button @click="$emit('delete-lesson', lesson)" class="px-2.5 py-1.5 text-[11px] font-bold text-error bg-error-container/20 hover:bg-error-container hover:text-error rounded shadow-sm transition-all flex items-center gap-1 group-hover/lesson:opacity-100" title="Xóa bỏ">
+                <span class="material-symbols-outlined text-[14px]">delete</span>
+              </button>
             </div>
           </div>
+
+          <!-- Add Content Area (Drop zone mock/Add button) -->
+          <div class="border-2 border-dashed border-surface-dim/50 rounded-xl py-4 flex items-center justify-center text-outline hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-colors cursor-pointer group/add relative z-10" @click="$emit('add-lesson', section)">
+            <span class="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">add</span>
+              Thêm bài học vào chương này
+            </span>
+          </div>
+
         </div>
-
-        <!-- Add Lesson Button -->
-        <button @click="$emit('add-lesson', section)" class="btn-add-lesson">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Add Lesson
-        </button>
-      </div>
-
-      <!-- Empty State -->
-      <div v-if="sections.length === 0" class="empty-state">
-        <p>No sections yet. Create your first section to start building your course!</p>
       </div>
     </div>
 
-    <!-- Add/Edit Section Modal -->
-    <div v-if="showAddSection || editingSection" class="modal-overlay" @click.self="closeModal">
-      <div class="modal">
-        <h3 class="modal-title">{{ editingSection ? 'Edit Section' : 'Add New Section' }}</h3>
-        <form @submit.prevent="saveSection">
-          <div class="form-group">
-            <label>Title *</label>
-            <input v-model="sectionForm.title" type="text" required class="input">
+    <!-- Add/Edit Section Modal Overlays (Using Teleport in case but here it's mounted inside) -->
+    <div v-if="showAddSection || editingSection" class="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" @click.self="closeModal">
+      <div class="w-full max-w-lg rounded-[2rem] bg-surface-lowest p-8 shadow-ambient modal-bounce border border-surface-dim">
+        <div class="mb-6 flex items-center justify-between border-b border-surface-dim/30 pb-4">
+           <h3 class="font-headline text-xl font-bold text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">{{ editingSection ? 'edit' : 'view_cozy' }}</span>
+              {{ editingSection ? 'Chỉnh sửa Tên Chương' : 'Tạo Chương Mới' }}
+           </h3>
+           <button class="text-outline hover:bg-surface-low p-2 rounded-full transition-colors" @click="closeModal">
+              <span class="material-symbols-outlined text-[20px]">close</span>
+           </button>
+        </div>
+
+        <form @submit.prevent="saveSection" class="space-y-5">
+          <div>
+            <label class="block text-sm font-bold text-on-surface mb-2">Tiêu đề (Tên chương) <span class="text-error">*</span></label>
+            <input v-model="sectionForm.title" type="text" required class="w-full rounded-xl border border-outline-variant bg-surface-lowest px-4 py-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary shadow-sm outline-none transition-all placeholder-outline" placeholder="VD: Chương 1: Nhập môn kiến trúc tĩnh">
           </div>
-          <div class="form-group">
-            <label>Description</label>
-            <textarea v-model="sectionForm.description" rows="3" class="input"></textarea>
+          <div>
+            <label class="block text-sm font-bold text-on-surface mb-2">Mô tả ngắn gọn (Tùy chọn)</label>
+            <textarea v-model="sectionForm.description" rows="3" class="w-full flex-1 rounded-xl border border-outline-variant bg-surface-lowest px-4 py-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary shadow-sm outline-none transition-all placeholder-outline" placeholder="Tóm tắt về mục đích của chương này..."></textarea>
           </div>
-          <div class="modal-actions">
-            <button type="button" @click="closeModal" class="btn-secondary">Cancel</button>
-            <button type="submit" class="btn-primary" :disabled="saving">
-              {{ saving ? 'Saving...' : 'Save' }}
+          
+          <div class="sticky bottom-0 -mx-8 -mb-8 mt-6 flex flex-col gap-3 border-t border-surface-dim/30 bg-surface-lowest/95 px-8 py-5 backdrop-blur sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex items-center justify-center gap-2 rounded-xl border border-error/30 bg-error/10 px-6 py-3 text-sm font-bold text-error hover:bg-error hover:text-white hover:shadow-lg transition-all cursor-pointer"
+              @click="closeModal"
+            >
+              <span class="material-symbols-outlined text-[18px]">close</span>
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              :disabled="saving"
+              class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white shadow-md shadow-primary/20 hover:bg-primary-dark hover:shadow-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span v-if="saving" class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+              <span v-else class="material-symbols-outlined text-[18px]">task_alt</span>
+              {{ editingSection ? 'Lưu thay đổi' : 'Lưu chương' }}
             </button>
           </div>
         </form>
@@ -124,7 +160,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{
   courseId: number
@@ -156,8 +193,8 @@ const loadSections = async () => {
   loading.value = true
   const auth = useAuthStore()
   try {
-    const response = await useApi<{ data: any[] }>(`/courses/${props.courseId}/sections`, {
-      token: auth.token,
+    const response = await $fetch<{ data: any[] }>(`/api/courses/${props.courseId}/sections`, {
+      headers: { Authorization: `Bearer ${auth.token}` }
     })
     sections.value = response.data || []
   } catch (error) {
@@ -172,19 +209,18 @@ const saveSection = async () => {
   const auth = useAuthStore()
   try {
     if (editingSection.value) {
-      await useApi(`/sections/${editingSection.value.id}`, {
+      await $fetch(`/api/sections/${editingSection.value.id}`, {
         method: 'PUT',
         body: sectionForm.value,
-        token: auth.token,
+        headers: { Authorization: `Bearer ${auth.token}` }
       })
     } else {
-      await useApi(`/courses/${props.courseId}/sections`, {
+      await $fetch(`/api/courses/${props.courseId}/sections`, {
         method: 'POST',
         body: sectionForm.value,
-        token: auth.token,
+        headers: { Authorization: `Bearer ${auth.token}` }
       })
     }
-    
     closeModal()
     loadSections()
   } catch (error) {
@@ -203,14 +239,16 @@ const editSection = (section: any) => {
 }
 
 const deleteSection = async (sectionId: number) => {
-  if (!confirm('Are you sure you want to delete this section?')) return
+  if (!confirm('Bạn có chắc chắn muốn xóa chương này cùng tất cả bài học bên trong?')) return
   const auth = useAuthStore()
-
   try {
-    await useApi(`/sections/${sectionId}`, { method: 'DELETE', token: auth.token })
+    await $fetch(`/api/sections/${sectionId}`, { 
+      method: 'DELETE', 
+      headers: { Authorization: `Bearer ${auth.token}` } 
+    })
     await loadSections()
   } catch (error: any) {
-    alert(error?.data?.message || 'Failed to delete section')
+    alert(error?.data?.message || 'Có lỗi khi xóa chương này.')
   }
 }
 
@@ -221,6 +259,7 @@ const closeModal = () => {
 }
 
 const formatDuration = (seconds: number) => {
+  if (!seconds) return ''
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -230,355 +269,11 @@ defineExpose({ loadSections })
 </script>
 
 <style scoped>
-.section-manager {
-  width: 100%;
+.modal-bounce {
+  animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: #16a34a;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: #15803d;
-}
-
-.loading {
-  text-align: center;
-  padding: 48px;
-  color: #6b7280;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #16a34a;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.sections-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.section-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 20px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.section-info {
-  flex: 1;
-}
-
-.section-number {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #16a34a;
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 12px;
-  margin-bottom: 8px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 4px;
-}
-
-.section-description {
-  font-size: 14px;
-  color: #6b7280;
-  margin-top: 4px;
-}
-
-.section-meta {
-  display: flex;
-  gap: 16px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.section-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-icon {
-  padding: 8px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #6b7280;
-}
-
-.btn-icon:hover {
-  background: #f3f4f6;
-  border-color: #16a34a;
-  color: #16a34a;
-}
-
-.lessons-list {
-  padding: 12px 20px;
-}
-
-.lesson-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.lesson-item:hover {
-  background: #f9fafb;
-}
-
-.lesson-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.lesson-title {
-  font-size: 14px;
-  color: #111827;
-  flex: 1;
-}
-
-.lesson-duration {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.video-badge {
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-}
-
-.video-badge--ready {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.video-badge--processing {
-  background: #fef9c3;
-  color: #854d0e;
-}
-
-.video-badge--failed {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.video-badge--pending {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.preview-badge {
-  padding: 2px 8px;
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-}
-
-.lesson-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-icon-sm {
-  padding: 6px 12px;
-  font-size: 13px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-icon-sm:hover {
-  background: #16a34a;
-  color: white;
-  border-color: #16a34a;
-}
-
-.btn-icon-sm.btn-upload:hover {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
-}
-
-.btn-icon-sm.btn-danger:hover {
-  background: #dc2626;
-  color: white;
-  border-color: #dc2626;
-}
-
-.btn-add-lesson {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 12px;
-  background: white;
-  border: 2px dashed #d1d5db;
-  border-radius: 0 0 12px 12px;
-  color: #6b7280;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-add-lesson:hover {
-  background: #f9fafb;
-  border-color: #16a34a;
-  color: #16a34a;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 48px;
-  color: #6b7280;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 2px dashed #d1d5db;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.modal-title {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 24px;
-  color: #111827;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 8px;
-}
-
-.input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.2s;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-}
-
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.btn-secondary {
-  padding: 10px 20px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover {
-  background: #f3f4f6;
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+@keyframes modalBounce {
+  0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 </style>

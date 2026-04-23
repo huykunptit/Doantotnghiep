@@ -1,104 +1,221 @@
 <template>
-  <div class="learn-page">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <NuxtLink :to="`/courses/${courseId}`" class="back-link">← Tổng quan</NuxtLink>
-        <h2 v-if="course">{{ course.title }}</h2>
-      </div>
+  <div class="min-h-screen bg-background text-on-background flex flex-col">
+    <!-- Mobile Sidebar Toggle -->
+    <button @click="isSidebarCollapsed = !isSidebarCollapsed" class="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center">
+      <span class="material-symbols-outlined">{{ isSidebarCollapsed ? 'menu_book' : 'close' }}</span>
+    </button>
 
-      <!-- Progress bar -->
-      <div v-if="progress" class="progress-section">
-        <div class="progress-bar-wrap">
-          <div class="progress-bar-fill" :style="{ width: progress.percent + '%' }" />
+    <div class="flex flex-1">
+      <!-- Curriculum Sidebar -->
+      <aside :class="[
+        'w-80 bg-surface-lowest border-r border-surface-dim flex flex-col z-40 transition-transform duration-300 fixed lg:sticky top-16 h-[calc(100vh-4rem)]',
+        isSidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'
+      ]">
+        <div class="p-6 flex flex-col gap-1 border-b border-surface-dim">
+          <h2 class="text-xs font-bold tracking-widest text-outline uppercase mb-2">Tiến độ khóa học</h2>
+          <div class="w-full bg-surface-high h-1.5 rounded-full overflow-hidden">
+            <div class="progress-gradient h-full transition-all duration-500" :style="{ width: `${progress?.percent || 0}%` }"></div>
+          </div>
+          <span class="text-xs text-on-surface-variant mt-2 font-medium">{{ progress?.percent || 0 }}% Hoàn thành • {{ completedSet.size }}/{{ lessons.length }} Bài</span>
         </div>
-        <p class="progress-text">{{ progress.percent }}% hoàn thành</p>
-      </div>
-
-      <ul class="lesson-nav">
-        <li
-          v-for="lesson in lessons"
-          :key="lesson.id"
-          :class="['nav-item', lesson.id === currentLessonId ? 'active' : '']"
-        >
-          <NuxtLink
-            :to="`/learn/${courseId}/${lesson.id}`"
-            class="nav-link"
+        
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+          <NuxtLink 
+            v-for="(l, idx) in lessons" :key="l.id" 
+            :to="`/learn/${courseId}/${l.id}`" 
+            :class="[
+              'flex items-center gap-3 p-3 rounded-xl font-medium transition-all group',
+              l.id === currentLessonId ? 'bg-surface-lowest shadow-sm border-l-4 border-primary' : 'hover:bg-surface-low text-on-surface-variant border-l-4 border-transparent'
+            ]"
           >
-            <span class="check-icon">
-              {{ completedSet.has(lesson.id) ? '✓' : '○' }}
+            <span class="material-symbols-outlined" :class="completedSet.has(l.id) ? 'text-secondary' : (l.id === currentLessonId ? 'text-primary' : 'text-outline')" :style="l.id === currentLessonId ? 'font-variation-settings: \'FILL\' 1;' : ''">
+              {{ completedSet.has(l.id) ? 'check_circle' : getIconForType(l.type) }}
             </span>
-            <span class="nav-title">{{ lesson.title }}</span>
-            <span v-if="lesson.duration" class="nav-dur">{{ formatDuration(lesson.duration) }}</span>
+            <div class="min-w-0 flex-1">
+              <p :class="['text-sm line-clamp-2', l.id === currentLessonId ? 'font-bold text-on-surface' : '']">{{ l.title }}</p>
+              <p v-if="l.duration" class="text-[10px] text-outline mt-0.5">{{ formatDuration(l.duration) }}</p>
+            </div>
           </NuxtLink>
-        </li>
-      </ul>
-    </aside>
+        </nav>
+      </aside>
 
-    <!-- Main video area -->
-    <main class="video-area">
-      <!-- Video Player Component (presigned URL + auto progress) -->
-      <div class="video-wrap">
-        <VideoPlayer
-          v-if="lesson && lesson.video_url !== undefined"
-          :key="`${courseId}-${currentLessonId}`"
-          :course-id="courseId"
-          :lesson-id="currentLessonId"
-          :autoplay="false"
-          @progress="onPlayerProgress"
-          @ended="onPlayerEnded"
-        />
-        <div v-else-if="!lesson" class="video-placeholder">
-          <p>⏳ Đang tải bài học...</p>
-        </div>
-        <div v-else class="video-placeholder">
-          <p>⏳ Video chưa được tải lên hoặc đang xử lý.</p>
-        </div>
-      </div>
+      <!-- Main Workspace Content -->
+      <main class="flex-1 flex flex-col min-w-0">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 w-full h-full flex flex-col">
+          
+          <!-- Breadcrumbs -->
+          <nav class="flex items-center gap-2 text-xs font-medium text-on-surface-variant mb-6 hidden sm:flex">
+            <NuxtLink :to="`/courses/${courseId}`" class="hover:text-primary transition-colors">{{ course?.title || 'Khóa học' }}</NuxtLink>
+            <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span class="text-primary truncate max-w-[200px]">{{ lesson?.title || 'Đang tải...' }}</span>
+          </nav>
 
-      <div v-if="lesson" class="lesson-info">
-        <h1>{{ lesson.title }}</h1>
-        <div class="lesson-meta">
-          <span v-if="lesson.duration">⏱ {{ formatDuration(lesson.duration) }}</span>
-          <span v-if="lesson.is_preview" class="preview-badge">👁 Xem thử miễn phí</span>
-          <span v-if="isCompleted" class="completed-badge">✓ Đã hoàn thành</span>
-        </div>
-        <p v-if="lesson.description" class="lesson-description">{{ lesson.description }}</p>
-      </div>
+          <!-- Core Content / Video Player Area -->
+          <div v-if="!lesson" class="flex-1 flex flex-col items-center justify-center text-outline">
+            <span class="material-symbols-outlined text-4xl mb-4 animate-spin">refresh</span>
+            Đang tải không gian học tập...
+          </div>
+          <div v-else class="space-y-10 flex-1">
+            
+            <!-- Player Section -->
+            <section class="relative rounded-2xl md:rounded-[2rem] overflow-hidden shadow-ambient bg-on-surface aspect-video group border border-surface-dim">
+              <template v-if="lesson.type === 'video'">
+                <VideoPlayer v-if="lesson.video_url" :key="`vid-${lesson.id}`" :course-id="courseId" :lesson-id="lesson.id" @progress="onPlayerProgress" @ended="onPlayerEnded" />
+                <div v-else class="flex h-full items-center justify-center text-outline bg-on-surface/90 absolute inset-0">Video đang xử lý hoặc chưa có.</div>
+              </template>
+              <template v-else-if="lesson.type === 'scorm' || lesson.type === 'h5p'">
+                <ScormPlayer :package-data="lesson.scorm_package" class="w-full h-full bg-surface-lowest" />
+              </template>
+              <template v-else-if="lesson.type === 'virtual_class'">
+                <VirtualClassView v-if="lesson.virtual_class" :data="lesson.virtual_class" class="w-full h-full bg-surface-lowest" />
+                <div v-else class="flex h-full items-center justify-center text-outline bg-on-surface/90 absolute inset-0">Chưa có thông tin lớp học trực tuyến.</div>
+              </template>
+              <template v-else-if="lesson.type === 'assignment'">
+                <AssignmentView v-if="lesson.assignment" :data="lesson.assignment" :course-id="courseId" :lesson-id="lesson.id" class="w-full h-full bg-surface-lowest p-6 overflow-y-auto" />
+                <div v-else class="flex h-full items-center justify-center text-outline bg-on-surface/90 absolute inset-0">Chưa có thông tin bài tập.</div>
+              </template>
+              <template v-else>
+                <div class="absolute inset-0 bg-surface-low p-8 flex flex-col justify-center items-center text-center">
+                  <span class="material-symbols-outlined text-6xl text-primary/40 mb-4">{{ getIconForType(lesson.type) }}</span>
+                  <h2 class="text-2xl font-bold font-headline text-on-surface">{{ lesson.title }}</h2>
+                </div>
+              </template>
+            </section>
 
-      <!-- Navigation -->
-      <div class="nav-btns">
-        <button v-if="prevLesson" class="nav-btn" @click="goTo(prevLesson.id)">
-          ← Bài trước
-        </button>
-        <button v-if="nextLesson" class="nav-btn primary" @click="goTo(nextLesson.id)">
-          Bài tiếp →
-        </button>
-      </div>
-    </main>
+            <!-- Editorial Layout Content -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-12 pb-10">
+              
+              <!-- Primary Left Content -->
+              <div class="col-span-1 lg:col-span-8 space-y-8">
+                <div>
+                  <h2 class="text-3xl font-bold font-headline text-on-surface">{{ lesson.title }}</h2>
+                  <div class="flex items-center gap-4 mt-3">
+                    <span class="bg-surface-high text-xs font-bold text-on-surface uppercase tracking-widest px-2 py-1 rounded">{{ getTypeText(lesson.type) }}</span>
+                    <span v-if="lesson.duration" class="text-sm font-medium text-on-surface-variant">{{ formatDuration(lesson.duration) }}</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-6 border-b border-surface-dim/30">
+                  <button 
+                    v-for="t in tabs" :key="t.id"
+                    :class="[
+                      'pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all relative top-[1px]',
+                      activeTab === t.id ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                    ]"
+                    @click="activeTab = t.id"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">{{ t.iconStr }}</span>
+                    {{ t.label }}
+                  </button>
+                </div>
+
+                <!-- Tab Panes -->
+                <div class="min-h-[200px]">
+                  <div v-if="activeTab === 'overview'" class="prose prose-slate max-w-none prose-p:leading-relaxed prose-headings:font-headline prose-a:text-primary">
+                    <div v-if="lesson.description" v-html="lesson.description" />
+                    <div v-else class="text-outline italic">Không có mô tả chi tiết cho bài học này.</div>
+                  </div>
+                  <div v-else-if="activeTab === 'quiz'">
+                    <StudentQuiz :course-id="courseId" :lesson-id="lesson.id" />
+                  </div>
+                  <div v-else-if="activeTab === 'files'">
+                    <StudentAttachments :course-id="courseId" :lesson-id="lesson.id" />
+                  </div>
+                  <div v-else-if="activeTab === 'qa'">
+                    <QaSection :course-id="courseId" :lesson-id="lesson.id" />
+                  </div>
+                </div>
+
+                <!-- Footer Navigation Controls -->
+                <div class="flex items-center justify-between pt-8 border-t border-surface-dim/30">
+                  <button 
+                    @click="goTo(prevLesson?.id)" 
+                    :disabled="!prevLesson"
+                    :class="[
+                      'flex items-center gap-3 px-5 py-3 rounded-xl font-bold text-sm transition-all',
+                      prevLesson ? 'bg-surface-high text-on-surface hover:bg-surface-highest' : 'bg-surface-low text-outline cursor-not-allowed opacity-50'
+                    ]"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                    Bài trước
+                  </button>
+                  <span class="text-sm font-bold text-outline uppercase tracking-widest hidden sm:inline">Bài {{ currentIndex + 1 }} / {{ lessons.length }}</span>
+                  <button 
+                    @click="goTo(nextLesson?.id)" 
+                    :disabled="!nextLesson"
+                    :class="[
+                      'flex items-center gap-3 px-5 py-3 rounded-xl font-bold text-sm transition-all',
+                      nextLesson ? 'cta-gradient text-white shadow-md hover:shadow-lg hover:-translate-y-0.5' : 'bg-surface-low text-outline cursor-not-allowed opacity-50'
+                    ]"
+                  >
+                    Bài tiếp
+                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Secondary Right Sidebar -->
+              <div class="col-span-1 lg:col-span-4 space-y-6">
+                <!-- Instructor Brief -->
+                <div class="p-6 rounded-2xl bg-surface-lowest border border-surface-dim shadow-sm">
+                  <h4 class="text-[10px] font-bold text-outline uppercase tracking-widest mb-4">Giảng viên</h4>
+                  <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                      {{ course?.instructor?.name?.charAt(0) || 'I' }}
+                    </div>
+                    <div>
+                      <span class="block text-sm font-bold text-on-surface">{{ course?.instructor?.name || 'Giảng viên' }}</span>
+                      <span class="text-[10px] text-outline">Chuyên gia hệ thống</span>
+                    </div>
+                  </div>
+                  <button @click="activeTab = 'qa'" class="w-full mt-2 text-xs font-bold text-primary hover:underline flex items-center justify-center gap-1 bg-surface-high py-2 rounded-lg">
+                    Hỏi đáp Giảng viên <span class="material-symbols-outlined text-[14px]">chat</span>
+                  </button>
+                </div>
+
+                <div class="p-6 rounded-2xl bg-surface-lowest border border-surface-dim shadow-sm">
+                  <h4 class="text-[10px] font-bold text-outline uppercase tracking-widest mb-4">Tương tác bài học</h4>
+                  <p class="text-sm text-on-surface-variant leading-relaxed">
+                    Mở tab <strong class="text-on-surface">Hỏi đáp</strong> để đặt câu hỏi cho giảng viên, trao đổi về nội dung đang học và xem các phản hồi ngay trong bài học này.
+                  </p>
+                  <button
+                    @click="activeTab = 'qa'"
+                    class="mt-4 w-full rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-bold text-primary transition-all hover:bg-primary hover:text-white"
+                  >
+                    Mở khu vực hỏi đáp
+                  </button>
+                </div>
+              </div>
+
+            </section>
+          </div>
+
+        </div>
+      </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { CourseProgress } from '~/stores/course'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import QaSection from '../../../components/learn/QaSection.vue'
+import { useCourseStore } from '~/stores/course'
 
-// Lesson type mở rộng với các fields mới
 interface LessonExtended {
   id: number
   course_id: number
-  section_id?: number | null
   title: string
+  type: string
   description?: string | null
   video_url?: string | null
-  video_status?: 'pending' | 'processing' | 'ready' | 'failed'
-  video_size?: string | null
-  order: number
   duration: number
   is_preview?: boolean
-  locked?: boolean
+  virtual_class?: any
+  scorm_package?: any
+  offline_session?: any
+  assignment?: any
 }
-
-definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
 const router = useRouter()
@@ -110,27 +227,55 @@ const currentLessonId = computed(() => Number(route.params.lessonId))
 const course = ref(courseStore.currentCourse)
 const lesson = ref<LessonExtended | null>(null)
 const lessons = ref<LessonExtended[]>([])
-const progress = ref<CourseProgress | null>(null)
+const progress = ref<any>(null)
+const activeTab = ref('overview')
+const isSidebarCollapsed = ref(true)
+
+const tabs = [
+  { id: 'overview', label: 'Tổng quan', iconStr: 'info' },
+  { id: 'quiz', label: 'Kiểm tra', iconStr: 'quiz' },
+  { id: 'files', label: 'Tài liệu', iconStr: 'attach_file' },
+  { id: 'qa', label: 'Hỏi đáp', iconStr: 'forum' }
+]
 
 const completedSet = computed(() => {
   const set = new Set<number>()
-  progress.value?.lessons?.forEach((l) => { if (l.completed) set.add(l.id) })
+  progress.value?.lessons?.forEach((l: any) => { if (l.completed) set.add(l.id) })
   return set
 })
 
-const isCompleted = computed(() => completedSet.value.has(currentLessonId.value))
+const currentIndex = computed(() => lessons.value.findIndex(l => l.id === currentLessonId.value))
+const prevLesson = computed(() => currentIndex.value > 0 ? lessons.value[currentIndex.value - 1] : null)
+const nextLesson = computed(() => currentIndex.value < lessons.value.length - 1 ? lessons.value[currentIndex.value + 1] : null)
 
-const currentIndex = computed(() =>
-  lessons.value.findIndex((l) => l.id === currentLessonId.value)
-)
-const prevLesson = computed(() =>
-  currentIndex.value > 0 ? lessons.value[currentIndex.value - 1] : null
-)
-const nextLesson = computed(() =>
-  currentIndex.value < lessons.value.length - 1 ? lessons.value[currentIndex.value + 1] : null
-)
+function getTypeText(type: string) {
+  const map: Record<string, string> = {
+    video: 'Video',
+    scorm: 'SCORM',
+    h5p: 'H5P',
+    virtual_class: 'Online',
+    offline: 'Offline',
+    assignment: 'Bài tập',
+    quiz: 'Kiểm tra'
+  }
+  return map[type] || 'Tài liệu'
+}
+
+function getIconForType(type: string) {
+  const map: Record<string, string> = {
+    video: 'play_circle',
+    scorm: 'subscriptions',
+    h5p: 'extension',
+    virtual_class: 'video_camera_front',
+    offline: 'groups',
+    assignment: 'assignment',
+    quiz: 'quiz'
+  }
+  return map[type] || 'description'
+}
 
 function formatDuration(seconds: number) {
+  if (!seconds) return ''
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return `${m}:${String(s).padStart(2, '0')}`
@@ -144,22 +289,17 @@ async function loadLesson() {
   }
 }
 
-// Handlers từ VideoPlayer component
-const onPlayerProgress = async (data: { watched_seconds: number; completed: boolean }) => {
-  if (data.completed) {
-    try {
-      progress.value = await courseStore.fetchCourseProgress(courseId)
-    } catch { }
-  }
+const onPlayerProgress = async () => {
+    progress.value = await courseStore.fetchCourseProgress(courseId)
 }
 
 const onPlayerEnded = async () => {
-  try {
     progress.value = await courseStore.fetchCourseProgress(courseId)
-  } catch { }
 }
 
-function goTo(lessonId: number) {
+function goTo(lessonId?: number) {
+  if (!lessonId) return
+  activeTab.value = 'overview'
   router.push(`/learn/${courseId}/${lessonId}`)
 }
 
@@ -170,10 +310,8 @@ async function init() {
   course.value = courseStore.currentCourse
 
   const data = await courseStore.fetchLessons(courseId)
-  lessons.value = Array.isArray(data)
-    ? data.filter((l: any) => !l.locked) as LessonExtended[]
-    : []
-
+  lessons.value = (data as any[] || []).filter(l => !l.locked)
+  
   try {
     progress.value = await courseStore.fetchCourseProgress(courseId)
   } catch { }
@@ -189,48 +327,7 @@ onMounted(init)
 </script>
 
 <style scoped>
-.learn-page { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 64px); gap: 0; margin: -20px -16px; }
-
-/* Sidebar */
-.sidebar { background: #1f2937; color: #f3f4f6; overflow-y: auto; display: flex; flex-direction: column; }
-.sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid #374151; }
-.back-link { font-size: 12px; color: #9ca3af; text-decoration: none; display: block; margin-bottom: 8px; }
-.back-link:hover { color: #f3f4f6; }
-.sidebar-header h2 { font-size: 14px; font-weight: 700; color: #f9fafb; line-height: 1.4; }
-.progress-section { padding: 12px 16px; border-bottom: 1px solid #374151; }
-.progress-bar-wrap { height: 4px; background: #374151; border-radius: 2px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: #10b981; border-radius: 2px; transition: width 0.4s; }
-.progress-text { font-size: 11px; color: #9ca3af; margin-top: 6px; }
-.lesson-nav { list-style: none; padding: 8px 0; margin: 0; flex: 1; overflow-y: auto; }
-.nav-item { border-left: 3px solid transparent; }
-.nav-item.active { border-left-color: #10b981; background: rgba(16,185,129,0.1); }
-.nav-link { display: flex; align-items: center; gap: 8px; padding: 10px 16px; text-decoration: none; color: #d1d5db; font-size: 13px; transition: background 0.15s; }
-.nav-link:hover { background: rgba(255,255,255,0.05); }
-.nav-item.active .nav-link { color: #f9fafb; }
-.check-icon { font-size: 12px; flex-shrink: 0; width: 16px; color: #10b981; }
-.nav-title { flex: 1; line-height: 1.4; }
-.nav-dur { font-size: 11px; color: #6b7280; flex-shrink: 0; }
-
-/* Video area */
-.video-area { background: #f8fafc; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-.video-placeholder { background: #111827; border-radius: 12px; min-height: 360px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 15px; }
-.video-wrap { background: #000; border-radius: 12px; overflow: hidden; }
-.video-player { width: 100%; max-height: 540px; display: block; }
-.lesson-info { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
-.lesson-info h1 { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 8px; }
-.lesson-meta { display: flex; align-items: center; gap: 12px; color: #6b7280; font-size: 14px; flex-wrap: wrap; }
-.lesson-description { margin-top: 12px; color: #374151; font-size: 15px; line-height: 1.6; }
-.completed-badge { background: #d1fae5; color: #065f46; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
-.preview-badge { background: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
-.nav-btns { display: flex; gap: 12px; }
-.nav-btn { padding: 10px 20px; border: 1px solid #d1d5db; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #374151; }
-.nav-btn.primary { background: #111827; color: #fff; border-color: #111827; }
-.nav-btn:hover { background: #f3f4f6; }
-.nav-btn.primary:hover { background: #1f2937; }
-
-@media (max-width: 768px) {
-  .learn-page { grid-template-columns: 1fr; }
-  .sidebar { max-height: 240px; }
-  .video-area { padding: 12px; }
+html {
+  scroll-behavior: smooth;
 }
 </style>

@@ -1,137 +1,81 @@
 <template>
-  <div class="min-h-screen w-full flex bg-white sm:bg-gray-50/50">
-    <!-- Left Side: Form Area -->
-    <div class="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24 bg-white relative z-10 lg:shadow-[20px_0_40px_-20px_rgba(0,0,0,0.1)]">
-      
-      <!-- Top nav/logo -->
-      <div class="absolute top-8 left-6 sm:left-12 lg:left-16 xl:left-24">
-        <NuxtLink to="/" class="flex items-center gap-2.5 group">
-          <div class="w-10 h-10 bg-gradient-to-br from-primary to-primary-dark rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform duration-300">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+  <main class="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(23,78,166,0.14),_transparent_34%),linear-gradient(180deg,_#f8fbff_0%,_#eef4ff_46%,_#f7f9fc_100%)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <div class="mx-auto grid min-h-[calc(100vh-2.5rem)] w-full max-w-6xl overflow-hidden rounded-[28px] border border-white/70 bg-white/88 shadow-[0_24px_80px_-32px_rgba(23,78,166,0.28)] backdrop-blur lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+      <section class="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between bg-[linear-gradient(160deg,#0f3f91_0%,#174ea6_40%,#2b6ce2_100%)] p-12 text-white">
+        <NuxtLink to="/" class="relative z-10 block space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.32em] text-white/70">PTIT LMS</p>
+          <div>
+            <h1 class="font-headline text-4xl font-extrabold tracking-[-0.04em] text-white">Học tập trực tuyến, gọn và rõ.</h1>
+            <p class="mt-4 max-w-sm text-base leading-7 text-white/80">
+              Một không gian học tập tập trung, nơi nội dung, tiến độ và giảng viên được kết nối trong cùng một trải nghiệm.
+            </p>
           </div>
-          <span class="text-xl font-bold tracking-tight text-gray-900">EduPress</span>
         </NuxtLink>
-      </div>
 
-      <!-- Main form wrapper -->
-      <div class="w-full max-w-[420px] mx-auto mt-12 lg:mt-0 animate-fade-in-up">
-        <slot />
-      </div>
-
-      <!-- Footer bits -->
-      <div class="absolute bottom-8 left-6 sm:left-12 lg:left-16 xl:left-24">
-        <p class="text-xs text-gray-400 font-medium tracking-wide">© 2026 EduPress. All rights reserved.</p>
-      </div>
-    </div>
-
-    <!-- Right Side: Beautiful Branding Showcase -->
-    <div class="hidden lg:flex flex-1 relative overflow-hidden bg-primary-dark">
-      <!-- Dynamic background effects -->
-      <div class="absolute inset-0 bg-gradient-to-br from-primary-dark via-[#0a3a2a] to-black opacity-90 z-0"></div>
-      
-      <!-- Decorative circles -->
-      <div class="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full bg-primary/20 blur-3xl z-0"></div>
-      <div class="absolute -bottom-40 -left-20 w-[500px] h-[500px] rounded-full bg-[#10b981]/10 blur-3xl z-0"></div>
-      
-      <!-- Glassmorphic Content Container -->
-      <div class="relative z-10 w-full flex items-center justify-center p-12 lg:p-24">
-        <div class="max-w-2xl text-center">
-          <!-- Floating UI Elements Illustration -->
-          <div class="relative w-full h-80 mb-12 select-none pointer-events-none">
-            <!-- Center Card -->
-            <div class="absolute top-[10%] left-[50%] -translate-x-[50%] w-[320px] h-[220px] backdrop-blur-xl bg-white/10 rounded-2xl border border-white/20 shadow-2xl p-6 flex flex-col gap-4 animate-float">
-              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] mb-2 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-              </div>
-              <div class="h-4 w-3/4 rounded-full bg-white/30"></div>
-              <div class="h-3 w-1/2 rounded-full bg-white/20"></div>
-              <div class="mt-auto flex justify-between items-center">
-                <div class="flex -space-x-2">
-                  <div class="w-8 h-8 rounded-full bg-white/20 border-2 border-white/10"></div>
-                  <div class="w-8 h-8 rounded-full bg-white/30 border-2 border-white/10"></div>
-                  <div class="w-8 h-8 rounded-full bg-white/40 border-2 border-white/10"></div>
-                </div>
-                <div class="text-xs font-semibold text-white bg-white/20 px-3 py-1 rounded-full">Pro</div>
-              </div>
+        <div class="relative z-10 max-w-md space-y-6">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+              <p class="text-white/65">Khóa học</p>
+              <p class="mt-2 text-2xl font-bold tracking-tight">120+</p>
             </div>
+            <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+              <p class="text-white/65">Lớp đang học</p>
+              <p class="mt-2 text-2xl font-bold tracking-tight">24/7</p>
+            </div>
+          </div>
 
-            <!-- Left floating element -->
-            <div class="absolute top-[40%] left-[10%] w-[160px] h-[70px] backdrop-blur-xl bg-white/10 rounded-xl border border-white/20 shadow-xl p-3 flex items-center gap-3 animate-float-delayed">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              </div>
+          <div class="rounded-[24px] border border-white/15 bg-white/12 p-6 backdrop-blur-md">
+            <p class="text-sm uppercase tracking-[0.24em] text-white/55">Trải nghiệm</p>
+            <p class="mt-4 text-lg leading-8 text-white/88">
+              "Giao diện mới giúp sinh viên vào bài nhanh hơn, còn giảng viên theo dõi tiến độ thuận mắt hơn hẳn."
+            </p>
+            <div class="mt-6 flex items-center gap-3">
+              <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/18 text-sm font-bold text-white">PT</div>
               <div>
-                <div class="h-2 w-16 mb-2 rounded-full bg-white/40"></div>
-                <div class="h-2 w-10 rounded-full bg-white/20"></div>
+                <p class="text-sm font-semibold text-white">Nền tảng đào tạo PTIT</p>
+                <p class="text-sm text-white/60">Tối ưu cho cả giảng viên và sinh viên</p>
               </div>
             </div>
-
-            <!-- Right floating element -->
-            <div class="absolute top-[20%] right-[5%] w-[180px] h-[100px] backdrop-blur-xl bg-white/10 rounded-xl border border-white/20 shadow-xl p-4 flex flex-col gap-3 animate-float-slow">
-              <div class="flex justify-between items-center">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f59e0b] to-[#d97706] flex items-center justify-center">
-                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                </div>
-                <span class="text-white text-xs font-bold">+240 XP</span>
-              </div>
-              <div class="h-2 w-full rounded-full bg-white/20 mt-1"><div class="h-full w-2/3 bg-white/60 rounded-full"></div></div>
-            </div>
           </div>
-
-          <!-- Text block -->
-          <h2 class="text-4xl lg:text-5xl font-extrabold text-white mb-6 leading-tight">
-            Nền tảng tri thức <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-[#34d399] to-[#10b981]">dành riêng cho bạn</span>
-          </h2>
-          <p class="text-lg text-gray-300 font-medium leading-relaxed max-w-xl mx-auto mb-10">
-            Hàng ngàn khóa học chất lượng cao, bài giảng trực quan và cộng đồng học tập năng động đang chờ đón bạn tham gia khám phá mỗi ngày.
-          </p>
-          
-          <div class="flex items-center justify-center gap-6 text-sm text-gray-300 font-medium">
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              Học trọn đời
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              Có chứng chỉ
-            </div>
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 text-[#10b981]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-              Đội ngũ chuyên gia
-            </div>
-          </div>
-
         </div>
-      </div>
+
+        <div class="pointer-events-none absolute inset-0">
+          <div class="absolute -left-24 top-20 h-64 w-64 rounded-full bg-white/12 blur-3xl"></div>
+          <div class="absolute right-0 top-0 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl"></div>
+          <div class="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-cyan-200/10 blur-3xl"></div>
+        </div>
+      </section>
+
+      <section class="flex min-h-full flex-col bg-surface-lowest/95">
+        <div class="border-b border-outline-variant/20 px-5 py-5 sm:px-8 lg:hidden">
+          <div>
+            <NuxtLink to="/" class="inline-block">
+              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">PTIT LMS</p>
+            </NuxtLink>
+            <h1 class="mt-2 font-headline text-2xl font-bold tracking-[-0.03em] text-on-surface">Đăng nhập để tiếp tục học tập</h1>
+            <p class="mt-2 max-w-lg text-sm leading-6 text-on-surface-variant">Một không gian học trực tuyến gọn gàng, tập trung vào khóa học và tiến độ của bạn.</p>
+          </div>
+        </div>
+
+        <div class="flex flex-1 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+          <div class="mx-auto w-full max-w-[560px]">
+            <div class="rounded-[28px] border border-outline-variant/20 bg-surface-lowest p-6 shadow-[0_18px_40px_-24px_rgba(15,63,145,0.22)] sm:p-8">
+              <slot />
+            </div>
+          </div>
+        </div>
+
+        <footer class="border-t border-outline-variant/20 px-5 py-4 sm:px-8 lg:px-14">
+          <div class="flex flex-col gap-3 text-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between">
+            <p>&copy; 2026 PTIT LMS.</p>
+            <div class="flex flex-wrap gap-4">
+              <NuxtLink to="/" class="transition-colors hover:text-primary">Chính sách</NuxtLink>
+              <NuxtLink to="/" class="transition-colors hover:text-primary">Điều khoản</NuxtLink>
+              <NuxtLink to="/" class="transition-colors hover:text-primary">Hỗ trợ</NuxtLink>
+            </div>
+          </div>
+        </footer>
+      </section>
     </div>
-  </div>
+  </main>
 </template>
-
-<style>
-@keyframes float {
-  0% { transform: translate(-50%, 0px); }
-  50% { transform: translate(-50%, -15px); }
-  100% { transform: translate(-50%, 0px); }
-}
-@keyframes float-delayed {
-  0% { transform: translate(0px, 0px); }
-  50% { transform: translate(0px, -10px); }
-  100% { transform: translate(0px, 0px); }
-}
-@keyframes float-slow {
-  0% { transform: translate(0px, 0px) rotate(0deg); }
-  50% { transform: translate(0px, 15px) rotate(2deg); }
-  100% { transform: translate(0px, 0px) rotate(0deg); }
-}
-@keyframes fade-in-up {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-.animate-float { animation: float 6s ease-in-out infinite; }
-.animate-float-delayed { animation: float-delayed 5s ease-in-out infinite 2s; }
-.animate-float-slow { animation: float-slow 8s ease-in-out infinite 1s; }
-.animate-fade-in-up { animation: fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-</style>

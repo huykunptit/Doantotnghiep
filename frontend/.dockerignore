@@ -1,8 +1,0 @@
-node_modules/
-.nuxt/
-.output/
-.env
-.env.local
-*.log
-dist/
-
