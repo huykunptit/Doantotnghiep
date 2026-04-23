@@ -1,157 +1,153 @@
 <template>
-  <div class="min-h-screen flex bg-gradient-to-br from-slate-50 to-gray-100">
+  <div class="min-h-screen flex bg-surface text-on-surface">
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden lg:flex lg:flex-col w-64 bg-gray-900 text-white fixed inset-y-0 left-0 z-30"
+      class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-surface-lowest border-r border-surface-dim px-4 py-4 lg:flex transition-all duration-300"
     >
       <!-- Logo -->
-      <div class="flex items-center gap-3 px-5 h-16 border-b border-gray-800 flex-shrink-0">
-        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
+      <div class="mb-6 px-2 py-2 flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold font-headline text-on-surface">EduPress</h1>
+          <p class="text-xs font-medium text-on-surface-variant">Global Admin Console</p>
         </div>
-        <div class="flex-1 min-w-0">
-          <span class="text-base font-bold">EduPress</span>
-        </div>
-        <span class="text-[10px] font-semibold bg-primary/20 text-primary-300 px-2 py-0.5 rounded-full flex-shrink-0">ADMIN</span>
+        <span class="rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary tracking-widest">PRO</span>
       </div>
 
       <!-- Nav -->
-      <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav class="flex-1 space-y-1 overflow-y-auto px-2 pb-5 scrollbar-thin">
         <template v-for="group in navGroups" :key="group.label">
-          <p class="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-widest first:pt-0">
+          <p class="px-3 pb-1.5 pt-5 text-[10px] font-bold uppercase tracking-wider text-outline first:pt-0">
             {{ group.label }}
           </p>
           <NuxtLink
             v-for="item in group.items"
             :key="item.to"
             :to="item.to"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-            :class="isActive(item.to) ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-body text-sm font-medium transition-all duration-300 relative group/item overflow-hidden"
+            :class="isActive(item.to) ? 'bg-surface-low text-primary shadow-sm border border-surface-dim' : 'text-on-surface-variant hover:bg-surface-low hover:text-on-surface'"
           >
-            <span v-html="item.icon" class="w-5 h-5 flex-shrink-0"></span>
-            <span class="flex-1">{{ item.label }}</span>
+            <!-- Active indicator vertical line -->
+            <div v-if="isActive(item.to)" class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+            
+            <span class="material-symbols-outlined text-[20px] shrink-0 transition-transform group-hover/item:scale-110" :style="isActive(item.to) ? 'font-variation-settings: \'FILL\' 1;' : ''" :data-icon="item.icon">{{ item.icon }}</span>
+            <span class="flex-1 truncate">{{ item.label }}</span>
             <span
               v-if="item.badge !== undefined && item.badge > 0"
-              class="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-              :class="isActive(item.to) ? 'bg-white/20 text-white' : 'bg-amber-500 text-white'"
-            >{{ item.badge }}</span>
+              class="rounded-full px-2 py-0.5 text-[10px] font-bold shadow-inner"
+              :class="isActive(item.to) ? 'bg-primary text-white' : 'bg-primary/10 text-primary'"
+            >{{ item.badge > 99 ? '99+' : item.badge }}</span>
           </NuxtLink>
         </template>
       </nav>
 
-      <!-- User info + logout at bottom -->
-      <div class="px-3 py-4 border-t border-gray-800 space-y-1 flex-shrink-0">
-        <div class="flex items-center gap-3 px-3 py-2 mb-1">
-          <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span class="text-xs font-bold text-white">{{ auth.user?.name?.charAt(0)?.toUpperCase() }}</span>
+      <!-- System Health Quick Block at Bottom -->
+      <div class="mt-auto pt-6 space-y-1">
+        <div class="p-4 mb-4 cta-gradient rounded-xl shadow-sm relative overflow-hidden">
+          <div class="absolute -right-4 -top-4 w-16 h-16 bg-white/20 blur-xl rounded-full"></div>
+          <p class="text-[10px] font-bold text-white mb-1.5 uppercase tracking-wider">Hệ thống & Tải trọng</p>
+          <div class="h-1.5 w-full bg-white/30 rounded-full overflow-hidden mb-2">
+            <div class="h-full bg-white/80 transition-all w-[35%] rounded-full"></div>
           </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-xs font-semibold text-white truncate">{{ auth.user?.name }}</p>
-            <p class="text-[10px] text-gray-500 truncate">{{ auth.user?.email }}</p>
-          </div>
+          <p class="text-[10px] text-white/80 font-medium">Trạng thái: Ổn định</p>
         </div>
-        <NuxtLink to="/" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Về trang chủ
+        
+        <NuxtLink to="/" class="flex items-center gap-3 px-3 py-2 text-on-surface-variant text-sm font-medium hover:text-primary transition-colors rounded-lg">
+          <span class="material-symbols-outlined text-[18px]">public</span>
+          <span>Về trang chủ</span>
         </NuxtLink>
-        <button @click="logout" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          Đăng xuất
+        <button @click="logout" class="flex w-full items-center gap-3 px-3 py-2 text-error text-sm font-medium hover:bg-error-container/50 transition-colors rounded-lg">
+          <span class="material-symbols-outlined text-[18px]">logout</span>
+          <span>Đăng xuất</span>
         </button>
       </div>
     </aside>
 
-    <!-- Main content shifted right on desktop -->
-    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
-      <!-- Top bar -->
-      <header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm h-14 flex items-center px-4 lg:px-6 gap-3 transition-all duration-300">
-        <!-- Mobile sidebar toggle -->
-        <button @click="showMobileSidebar = true" class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-        </button>
-
-        <!-- Breadcrumb / page title -->
-        <div class="flex items-center gap-2 text-sm transition-all duration-300">
-          <span class="text-gray-400">Admin</span>
-          <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          <span class="font-semibold text-gray-900 drop-shadow-sm">{{ pageTitle }}</span>
-        </div>
-
-        <div class="ml-auto flex items-center gap-3">
-          <!-- Notification Bell Placeholder -->
-          <button class="relative p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+    <!-- Main Content Wrapper -->
+    <div class="flex min-w-0 flex-1 flex-col lg:ml-64 relative bg-surface">
+      <!-- Top glass header -->
+      <header class="sticky top-0 z-20 flex h-[72px] items-center justify-between px-6 lg:px-10 bg-surface-lowest/80 backdrop-blur-xl border-b border-surface-dim">
+        <div class="flex items-center gap-4">
+          <!-- Mobile Toggle -->
+          <button @click="showMobileSidebar = true" class="rounded-lg p-2 text-on-surface-variant hover:bg-surface-low transition-colors lg:hidden">
+            <span class="material-symbols-outlined text-2xl">menu</span>
           </button>
           
-          <div class="hidden sm:flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-gray-200/60 rounded-xl px-3 py-1.5 shadow-sm">
-            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span class="text-[10px] font-bold text-white">{{ auth.user?.name?.charAt(0)?.toUpperCase() }}</span>
-            </div>
-            <span class="text-sm font-semibold text-gray-700">{{ auth.user?.name }}</span>
+          <div class="space-y-0.5 hidden sm:block">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-outline">Administrative Control</p>
+            <h2 class="text-lg font-bold font-headline text-on-surface truncate">{{ pageTitle }}</h2>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <button class="relative w-10 h-10 rounded-full bg-surface-lowest border border-surface-dim hover:shadow-ambient flex items-center justify-center transition-all group">
+            <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors text-[20px]">notifications</span>
+            <span class="absolute right-2.5 top-2.5 flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+            </span>
+          </button>
+
+          <div class="h-8 w-[1px] bg-surface-dim hidden sm:block"></div>
+          
+          <div class="flex items-center gap-3">
+             <div class="text-right hidden sm:block leading-tight">
+                <p class="text-sm font-bold text-on-surface">{{ auth.user?.name || 'Admin root' }}</p>
+                <p class="text-[10px] text-outline font-medium">Super Administrator</p>
+             </div>
+             <div class="w-10 h-10 rounded-full cta-gradient shadow-md flex items-center justify-center border-2 border-white cursor-pointer hover:scale-105 transition-transform">
+                <span class="text-white font-bold text-sm">{{ auth.user?.name?.charAt(0)?.toUpperCase() || 'A' }}</span>
+             </div>
           </div>
         </div>
       </header>
 
-      <!-- Content -->
-      <main class="flex-1 p-4 lg:p-6 animate-fade-in-up">
-        <slot />
+      <!-- Content Viewport -->
+      <main class="container mx-auto flex-1 max-w-[1600px] px-4 pt-8 pb-4 lg:px-8 lg:pt-10 lg:pb-5">
+        <div class="min-h-full rounded-[2rem] bg-surface-lowest p-5 shadow-ambient sm:p-6 lg:p-8">
+          <slot />
+        </div>
       </main>
     </div>
 
-    <!-- Mobile Sidebar overlay -->
+    <!-- Mobile Sidebar (Teleport) -->
     <Teleport to="body">
       <Transition
-        enter-active-class="transition-opacity duration-200"
+        enter-active-class="transition-opacity duration-300"
         enter-from-class="opacity-0"
         enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-200"
+        leave-active-class="transition-opacity duration-300"
         leave-from-class="opacity-100"
         leave-to-class="opacity-0"
       >
         <div v-if="showMobileSidebar" class="fixed inset-0 z-50 lg:hidden">
-          <div class="absolute inset-0 bg-black/60" @click="showMobileSidebar = false"></div>
-          <aside class="absolute left-0 top-0 bottom-0 w-72 bg-gray-900 text-white flex flex-col overflow-y-auto">
-            <div class="flex items-center justify-between px-5 h-14 border-b border-gray-800 flex-shrink-0">
-              <div class="flex items-center gap-2">
-                <div class="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
-                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                </div>
-                <span class="font-bold">EduPress Admin</span>
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showMobileSidebar = false"></div>
+          <aside class="absolute bottom-0 left-0 top-0 flex w-72 flex-col overflow-y-auto bg-surface px-4 py-6 shadow-2xl transition-transform animate-slide-in-right">
+            <div class="flex items-center justify-between mb-8 px-2">
+              <div>
+                <h1 class="text-lg font-bold font-headline">EduPress Admin</h1>
               </div>
-              <button @click="showMobileSidebar = false" class="p-1 rounded-lg hover:bg-gray-800">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              <button @click="showMobileSidebar = false" class="p-2 rounded-lg bg-surface-high hover:bg-surface-highest transition-colors">
+                <span class="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            <nav class="flex-1 px-3 py-3 space-y-0.5">
+            
+            <nav class="flex-1 space-y-1">
               <template v-for="group in navGroups" :key="group.label">
-                <p class="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-widest first:pt-0">{{ group.label }}</p>
+                <p class="px-3 pb-1.5 pt-5 text-[10px] font-bold uppercase tracking-wider text-outline first:pt-0">{{ group.label }}</p>
                 <NuxtLink
                   v-for="item in group.items"
                   :key="item.to"
                   :to="item.to"
-                  class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  :class="isActive(item.to) ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'"
+                  class="flex items-center gap-3 px-3 py-3 rounded-xl font-medium text-sm transition-all"
+                  :class="isActive(item.to) ? 'bg-primary-fixed text-on-primary-fixed' : 'hover:bg-surface-low'"
                   @click="showMobileSidebar = false"
                 >
-                  <span v-html="item.icon" class="w-5 h-5 flex-shrink-0"></span>
+                  <span class="material-symbols-outlined text-[20px]">{{ item.icon }}</span>
                   <span class="flex-1">{{ item.label }}</span>
-                  <span v-if="item.badge !== undefined && item.badge > 0" class="text-[10px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{{ item.badge }}</span>
+                  <span v-if="item.badge" class="px-2 py-0.5 rounded bg-primary text-white text-[10px] font-bold">{{ item.badge }}</span>
                 </NuxtLink>
               </template>
             </nav>
-            <div class="px-3 py-3 border-t border-gray-800 space-y-1 flex-shrink-0">
-              <NuxtLink to="/" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors" @click="showMobileSidebar = false">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                Về trang chủ
-              </NuxtLink>
-              <button @click="logout" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                Đăng xuất
-              </button>
-            </div>
           </aside>
         </div>
       </Transition>
@@ -160,67 +156,83 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
 const showMobileSidebar = ref(false)
 const pendingCoursesCount = ref(0)
+const totalOrdersCount = ref(0) // Mock just for visual detail
 
 const pageTitleMap: Record<string, string> = {
-  '/admin': 'Tổng quan',
-  '/admin/users': 'Quản lý người dùng',
-  '/admin/courses': 'Quản lý khóa học',
-  '/admin/categories': 'Quản lý danh mục',
-  '/admin/orders': 'Quản lý đơn hàng',
-  '/admin/reviews': 'Quản lý đánh giá',
+  '/admin': 'Global Performance (Tổng quan)',
+  '/admin/users': 'Quản lý Tài Khoản',
+  '/admin/roles': 'Phân quyền hệ thống',
+  '/admin/courses': 'Trạm kiểm duyệt Khóa học',
+  '/admin/categories': 'Hệ thống Danh mục học thuật',
+  '/admin/orders': 'Quản lý Giao dịch & Đơn hàng',
+  '/admin/payouts': 'Tạm tính payout giảng viên',
+  '/admin/reviews': 'Kiểm soát Đánh giá & Report',
+  '/admin/ai': 'AI Command Center',
+  '/admin/settings': 'Cấu hình Website & Email',
 }
 
 const pageTitle = computed(() => {
-  if (route.path.startsWith('/admin/courses/')) return 'Chi tiết khóa học'
-  return pageTitleMap[route.path] || 'Quản trị'
+  if (route.path.startsWith('/admin/courses/')) return 'Kiểm duyệt Nội dung (Curriculum Review)'
+  return pageTitleMap[route.path] || 'Trạm Quản trị Trung tâm'
 })
-
-const ICON = {
-  dashboard: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" /></svg>',
-  users: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>',
-  courses: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>',
-  categories: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>',
-  orders: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>',
-  reviews: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>',
-}
 
 const navGroups = computed(() => [
   {
-    label: 'Tổng quan',
+    label: 'Dashboard',
     items: [
-      { to: '/admin', label: 'Dashboard', icon: ICON.dashboard },
+      { to: '/admin', label: 'Dashboard', icon: 'dashboard' },
     ],
   },
   {
-    label: 'Quản lý người dùng',
+    label: 'Trí tuệ nhân tạo (AI)',
     items: [
-      { to: '/admin/users', label: 'Người dùng', icon: ICON.users },
-    ],
+      { to: '/admin/ai', label: 'Quản trị AI', icon: 'psychology' },
+    ]
   },
   {
-    label: 'Quản lý nội dung',
+    label: 'Phân quyền & User',
     items: [
-      { to: '/admin/courses', label: 'Khóa học', icon: ICON.courses, badge: pendingCoursesCount.value },
-      { to: '/admin/categories', label: 'Danh mục', icon: ICON.categories },
-      { to: '/admin/reviews', label: 'Đánh giá', icon: ICON.reviews },
-    ],
+      { to: '/admin/users', label: 'Tất cả người dùng', icon: 'groups' },
+      { to: '/admin/roles', label: 'Access Control', icon: 'admin_panel_settings' },
+    ]
   },
   {
-    label: 'Tài chính',
+    label: 'Nền tảng đào tạo',
     items: [
-      { to: '/admin/orders', label: 'Đơn hàng', icon: ICON.orders },
-    ],
+      { to: '/admin/courses', label: 'Duyệt Khóa học', icon: 'inventory_2', badge: pendingCoursesCount.value },
+      { to: '/admin/categories', label: 'Chuyên mục', icon: 'category' },
+      { to: '/admin/reviews', label: 'Kiểm soát nội dung', icon: 'gavel' },
+    ]
   },
+  {
+    label: 'Kinh doanh & Vận hành',
+    items: [
+      { to: '/admin/orders', label: 'Đơn hàng & Giao dịch', icon: 'receipt_long' },
+      { to: '/admin/payouts', label: 'Payout Giảng viên', icon: 'payments' },
+    ]
+  },
+
+  {
+    label: 'Công cụ hệ thống',
+    items: [
+      { to: '/admin/settings', label: 'Cấu hình chung', icon: 'build' },
+      { to: '/admin/logs', label: 'Activity Logs', icon: 'history' },
+    ]
+  }
 ])
 
 function isActive(path: string): boolean {
-  if (path === '/admin') return route.path === '/admin'
+  if (path === '/admin') return route.path === '/admin' || route.path === '/admin/'
   return route.path.startsWith(path)
 }
 
@@ -231,8 +243,32 @@ async function logout() {
 
 onMounted(async () => {
   try {
-    const stats = await useApi<any>('/admin/stats', { token: auth.token })
-    pendingCoursesCount.value = Number(stats?.courses_by_status?.pending_review || 0)
+    const stats = await $fetch<any>('/api/admin/stats', { headers: { Authorization: `Bearer ${auth.token}` } }).catch(() => null)
+    if(stats) {
+       pendingCoursesCount.value = Number(stats?.courses_by_status?.pending_review || 0)
+    }
   } catch {}
 })
 </script>
+
+<style scoped>
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+</style>

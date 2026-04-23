@@ -1,133 +1,136 @@
 <template>
-  <div class="form-page">
-    <div class="form-card">
-      <div class="card-header">
-        <h1>Chỉnh sửa khóa học</h1>
-        <NuxtLink :to="`/courses/${courseId}`" class="back-link">← Xem khóa học</NuxtLink>
-      </div>
+  <NuxtLayout name="instructor">
+    <section class="mx-auto max-w-5xl space-y-8">
+      <AppPageHeader eyebrow="Instructor" title="Chỉnh sửa khóa học" description="Cập nhật thông tin khóa học, trạng thái và hình ảnh minh họa.">
+        <template #actions>
+          <NuxtLink :to="`/courses/${courseId}`" target="_blank"><UiButton variant="secondary">Xem trước</UiButton></NuxtLink>
+          <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`"><UiButton variant="secondary">Quản lý bài học</UiButton></NuxtLink>
+        </template>
+      </AppPageHeader>
 
-      <div v-if="pageLoading" class="loading">Đang tải...</div>
+      <UiCard v-if="pageLoading">
+        <div class="h-96 animate-pulse rounded-3xl bg-slate-100" />
+      </UiCard>
 
-      <form v-else @submit.prevent="handleSubmit">
-        <div class="field">
-          <label>Tên khóa học *</label>
-          <input v-model="form.title" type="text" required />
-        </div>
+      <UiCard v-else>
+        <form class="space-y-6" @submit.prevent="handleSubmit">
+          <UiInput v-model="form.title" label="Tên khóa học" placeholder="Nhập tên khóa học" />
 
-        <div class="field">
-          <label>Mô tả</label>
-          <textarea v-model="form.description" rows="4" />
-        </div>
+          <UiTextarea v-model="form.description" label="Mô tả khóa học" :rows="6" placeholder="Mô tả chi tiết về khóa học..." />
 
-        <div class="row-2">
-          <div class="field">
-            <label>Giá (VNĐ) *</label>
-            <input v-model.number="form.price" type="number" min="0" step="1000" required />
+          <div class="grid gap-4 md:grid-cols-2">
+            <UiInput v-model="form.price" label="Giá (VNĐ)" type="number" />
+            <label class="block space-y-2 text-sm font-semibold text-slate-700">
+              <span>Danh mục</span>
+              <select v-model.number="form.category_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary">
+                <option :value="0">-- Chưa chọn danh mục --</option>
+                <template v-for="cat in courseStore.categories" :key="cat.id">
+                  <option :value="cat.id">{{ cat.name }}</option>
+                  <option v-for="child in cat.children || []" :key="child.id" :value="child.id">└ {{ child.name }}</option>
+                </template>
+              </select>
+            </label>
           </div>
-          <div class="field">
-            <label>Danh mục</label>
-            <select v-model.number="form.category_id">
-              <option :value="0">-- Chưa chọn --</option>
-              <template v-for="cat in courseStore.categories" :key="cat.id">
-                <option :value="cat.id">{{ cat.name }}</option>
-                <option v-for="child in cat.children || []" :key="child.id" :value="child.id">&nbsp;&nbsp;└ {{ child.name }}</option>
-              </template>
-            </select>
+
+          <div class="space-y-2">
+            <p class="text-sm font-semibold text-slate-700">Trạng thái</p>
+            <div class="grid gap-3 md:grid-cols-3">
+              <label v-for="option in statusOptions" :key="option.value" class="flex items-center gap-3 rounded-2xl border px-4 py-4" :class="form.status === option.value ? option.activeClass : 'border-slate-200'">
+                <input v-model="form.status" type="radio" :value="option.value" :disabled="option.value === 'published' && !canPublish">
+                <div>
+                  <p class="font-semibold text-slate-900">{{ option.label }}</p>
+                  <p class="text-xs text-slate-500">{{ option.help }}</p>
+                </div>
+              </label>
+            </div>
+            <p v-if="!canPublish" class="text-xs text-amber-700">Chỉ Admin mới có quyền tự chuyển trạng thái sang xuất bản.</p>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Trạng thái</label>
-          <select v-model="form.status">
-            <option value="draft">Nháp</option>
-            <option value="published">Xuất bản</option>
-            <option value="closed">Đóng</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>URL ảnh bìa</label>
-          <input v-model="form.thumbnail" type="url" placeholder="https://..." />
-          <div v-if="form.thumbnail" class="thumb-preview">
-            <img :src="form.thumbnail" alt="preview" @error="form.thumbnail = ''" />
+          <div class="space-y-3">
+            <UiInput v-model="form.thumbnail" label="Thumbnail URL" type="url" placeholder="https://example.com/image.jpg" />
+            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 transition hover:border-primary/40 hover:bg-white">
+              <span>{{ thumbnailFile ? thumbnailFile.name : 'Hoặc chọn file thumbnail mới' }}</span>
+              <input type="file" accept="image/*" class="hidden" @change="handleThumbnailChange">
+              <span class="font-semibold text-primary">Chọn ảnh</span>
+            </label>
           </div>
-        </div>
+          <div v-if="thumbnailPreview" class="h-52 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            <img :src="thumbnailPreview" alt="thumbnail preview" class="h-full w-full object-cover" @error="thumbnailPreview = ''">
+          </div>
 
-        <p v-if="error" class="error-msg">{{ error }}</p>
-        <p v-if="success" class="success-msg">{{ success }}</p>
+          <div v-if="error" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
+          <div v-if="success" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ success }}</div>
 
-        <div class="form-actions">
-          <NuxtLink :to="`/courses/${courseId}/lessons`" class="btn-secondary">
-            Quản lý bài học
-          </NuxtLink>
-          <button type="submit" :disabled="saving" class="btn-submit">
-            {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
+          <div class="flex justify-end gap-3">
+            <NuxtLink to="/instructor/courses"><UiButton variant="ghost">Hủy bỏ</UiButton></NuxtLink>
+            <UiButton type="submit" :disabled="saving">{{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}</UiButton>
+          </div>
+        </form>
+      </UiCard>
+    </section>
+  </NuxtLayout>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'instructor' })
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+import { useCourseStore } from '~/stores/course'
 
+definePageMeta({ middleware: 'instructor', layout: false })
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const courseStore = useCourseStore()
-
 const courseId = Number(route.params.id)
 const pageLoading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
-
-const form = reactive({
-  title: '',
-  description: '',
-  price: 0,
-  category_id: 0,
-  thumbnail: '',
-  status: 'draft' as 'draft' | 'published' | 'closed',
-})
-
+const thumbnailFile = ref<File | null>(null)
+const thumbnailPreview = ref('')
+const canPublish = computed(() => auth.user?.roles?.includes('admin'))
+const form = reactive({ title: '', description: '', price: 0, category_id: 0, thumbnail: '', status: 'draft' as 'draft' | 'published' | 'closed' | 'pending_review' | 'rejected' })
+const statusOptions = [
+  { value: 'draft', label: 'Bản nháp', help: 'Đang soạn thảo', activeClass: 'border-primary bg-primary/10' },
+  { value: 'published', label: 'Xuất bản', help: 'Hiển thị công khai', activeClass: 'border-emerald-500 bg-emerald-50' },
+  { value: 'closed', label: 'Đóng', help: 'Ngừng ghi danh', activeClass: 'border-rose-500 bg-rose-50' },
+]
 onMounted(async () => {
-  if (auth.token && !auth.user) {
-    await auth.fetchMe()
-  }
-
+  if (auth.token && !auth.user) await auth.fetchMe()
   await courseStore.fetchCategories()
   const course = await courseStore.fetchCourse(courseId)
-
-  if (!auth.user?.roles?.includes('admin') && Number(course.user_id) !== Number(auth.user?.id)) {
-    router.push(`/courses/${courseId}`)
-    return
-  }
-
-  form.title = course.title
-  form.description = course.description ?? ''
-  form.price = course.price
-  form.category_id = Number((course as any).category_id || (course as any).category?.id || 0)
-  form.thumbnail = course.thumbnail ?? ''
-  form.status = course.status
-  pageLoading.value = false
+  if (!auth.user?.roles?.includes('admin') && Number(course.user_id) !== Number(auth.user?.id)) return router.push(`/courses/${courseId}`)
+  form.title = course.title; form.description = course.description ?? ''; form.price = course.price; form.category_id = Number((course as any).category_id || (course as any).category?.id || 0); form.thumbnail = course.thumbnail ?? ''; form.status = course.status; thumbnailPreview.value = course.thumbnail ?? ''; pageLoading.value = false
 })
+
+watch(() => form.thumbnail, (value) => {
+  if (!thumbnailFile.value) thumbnailPreview.value = value || ''
+})
+
+function handleThumbnailChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  thumbnailFile.value = file || null
+  thumbnailPreview.value = file ? URL.createObjectURL(file) : (form.thumbnail || '')
+}
 
 async function handleSubmit() {
   saving.value = true
   error.value = ''
   success.value = ''
   try {
-    await courseStore.updateCourse(courseId, {
-      title: form.title,
-      description: form.description || null,
-      price: form.price,
-      category_id: form.category_id || null,
-      thumbnail: form.thumbnail || null,
-      status: form.status,
-    })
-    success.value = 'Đã lưu thay đổi.'
+    const payload = new FormData()
+    payload.append('title', form.title)
+    payload.append('description', form.description || '')
+    payload.append('price', String(Number(form.price)))
+    payload.append('status', form.status)
+    if (form.category_id) payload.append('category_id', String(form.category_id))
+    if (form.thumbnail) payload.append('thumbnail', form.thumbnail)
+    if (thumbnailFile.value) payload.append('thumbnail_file', thumbnailFile.value)
+
+    await courseStore.updateCourse(courseId, payload)
+    success.value = 'Bạn đã cập nhật thông tin khóa học thành công!'
   } catch (e: any) {
     error.value = e?.data?.message || 'Không thể lưu thay đổi.'
   } finally {
@@ -135,26 +138,3 @@ async function handleSubmit() {
   }
 }
 </script>
-
-<style scoped>
-.form-page { max-width: 700px; margin: 0 auto; }
-.form-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 36px; }
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
-h1 { font-size: 22px; font-weight: 700; color: #111827; }
-.back-link { font-size: 14px; color: #6b7280; text-decoration: none; }
-.back-link:hover { color: #111827; }
-.loading { text-align: center; padding: 40px; color: #6b7280; }
-.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
-.field label { font-size: 14px; font-weight: 600; color: #374151; }
-.field input, .field textarea, .field select { padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; outline: none; resize: vertical; }
-.field input:focus, .field textarea:focus, .field select:focus { border-color: #111827; }
-.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.thumb-preview { margin-top: 8px; border-radius: 8px; overflow: hidden; height: 140px; background: #f3f4f6; }
-.thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
-.error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
-.success-msg { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
-.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
-.btn-secondary { padding: 10px 20px; border: 1px solid #d1d5db; border-radius: 8px; color: #374151; text-decoration: none; font-weight: 600; font-size: 14px; }
-.btn-submit { padding: 10px 24px; background: #111827; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
-.btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
-</style>

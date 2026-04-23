@@ -11,6 +11,7 @@ class Lesson extends Model
         'course_id',
         'section_id',
         'title',
+        'type',
         'description',
         'video_url',
         'order',
@@ -38,5 +39,35 @@ class Lesson extends Model
     public function progress()
     {
         return $this->hasMany(LessonProgress::class);
+    }
+
+    public function quiz()
+    {
+        return $this->hasOne(Quiz::class);
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(LessonAttachment::class);
+    }
+
+    public function virtualClass()
+    {
+        return $this->hasOne(VirtualClass::class);
+    }
+
+    public function scormPackage()
+    {
+        return $this->hasOne(ScormPackage::class);
+    }
+
+    public function offlineSession()
+    {
+        return $this->hasOne(OfflineSession::class);
+    }
+
+    public function assignment()
+    {
+        return $this->hasOne(LessonAssignment::class);
     }
 }

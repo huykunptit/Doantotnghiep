@@ -1,106 +1,84 @@
 <template>
-  <div class="manage-page">
-    <div class="page-header">
-      <div>
-        <NuxtLink :to="`/courses/${courseId}`" class="back-link">← Quay lại khóa học</NuxtLink>
-        <h1>Quản lý bài học</h1>
-        <p v-if="course" class="course-name">{{ course.title }}</p>
-      </div>
-      <button class="btn-add" @click="showAdd = true">+ Thêm bài học</button>
-    </div>
+  <NuxtLayout name="instructor">
+    <section class="mx-auto max-w-5xl space-y-8">
+      <AppPageHeader eyebrow="Instructor" :title="course?.title || 'Quản lý bài học'" description="Thêm, sửa, upload video và sắp xếp các bài học của khóa học.">
+        <template #actions>
+          <NuxtLink :to="`/courses/${courseId}/edit`"><UiButton variant="secondary">Chỉnh sửa khóa học</UiButton></NuxtLink>
+          <UiButton @click="showAdd = true">Thêm bài học</UiButton>
+        </template>
+      </AppPageHeader>
 
-    <!-- Add lesson modal -->
-    <div v-if="showAdd" class="modal-overlay" @click.self="showAdd = false">
-      <div class="modal">
-        <h2>Thêm bài học mới</h2>
-        <div class="field">
-          <label>Tiêu đề *</label>
-          <input v-model="newLesson.title" type="text" placeholder="Tên bài học" />
-        </div>
-        <div class="row-2">
-          <div class="field">
-            <label>Thứ tự</label>
-            <input v-model.number="newLesson.order" type="number" min="1" />
+      <div v-if="showAdd" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4" @click.self="showAdd = false">
+        <div class="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+          <h2 class="mb-4 text-lg font-semibold text-slate-900">Thêm bài học mới</h2>
+          <div class="space-y-4">
+            <UiInput v-model="newLesson.title" label="Tiêu đề" placeholder="Tên bài học" />
+            <div class="grid gap-4 md:grid-cols-2">
+              <UiInput v-model="newLesson.order" label="Thứ tự" type="number" />
+              <UiInput v-model="newLesson.duration" label="Thời lượng (giây)" type="number" />
+            </div>
+            <div v-if="addError" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ addError }}</div>
+            <div class="flex justify-end gap-3">
+              <UiButton variant="ghost" @click="showAdd = false">Hủy</UiButton>
+              <UiButton :disabled="addLoading" @click="handleAdd">{{ addLoading ? 'Đang tạo...' : 'Tạo bài học' }}</UiButton>
+            </div>
           </div>
-          <div class="field">
-            <label>Thời lượng (giây)</label>
-            <input v-model.number="newLesson.duration" type="number" min="0" />
-          </div>
-        </div>
-        <p v-if="addError" class="error-msg">{{ addError }}</p>
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="showAdd = false">Hủy</button>
-          <button :disabled="addLoading" class="btn-submit" @click="handleAdd">
-            {{ addLoading ? 'Đang tạo...' : 'Tạo bài học' }}
-          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Lesson list -->
-    <div v-if="loading" class="loading">Đang tải...</div>
-    <div v-else-if="lessons.length === 0" class="empty">Chưa có bài học nào. Hãy thêm bài học mới.</div>
-    <div v-else class="lesson-list">
-      <div v-for="lesson in lessons" :key="lesson.id" class="lesson-row">
-        <div class="lesson-info">
-          <span class="order-badge">#{{ lesson.order }}</span>
-          <div>
-            <p class="lesson-title">{{ lesson.title }}</p>
-            <p class="lesson-meta">
-              {{ lesson.duration ? formatDuration(lesson.duration) : 'Chưa có thời lượng' }}
-              <span v-if="lesson.video_url" class="has-video">· Có video</span>
-              <span v-else class="no-video">· Chưa có video</span>
-            </p>
-          </div>
-        </div>
-        <div class="lesson-actions">
-          <label class="upload-btn">
-            {{ uploading === lesson.id ? 'Đang tải...' : 'Upload video' }}
-            <input
-              type="file"
-              accept="video/*"
-              style="display:none"
-              @change="(e) => handleUpload(lesson.id, e)"
-            />
-          </label>
-          <button class="btn-edit-sm" @click="startEdit(lesson)">Sửa</button>
-          <button class="btn-delete" @click="handleDelete(lesson.id)">Xóa</button>
-        </div>
+      <div v-if="loading" class="grid gap-4">
+        <div v-for="item in 5" :key="item" class="h-24 rounded-3xl border border-slate-200 bg-white animate-pulse" />
       </div>
-    </div>
+      <UiEmptyState v-else-if="lessons.length === 0" title="Chưa có bài học nào" description="Hãy thêm bài học đầu tiên để bắt đầu xây dựng nội dung khóa học." />
+      <div v-else class="space-y-4">
+        <UiCard v-for="lesson in lessons" :key="lesson.id">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-center gap-4">
+              <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-600">#{{ lesson.order }}</div>
+              <div>
+                <p class="font-semibold text-slate-900">{{ lesson.title }}</p>
+                <p class="text-sm text-slate-500">{{ lesson.duration ? formatDuration(lesson.duration) : 'Chưa có thời lượng' }} · {{ lesson.video_url ? 'Có video' : 'Chưa có video' }}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <label class="inline-flex cursor-pointer items-center rounded-2xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
+                {{ uploading === lesson.id ? 'Đang tải...' : 'Upload video' }}
+                <input type="file" accept="video/*" class="hidden" @change="(e) => handleUpload(lesson.id, e)">
+              </label>
+              <UiButton size="sm" variant="secondary" @click="startEdit(lesson)">Sửa</UiButton>
+              <UiButton size="sm" variant="ghost" @click="handleDelete(lesson.id)">Xóa</UiButton>
+            </div>
+          </div>
+        </UiCard>
+      </div>
 
-    <!-- Edit lesson modal -->
-    <div v-if="editLesson" class="modal-overlay" @click.self="editLesson = null">
-      <div class="modal">
-        <h2>Sửa bài học</h2>
-        <div class="field">
-          <label>Tiêu đề</label>
-          <input v-model="editForm.title" type="text" />
-        </div>
-        <div class="row-2">
-          <div class="field">
-            <label>Thứ tự</label>
-            <input v-model.number="editForm.order" type="number" min="1" />
+      <div v-if="editLesson" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4" @click.self="editLesson = null">
+        <div class="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+          <h2 class="mb-4 text-lg font-semibold text-slate-900">Sửa bài học</h2>
+          <div class="space-y-4">
+            <UiInput v-model="editForm.title" label="Tiêu đề" />
+            <div class="grid gap-4 md:grid-cols-2">
+              <UiInput v-model="editForm.order" label="Thứ tự" type="number" />
+              <UiInput v-model="editForm.duration" label="Thời lượng (giây)" type="number" />
+            </div>
+            <div v-if="editError" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ editError }}</div>
+            <div class="flex justify-end gap-3">
+              <UiButton variant="ghost" @click="editLesson = null">Hủy</UiButton>
+              <UiButton :disabled="editLoading" @click="handleEdit">{{ editLoading ? 'Đang lưu...' : 'Lưu' }}</UiButton>
+            </div>
           </div>
-          <div class="field">
-            <label>Thời lượng (giây)</label>
-            <input v-model.number="editForm.duration" type="number" min="0" />
-          </div>
-        </div>
-        <p v-if="editError" class="error-msg">{{ editError }}</p>
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="editLesson = null">Hủy</button>
-          <button :disabled="editLoading" class="btn-submit" @click="handleEdit">
-            {{ editLoading ? 'Đang lưu...' : 'Lưu' }}
-          </button>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </NuxtLayout>
 </template>
 
 <script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { Lesson } from '~/stores/course'
+import { useAuthStore } from '~/stores/auth'
+import { useCourseStore } from '~/stores/course'
 
 definePageMeta({ middleware: 'instructor' })
 

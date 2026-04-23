@@ -46,4 +46,19 @@ class User extends Authenticatable
     {
         return $this->hasMany(Review::class);
     }
+
+    public function cvs(): HasMany
+    {
+        return $this->hasMany(UserCV::class);
+    }
+
+    public function latestCv()
+    {
+        return $this->hasOne(UserCV::class)->latestOfMany();
+    }
+
+    public function careerRecommendations(): HasMany
+    {
+        return $this->hasMany(CareerRecommendation::class);
+    }
 }

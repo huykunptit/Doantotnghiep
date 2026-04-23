@@ -18,7 +18,11 @@ export async function useApi<TResponse = unknown, TBody = unknown>(
     ...options.headers,
   }
 
-  // Don't set Content-Type for FormData (browser sets it with boundary automatically)
+  // Don't set Content-Type for FormData — browser sets it with boundary automatically
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json'
+  }
+
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`
   }
