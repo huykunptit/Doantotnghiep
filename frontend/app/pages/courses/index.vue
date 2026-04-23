@@ -1,177 +1,492 @@
 <template>
-  <div class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-4">Tất cả khóa học</h1>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <!-- Search -->
-          <div class="relative flex-1 max-w-md">
+  <section class="bg-surface">
+    <div class="border-b border-surface-dim/50 bg-surface-lowest">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-8 gap-y-3 px-4 py-3 text-sm font-semibold text-on-surface-variant sm:px-6 lg:px-8">
+        <NuxtLink
+          v-for="segment in audienceSegments"
+          :key="segment"
+          to="/courses"
+          class="transition-colors hover:text-primary"
+        >
+          {{ segment }}
+        </NuxtLink>
+      </div>
+    </div>
+
+    <div class="border-b border-surface-dim/50 bg-surface-lowest">
+      <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex items-center gap-4">
+            <NuxtLink to="/" class="font-headline text-4xl font-extrabold tracking-[-0.06em] text-primary">
+              EduPress
+            </NuxtLink>
+            <div class="hidden items-center gap-2 rounded-full border border-surface-dim/50 bg-surface px-4 py-2 text-sm font-semibold text-on-surface-variant md:flex">
+              <span>Khám phá</span>
+              <span class="material-symbols-outlined text-[18px]">expand_more</span>
+            </div>
+          </div>
+
+          <form class="flex w-full max-w-3xl items-center gap-3 rounded-full border border-surface-dim/60 bg-surface px-3 py-3 shadow-sm" @submit.prevent="submitSearch">
             <input
               v-model="filters.search"
               type="text"
-              placeholder="Tìm kiếm khóa học..."
-              class="input pl-9"
-              @keyup.enter="applyFilters"
-            />
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+              placeholder="Tìm khóa học, kỹ năng, chuyên đề..."
+              class="min-w-0 flex-1 bg-transparent px-4 text-base text-on-surface outline-none placeholder:text-outline"
+            >
+            <button type="submit" class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 transition-transform hover:scale-105">
+              <span class="material-symbols-outlined text-[22px]">search</span>
+            </button>
+          </form>
+
+          <div class="hidden items-center gap-5 lg:flex">
+            <NuxtLink to="/login" class="text-sm font-semibold text-primary hover:opacity-80">Đăng nhập</NuxtLink>
+            <NuxtLink to="/register" class="rounded-2xl border border-primary px-5 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-white">
+              Tham gia miễn phí
+            </NuxtLink>
           </div>
-          <!-- Category filter -->
-          <select v-model="filters.category" class="input w-auto min-w-[180px]" @change="applyFilters">
-            <option value="">Tất cả danh mục</option>
-            <template v-for="cat in categories" :key="cat.id">
-              <option :value="cat.id">{{ cat.name }}</option>
-              <option v-for="child in cat.children" :key="child.id" :value="child.id">&nbsp;&nbsp;{{ child.name }}</option>
-            </template>
-          </select>
-          <!-- Sort -->
-          <select v-model="filters.sort" class="input w-auto min-w-[160px]" @change="applyFilters">
-            <option value="newest">Mới nhất</option>
-            <option value="price_asc">Giá tăng dần</option>
-            <option value="price_desc">Giá giảm dần</option>
-            <option value="popular">Nhiều học viên</option>
-          </select>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button
+            v-for="item in categoryChips"
+            :key="item.id"
+            type="button"
+            class="rounded-full border px-4 py-2 text-sm font-semibold transition-all"
+            :class="filters.category === String(item.id) ? 'border-primary bg-primary text-white shadow-lg shadow-primary/15' : 'border-surface-dim/50 bg-surface text-on-surface hover:border-primary/40 hover:text-primary'"
+            @click="selectCategory(item.id)"
+          >
+            {{ item.name }}
+            <span class="ml-2 text-xs opacity-70">{{ item.count }}</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Course Grid -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div v-if="loading" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div v-for="i in 8" :key="i" class="card animate-pulse">
-          <div class="h-44 bg-gray-200 rounded-t-xl"></div>
-          <div class="p-4 space-y-3">
-            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div class="h-3 bg-gray-200 rounded w-1/2"></div>
-            <div class="h-4 bg-gray-200 rounded w-1/3"></div>
-          </div>
-        </div>
-      </div>
+    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div class="grid gap-8 xl:grid-cols-[290px_minmax(0,1fr)]">
+        <aside class="space-y-6">
+          <section class="rounded-[2rem] border border-surface-dim bg-surface-lowest p-6 shadow-sm">
+            <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-outline">Danh mục nổi bật</p>
+            <div class="mt-5 space-y-3">
+              <button
+                type="button"
+                class="flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all"
+                :class="filters.category === '' ? 'border-primary bg-primary/5 text-primary' : 'border-surface-dim/40 bg-surface hover:border-primary/30'"
+                @click="selectCategory('')"
+              >
+                <span class="font-semibold">Tất cả danh mục</span>
+                <span class="text-xs font-bold uppercase tracking-[0.2em]">{{ allCourses.length }}</span>
+              </button>
 
-      <div v-else-if="courses.length === 0" class="text-center py-20">
-        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M12 20a8 8 0 100-16 8 8 0 000 16z" /></svg>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy khóa học</h3>
-        <p class="text-gray-500 text-sm">Thử thay đổi bộ lọc hoặc tìm kiếm từ khóa khác.</p>
-      </div>
-
-      <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <NuxtLink
-          v-for="course in courses"
-          :key="course.id"
-          :to="`/courses/${course.id}`"
-          class="card overflow-hidden group"
-        >
-          <div class="relative h-44 bg-gray-100 overflow-hidden">
-            <img
-              v-if="course.thumbnail"
-              :src="course.thumbnail"
-              :alt="course.title"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-            <div v-else class="w-full h-full flex items-center justify-center">
-              <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              <button
+                v-for="category in categoriesWithCounts"
+                :key="category.id"
+                type="button"
+                class="flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all"
+                :class="filters.category === String(category.id) ? 'border-primary bg-primary/5 text-primary' : 'border-surface-dim/40 bg-surface hover:border-primary/30'"
+                @click="selectCategory(category.id)"
+              >
+                <div>
+                  <p class="font-semibold">{{ category.name }}</p>
+                  <p v-if="category.children?.length" class="mt-1 text-xs text-on-surface-variant">
+                    {{ category.children.length }} nhánh con
+                  </p>
+                </div>
+                <span class="text-xs font-bold uppercase tracking-[0.2em]">{{ category.total_courses }}</span>
+              </button>
             </div>
-            <div v-if="course.price === 0" class="absolute top-3 left-3 badge-success">Miễn phí</div>
-          </div>
-          <div class="p-4">
-            <h3 class="text-sm font-semibold text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors">{{ course.title }}</h3>
-            <p class="text-xs text-gray-500 mb-3">{{ course.instructor?.name }}</p>
+          </section>
+
+          <section class="rounded-[2rem] border border-surface-dim bg-surface-lowest p-6 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-bold" :class="course.price > 0 ? 'text-primary' : 'text-primary'">
-                {{ course.price > 0 ? formatPrice(course.price) : 'Miễn phí' }}
-              </span>
-              <div class="flex items-center gap-2 text-xs text-gray-400">
-                <span>{{ course.lessons_count || 0 }} bài</span>
-                <span>{{ course.enrollments_count || 0 }} học viên</span>
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-outline">Bộ lọc</p>
+                <h3 class="mt-2 font-headline text-2xl font-bold text-on-surface">Tùy chọn hiển thị</h3>
+              </div>
+              <button type="button" class="text-sm font-semibold text-primary hover:opacity-80" @click="resetFilters">
+                Xóa lọc
+              </button>
+            </div>
+
+            <div class="mt-6 space-y-5">
+              <label class="block space-y-2">
+                <span class="text-sm font-semibold text-on-surface-variant">Chủ đề</span>
+                <select v-model="filters.category" class="w-full rounded-2xl border border-surface-dim/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary">
+                  <option value="">Tất cả danh mục</option>
+                  <template v-for="category in categories" :key="category.id">
+                    <option :value="String(category.id)">{{ category.name }}</option>
+                    <option v-for="child in category.children || []" :key="child.id" :value="String(child.id)">
+                      - {{ child.name }}
+                    </option>
+                  </template>
+                </select>
+              </label>
+
+              <label class="block space-y-2">
+                <span class="text-sm font-semibold text-on-surface-variant">Loại học phí</span>
+                <select v-model="filters.price" class="w-full rounded-2xl border border-surface-dim/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary">
+                  <option value="">Tất cả</option>
+                  <option value="free">Miễn phí</option>
+                  <option value="paid">Trả phí</option>
+                </select>
+              </label>
+
+              <label class="block space-y-2">
+                <span class="text-sm font-semibold text-on-surface-variant">Sắp xếp</span>
+                <select v-model="filters.sort" class="w-full rounded-2xl border border-surface-dim/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary">
+                  <option value="newest">Mới nhất</option>
+                  <option value="popular">Nhiều học viên nhất</option>
+                  <option value="price_asc">Giá thấp đến cao</option>
+                  <option value="price_desc">Giá cao đến thấp</option>
+                  <option value="rating">Đánh giá cao</option>
+                </select>
+              </label>
+            </div>
+          </section>
+        </aside>
+
+        <div class="space-y-8">
+          <div class="rounded-[2.25rem] border border-surface-dim bg-surface-lowest p-6 shadow-sm lg:p-8">
+            <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div class="max-w-3xl">
+                <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-outline">Khám phá khóa học</p>
+                <h1 class="mt-3 font-headline text-4xl font-bold tracking-[-0.04em] text-on-surface">
+                  {{ heroTitle }}
+                </h1>
+                <p class="mt-3 text-sm leading-7 text-on-surface-variant">
+                  Duyệt toàn bộ danh mục, tìm kỹ năng đang cần và chọn khóa học phù hợp với mục tiêu học tập hoặc chuyển đổi nghề nghiệp của bạn.
+                </p>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-3 lg:min-w-[360px]">
+                <div class="rounded-2xl bg-surface p-4">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Tổng khóa học</p>
+                  <p class="mt-3 text-3xl font-headline font-bold text-on-surface">{{ filteredCourses.length }}</p>
+                </div>
+                <div class="rounded-2xl bg-surface p-4">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Danh mục</p>
+                  <p class="mt-3 text-3xl font-headline font-bold text-on-surface">{{ categoryChips.length - 1 }}</p>
+                </div>
+                <div class="rounded-2xl bg-surface p-4">
+                  <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Khóa miễn phí</p>
+                  <p class="mt-3 text-3xl font-headline font-bold text-on-surface">{{ freeCoursesCount }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-6 flex flex-wrap items-center gap-3">
+              <div
+                v-for="tag in activeFilterTags"
+                :key="tag.label"
+                class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary"
+              >
+                <span>{{ tag.label }}</span>
+                <button type="button" class="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10" @click="tag.clear()">
+                  <span class="material-symbols-outlined text-[14px]">close</span>
+                </button>
               </div>
             </div>
           </div>
-        </NuxtLink>
-      </div>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex justify-center gap-2 mt-10">
-        <button
-          v-for="page in totalPages"
-          :key="page"
-          @click="goToPage(page)"
-          class="w-10 h-10 rounded-lg text-sm font-medium transition-colors"
-          :class="currentPage === page ? 'bg-primary text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'"
-        >
-          {{ page }}
-        </button>
+          <div v-if="loading" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            <div v-for="item in 9" :key="item" class="h-[25rem] rounded-[1.75rem] bg-surface-high animate-pulse" />
+          </div>
+
+          <UiEmptyState
+            v-else-if="paginatedCourses.length === 0"
+            title="Không tìm thấy khóa học phù hợp"
+            description="Thử đổi từ khóa, xóa bộ lọc hoặc quay về tất cả danh mục để xem thêm khóa học."
+          >
+            <UiButton @click="resetFilters">Xem toàn bộ khóa học</UiButton>
+          </UiEmptyState>
+
+          <template v-else>
+            <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              <CourseCard v-for="course in paginatedCourses" :key="course.id" :course="course" />
+            </div>
+
+            <div v-if="totalPages > 1" class="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                type="button"
+                class="flex h-11 min-w-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all"
+                :class="currentPage === 1 ? 'cursor-not-allowed bg-surface text-outline' : 'bg-surface-high text-on-surface hover:bg-surface-highest'"
+                :disabled="currentPage === 1"
+                @click="goToPage(currentPage - 1)"
+              >
+                Trước
+              </button>
+              <button
+                v-for="page in paginationItems"
+                :key="page"
+                type="button"
+                class="flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold transition-all"
+                :class="currentPage === page ? 'cta-gradient text-white shadow-lg shadow-primary/20' : 'bg-surface-high text-on-surface-variant hover:bg-surface-highest hover:text-on-surface'"
+                @click="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+              <button
+                type="button"
+                class="flex h-11 min-w-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all"
+                :class="currentPage === totalPages ? 'cursor-not-allowed bg-surface text-outline' : 'bg-surface-high text-on-surface hover:bg-surface-highest'"
+                :disabled="currentPage === totalPages"
+                @click="goToPage(currentPage + 1)"
+              >
+                Sau
+              </button>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
-const route = useRoute()
-const router = useRouter()
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import CourseCard from '~/components/course/CourseCard.vue'
+import UiButton from '~/components/ui/UiButton.vue'
+import UiEmptyState from '~/components/ui/UiEmptyState.vue'
+import { useApi } from '~/composables/useApi'
 
-const courses = ref<any[]>([])
-const categories = ref<any[]>([])
-const loading = ref(true)
-const currentPage = ref(1)
-const totalPages = ref(1)
-
-const filters = reactive({
-  search: (route.query.search as string) || '',
-  category: (route.query.category as string) || '',
-  sort: 'newest',
-})
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+type CourseCategory = {
+  id: number
+  name: string
+  children?: CourseCategory[]
+  courses_count?: number
 }
 
-async function fetchCourses(page = 1) {
+type FilterState = {
+  search: string
+  category: string
+  sort: 'newest' | 'popular' | 'price_asc' | 'price_desc' | 'rating'
+  price: '' | 'free' | 'paid'
+}
+
+const audienceSegments = ['Dành cho Cá nhân', 'Dành cho Doanh nghiệp', 'Dành cho Trường đại học', 'Dành cho Chính phủ']
+
+const route = useRoute()
+const router = useRouter()
+const allCourses = ref<any[]>([])
+const categories = ref<CourseCategory[]>([])
+const loading = ref(true)
+const currentPage = ref(Number(route.query.page || 1))
+const perPage = 9
+
+const filters = reactive<FilterState>({
+  search: (route.query.search as string) || '',
+  category: (route.query.category as string) || '',
+  sort: ((route.query.sort as FilterState['sort']) || 'newest'),
+  price: ((route.query.price as FilterState['price']) || ''),
+})
+
+function normalizeCategoryName(course: any) {
+  return course.category?.name || course.category || ''
+}
+
+function includesCategory(category: CourseCategory, targetId: number): boolean {
+  if (category.id === targetId) return true
+  return (category.children || []).some((child) => includesCategory(child, targetId))
+}
+
+function countAllCourses(category: CourseCategory): number {
+  return Number(category.courses_count || 0) + (category.children || []).reduce((sum, child) => sum + countAllCourses(child), 0)
+}
+
+const categoriesWithCounts = computed(() =>
+  categories.value.map((category) => ({
+    ...category,
+    total_courses: countAllCourses(category),
+  })),
+)
+
+const categoryLookup = computed(() => {
+  const map = new Map<string, string>()
+  categories.value.forEach((category) => {
+    map.set(String(category.id), category.name)
+    ;(category.children || []).forEach((child) => map.set(String(child.id), `${category.name} / ${child.name}`))
+  })
+  return map
+})
+
+const categoryChips = computed(() => [
+  { id: '', name: 'Tất cả', count: allCourses.value.length },
+  ...categoriesWithCounts.value.map((category) => ({
+    id: category.id,
+    name: category.name,
+    count: category.total_courses,
+  })),
+])
+
+const filteredCourses = computed(() => {
+  let items = [...allCourses.value]
+  const keyword = filters.search.trim().toLowerCase()
+  const categoryId = Number(filters.category)
+
+  if (keyword) {
+    items = items.filter((course) => {
+      const haystack = [
+        course.title,
+        course.description,
+        normalizeCategoryName(course),
+        course.instructor?.name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      return haystack.includes(keyword)
+    })
+  }
+
+  if (filters.category) {
+    items = items.filter((course) => {
+      const courseCategoryId = Number(course.category?.id || course.category_id || 0)
+      if (!courseCategoryId) return false
+      if (courseCategoryId === categoryId) return true
+      return categories.value.some((category) => category.id === categoryId && includesCategory(category, courseCategoryId))
+    })
+  }
+
+  if (filters.price === 'free') {
+    items = items.filter((course) => Number(course.price || 0) === 0)
+  }
+
+  if (filters.price === 'paid') {
+    items = items.filter((course) => Number(course.price || 0) > 0)
+  }
+
+  items.sort((a, b) => {
+    if (filters.sort === 'price_asc') return Number(a.price || 0) - Number(b.price || 0)
+    if (filters.sort === 'price_desc') return Number(b.price || 0) - Number(a.price || 0)
+    if (filters.sort === 'popular') return Number(b.enrollments_count || 0) - Number(a.enrollments_count || 0)
+    if (filters.sort === 'rating') return Number(b.reviews_avg_rating || b.avg_rating || 0) - Number(a.reviews_avg_rating || a.avg_rating || 0)
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  })
+
+  return items
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredCourses.value.length / perPage)))
+
+const paginatedCourses = computed(() => {
+  const start = (currentPage.value - 1) * perPage
+  return filteredCourses.value.slice(start, start + perPage)
+})
+
+const freeCoursesCount = computed(() => allCourses.value.filter((course) => Number(course.price || 0) === 0).length)
+
+const heroTitle = computed(() => {
+  if (filters.search.trim()) return `Kết quả cho "${filters.search.trim()}"`
+  if (filters.category) return `Khóa học trong ${categoryLookup.value.get(filters.category) || 'danh mục đã chọn'}`
+  return 'Khám phá toàn bộ danh mục và khóa học'
+})
+
+const activeFilterTags = computed(() => {
+  const tags: Array<{ label: string; clear: () => void }> = []
+
+  if (filters.search) {
+    tags.push({ label: `Từ khóa: ${filters.search}`, clear: () => { filters.search = '' } })
+  }
+
+  if (filters.category) {
+    tags.push({
+      label: `Danh mục: ${categoryLookup.value.get(filters.category) || filters.category}`,
+      clear: () => { filters.category = '' },
+    })
+  }
+
+  if (filters.price) {
+    tags.push({
+      label: filters.price === 'free' ? 'Miễn phí' : 'Trả phí',
+      clear: () => { filters.price = '' },
+    })
+  }
+
+  return tags
+})
+
+const paginationItems = computed(() => {
+  const pages = []
+  const start = Math.max(1, currentPage.value - 2)
+  const end = Math.min(totalPages.value, start + 4)
+  for (let page = start; page <= end; page += 1) pages.push(page)
+  return pages
+})
+
+async function fetchData() {
   loading.value = true
   try {
-    const query = new URLSearchParams()
-    if (filters.search) query.set('search', filters.search)
-    if (filters.category) query.set('category', filters.category)
-    query.set('page', String(page))
-    query.set('per_page', '12')
+    const [categoryData, courseData] = await Promise.all([
+      useApi<CourseCategory[]>('/categories').catch(() => []),
+      useApi<any>('/courses?per_page=100').catch(() => ({ data: [] })),
+    ])
 
-    const data = await useApi<any>(`/courses?${query}`)
-    courses.value = data.data || []
-    currentPage.value = data.current_page || 1
-    totalPages.value = data.last_page || 1
-  } catch {
-    courses.value = []
+    categories.value = categoryData
+    allCourses.value = courseData.data || []
   } finally {
     loading.value = false
   }
 }
 
-function applyFilters() {
+function syncRoute() {
   const query: Record<string, string> = {}
   if (filters.search) query.search = filters.search
   if (filters.category) query.category = filters.category
-  router.push({ query })
-  fetchCourses(1)
+  if (filters.sort !== 'newest') query.sort = filters.sort
+  if (filters.price) query.price = filters.price
+  if (currentPage.value > 1) query.page = String(currentPage.value)
+  router.replace({ query })
+}
+
+function submitSearch() {
+  currentPage.value = 1
+}
+
+function selectCategory(categoryId: number | string) {
+  filters.category = String(categoryId)
+  currentPage.value = 1
+}
+
+function resetFilters() {
+  filters.search = ''
+  filters.category = ''
+  filters.sort = 'newest'
+  filters.price = ''
+  currentPage.value = 1
 }
 
 function goToPage(page: number) {
   currentPage.value = page
-  fetchCourses(page)
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-onMounted(async () => {
-  const [catData] = await Promise.all([
-    useApi<any[]>('/categories').catch(() => []),
-    fetchCourses(),
-  ])
-  categories.value = catData
+watch(
+  () => ({ ...filters }),
+  () => {
+    currentPage.value = 1
+    syncRoute()
+  },
+  { deep: true },
+)
+
+watch(currentPage, syncRoute)
+
+watch(totalPages, (value) => {
+  if (currentPage.value > value) currentPage.value = value
 })
 
-watch(() => route.query, () => {
-  filters.search = (route.query.search as string) || ''
-  filters.category = (route.query.category as string) || ''
-  fetchCourses(1)
-})
+watch(
+  () => route.query,
+  (query) => {
+    filters.search = (query.search as string) || ''
+    filters.category = (query.category as string) || ''
+    filters.sort = ((query.sort as FilterState['sort']) || 'newest')
+    filters.price = ((query.price as FilterState['price']) || '')
+    currentPage.value = Math.max(1, Number(query.page || 1))
+  },
+)
+
+onMounted(fetchData)
 </script>

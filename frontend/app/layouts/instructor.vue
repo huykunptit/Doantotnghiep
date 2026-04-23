@@ -1,124 +1,130 @@
 <template>
-  <div class="min-h-screen flex bg-gray-50">
+  <div class="min-h-screen bg-surface text-on-surface antialiased">
     <!-- Desktop Sidebar -->
-    <aside class="hidden lg:flex lg:flex-col w-60 bg-gray-900 text-white fixed inset-y-0 left-0 z-30">
-      <!-- Logo -->
-      <div class="flex items-center gap-3 px-5 h-16 border-b border-gray-800 flex-shrink-0">
-        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <span class="text-base font-bold">EduPress</span>
-        </div>
-        <span class="text-[10px] font-semibold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full flex-shrink-0">GV</span>
+    <aside class="fixed inset-y-0 left-0 hidden w-64 flex-col bg-surface-lowest border-r border-surface-dim px-4 py-6 lg:flex z-40">
+      <div class="mb-6 px-4">
+        <h1 class="text-lg font-bold text-on-surface font-headline tracking-tight">EduPress</h1>
+        <p class="text-xs font-semibold text-on-surface-variant uppercase tracking-widest mt-1">Instructor EduPress</p>
       </div>
 
-      <!-- Nav -->
-      <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        <template v-for="group in navGroups" :key="group.label">
-          <p class="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-widest first:pt-0">
-            {{ group.label }}
-          </p>
-          <NuxtLink
-            v-for="item in group.items"
-            :key="item.to"
-            :to="item.to"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-            :class="isActive(item.to) ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'"
-          >
-            <span v-html="item.icon" class="w-5 h-5 flex-shrink-0"></span>
-            <span class="flex-1">{{ item.label }}</span>
-          </NuxtLink>
-        </template>
-      </nav>
-
-      <!-- Bottom -->
-      <div class="px-3 py-4 border-t border-gray-800 space-y-1 flex-shrink-0">
-        <div class="flex items-center gap-3 px-3 py-2 mb-1">
-          <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-            <span class="text-xs font-bold text-white">{{ auth.user?.name?.charAt(0)?.toUpperCase() }}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-xs font-semibold text-white truncate">{{ auth.user?.name }}</p>
-            <p class="text-[10px] text-gray-500 truncate">Giảng viên</p>
+      <nav class="flex-1 flex flex-col gap-1 overflow-y-auto no-scrollbar pb-6">
+        <div v-for="group in navGroups" :key="group.label" class="mb-4">
+          <p class="px-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-outline">{{ group.label }}</p>
+          <div class="space-y-1">
+            <NuxtLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="item.to"
+              class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300"
+              :class="isActive(item.to) ? 'bg-surface-high text-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-low hover:text-on-surface hover:translate-x-1'"
+            >
+              <span class="material-symbols-outlined text-[20px] shrink-0" :style="isActive(item.to) ? 'font-variation-settings: \'FILL\' 1;' : ''">{{ item.icon }}</span>
+              <span>{{ item.label }}</span>
+            </NuxtLink>
           </div>
         </div>
-        <NuxtLink to="/" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-          Về trang chủ
+      </nav>
+
+      <div class="mt-auto pt-6 border-t border-surface-dim/30 flex flex-col gap-1">
+        <NuxtLink to="/" class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-low hover:translate-x-1 text-sm font-medium transition-all rounded-xl">
+          <span class="material-symbols-outlined text-[20px]">public</span>
+          <span>Về trang chủ</span>
         </NuxtLink>
-        <button @click="logout" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          Đăng xuất
+        <button @click="logout" class="flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container/20 hover:translate-x-1 text-sm font-medium transition-all rounded-xl text-left w-full">
+          <span class="material-symbols-outlined text-[20px]">logout</span>
+          <span>Đăng xuất</span>
         </button>
       </div>
     </aside>
 
-    <!-- Main -->
-    <div class="flex-1 flex flex-col min-w-0 lg:ml-60">
-      <!-- Top bar -->
-      <header class="sticky top-0 z-20 bg-white border-b border-gray-200 h-14 flex items-center px-4 lg:px-6 gap-3">
-        <button @click="showMobile = true" class="lg:hidden p-1.5 rounded-lg hover:bg-gray-100">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-        </button>
-        <div class="flex items-center gap-2 text-sm">
-          <span class="text-gray-400">Giảng viên</span>
-          <svg class="w-3.5 h-3.5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-          <span class="font-semibold text-gray-900">{{ pageTitle }}</span>
-        </div>
-        <div class="ml-auto flex items-center gap-2">
-          <NuxtLink v-if="isAdmin" to="/admin" class="text-xs text-primary hover:underline font-medium">Admin Panel</NuxtLink>
-          <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5">
-            <div class="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <span class="text-[10px] font-bold text-white">{{ auth.user?.name?.charAt(0)?.toUpperCase() }}</span>
+    <!-- Main Content Area -->
+    <div class="lg:ml-64 flex flex-col min-h-screen">
+      <!-- Top Navigation Anchor (Desktop Integration) -->
+      <header class="sticky top-0 z-20 bg-surface/80 shadow-sm backdrop-blur-xl border-b border-surface-dim">
+        <div class="flex h-20 items-center justify-between px-6 lg:px-10">
+          <div class="flex items-center gap-4">
+            <button class="rounded-xl p-2 bg-surface-lowest border border-surface-dim lg:hidden" @click="showMobile = true">
+              <span class="material-symbols-outlined">menu</span>
+            </button>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-outline">Quản trị viên / Instructor</p>
+              <p class="text-xl font-bold font-headline text-on-surface tracking-tight">{{ pageTitle }}</p>
             </div>
-            <span class="text-sm font-medium text-gray-700 hidden sm:block">{{ auth.user?.name }}</span>
+          </div>
+          
+          <div class="flex items-center gap-6">
+            <NuxtLink v-if="isAdmin" to="/admin" class="hidden sm:block text-sm font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest">
+              Admin Panel
+            </NuxtLink>
+            <div class="hidden sm:flex relative group cursor-pointer items-center justify-center">
+              <span class="material-symbols-outlined text-outline hover:text-primary transition-colors p-2 bg-surface-lowest border border-surface-dim rounded-full">notifications</span>
+              <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface"></span>
+            </div>
+            <div class="flex items-center gap-3 bg-surface-lowest border border-surface-dim pl-2 pr-4 py-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all">
+              <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 font-bold text-primary text-sm shadow-inner">{{ auth.user?.name?.charAt(0)?.toUpperCase() }}</div>
+              <span class="text-sm font-bold text-on-surface">{{ auth.user?.name }}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <main class="flex-1 p-4 lg:p-6">
-        <slot />
+      <main class="flex-1 p-4 lg:p-8">
+        <div class="min-h-full rounded-[2rem] bg-surface-lowest p-5 shadow-ambient sm:p-6 lg:p-8">
+          <slot />
+        </div>
       </main>
     </div>
 
-    <!-- Mobile sidebar -->
+    <!-- Mobile Sidebar Teleport -->
     <Teleport to="body">
-      <Transition enter-active-class="transition-opacity duration-200" enter-from-class="opacity-0" enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showMobile" class="fixed inset-0 z-50 lg:hidden">
-          <div class="absolute inset-0 bg-black/60" @click="showMobile = false"></div>
-          <aside class="absolute left-0 top-0 bottom-0 w-64 bg-gray-900 text-white flex flex-col overflow-y-auto">
-            <div class="flex items-center justify-between px-5 h-14 border-b border-gray-800 flex-shrink-0">
-              <span class="font-bold">EduPress Giảng viên</span>
-              <button @click="showMobile = false" class="p-1 rounded-lg hover:bg-gray-800">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+      <div v-if="showMobile" class="fixed inset-0 z-50 lg:hidden">
+        <div class="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" @click="showMobile = false"></div>
+        <aside class="absolute inset-y-0 left-0 w-72 bg-surface-lowest p-6 shadow-ambient flex flex-col">
+          <div class="mb-8 flex items-center justify-between">
+            <div>
+              <p class="font-headline font-bold text-lg text-on-surface">Instructor Menu</p>
             </div>
-            <nav class="flex-1 px-3 py-3 space-y-0.5">
-              <template v-for="group in navGroups" :key="group.label">
-                <p class="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-widest first:pt-0">{{ group.label }}</p>
-                <NuxtLink v-for="item in group.items" :key="item.to" :to="item.to"
-                  class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  :class="isActive(item.to) ? 'bg-primary text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'"
-                  @click="showMobile = false">
-                  <span v-html="item.icon" class="w-5 h-5 flex-shrink-0"></span>
+            <button class="text-outline p-2 bg-surface-low rounded-full flex items-center justify-center" @click="showMobile = false">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          
+          <div class="flex-1 overflow-y-auto no-scrollbar space-y-6">
+            <div v-for="group in navGroups" :key="group.label">
+              <p class="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-outline">{{ group.label }}</p>
+              <div class="space-y-1">
+                <NuxtLink
+                  v-for="item in group.items"
+                  :key="item.to"
+                  :to="item.to"
+                  class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors"
+                  :class="isActive(item.to) ? 'bg-surface-high text-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-low'"
+                  @click="showMobile = false"
+                >
+                  <span class="material-symbols-outlined text-[20px] shrink-0" :style="isActive(item.to) ? 'font-variation-settings: \'FILL\' 1;' : ''">{{ item.icon }}</span>
                   <span>{{ item.label }}</span>
                 </NuxtLink>
-              </template>
-            </nav>
-          </aside>
-        </div>
-      </Transition>
+              </div>
+            </div>
+          </div>
+          
+          <div class="mt-auto pt-6 border-t border-surface-dim/30">
+            <button class="w-full flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container/20 rounded-xl font-medium transition-all" @click="logout">
+              <span class="material-symbols-outlined">logout</span>
+              Đăng xuất
+            </button>
+          </div>
+        </aside>
+      </div>
     </Teleport>
   </div>
 </template>
 
-
-
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
@@ -127,48 +133,61 @@ const showMobile = ref(false)
 const isAdmin = computed(() => auth.user?.roles?.includes('admin'))
 
 const pageTitleMap: Record<string, string> = {
-  '/instructor': 'Dashboard',
+  '/instructor': 'Tổng quan',
   '/instructor/courses': 'Khóa học của tôi',
-  '/courses/create': 'Tạo khóa học',
+  '/courses/create': 'Tạo khóa học mới',
 }
 
 const pageTitle = computed(() => {
-  if (route.path.includes('/curriculum')) return 'Quản lý Curriculum'
+  if (route.path.includes('/curriculum')) return 'Quản lý bài giảng (Curriculum)'
   if (route.path.includes('/students')) return 'Danh sách học viên'
-  if (route.path.includes('/revenue')) return 'Doanh thu'
+  if (route.path.includes('/revenue')) return 'Phân tích Doanh thu'
+  if (route.path.includes('/question-bank')) return 'Ngân hàng câu hỏi'
+  if (route.path.includes('/exams')) return 'Đợt thi & đánh giá'
   if (route.path.includes('/edit')) return 'Chỉnh sửa khóa học'
-  return pageTitleMap[route.path] || 'Giảng viên'
+  return pageTitleMap[route.path] || 'Bảng điều khiển'
 })
 
-const ICON = {
-  dashboard: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" /></svg>',
-  courses: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>',
-  add: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>',
-}
-
 const navGroups = [
-  {
-    label: 'Tổng quan',
+  { 
+    label: 'Tổng quan', 
     items: [
-      { to: '/instructor', label: 'Dashboard', icon: ICON.dashboard },
-    ],
+      { to: '/instructor', label: 'Bảng điều khiển', icon: 'dashboard' }
+    ] 
+  },
+  { 
+    label: 'Khóa học', 
+    items: [
+      { to: '/instructor/courses', label: 'Khóa học của tôi', icon: 'school' }, 
+      { to: '/courses/create', label: 'Tạo mới', icon: 'add_circle' },
+      // Có trỏ curriculum chung ở đây cũng được nhưng thường vào từ khóa học cụ thể
+    ] 
   },
   {
-    label: 'Khóa học',
+    label: 'Khảo thí',
     items: [
-      { to: '/instructor/courses', label: 'Khóa học của tôi', icon: ICON.courses },
-      { to: '/courses/create', label: 'Tạo khóa học mới', icon: ICON.add },
-    ],
+      { to: '/instructor/question-bank', label: 'Ngân hàng câu hỏi', icon: 'database' },
+      { to: '/instructor/exams', label: 'Đợt thi', icon: 'assignment' }
+    ]
   },
+  {
+    label: 'Kinh doanh',
+    items: [
+      { to: '/instructor/students', label: 'Học viên', icon: 'group' },
+      { to: '/instructor/revenue', label: 'Doanh thu', icon: 'payments' }
+    ]
+  }
 ]
 
-function isActive(path: string): boolean {
-  if (path === '/instructor') return route.path === '/instructor'
-  return route.path.startsWith(path)
-}
+function isActive(path: string) { return path === '/instructor' ? route.path === '/instructor' : route.path.startsWith(path) }
 
-async function logout() {
+async function logout() { 
   await auth.logout()
-  router.push('/login')
+  router.push('/login') 
 }
 </script>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>

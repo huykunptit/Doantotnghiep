@@ -36,6 +36,27 @@ export interface Lesson {
   locked?: boolean
 }
 
+export interface CourseQa {
+  id: number
+  user_id: number
+  course_id: number
+  lesson_id?: number | null
+  subject: string
+  content: string
+  created_at: string
+  user: { id: number; name: string; avatar?: string | null }
+  replies?: CourseQaReply[]
+}
+
+export interface CourseQaReply {
+  id: number
+  course_qa_id: number
+  user_id: number
+  content: string
+  created_at: string
+  user: { id: number; name: string; avatar?: string | null }
+}
+
 export interface LessonProgress {
   lesson_id: number
   completed: boolean
@@ -184,7 +205,7 @@ export const useCourseStore = defineStore('course', {
       price: number
       thumbnail?: string | null
       category_id?: number | null
-    }) {
+    } | FormData) {
       const auth = useAuthStore()
       const data = await useApi<{ course: Course }>('/courses', {
         method: 'POST',
@@ -201,7 +222,7 @@ export const useCourseStore = defineStore('course', {
       thumbnail?: string | null
       status?: 'draft' | 'published' | 'closed'
       category_id?: number | null
-    }) {
+    } | FormData) {
       const auth = useAuthStore()
       const data = await useApi<{ course: Course }>(`/courses/${id}`, {
         method: 'PUT',
@@ -277,7 +298,7 @@ export const useCourseStore = defineStore('course', {
       return data
     },
 
-    async createOrder(courseId: number, paymentMethod: 'vnpay' | 'momo' | 'zalopay' | 'bank_transfer' = 'vnpay') {
+    async createOrder(courseId: number, paymentMethod: 'payos' | 'momo' | 'zalopay' | 'bank_transfer' = 'payos') {
       const auth = useAuthStore()
       return await useApi<{ order: Order; payment_url?: string; enrolled?: boolean; message: string }>(
         '/orders',
@@ -290,6 +311,42 @@ export const useCourseStore = defineStore('course', {
       const data = await useApi<{ data: Order[] }>('/orders', { token: auth.token })
       this.orders = data.data
       return data.data
+    },
+
+    // Q&A Actions
+    async fetchQas(courseId: number, lessonId?: number) {
+      const auth = useAuthStore()
+      const url = lessonId ? `/courses/${courseId}/qas?lesson_id=${lessonId}` : `/courses/${courseId}/qas`
+      const data = await useApi<{ data: CourseQa[] }>(url, { token: auth.token })
+      return data.data
+    },
+
+    async createQa(courseId: number, payload: { subject: string; content: string; lesson_id?: number | null }) {
+      const auth = useAuthStore()
+      return await useApi<CourseQa>(`/courses/${courseId}/qas`, {
+        method: 'POST',
+        body: payload,
+        token: auth.token,
+      })
+    },
+
+    async createQaReply(courseId: number, qaId: number, content: string) {
+      const auth = useAuthStore()
+      return await useApi<CourseQaReply>(`/courses/${courseId}/qas/${qaId}/replies`, {
+        method: 'POST',
+        body: { content },
+        token: auth.token,
+      })
+    },
+
+    // Review Actions
+    async createReview(courseId: number, payload: { rating: number; comment?: string }) {
+      const auth = useAuthStore()
+      return await useApi<{ review: any; message: string }>(`/courses/${courseId}/reviews`, {
+        method: 'POST',
+        body: payload,
+        token: auth.token,
+      })
     },
   },
 })

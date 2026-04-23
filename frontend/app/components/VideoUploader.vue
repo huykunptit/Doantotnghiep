@@ -10,56 +10,56 @@
       />
       
       <div 
-        class="drop-area"
+        class="border-2 border-dashed border-outline-variant/50 rounded-2xl p-12 text-center cursor-pointer transition-all duration-300"
         @click="$refs.fileInput.click()"
         @dragover.prevent="dragOver = true"
         @dragleave.prevent="dragOver = false"
         @drop.prevent="handleDrop"
-        :class="{ 'drag-over': dragOver }"
+        :class="dragOver ? 'border-primary bg-primary/5' : 'bg-surface-lowest hover:border-primary/50 hover:bg-surface-low'"
       >
-        <div class="icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-12 h-12">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
+        <div class="flex justify-center mb-4 text-outline group-hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-5xl">cloud_upload</span>
         </div>
-        <p class="text-lg font-semibold">Drop video here or click to upload</p>
-        <p class="text-sm text-gray-500 mt-2">MP4, MOV, AVI, WEBM (Max 500MB)</p>
+        <p class="text-lg font-bold font-headline text-on-surface">Kéo thả Video vào đây hoặc Click để trình duyệt</p>
+        <p class="text-xs font-bold text-outline-variant mt-2 uppercase tracking-widest">Hỗ trợ: MP4, MOV, AVI, WEBM (Tối Đa 1GB)</p>
       </div>
     </div>
 
     <!-- Progress -->
-    <div v-if="uploading" class="upload-progress">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-sm font-medium">{{ selectedFile?.name }}</span>
-        <span class="text-sm text-gray-600">{{ uploadProgress }}%</span>
+    <div v-if="uploading" class="bg-surface-lowest border border-surface-dim rounded-2xl p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-bold text-on-surface truncate pr-4">{{ selectedFile?.name }}</span>
+        <span class="text-sm font-bold text-primary bg-primary/10 px-2 py-1 rounded">{{ uploadProgress }}%</span>
       </div>
-      <div class="progress-bar">
-        <div class="progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+      <div class="w-full h-3 bg-surface-high rounded-full overflow-hidden">
+        <div class="h-full progress-gradient transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
       </div>
-      <p class="text-xs text-gray-500 mt-2">Uploading... Please wait</p>
+      <p class="text-[10px] font-bold text-outline uppercase tracking-widest mt-3 flex items-center justify-center gap-2">
+         <span class="material-symbols-outlined text-[14px] animate-spin">refresh</span>
+         Đang xử lý tải lên... Vui lòng không đóng cửa sổ
+      </p>
     </div>
 
     <!-- Success -->
-    <div v-if="videoUrl && !uploading" class="upload-success">
-      <div class="success-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-8 h-8 text-green-600">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-        </svg>
+    <div v-if="videoUrl && !uploading" class="bg-secondary/10 border border-secondary/20 rounded-2xl p-8 text-center text-secondary">
+      <div class="flex justify-center mb-3">
+        <span class="material-symbols-outlined text-4xl text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
       </div>
-      <p class="text-sm font-semibold text-green-700">Video uploaded successfully!</p>
-      <button @click="replaceVideo" class="btn-replace">Replace Video</button>
+      <p class="text-sm font-bold uppercase tracking-widest">Tải lên Giáo trình Thành công!</p>
+      <button @click="replaceVideo" class="mt-6 px-6 py-2 bg-surface-lowest border border-secondary/20 text-secondary font-bold text-sm hover:bg-secondary-50 rounded-lg transition-colors">Thay Video Khác</button>
     </div>
 
     <!-- Error -->
-    <div v-if="error" class="error-message">
-      <p class="text-sm text-red-600">{{ error }}</p>
-      <button @click="resetUpload" class="btn-retry">Try Again</button>
+    <div v-if="error" class="bg-error-container/30 border border-error/20 rounded-2xl p-6 text-center text-error mt-4">
+      <p class="text-sm font-medium">{{ error }}</p>
+      <button @click="resetUpload" class="mt-4 px-6 py-2 bg-error text-white font-bold text-sm hover:bg-error/90 rounded-lg transition-colors shadow-sm">Thử Lại Ngay</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{
   courseId: number
@@ -80,7 +80,7 @@ const videoUrl = ref(props.existingVideoUrl || null)
 const dragOver = ref(false)
 const error = ref('')
 
-const MAX_SIZE = 500 * 1024 * 1024 // 500MB
+const MAX_SIZE = 1000 * 1024 * 1024 // 1GB now allowed
 
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -90,7 +90,7 @@ const handleFileSelect = (event: Event) => {
 
 const handleDrop = (event: DragEvent) => {
   dragOver.value = false
-  const file = event.dataTransfer?.files[0]
+  const file = event.dataTransfer?.files?.[0]
   if (file) validateAndUpload(file)
 }
 
@@ -100,13 +100,13 @@ const validateAndUpload = (file: File) => {
   // Validate file type
   const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm']
   if (!allowedTypes.includes(file.type)) {
-    error.value = 'Invalid file type. Please upload MP4, MOV, AVI, or WEBM.'
+    error.value = 'Định dạng Video không hợp lệ! Vui lòng dùng MP4, MOV, AVI, hoặc WEBM.'
     return
   }
 
   // Validate file size
   if (file.size > MAX_SIZE) {
-    error.value = 'File size exceeds 500MB. Please upload a smaller file.'
+    error.value = 'Dung lượng Video vượt quá 1GB. Vui lòng nén file trước khi upload.'
     return
   }
 
@@ -127,25 +127,27 @@ const uploadVideo = async () => {
 
   const progressTimer = setInterval(() => {
     if (uploadProgress.value < 90) {
-      uploadProgress.value += 8
+      uploadProgress.value += 5
     }
-  }, 250)
+  }, 300)
 
   try {
-    const response = await useApi<{ lesson?: any }>(`/courses/${props.courseId}/lessons/${props.lessonId}/upload-video`, {
+    const response = await $fetch<{ lesson?: any }>(`/api/courses/${props.courseId}/lessons/${props.lessonId}/upload-video`, {
       method: 'POST',
       body: formData,
-      token: auth.token,
+      headers: { Authorization: `Bearer ${auth.token}` }
     })
 
     if (response.lesson) {
       uploadProgress.value = 100
-      videoUrl.value = response.lesson.video_url
-      emit('uploaded', response.lesson)
+      setTimeout(() => {
+        videoUrl.value = response.lesson.video_url
+        emit('uploaded', response.lesson)
+      }, 500)
     }
 
   } catch (err: any) {
-    error.value = err?.data?.message || 'Upload failed. Please try again.'
+    error.value = err?.data?.message || 'Băng thông gặp sự cố. Quá trình tải lên thất bại.'
     emit('error', error.value)
   } finally {
     clearInterval(progressTimer)
@@ -157,7 +159,7 @@ const replaceVideo = () => {
   videoUrl.value = null
   selectedFile.value = null
   error.value = ''
-  fileInput.value!.value = ''
+  if(fileInput.value) fileInput.value.value = ''
 }
 
 const resetUpload = () => {
@@ -169,100 +171,6 @@ const resetUpload = () => {
 </script>
 
 <style scoped>
-.video-uploader {
-  width: 100%;
-}
-
-.drop-area {
-  border: 2px dashed #d1d5db;
-  border-radius: 12px;
-  padding: 48px 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: #f9fafb;
-}
-
-.drop-area:hover,
-.drop-area.drag-over {
-  border-color: #16a34a;
-  background: #dcfce7;
-}
-
-.icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-  color: #6b7280;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #16a34a, #22c55e);
-  transition: width 0.3s ease;
-}
-
-.upload-success {
-  text-align: center;
-  padding: 32px;
-  background: #f0fdf4;
-  border-radius: 12px;
-  border: 1px solid #bbf7d0;
-}
-
-.success-icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 12px;
-}
-
-.btn-replace {
-  margin-top: 16px;
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-replace:hover {
-  background: #f9fafb;
-  border-color: #16a34a;
-}
-
-.error-message {
-  padding: 16px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.btn-retry {
-  margin-top: 12px;
-  padding: 8px 16px;
-  background: #dc2626;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn-retry:hover {
-  background: #b91c1c;
-}
-
 .hidden {
   display: none;
 }

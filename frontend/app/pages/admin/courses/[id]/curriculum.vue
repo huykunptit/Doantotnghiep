@@ -1,60 +1,74 @@
 <template>
-  <div>
-    <NuxtLayout name="admin">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <NuxtLink :to="`/admin/courses/${courseId}`" class="text-sm text-gray-500">← Quay lại duyệt khóa học</NuxtLink>
-          <h1 class="text-2xl font-bold text-gray-900 mt-1">Curriculum (Admin)</h1>
+  <NuxtLayout name="admin">
+    <div class="space-y-8">
+      <AppPageHeader eyebrow="Admin" title="Curriculum khóa học" description="Xem và rà soát cấu trúc section, lesson và tài nguyên của khóa học.">
+        <template #actions>
+          <NuxtLink :to="`/admin/courses/${courseId}`"><UiButton variant="secondary">Quay lại chi tiết</UiButton></NuxtLink>
+        </template>
+      </AppPageHeader>
+
+      <UiCard>
+        <div class="mb-6 flex items-center justify-between">
+          <div>
+            <p class="text-sm text-on-surface-variant">Mã khóa học #{{ courseId }}</p>
+            <h2 class="text-xl font-semibold text-on-surface">Quản lý nội dung / review curriculum</h2>
+          </div>
         </div>
-      </div>
 
-      <SectionManager
-        ref="sectionManagerRef"
-        :course-id="courseId"
-        @add-lesson="handleAddLesson"
-        @edit-lesson="handleEditLesson"
-        @upload-video="handleUploadVideo"
-        @delete-lesson="handleDeleteLesson"
-      />
+        <SectionManager
+          ref="sectionManagerRef"
+          :course-id="courseId"
+          @add-lesson="handleAddLesson"
+          @edit-lesson="handleEditLesson"
+          @upload-video="handleUploadVideo"
+          @delete-lesson="handleDeleteLesson"
+        />
+      </UiCard>
 
-      <div v-if="showLessonModal" class="modal-overlay" @click.self="showLessonModal = false">
-        <div class="modal">
-          <h3 class="text-lg font-bold mb-4">{{ editingLesson ? 'Sửa bài học' : 'Thêm bài học' }}</h3>
-          <div class="space-y-3">
-            <input v-model="lessonForm.title" class="input" placeholder="Tiêu đề bài học" />
-            <textarea v-model="lessonForm.description" class="input" rows="3" placeholder="Mô tả"></textarea>
-            <label class="text-sm text-gray-700">
-              <input v-model="lessonForm.is_preview" type="checkbox" class="mr-2" />
-              Cho phép xem thử
-            </label>
-            <div class="flex justify-end gap-2">
-              <button class="btn-secondary" @click="showLessonModal = false">Hủy</button>
-              <button class="btn-primary" @click="saveLesson">Lưu</button>
+      <Teleport to="body">
+        <div v-if="showLessonModal" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4" @click.self="showLessonModal = false">
+          <div class="w-full max-w-xl rounded-3xl bg-surface-lowest p-6 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-on-surface">{{ editingLesson ? 'Sửa bài học' : 'Thêm bài học' }}</h3>
+              <button class="text-outline" @click="showLessonModal = false">✕</button>
+            </div>
+            <div class="space-y-4">
+              <UiInput v-model="lessonForm.title" label="Tiêu đề bài học" placeholder="Nhập tiêu đề bài học" />
+              <UiTextarea v-model="lessonForm.description" label="Mô tả" :rows="4" placeholder="Nhập mô tả..." />
+              <label class="flex items-center gap-3 rounded-2xl border border-surface-dim px-4 py-3 text-sm text-on-surface-variant">
+                <input v-model="lessonForm.is_preview" type="checkbox">
+                Cho phép xem thử
+              </label>
+              <div class="flex justify-end gap-3">
+                <UiButton variant="ghost" @click="showLessonModal = false">Hủy</UiButton>
+                <UiButton @click="saveLesson">Lưu</UiButton>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Teleport>
 
-      <div v-if="showUploadModal" class="modal-overlay" @click.self="showUploadModal = false">
-        <div class="modal max-w-2xl">
-          <h3 class="text-lg font-bold mb-4">Upload video</h3>
-          <VideoUploader
-            v-if="uploadingLesson"
-            :course-id="courseId"
-            :lesson-id="uploadingLesson.id"
-            :existing-video-url="uploadingLesson.video_url"
-            @uploaded="onUploaded"
-          />
-          <div class="mt-4 flex justify-end">
-            <button class="btn-secondary" @click="showUploadModal = false">Đóng</button>
+      <Teleport to="body">
+        <div v-if="showUploadModal" class="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 p-4" @click.self="showUploadModal = false">
+          <div class="w-full max-w-3xl rounded-3xl bg-surface-lowest p-6 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-on-surface">Upload video</h3>
+              <button class="text-outline" @click="showUploadModal = false">✕</button>
+            </div>
+            <VideoUploader v-if="uploadingLesson" :course-id="courseId" :lesson-id="uploadingLesson.id" :existing-video-url="uploadingLesson.video_url" @uploaded="onUploaded" />
           </div>
         </div>
-      </div>
-    </NuxtLayout>
-  </div>
+      </Teleport>
+    </div>
+  </NuxtLayout>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuthStore } from '~/stores/auth'
+import { useApi } from '~/composables/useApi'
+
 definePageMeta({ layout: false, middleware: ['auth', 'admin'] })
 
 const route = useRoute()

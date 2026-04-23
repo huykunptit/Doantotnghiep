@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             if (!Schema::hasColumn('orders', 'payment_method')) {
-                $table->string('payment_method')->default('vnpay')->after('status');
+                $table->string('payment_method')->default('payos')->after('status');
             }
 
             if (!Schema::hasColumn('orders', 'gateway_response')) {

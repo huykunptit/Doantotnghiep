@@ -80,6 +80,8 @@ services:
 
   # ─── Application Services ─────────────────────────────────────────────────
   backend:
+    image: lms-backend:latest
+
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -135,7 +137,8 @@ services:
     container_name: lms_frontend
     restart: unless-stopped
     environment:
-      NUXT_PUBLIC_API_BASE: http://localhost/api
+      NUXT_PUBLIC_API_BASE: /api
+      NUXT_API_PROXY_BASE: http://backend:8000/api
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000

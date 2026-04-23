@@ -1,124 +1,55 @@
-<template>
-  <div>
-    <NuxtLayout name="instructor">
-    <div class="max-w-5xl mx-auto">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Dashboard Giảng viên</h1>
-        <p class="text-sm text-gray-500 mt-1">Tổng quan khóa học và thống kê</p>
-      </div>
-      <NuxtLink to="/courses/create" class="btn-primary flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-        Tạo khóa học mới
-      </NuxtLink>
-    </div>
-
-    <!-- Stats -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="card p-5">
-        <p class="text-sm text-gray-500">Tổng khóa học</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.total_courses || 0 }}</p>
-      </div>
-      <div class="card p-5">
-        <p class="text-sm text-gray-500">Tổng học viên</p>
-        <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.total_students || 0 }}</p>
-      </div>
-      <div class="card p-5">
-        <p class="text-sm text-gray-500">Doanh thu</p>
-        <p class="text-2xl font-bold text-primary mt-1">{{ formatPrice(stats.total_revenue || 0) }}</p>
-      </div>
-    </div>
-
-    <!-- Course List -->
-    <div class="space-y-3">
-      <div v-if="loading" v-for="i in 3" :key="i" class="card p-5 animate-pulse flex gap-4">
-        <div class="w-24 h-16 bg-gray-200 rounded-lg flex-shrink-0"></div>
-        <div class="flex-1 space-y-2"><div class="h-4 bg-gray-200 rounded w-1/2"></div><div class="h-3 bg-gray-200 rounded w-1/3"></div></div>
-      </div>
-
-      <div v-if="!loading && courses.length === 0" class="card p-12 text-center">
-        <svg class="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-        <h3 class="text-base font-semibold text-gray-900 mb-1">Chưa có khóa học nào</h3>
-        <p class="text-sm text-gray-500 mb-4">Bắt đầu tạo khóa học đầu tiên của bạn!</p>
-        <NuxtLink to="/courses/create" class="btn-primary">Tạo khóa học</NuxtLink>
-      </div>
-
-      <div v-for="course in courses" :key="course.id" class="card p-5 flex flex-col sm:flex-row gap-4 items-start">
-        <div class="w-full sm:w-32 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-          <img v-if="course.thumbnail" :src="course.thumbnail" class="w-full h-full object-cover" />
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start gap-3">
-            <div class="flex-1">
-              <h3 class="text-sm font-semibold text-gray-900">{{ course.title }}</h3>
-              <p class="text-xs text-gray-500 mt-1">{{ course.lessons_count || 0 }} bài học · {{ course.enrollments_count || 0 }} học viên</p>
-            </div>
-            <span class="badge flex-shrink-0" :class="statusBadge(course.status)">{{ statusLabel(course.status) }}</span>
-          </div>
-          <div v-if="course.status === 'rejected' && course.reject_reason" class="mt-2 text-xs text-red-600 bg-red-50 rounded-lg p-2">
-            Từ chối: {{ course.reject_reason }}
-          </div>
-          <div class="flex gap-2 mt-3 flex-wrap">
-            <NuxtLink :to="`/courses/${course.id}/edit`" class="btn-ghost text-xs px-3 py-1.5">Chỉnh sửa</NuxtLink>
-            <NuxtLink :to="`/instructor/courses/${course.id}/curriculum`" class="btn-ghost text-xs px-3 py-1.5">Curriculum</NuxtLink>
-            <NuxtLink :to="`/instructor/courses/${course.id}/students`" class="btn-ghost text-xs px-3 py-1.5">Học viên</NuxtLink>
-            <NuxtLink :to="`/instructor/courses/${course.id}/revenue`" class="btn-ghost text-xs px-3 py-1.5">Doanh thu</NuxtLink>
-            <button
-              v-if="course.status === 'draft' || course.status === 'rejected'"
-              @click="publishCourse(course)"
-              class="btn-secondary text-xs px-3 py-1.5"
-            >
-              Gửi duyệt
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-definePageMeta({ middleware: 'instructor' })
+const user = useAuthUserCookie()
 
-const auth = useAuthStore()
-const courseStore = useCourseStore()
-
-const courses = ref<any[]>([])
-const stats = ref<any>({})
-const loading = ref(true)
-
-function statusBadge(s: string): string {
-  const m: Record<string, string> = { published: 'bg-primary-light text-primary-dark', draft: 'bg-gray-100 text-gray-600', pending_review: 'bg-amber-100 text-amber-700', rejected: 'bg-red-100 text-red-700' }
-  return m[s] || 'bg-gray-100 text-gray-600'
-}
-function statusLabel(s: string): string {
-  const m: Record<string, string> = { published: 'Đã xuất bản', draft: 'Nháp', pending_review: 'Chờ duyệt', rejected: 'Từ chối' }
-  return m[s] || s
-}
-function formatPrice(v: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
+if (!user.value) {
+  await navigateTo('/login', { replace: true })
 }
 
-async function publishCourse(course: any) {
-  try {
-    await courseStore.publishCourse(course.id)
-    course.status = 'pending_review'
-  } catch (e: any) {
-    alert(e?.data?.message || 'Thất bại')
-  }
+if (user.value && normalizeRole(user.value.role) !== 'instructor') {
+  await navigateTo(getDashboardPath(user.value.role), { replace: true })
 }
 
-onMounted(async () => {
-  try {
-    const [myCourses, statsData] = await Promise.all([
-      courseStore.fetchMyCourses(),
-      useApi<any>('/instructor/stats', { token: auth.token }).catch(() => ({})),
-    ])
-    courses.value = myCourses || []
-    stats.value = statsData
-  } finally {
-    loading.value = false
-  }
-})
+const viewUser = user.value
 </script>
+
+<template>
+  <DashboardShell
+    :activity-rows="[
+      { title: 'Lop UI/UX co 18 bai nop moi can cham', time: '08:00', status: 'Gap' },
+      { title: 'Buoi livestream toi nay da duoc nhac lich cho hoc vien', time: '09:20', status: 'Moi' },
+      { title: 'Tai lieu Module 4 da duoc cap nhat thanh cong', time: '11:10', status: 'Da xong' },
+    ]"
+    :hero-items="[
+      { count: '05', label: 'lop hoc dang quan ly', note: 'Sap xep theo lich trong ngay', tone: 'green' },
+      { count: '18', label: 'bai nop cho cham', note: 'Can xu ly truoc 22:00', tone: 'neutral' },
+      { count: '42', label: 'hoc vien dang online', note: 'Tap trung o cac lop thuc hanh', tone: 'blue' },
+    ]"
+    hero-description="Bang dieu khien nay giup giang vien theo doi lop hoc, bai nop va muc do tham gia cua hoc vien ma khong bi roi mat."
+    hero-title="Xin chao, hom nay la mot ngay day hoc rat gon va ro."
+    intro="Tien do giang day"
+    :metric-cards="[
+      { title: 'Ty le hoan thanh bai hoc', value: '78%', delta: '+5.1%', subtitle: 'Tuan nay', type: 'bars', bars: [36, 62, 58, 70, 74, 78, 76], labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] },
+      { title: 'Muc do tham gia', value: '284', delta: '+9.6%', subtitle: 'Tin nhan va thao luan', type: 'ring', ring: 76, note: 'Hoc vien dang tuong tac tot o cac buoi hoc' },
+      { title: 'Danh gia mon hoc', value: '9.5', delta: '+0.4%', subtitle: 'Tu hoc vien', type: 'progress', progress: 91, note: 'Nhom hoc vien phan hoi tich cuc ve nhom bai tap' },
+      { title: 'Nguoi hoc quay lai', value: '81%', delta: '+3.1%', subtitle: '7 ngay gan day', type: 'wave', wavePoints: 'M0 70 C24 70 44 24 72 24 C96 24 118 84 144 84 C176 84 192 34 220 34 C248 34 268 92 296 92 C316 92 328 74 340 68', footLeft: 'Hoc vien quay lai', footRight: '842' },
+    ]"
+    :nav-items="[
+      { label: 'Tong quan', icon: '◧', active: true },
+      { label: 'Lop hoc', icon: '△' },
+      { label: 'Bai tap', icon: '◎' },
+      { label: 'Lich day', icon: '◌' },
+    ]"
+    role-label="Instructor role"
+    search-placeholder="Tim lop hoc, bai nop, hoc vien..."
+    :summary-stats="[
+      { label: 'Buoi day hom nay', value: '04', note: '2 buoi sap bat dau', tone: 'green' },
+      { label: 'Bai nop cho cham', value: '18', note: 'Tap trung o lop UI/UX', tone: 'amber' },
+      { label: 'Tin nhan hoc vien', value: '26', note: 'Can phan hoi trong ngay', tone: 'neutral' },
+    ]"
+    :support-items="['Quan ly lop hoc', 'Noi dung bai giang', 'Cham bai', 'Thong bao hoc vien']"
+    title="Tong quan giang day"
+    :user-name="viewUser?.name || 'Instructor User'"
+    user-role="Instructor"
+    workspace-label="Instructor"
+  />
+</template>

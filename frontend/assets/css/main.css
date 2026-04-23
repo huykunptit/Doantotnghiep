@@ -3,8 +3,35 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
   body {
-    @apply font-sans text-gray-900 bg-[#F8FAFC] antialiased; /* Switched to slate-50 for a cooler base */
+    @apply bg-surface font-body text-on-surface antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-headline tracking-[-0.02em] text-on-surface;
+  }
+
+  ::selection {
+    @apply bg-primary/15 text-on-surface;
+  }
+
+  button,
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role='button'][aria-disabled='true'] {
+    cursor: not-allowed;
   }
 }
 
@@ -14,11 +41,23 @@
   }
   
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-sm;
+    @apply bg-surface-lowest/90 backdrop-blur-md border border-surface-dim shadow-ambient;
   }
   
   .gradient-text {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-emerald-500;
+    @apply bg-gradient-to-r from-primary to-primary-600 bg-clip-text text-transparent;
+  }
+
+  .cta-gradient {
+    background: linear-gradient(135deg, #004ac6 0%, #174ea6 100%);
+  }
+
+  .progress-gradient {
+    background: linear-gradient(90deg, #00687a 0%, #0097b3 100%);
+  }
+
+  .editorial-shadow {
+    box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.12);
   }
   
   @keyframes fadeInUp {
@@ -35,89 +74,99 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-r from-primary to-emerald-500 text-white hover:from-primary-dark hover:to-primary shadow-sm hover:shadow-md focus:ring-primary border border-transparent;
+    @apply btn cta-gradient text-white hover:brightness-110 shadow-sm hover:shadow-md focus:ring-primary/30 border border-transparent;
   }
   .btn-secondary {
-    @apply btn border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 focus:ring-gray-200 shadow-sm;
+    @apply btn border border-surface-dim/30 text-on-surface bg-surface-lowest hover:bg-surface-low hover:border-surface-dim/50 focus:ring-surface-tint/15 shadow-sm;
   }
   .btn-danger {
-    @apply btn bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 shadow-sm hover:shadow-md focus:ring-red-500 border border-transparent;
+    @apply btn bg-error text-white hover:brightness-95 shadow-sm hover:shadow-md focus:ring-error/30 border border-transparent;
   }
   .btn-ghost {
-    @apply btn text-gray-600 hover:bg-gray-100 focus:ring-gray-300 hover:text-gray-900;
+    @apply btn text-on-surface-variant hover:bg-surface-low focus:ring-surface-tint/15 hover:text-on-surface;
   }
-  
+
   /* Export Button */
   .btn-export {
-    @apply btn bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-primary hover:border-primary-300 shadow-sm relative overflow-hidden group;
+    @apply btn bg-surface-lowest border border-surface-dim/30 text-on-surface-variant hover:bg-surface-low hover:text-primary hover:border-primary/30 shadow-sm relative overflow-hidden;
   }
-  
+
   .input {
-    @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary-light transition-all duration-200 shadow-sm;
+    @apply w-full rounded-lg border border-surface-dim/30 bg-surface-low px-4 py-3 text-sm text-on-surface placeholder:text-outline/70 transition-all duration-200 focus:bg-surface-lowest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1.5;
+    @apply mb-1.5 block text-sm font-semibold text-on-surface-variant;
   }
-  
-  /* Upgraded Cards */
+
+  /* Cards */
   .card {
-    @apply bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300;
+    @apply rounded-xl bg-surface-lowest border border-surface-dim shadow-sm transition-all duration-300;
   }
-  
+
+  .card-hover {
+    @apply card hover:-translate-y-1 hover:shadow-ambient;
+  }
+
   .card-glass {
-    @apply glass-effect rounded-2xl;
+    @apply bg-surface-lowest/80 backdrop-blur-md border border-surface-dim/20 shadow-ambient rounded-2xl;
   }
-  
+
   /* Stat Cards */
   .stat-card {
-    @apply card p-5 relative overflow-hidden group;
+    @apply card p-5 relative overflow-hidden hover:-translate-y-1 hover:shadow-ambient;
   }
   .stat-card::before {
     content: '';
-    @apply absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-300 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300;
+    @apply absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary-300 to-transparent opacity-0 transition-opacity duration-300;
   }
-  
+  .stat-card:hover::before {
+    opacity: 1;
+  }
+
   /* Table Styles */
   .admin-table {
     @apply w-full text-left border-collapse;
   }
   .admin-table th {
-    @apply px-5 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 bg-gray-50/50 backdrop-blur-sm sticky top-0 z-10;
+    @apply px-5 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-widest border-b border-surface-dim bg-surface-low sticky top-0 z-10;
   }
   .admin-table td {
-    @apply px-5 py-4 border-b border-gray-50 transition-colors duration-150;
+    @apply px-5 py-4 border-b border-surface-dim/40 transition-colors duration-150;
   }
   .admin-table tr {
-    @apply hover:bg-[#F8FAFC] transition-colors duration-150 group relative;
+    @apply hover:bg-surface-low transition-colors duration-150 relative;
   }
   .admin-table tr::after {
     content: '';
-    @apply absolute left-0 top-0 bottom-0 w-1 bg-primary scale-y-0 group-hover:scale-y-100 transition-transform duration-200 origin-center;
+    @apply absolute left-0 top-0 bottom-0 w-1 bg-primary scale-y-0 transition-transform duration-200 origin-center;
   }
-  
+  .admin-table tr:hover::after {
+    transform: scaleY(1);
+  }
+
   /* Badges */
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide border;
   }
   .badge-success {
-    @apply badge bg-emerald-50 text-emerald-700 border-emerald-100;
+    @apply badge bg-secondary-50 text-secondary border-secondary/20;
   }
   .badge-warning {
-    @apply badge bg-amber-50 text-amber-700 border-amber-100;
+    @apply badge bg-amber-50 text-amber-700 border-amber-200/60;
   }
   .badge-danger {
-    @apply badge bg-rose-50 text-rose-700 border-rose-100;
+    @apply badge bg-error-container text-error border-error/20;
   }
   .badge-gray {
-    @apply badge bg-slate-50 text-slate-600 border-slate-200;
+    @apply badge bg-surface-low text-on-surface-variant border-surface-dim/30;
   }
-  
+
   /* Pagination */
   .pagination-wrapper {
-    @apply flex items-center justify-between border-t border-gray-100 px-5 py-4 bg-white/50 backdrop-blur-sm rounded-b-2xl;
+    @apply flex items-center justify-between border-t border-surface-dim/20 px-5 py-4 bg-surface-lowest rounded-b-2xl;
   }
   .pagination-btn {
     @apply w-9 h-9 flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-200 select-none;
@@ -126,9 +175,9 @@
     @apply bg-primary text-white shadow-md shadow-primary/20 scale-105;
   }
   .pagination-btn-inactive {
-    @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-transparent hover:border-gray-200;
+    @apply text-on-surface-variant hover:bg-surface-low hover:text-on-surface border border-transparent hover:border-surface-dim/30;
   }
   .pagination-btn-disabled {
-    @apply text-gray-300 cursor-not-allowed border border-transparent;
+    @apply text-outline/40 cursor-not-allowed border border-transparent;
   }
 }

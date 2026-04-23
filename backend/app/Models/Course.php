@@ -63,4 +63,24 @@ class Course extends Model
     {
         return $this->hasMany(Review::class);
     }
+
+    public function questionBanks(): HasMany
+    {
+        return $this->hasMany(QuestionBank::class);
+    }
+
+    public function questionGroups(): HasMany
+    {
+        return $this->hasMany(QuestionGroup::class)->orderBy('sort_order');
+    }
+
+    public function quizzes(): HasMany
+    {
+        return $this->hasMany(Quiz::class);
+    }
+
+    public function exams(): HasMany
+    {
+        return $this->hasMany(Exam::class)->latest();
+    }
 }

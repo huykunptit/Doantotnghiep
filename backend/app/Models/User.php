@@ -23,7 +23,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 
@@ -37,6 +37,16 @@ class User extends Authenticatable
         return $this->hasMany(Enrollment::class);
     }
 
+    public function lessonProgress(): HasMany
+    {
+        return $this->hasMany(LessonProgress::class);
+    }
+
+    public function lessonNotes(): HasMany
+    {
+        return $this->hasMany(LessonNote::class);
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
@@ -45,5 +55,20 @@ class User extends Authenticatable
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function cvs(): HasMany
+    {
+        return $this->hasMany(UserCV::class);
+    }
+
+    public function latestCv()
+    {
+        return $this->hasOne(UserCV::class)->latestOfMany();
+    }
+
+    public function careerRecommendations(): HasMany
+    {
+        return $this->hasMany(CareerRecommendation::class);
     }
 }
