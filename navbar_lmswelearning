@@ -1,0 +1,661 @@
+<nav id="sidebar" class="sidebar ">
+
+    <div class="sidebar-header update_sidebar">
+        <a class="large_logo" href="https://lms.welearning.vn">
+            <img src="https://lms.welearning.vn/public/uploads/main/images/08-01-2025/677e25193345f.png?v=7.0.2" alt="">
+        </a>
+        <a class="mini_logo" href="https://lms.welearning.vn">
+            <img src="https://lms.welearning.vn/public/uploads/main/images/08-01-2025/677e25193345f.png?v=7.0.2" alt="">
+        </a>
+        <a id="close_sidebar" class="d-lg-none">
+            <i class="ti-close"></i>
+        </a>
+    </div>
+        <div class="sidebar_wrapper">
+        <ul id="sidebar_menu" class="metismenu">
+
+                                                                                                                                                                                    
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" https://lms.welearning.vn/dashboard " class=" " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-th"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Bảng điều khiển</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                    </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="mm-active">
+                                            <a href=" # " class="  has-arrow " aria-expanded="true">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-user"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản trị người dùng</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse mm-show" style="">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/student/allStudent " onclick="handleChildElementClick(this)"> Học viên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/systemsetting/allInstructor " onclick="handleChildElementClick(this)"> Giảng viên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/branch " onclick="handleChildElementClick(this)"> Sơ đồ tổ chức</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/position " onclick="handleChildElementClick(this)"> Vị trí chức danh</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/usertype/list " onclick="handleChildElementClick(this)"> Vai trò người dùng</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-instructor-policy " onclick="handleChildElementClick(this)"> Phân quyền linh hoạt</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-chalkboard"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản trị L&amp;D</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse" style="height: 0px;">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/plan " onclick="handleChildElementClick(this)"> Quản lý lớp học</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/path " onclick="handleChildElementClick(this)"> Quản lý lộ trình</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/enrollment " onclick="handleChildElementClick(this)"> Ghi danh lớp/lộ trình</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/special-enrollment " onclick="handleChildElementClick(this)"> Ghi danh lớp/lộ trình bằng tệp</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/auto-enrollment " onclick="handleChildElementClick(this)"> Ghi danh theo quy tắc</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/enrolled-list " onclick="handleChildElementClick(this)"> Danh sách đã ghi danh</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/offline-class-registration/admin-accept-student-regis " onclick="handleChildElementClick(this)"> Danh sách đăng ký lớp Offline</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-th"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản trị tài liệu</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/material-source " onclick="handleChildElementClick(this)"> Quản trị nguồn học liệu</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/library/list " onclick="handleChildElementClick(this)"> Quản trị tài liệu tham khảo</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-book"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản trị khóa học</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/course/categories " onclick="handleChildElementClick(this)"> Phân nhóm khóa học</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/course/course-level " onclick="handleChildElementClick(this)"> Cấp độ khoá học</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/course/all/courses " onclick="handleChildElementClick(this)"> Danh sách khóa học</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/weassignment/submission-repport " onclick="handleChildElementClick(this)"> Danh sách nộp bài tập</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/course/course-setting " onclick="handleChildElementClick(this)"> Thuộc tính khóa học</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-person-booth"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản trị Lớp học trực tiếp</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/checkincall " onclick="handleChildElementClick(this)"> Điểm danh học viên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/import " onclick="handleChildElementClick(this)"> Điểm danh bằng tệp</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/attendance " onclick="handleChildElementClick(this)"> Danh sách điểm danh</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-vr-cardboard"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản trị Lớp học ảo</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/virtualclass/virtual-class " onclick="handleChildElementClick(this)"> Danh sách lớp học ảo (phòng học ảo)</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/google-meet/settings " onclick="handleChildElementClick(this)"> Cài đặt Google Meet</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/zoom/settings " onclick="handleChildElementClick(this)"> Cài đặt Zoom</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-question-circle"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Quản lý khảo thí</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse" style="height: 0px;">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/question-group " onclick="handleChildElementClick(this)"> Nhóm câu hỏi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/level " onclick="handleChildElementClick(this)"> Cấp độ câu hỏi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/question-bank-list " onclick="handleChildElementClick(this)"> Ngân hàng câu hỏi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/question-bank-bulk " onclick="handleChildElementClick(this)"> Nhập nhiều câu hỏi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/set-quiz " onclick="handleChildElementClick(this)"> Danh sách đề thi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/test-list " onclick="handleChildElementClick(this)"> Danh sách đợt thi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/mark-test " onclick="handleChildElementClick(this)"> Chấm điểm bài thi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/supervisor " onclick="handleChildElementClick(this)"> Giám sát thi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/quiz-setup " onclick="handleChildElementClick(this)"> Thiết lập mặc định</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-certificate"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Chứng chỉ</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/certificate/certificate " onclick="handleChildElementClick(this)"> Danh sách mẫu chứng chỉ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/certificate/certificate/create " onclick="handleChildElementClick(this)"> Tạo mẫu chứng chỉ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/certificate/fonts " onclick="handleChildElementClick(this)"> Danh sách các chứng chỉ đã cấp</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-th"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Câu đố</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/quizzes/quizzesLists " onclick="handleChildElementClick(this)"> Danh sách Câu hỏi đố</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/quizzes/survey " onclick="handleChildElementClick(this)"> Danh sách khảo sát nâng cao</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-poll-h"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Khảo sát</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/survey/groups " onclick="handleChildElementClick(this)"> Chủ đề khảo sát</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/survey/list " onclick="handleChildElementClick(this)"> Danh sách bảng khảo sát</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/survey/setting " onclick="handleChildElementClick(this)"> Thiết lập khảo sát</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-comments"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Tin tức</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/manage/blog-category " onclick="handleChildElementClick(this)"> Phân nhóm tin tức</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/manage/blogs " onclick="handleChildElementClick(this)"> Danh sách tin tức</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/push-notification " onclick="handleChildElementClick(this)"> Gửi thông báo đẩy</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/EmailTemp " onclick="handleChildElementClick(this)"> Mẫu Email</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-chart-area"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Báo cáo</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/data-report/course-statistics " onclick="handleChildElementClick(this)"> Tổng quan khoá học</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/quiz-result " onclick="handleChildElementClick(this)"> Báo cáo kỳ thi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/quiz/quiz-group-stat " onclick="handleChildElementClick(this)"> Báo cáo Chất lượng nhóm Câu hỏi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org-subscription/learning-progress-report " onclick="handleChildElementClick(this)"> Báo cáo tiến trình học</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/data-report/learning-path " onclick="handleChildElementClick(this)"> Báo cáo lộ trình học tập</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/report/choose-scorm-lesson " onclick="handleChildElementClick(this)"> Báo cáo thi SCORM</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-paint-roller"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Cài đặt FrontEnd</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/headermenu " onclick="handleChildElementClick(this)"> Menu tiêu đề chính</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/menusetting " onclick="handleChildElementClick(this)"> Thiết lập menu</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/sliders " onclick="handleChildElementClick(this)"> Thanh trượt</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/sliders/setting " onclick="handleChildElementClick(this)"> Cài đặt Thanh trượt</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/home-content " onclick="handleChildElementClick(this)"> Nội dung chính</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/privacy-policy " onclick="handleChildElementClick(this)"> Chính sách riêng tư</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/page-content " onclick="handleChildElementClick(this)"> Nội dung các trang</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/testimonials " onclick="handleChildElementClick(this)"> Chia sẻ của học viên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/about " onclick="handleChildElementClick(this)"> Giới thiệu</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/contact-page " onclick="handleChildElementClick(this)"> Liên hệ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/page " onclick="handleChildElementClick(this)"> Trang</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/becomeInstructor " onclick="handleChildElementClick(this)"> Trở thành Giảng viên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/sponsors " onclick="handleChildElementClick(this)"> Nhãn hàng</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/popup-content " onclick="handleChildElementClick(this)"> Cửa sổ bật lên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/footer/footer-setting " onclick="handleChildElementClick(this)"> Cài đặt tiêu đề dưới</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/loginpage " onclick="handleChildElementClick(this)"> Đăng nhập &amp; đăng ký</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/faq " onclick="handleChildElementClick(this)"> FAQ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/appearance/themes " onclick="handleChildElementClick(this)"> Bố cục</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/appearance/themes-customize " onclick="handleChildElementClick(this)"> Tuỳ chỉnh màu và abc</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/custom-css-js " onclick="handleChildElementClick(this)"> Tùy chỉnh CSS &amp; JS</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-hammer"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Tiện ích</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/utilities " onclick="handleChildElementClick(this)"> Tiện ích</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/maintenance " onclick="handleChildElementClick(this)"> Bảo trì</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/ipBlock " onclick="handleChildElementClick(this)"> Chặn IP</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/geo-location " onclick="handleChildElementClick(this)"> Lịch sử đăng nhập</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/error_log " onclick="handleChildElementClick(this)"> Lịch sử báo lỗi</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/preloader-setting " onclick="handleChildElementClick(this)"> Biểu tượng tải</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-cogs"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Cài đặt hệ thống</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/activation " onclick="handleChildElementClick(this)"> Kích hoạt</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/general-settings " onclick="handleChildElementClick(this)"> Thông tin hệ thống</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/mobile-menu-setup " onclick="handleChildElementClick(this)"> Thiết lập ứng dụng di động</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/instructor-setup " onclick="handleChildElementClick(this)"> Thiết lập giảng viên</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/email-configaration " onclick="handleChildElementClick(this)"> Thiết lập Email</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/systemsetting/user/api " onclick="handleChildElementClick(this)"> Cài đặt Api</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/vimeosetting/vimeo-setting " onclick="handleChildElementClick(this)"> Cấu hình Vimeo</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/vdocipher/setting " onclick="handleChildElementClick(this)"> Thiết lập VdoCipher</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/gdrive " onclick="handleChildElementClick(this)"> Cài đặt Google Drive</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/seo-setup " onclick="handleChildElementClick(this)"> Cài đặt Homepage SEO</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/student/field " onclick="handleChildElementClick(this)"> Các mục yêu cầu</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/localization " onclick="handleChildElementClick(this)"> Ngôn ngữ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/currencies " onclick="handleChildElementClick(this)"> Tiền tệ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/timezone " onclick="handleChildElementClick(this)"> Múi giờ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/city " onclick="handleChildElementClick(this)"> Thành phố</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/cookie-setting " onclick="handleChildElementClick(this)"> Cài đặt cookie</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/cache-setting " onclick="handleChildElementClick(this)"> Cài đặt Cache</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/queue-setting " onclick="handleChildElementClick(this)"> Thiết lập hàng chờ</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/cron-job " onclick="handleChildElementClick(this)"> Cron Job</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/captcha " onclick="handleChildElementClick(this)"> Google Captcha</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/socialLogin " onclick="handleChildElementClick(this)"> Đăng nhập bằng mạng xã hội</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/frontend/social-setting " onclick="handleChildElementClick(this)"> Đăng nhập một lần</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/backup " onclick="handleChildElementClick(this)"> Sao lưu</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/modulemanager " onclick="handleChildElementClick(this)"> Quản lý Mô-đun</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/amazons3 " onclick="handleChildElementClick(this)"> Cấu hình Aws S3</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/setting/updateSystem " onclick="handleChildElementClick(this)"> Thông tin hệ thống</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/sidebar-manager " onclick="handleChildElementClick(this)"> Quản trị Sidebar</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/twofa/settings " onclick="handleChildElementClick(this)"> Bảo mật hai lớp</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-users"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Diễn đàn</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/forum/topic " onclick="handleChildElementClick(this)"> Xem diễn đàn</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/forum/deleted-topic " onclick="handleChildElementClick(this)"> Bài viết đã xoá</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/admin/forum/setting " onclick="handleChildElementClick(this)"> Cài đặt diễn đàn</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-poll"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Bảng xếp hạng</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/leaderboard " onclick="handleChildElementClick(this)"> Danh sách bảng xếp hạng</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/leaderboard/setup " onclick="handleChildElementClick(this)"> Cài đặt tương tác</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/org/leaderboard/ranking " onclick="handleChildElementClick(this)"> Xếp hạng của học viên</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" # " class="  has-arrow " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-medal"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Gamification</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                        <ul class="mm-collapse">
+                                                                                                                                                                                                                                                                                    <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/gamification/badges " onclick="handleChildElementClick(this)"> Danh sách huy hiệu</a>
+                                                            </li>
+                                                                                                                                                                                                                                                                                                                                                                                                <li class="">
+                                                                <a class="child-element" href=" https://lms.welearning.vn/gamification/history " onclick="handleChildElementClick(this)"> Lịch sử cấp huy hiệu</a>
+                                                            </li>
+                                                                                                                                                                                                        </ul>
+                                                                                </li>
+                                                                    
+                                                            
+                                                                                                    
+                                                                                                                                                    <li class="">
+                                            <a href=" https://lms.welearning.vn/support/ticket " class=" " aria-expanded="false">
+                                                <div class="nav_icon_small">
+                                                    <span class="fas fa-th"></span>
+                                                </div>
+                                                <div class="nav_title">
+                                                    <span>Hỗ trợ</span>
+                                                                                                    </div>
+                                            </a>
+                                                                                    </li>
+                                                                    
+                                                                                                            </ul>
+    </div>
+
+</nav>
