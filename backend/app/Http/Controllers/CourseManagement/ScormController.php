@@ -26,34 +26,51 @@ class ScormController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|string|in:completed,passed,failed,browsed,incomplete',
-            'score' => 'nullable|numeric|min:0|max:100',
-            'lesson_location' => 'nullable|string',
-            'suspend_data' => 'nullable|string',
+            // SCORM 1.2 uses lesson_status; SCORM 2004 splits into completion_status + success_status.
+            'version'           => 'nullable|string|in:1.2,2004',
+            'status'            => 'nullable|string|in:completed,passed,failed,browsed,incomplete,unknown',
+            'completion_status' => 'nullable|string|in:completed,incomplete,not_attempted,unknown',
+            'success_status'    => 'nullable|string|in:passed,failed,unknown',
+            'score'             => 'nullable|numeric|min:0|max:100',
+            'lesson_location'   => 'nullable|string',
+            'suspend_data'      => 'nullable|string',
         ]);
 
-        // Integrate with existing LessonProgress
+        // Normalize completion across both SCORM versions: a lesson counts as
+        // completed if 1.2 status is completed/passed, OR if 2004 completion is
+        // 'completed' (regardless of success_status).
+        $version = $validated['version'] ?? '1.2';
+        $statusValue = $validated['status'] ?? null;
+        $completionValue = $validated['completion_status'] ?? null;
+        $successValue = $validated['success_status'] ?? null;
+
+        $isCompleted = $version === '2004'
+            ? $completionValue === 'completed' || $successValue === 'passed'
+            : in_array($statusValue, ['completed', 'passed'], true);
+
         $progress = LessonProgress::updateOrCreate(
             [
-                'user_id' => $user->id,
-                'course_id' => $course->id,
+                'user_id'   => $user->id,
                 'lesson_id' => $lesson->id,
             ],
             [
-                'is_completed' => in_array($validated['status'], ['completed', 'passed']),
-                'completed_at' => in_array($validated['status'], ['completed', 'passed']) ? now() : null,
-                'metadata' => [
-                    'scorm_status' => $validated['status'],
-                    'scorm_score' => $validated['score'],
-                    'last_location' => $validated['lesson_location'],
-                    'suspend_data' => $validated['suspend_data'],
-                ]
+                'completed'    => $isCompleted,
+                'completed_at' => $isCompleted ? now() : null,
+                'metadata'     => [
+                    'scorm_version'       => $version,
+                    'scorm_status'        => $statusValue,
+                    'scorm_completion'    => $completionValue,
+                    'scorm_success'       => $successValue,
+                    'scorm_score'         => $validated['score'] ?? null,
+                    'last_location'       => $validated['lesson_location'] ?? null,
+                    'suspend_data'        => $validated['suspend_data'] ?? null,
+                ],
             ]
         );
 
         return response()->json([
             'message' => 'Progress tracked',
-            'is_completed' => $progress->is_completed
+            'completed' => $progress->completed,
         ]);
     }
 }

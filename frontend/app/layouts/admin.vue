@@ -2,17 +2,28 @@
 import { computed, ref, watch } from 'vue'
 import AdminSidebar from '~/components/dashboard/AdminSidebar.vue'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
+import { useAuthStore } from '~/stores/auth'
+import { getDashboardPath } from '~/composables/useAuthSession'
 
-const user = useAuthUserCookie()
+const auth = useAuthStore()
 
-if (!user.value) {
+if (!auth.isReady) {
+  auth.initFromStorage()
+}
+
+if (auth.token && !auth.user) {
+  await auth.fetchMe()
+}
+
+if (!auth.isLoggedIn || !auth.user) {
   await navigateTo('/login', { replace: true })
 }
 
-if (user.value && normalizeRole(user.value.role) !== 'admin') {
-  await navigateTo(getDashboardPath(user.value.role), { replace: true })
+if (auth.user && !(auth.user.roles || []).includes('admin')) {
+  await navigateTo(getDashboardPath(auth.user.role), { replace: true })
 }
 
+const user = computed(() => auth.user)
 const route = useRoute()
 const sidebarOpen = ref(false)
 

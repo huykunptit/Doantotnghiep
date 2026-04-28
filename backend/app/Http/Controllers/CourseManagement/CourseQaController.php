@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\CourseQa;
 use App\Models\CourseQaReply;
 use App\Models\Enrollment;
+use App\Models\QaReaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,7 +18,12 @@ class CourseQaController extends Controller
      */
     public function index(Request $request, Course $course): JsonResponse
     {
-        $query = CourseQa::with(['user:id,name,avatar', 'replies.user:id,name,avatar'])
+        $query = CourseQa::with([
+                'user:id,name,avatar',
+                'reactions',
+                'replies.user:id,name,avatar',
+                'replies.reactions',
+            ])
             ->where('course_id', $course->id);
 
         if ($request->has('lesson_id')) {
@@ -25,6 +31,16 @@ class CourseQaController extends Controller
         }
 
         $qas = $query->orderByDesc('created_at')->paginate(20);
+
+        $userId = optional($request->user())->id;
+        $qas->getCollection()->transform(function (CourseQa $qa) use ($userId) {
+            $payload = $qa->toArray();
+            $payload = array_merge($payload, $qa->appendReactionState($userId));
+            $payload['replies'] = collect($qa->replies)->map(function (CourseQaReply $reply) use ($userId) {
+                return array_merge($reply->toArray(), $reply->appendReactionState($userId));
+            })->values()->all();
+            return $payload;
+        });
 
         return response()->json($qas);
     }
@@ -109,6 +125,68 @@ class CourseQaController extends Controller
 
         $reply->load('user:id,name,avatar');
 
-        return response()->json($reply, 201);
+        return response()->json(array_merge(
+            $reply->toArray(),
+            $reply->appendReactionState($user->id),
+        ), 201);
+    }
+
+    /**
+     * Toggle a reaction (like/dislike) on a question or a reply.
+     *
+     * Body: { reactable_type: 'qa'|'reply', reactable_id: number, kind: 'like'|'dislike' }
+     *
+     * Behaviour:
+     *   - No existing reaction → create with kind.
+     *   - Same kind exists     → remove (toggle off).
+     *   - Different kind exists→ flip kind.
+     */
+    public function react(Request $request, Course $course): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'reactable_type' => ['required', 'string', 'in:qa,reply'],
+            'reactable_id'   => ['required', 'integer'],
+            'kind'           => ['required', 'string', 'in:like,dislike'],
+        ]);
+
+        // Resolve target model and verify it belongs to this course.
+        if ($validated['reactable_type'] === 'qa') {
+            $target = CourseQa::where('id', $validated['reactable_id'])
+                ->where('course_id', $course->id)
+                ->first();
+        } else {
+            $target = CourseQaReply::where('id', $validated['reactable_id'])
+                ->whereHas('qa', fn ($q) => $q->where('course_id', $course->id))
+                ->first();
+        }
+
+        if (!$target) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $existing = QaReaction::where('user_id', $user->id)
+            ->where('reactable_type', get_class($target))
+            ->where('reactable_id', $target->id)
+            ->first();
+
+        if (!$existing) {
+            QaReaction::create([
+                'user_id'        => $user->id,
+                'reactable_type' => get_class($target),
+                'reactable_id'   => $target->id,
+                'kind'           => $validated['kind'],
+            ]);
+        } elseif ($existing->kind === $validated['kind']) {
+            $existing->delete(); // toggle off
+        } else {
+            $existing->update(['kind' => $validated['kind']]); // flip
+        }
+
+        // Return fresh counts for the affected item.
+        $target->load('reactions');
+        return response()->json($target->appendReactionState($user->id));
     }
 }

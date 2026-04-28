@@ -60,21 +60,26 @@ class MediaService
      */
     public function getUrl(string $path): string
     {
+        // Files uploaded via LessonController land on the `public_uploads` disk
+        // (root = public/uploads), not the default `public` disk. Detect which
+        // disk physically holds the file and serve from that one — otherwise
+        // the public/storage symlink won't find it and the browser hits 403.
+        if (Storage::disk('public_uploads')->exists($path)) {
+            return Storage::disk('public_uploads')->url($path);
+        }
+
         $disk = $this->getDisk();
 
-        // For local public files
         if ($disk === 'public') {
             return Storage::disk($disk)->url($path);
         }
 
-        // For cloud storage, usually need a temporary URL for security
         try {
             return Storage::disk($disk)->temporaryUrl(
                 $path,
                 now()->addMinutes(60)
             );
         } catch (\Throwable $e) {
-            // Fallback for disks that don't support temporary URLs
             return Storage::disk($disk)->url($path);
         }
     }

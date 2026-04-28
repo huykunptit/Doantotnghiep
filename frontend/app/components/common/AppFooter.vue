@@ -18,7 +18,7 @@
         <h6 class="text-xs font-bold text-on-surface mb-4 uppercase tracking-widest">Nền tảng</h6>
         <ul class="space-y-3">
           <li><NuxtLink to="/courses" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Danh mục Khóa học</NuxtLink></li>
-          <li><NuxtLink to="/pricing" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Gói tài khoản</NuxtLink></li>
+          <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Gói tài khoản</a></li>
           <li><NuxtLink to="/register" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Trở thành Giảng viên</NuxtLink></li>
         </ul>
       </div>
@@ -26,7 +26,7 @@
       <div>
         <h6 class="text-xs font-bold text-on-surface mb-4 uppercase tracking-widest">Thông tin</h6>
         <ul class="space-y-3">
-          <li><NuxtLink to="/about" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Về chúng tôi</NuxtLink></li>
+          <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Về chúng tôi</a></li>
           <li><NuxtLink to="/career" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Định hướng Sự nghiệp</NuxtLink></li>
           <li><a href="#" class="text-sm text-on-surface-variant hover:text-primary transition-colors">Trung tâm Trợ giúp</a></li>
         </ul>

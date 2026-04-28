@@ -122,6 +122,7 @@ onMounted(() => {
               <td>{{ course.lessons_count || 0 }} bài</td>
               <td>
                 <div class="crud-actions">
+                  <button class="action-btn" type="button" @click="navigateTo(`/courses/${course.id}`)">Xem thử</button>
                   <button class="action-btn is-edit" type="button" @click="navigateTo(`/admin/manage-courses/${course.id}`)">Xây dựng nội dung</button>
                   <button class="action-btn is-delete" type="button" @click="selectedCourse = course; confirmOpen = true">Xóa</button>
                 </div>

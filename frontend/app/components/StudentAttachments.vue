@@ -61,6 +61,8 @@ const auth = useAuthStore()
 const loading = ref(true)
 const attachments = ref<any[]>([])
 
+const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : undefined
+
 watch(() => props.lessonId, () => {
   loadAttachments()
 })
@@ -82,7 +84,9 @@ function fileIcon(mimeType?: string) {
 async function loadAttachments() {
   loading.value = true
   try {
-    const res = await useApi<{ attachments: any[] }>(`/courses/${props.courseId}/lessons/${props.lessonId}/attachments`, { token: auth.token })
+    const res = await useApi<{ attachments: any[] }>(`/courses/${props.courseId}/lessons/${props.lessonId}/attachments`, {
+      headers: authHeaders(),
+    })
     attachments.value = res.attachments || []
   } catch (e: any) {
     if (e?.response?.status !== 404) {
@@ -95,7 +99,9 @@ async function loadAttachments() {
 
 async function downloadFile(file: any) {
   try {
-    const res = await useApi<{ url: string }>(`/courses/${props.courseId}/lessons/${props.lessonId}/attachments/${file.id}/download`, { token: auth.token })
+    const res = await useApi<{ url: string }>(`/courses/${props.courseId}/lessons/${props.lessonId}/attachments/${file.id}/download`, {
+      headers: authHeaders(),
+    })
     const a = document.createElement('a')
     a.href = res.url
     a.target = '_blank'

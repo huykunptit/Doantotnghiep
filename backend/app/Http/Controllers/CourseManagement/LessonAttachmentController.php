@@ -23,7 +23,7 @@ class LessonAttachmentController extends Controller
     /**
      * List attachments for a lesson.
      */
-    public function index(Request $request, Course $course, Lesson $lesson): JsonResponse
+    public function index(Course $course, Lesson $lesson): JsonResponse
     {
         if ($lesson->course_id !== $course->id) {
             return response()->json(['message' => 'Not found'], 404);
@@ -66,6 +66,8 @@ class LessonAttachmentController extends Controller
             'file_size' => $uploadResult['size'] . 'MB',
             'mime_type' => $uploadResult['mime'],
         ]);
+
+        $attachment->url = $this->mediaService->getUrl($attachment->file_path);
 
         return response()->json([
             'message' => 'Attachment uploaded successfully',

@@ -16,6 +16,15 @@
     </div>
 
     <!-- Video Player -->
+    <div v-else-if="isIframeSource && iframeUrl" class="player-container iframe-container">
+      <iframe
+        class="iframe-element"
+        :src="iframeUrl"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+        referrerpolicy="strict-origin-when-cross-origin"
+      />
+    </div>
     <div v-else-if="videoUrl" class="player-container">
       <video
         ref="videoElement"
@@ -48,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -64,6 +73,40 @@ const emit = defineEmits<{
 }>()
 
 const auth = useAuthStore()
+const isIframeSource = computed(() => ['youtube', 'gdrive', 'onedrive'].includes(detectProvider(videoUrl.value)))
+const iframeUrl = computed(() => normalizeIframeUrl(videoUrl.value))
+
+function detectProvider(url: string) {
+  const normalized = url.toLowerCase()
+  if (normalized.includes('youtube.com') || normalized.includes('youtu.be')) return 'youtube'
+  if (normalized.includes('drive.google.com')) return 'gdrive'
+  if (normalized.includes('1drv.ms') || normalized.includes('onedrive.live.com')) return 'onedrive'
+  return 'file'
+}
+
+function normalizeIframeUrl(url: string) {
+  if (!url) return ''
+  const provider = detectProvider(url)
+  if (provider === 'youtube') {
+    const shortMatch = url.match(/youtu\.be\/([^?&/]+)/)
+    const longMatch = url.match(/[?&]v=([^?&/]+)/)
+    const embedMatch = url.match(/youtube\.com\/embed\/([^?&/]+)/)
+    const id = shortMatch?.[1] || longMatch?.[1] || embedMatch?.[1]
+    return id ? `https://www.youtube.com/embed/${id}` : url
+  }
+  if (provider === 'gdrive') {
+    const fileMatch = url.match(/\/file\/d\/([^/]+)/)
+    const openMatch = url.match(/[?&]id=([^?&/]+)/)
+    const id = fileMatch?.[1] || openMatch?.[1]
+    return id ? `https://drive.google.com/file/d/${id}/preview` : url
+  }
+  if (provider === 'onedrive') {
+    if (url.includes('embed=1')) return url
+    return url.includes('?') ? `${url}&embed=1` : `${url}?embed=1`
+  }
+  return ''
+}
+
 const videoElement = ref<HTMLVideoElement>()
 const videoUrl = ref('')
 const loading = ref(false)
@@ -203,8 +246,8 @@ const sendProgressUpdate = async (completed: boolean) => {
 
   try {
     await useApi(`/courses/${props.courseId}/lessons/${props.lessonId}/progress`, {
-      method: 'POST',
-      body: { watched_seconds, is_completed: completed },
+      method: 'PUT',
+      body: { watched_seconds, completed },
       token: auth.token,
     })
 
@@ -235,8 +278,8 @@ const cleanup = () => {
 <style scoped>
 .video-player-wrapper {
   width: 100%;
+  height: 100%;
   background: #000;
-  border-radius: 12px;
   overflow: hidden;
   position: relative;
 }
@@ -278,6 +321,18 @@ const cleanup = () => {
   transition: background 0.2s;
 }
 
+.iframe-container {
+  height: 100%;
+}
+
+.iframe-element {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background: #000;
+}
+
 .btn-retry:hover {
   background: #15803d;
 }
@@ -285,12 +340,15 @@ const cleanup = () => {
 .player-container {
   position: relative;
   width: 100%;
+  height: 100%;
 }
 
 .video-element {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
+  object-fit: contain;
+  background: #000;
 }
 
 .expiry-warning {

@@ -18,6 +18,7 @@ class LessonProgress extends Model
         'completed',
         'completed_at',
         'last_watched_at',
+        'metadata',
     ];
 
     protected $casts = [
@@ -27,6 +28,7 @@ class LessonProgress extends Model
         'completed' => 'boolean',
         'completed_at' => 'datetime',
         'last_watched_at' => 'datetime',
+        'metadata' => 'array',
     ];
 
     public function user(): BelongsTo

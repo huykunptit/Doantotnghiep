@@ -47,7 +47,7 @@ EXPOSE 8000
 CMD sh -c "php artisan config:clear && \
            php artisan migrate --force && \
            php artisan db:seed --force && \
-           php artisan serve --host=0.0.0.0 --port=8000"
+           php -d upload_max_filesize=1024M -d post_max_size=1024M -d memory_limit=512M -d max_execution_time=300 -d display_errors=stderr -d display_startup_errors=0 artisan serve --host=0.0.0.0 --port=8000"
 
 # ─── Stage 3: Production ──────────────────────────────────────────────────────
 FROM base AS production

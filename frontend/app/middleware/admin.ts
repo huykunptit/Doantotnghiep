@@ -1,4 +1,5 @@
 import { useAuthStore } from '~/stores/auth'
+import { getDashboardPath } from '~/composables/useAuthSession'
 
 export default defineNuxtRouteMiddleware(async () => {
   const auth = useAuthStore()
@@ -11,8 +12,12 @@ export default defineNuxtRouteMiddleware(async () => {
     await auth.fetchMe()
   }
 
+  if (!auth.isLoggedIn || !auth.user) {
+    return navigateTo('/login')
+  }
+
   const roles = auth.user?.roles || []
   if (!roles.includes('admin')) {
-    return navigateTo('/')
+    return navigateTo(getDashboardPath(auth.user.role))
   }
 })

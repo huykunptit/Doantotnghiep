@@ -97,4 +97,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/qas', [CourseQaController::class, 'store']);
     Route::get('/courses/{course}/qas/{qa}', [CourseQaController::class, 'show']);
     Route::post('/courses/{course}/qas/{qa}/replies', [CourseQaController::class, 'storeReply']);
+    Route::post('/courses/{course}/qa-reactions', [CourseQaController::class, 'react']);
 });

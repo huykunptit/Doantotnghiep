@@ -193,11 +193,16 @@ class QuestionBankController extends Controller
 
         $validated = $request->validate([
             'question_group_id' => 'nullable|integer|exists:question_groups,id',
-            'content' => 'required|string',
-            'type' => 'required|string',
-            'difficulty' => 'nullable|integer|min:1|max:5',
-            'explanation' => 'nullable|string',
-            'answers' => 'required|array|min:1',
+            'code'              => 'nullable|string|max:50',
+            'content'           => 'required|string',
+            'type'              => 'required|string|in:single_choice,multiple_choice,true_false,essay,matching,ordering,short_answer,numerical',
+            'difficulty'        => 'nullable|integer|min:1|max:5',
+            'default_score'     => 'nullable|numeric|min:0',
+            'explanation'       => 'nullable|string',
+            'feedback'          => 'nullable|string',
+            'general_feedback'  => 'nullable|string',
+            'metadata'          => 'nullable|array',
+            'answers'           => 'nullable|array',
             'answers.*.content' => 'required|string',
             'answers.*.is_correct' => 'required|boolean',
             'answers.*.sub_content' => 'nullable|string',
@@ -215,25 +220,49 @@ class QuestionBankController extends Controller
         try {
             $question = $question ?? new Question();
             $question->fill([
-                'course_id' => $course->id,
-                'question_bank_id' => $bank->id,
+                'course_id'         => $course->id,
+                'question_bank_id'  => $bank->id,
                 'question_group_id' => $validated['question_group_id'] ?? null,
-                'content' => $validated['content'],
-                'type' => $validated['type'],
-                'difficulty' => $validated['difficulty'] ?? 1,
-                'explanation' => $validated['explanation'] ?? null,
+                'code'              => $validated['code'] ?? null,
+                'content'           => $validated['content'],
+                'type'              => $validated['type'],
+                'difficulty'        => $validated['difficulty'] ?? 1,
+                'default_score'     => $validated['default_score'] ?? 1.00,
+                'explanation'       => $validated['explanation'] ?? null,
+                'feedback'          => $validated['feedback'] ?? null,
+                'general_feedback'  => $validated['general_feedback'] ?? null,
+                'metadata'          => $validated['metadata'] ?? null,
             ]);
             $question->save();
 
+            // Auto-create answers for true_false type
             $question->answers()->delete();
-            foreach ($validated['answers'] as $index => $aData) {
+
+            if ($validated['type'] === 'true_false') {
+                $correctAnswer = collect($validated['answers'] ?? [])->firstWhere('is_correct', true);
+                $correctIsTrue = $correctAnswer ? strtolower(trim($correctAnswer['content'])) !== 'sai' : true;
+
                 $question->answers()->create([
-                    'content' => $aData['content'],
-                    'is_correct' => $aData['is_correct'],
-                    'sub_content' => $aData['sub_content'] ?? null,
-                    'sort_order' => $aData['sort_order'] ?? null,
-                    'order' => $index,
+                    'content'    => 'Đúng',
+                    'is_correct' => $correctIsTrue,
+                    'order'      => 0,
                 ]);
+                $question->answers()->create([
+                    'content'    => 'Sai',
+                    'is_correct' => !$correctIsTrue,
+                    'order'      => 1,
+                ]);
+            } else {
+                $answers = $validated['answers'] ?? [];
+                foreach ($answers as $index => $aData) {
+                    $question->answers()->create([
+                        'content'     => $aData['content'],
+                        'is_correct'  => $aData['is_correct'],
+                        'sub_content' => $aData['sub_content'] ?? null,
+                        'sort_order'  => $aData['sort_order'] ?? null,
+                        'order'       => $index,
+                    ]);
+                }
             }
 
             DB::commit();
