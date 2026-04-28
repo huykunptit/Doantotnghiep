@@ -133,7 +133,7 @@ class CourseController extends Controller
         $course->loadCount('enrollments', 'reviews');
 
         $isEnrolled = false;
-        $user = $request->user();
+        $user = $request->user() ?? auth('sanctum')->user();
         if ($user) {
             $isEnrolled = Enrollment::where('user_id', $user->id)
                 ->where('course_id', $course->id)

@@ -36,7 +36,15 @@ export interface Lesson {
   locked?: boolean
 }
 
-export interface CourseQa {
+export type QaReactionKind = 'like' | 'dislike'
+
+export interface QaReactable {
+  like_count?: number
+  dislike_count?: number
+  my_reaction?: QaReactionKind | null
+}
+
+export interface CourseQa extends QaReactable {
   id: number
   user_id: number
   course_id: number
@@ -48,7 +56,7 @@ export interface CourseQa {
   replies?: CourseQaReply[]
 }
 
-export interface CourseQaReply {
+export interface CourseQaReply extends QaReactable {
   id: number
   course_qa_id: number
   user_id: number
@@ -174,6 +182,14 @@ export const useCourseStore = defineStore('course', {
       return await useApi<Lesson[]>(`/courses/${courseId}/lessons`, {
         token: auth.token,
       })
+    },
+
+    async fetchSections(courseId: number) {
+      const auth = useAuthStore()
+      const res = await useApi<{ data: any[] }>(`/courses/${courseId}/sections`, {
+        token: auth.token,
+      })
+      return res?.data || []
     },
 
     async fetchLesson(courseId: number, lessonId: number) {
@@ -337,6 +353,22 @@ export const useCourseStore = defineStore('course', {
         body: { content },
         token: auth.token,
       })
+    },
+
+    /**
+     * Toggle a like/dislike reaction on a question or reply.
+     * Server returns the updated counts + the user's current reaction state.
+     */
+    async reactToQa(courseId: number, params: { type: 'qa' | 'reply'; id: number; kind: QaReactionKind }) {
+      const auth = useAuthStore()
+      return await useApi<{ like_count: number; dislike_count: number; my_reaction: QaReactionKind | null }>(
+        `/courses/${courseId}/qa-reactions`,
+        {
+          method: 'POST',
+          body: { reactable_type: params.type, reactable_id: params.id, kind: params.kind },
+          token: auth.token,
+        },
+      )
     },
 
     // Review Actions

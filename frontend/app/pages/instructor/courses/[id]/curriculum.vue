@@ -201,11 +201,15 @@ html { scroll-behavior: smooth; }
 }
 
 .glass-header {
-  @apply relative overflow-hidden;
+  position: relative;
+  overflow: hidden;
 }
 
 .glass-header::after {
   content: '';
-  @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(47, 122, 69, 0.05), transparent);
+  pointer-events: none;
 }
 </style>

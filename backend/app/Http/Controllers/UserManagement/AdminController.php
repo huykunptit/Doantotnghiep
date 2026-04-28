@@ -577,16 +577,20 @@ class AdminController extends Controller
 
     // ─── Site Settings ─────────────────────────────────────────────────────────
 
-    public function siteSettings(Request $request): JsonResponse
+    public function siteSettings(Request $request, MediaService $mediaService): JsonResponse
     {
         if ($forbidden = $this->ensureAdmin($request)) {
             return $forbidden;
         }
 
-        return response()->json(SiteSetting::getAll());
+        $settings = SiteSetting::getAll();
+        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
+        $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
+
+        return response()->json($settings);
     }
 
-    public function updateSiteSettings(Request $request): JsonResponse
+    public function updateSiteSettings(Request $request, MediaService $mediaService): JsonResponse
     {
         if ($forbidden = $this->ensureAdmin($request)) {
             return $forbidden;
@@ -607,18 +611,26 @@ class AdminController extends Controller
         ]);
 
         SiteSetting::setMany($validated);
+        $settings = SiteSetting::getAll();
+        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
+        $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
 
         return response()->json([
             'message' => 'Cập nhật cài đặt thành công',
-            'settings' => SiteSetting::getAll(),
+            'settings' => $settings,
         ]);
     }
 
-    public function publicSiteSettings(): JsonResponse
+    public function publicSiteSettings(MediaService $mediaService): JsonResponse
     {
         $keys = ['site_name', 'site_description', 'site_logo', 'site_favicon'];
-        $settings = SiteSetting::whereIn('key', $keys)->pluck('value', 'key');
+        $settings = SiteSetting::whereIn('key', $keys)->pluck('value', 'key')->toArray();
 
-        return response()->json($settings);
+        return response()->json([
+            'site_name' => $settings['site_name'] ?? null,
+            'site_description' => $settings['site_description'] ?? null,
+            'site_logo' => !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null,
+            'site_favicon' => !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null,
+        ]);
     }
 }

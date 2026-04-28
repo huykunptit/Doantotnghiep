@@ -13,11 +13,15 @@ class LessonAssignment extends Model
         'instructions',
         'max_file_size',
         'allowed_extensions',
+        'available_from',
+        'submission_open_at',
         'due_at',
     ];
 
     protected $casts = [
-        'due_at' => 'datetime',
+        'available_from'     => 'datetime',
+        'submission_open_at' => 'datetime',
+        'due_at'             => 'datetime',
     ];
 
     public function lesson(): BelongsTo

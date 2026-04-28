@@ -62,16 +62,21 @@ class ScormPackageController extends Controller
 
         $uuid = $lesson->scormPackage?->uuid ?? (string) Str::uuid();
         $entryUrl = $validated['entry_url'] ?? null;
+        $detectedVersion = null;
 
         if ($validated['type'] === 'scorm' && $request->file('scorm_file') instanceof UploadedFile) {
-            $entryUrl = $this->extractScormPackage($request->file('scorm_file'), $uuid);
+            [$entryUrl, $detectedVersion] = $this->extractScormPackage($request->file('scorm_file'), $uuid);
         }
+
+        $version = $validated['version']
+            ?? $detectedVersion
+            ?? (($validated['type'] ?? 'scorm') === 'h5p' ? 'h5p' : '1.2');
 
         $package = ScormPackage::updateOrCreate(
             ['lesson_id' => $lesson->id],
             [
                 'uuid' => $uuid,
-                'version' => $validated['version'] ?? (($validated['type'] ?? 'scorm') === 'h5p' ? 'h5p' : '1.2'),
+                'version' => $version,
                 'entry_url' => $entryUrl,
                 'identifier' => $validated['identifier'] ?? null,
                 'title' => $validated['title'] ?? $lesson->title,
@@ -107,7 +112,13 @@ class ScormPackageController extends Controller
         return response()->json(['message' => 'SCORM/H5P package removed']);
     }
 
-    private function extractScormPackage(UploadedFile $file, string $uuid): string
+    /**
+     * Extract a SCORM package zip and return [entryUrl, detectedVersion].
+     * detectedVersion is '1.2' or '2004' (or null if it couldn't be inferred).
+     *
+     * @return array{0:string,1:?string}
+     */
+    private function extractScormPackage(UploadedFile $file, string $uuid): array
     {
         $disk = Storage::disk('public');
         $directory = 'scorm/' . $uuid;
@@ -133,8 +144,12 @@ class ScormPackageController extends Controller
         File::delete($archivePath);
 
         $entryRelativePath = $this->detectScormEntry($absoluteDirectory);
+        $version = $this->detectScormVersion($absoluteDirectory);
 
-        return $disk->url($directory . '/' . $entryRelativePath);
+        return [
+            $disk->url($directory . '/' . $entryRelativePath),
+            $version,
+        ];
     }
 
     private function detectScormEntry(string $directory): string
@@ -177,5 +192,40 @@ class ScormPackageController extends Controller
         }
 
         throw new \RuntimeException('Cannot detect SCORM entry file');
+    }
+
+    /**
+     * Detect SCORM spec version by inspecting imsmanifest.xml. We look at
+     *   <metadata><schema>ADL SCORM</schema><schemaversion>...</schemaversion>
+     * and at the manifest's xmlns attributes (`adlcp_rootv1p2` ⇒ 1.2,
+     * `adlcp_v1p3` / `adlseq_v1p3` / `adlnav_v1p3` ⇒ 2004).
+     */
+    private function detectScormVersion(string $directory): ?string
+    {
+        $manifestPath = $directory . '/imsmanifest.xml';
+        if (!File::exists($manifestPath)) return null;
+
+        $raw = @file_get_contents($manifestPath);
+        if ($raw === false) return null;
+
+        // Cheapest signal: look at the manifest's xmlns declarations.
+        if (str_contains($raw, 'adlcp_rootv1p2')) {
+            return '1.2';
+        }
+        if (preg_match('/adl(cp|seq|nav)_v1p3/', $raw)) {
+            return '2004';
+        }
+
+        // Fall back to the metadata/schemaversion element.
+        $manifest = @simplexml_load_string($raw);
+        if ($manifest) {
+            $schemaVersion = (string) ($manifest->metadata->schemaversion ?? '');
+            if ($schemaVersion !== '') {
+                if (str_starts_with($schemaVersion, '1.2')) return '1.2';
+                if (str_contains($schemaVersion, '2004') || str_contains($schemaVersion, 'CAM 1.3')) return '2004';
+            }
+        }
+
+        return null;
     }
 }

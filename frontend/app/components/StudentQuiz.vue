@@ -113,6 +113,10 @@ const props = defineProps<{
   lessonId: number
 }>()
 
+const emit = defineEmits<{
+  completed: [payload: { passed: boolean; score?: number }]
+}>()
+
 const auth = useAuthStore()
 const loading = ref(true)
 const submitting = ref(false)
@@ -121,6 +125,8 @@ const questions = ref<any[]>([])
 const attemptId = ref<number | null>(null)
 const userAnswers = ref<Record<string, any>>({})
 const result = ref<any>(null)
+
+const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : undefined
 
 function getTypeText(type: string) {
   const map: any = {
@@ -163,11 +169,11 @@ async function loadQuiz() {
   result.value = null
   userAnswers.value = {}
   try {
-    const res = await useApi<any>(`/courses/${props.courseId}/lessons/${props.lessonId}/quiz`, { token: auth.token })
+    const res = await useApi<any>(`/courses/${props.courseId}/lessons/${props.lessonId}/quiz`, { headers: authHeaders() })
     quiz.value = res.quiz
     questions.value = res.questions
     attemptId.value = res.attempt_id
-    
+
     questions.value.forEach((q: any) => {
       if (q.type === 'multiple_choice') userAnswers.value[q.id] = []
       else if (q.type === 'ordering') userAnswers.value[q.id] = [...q.answers]
@@ -189,13 +195,19 @@ async function submitQuiz() {
   try {
     const res = await useApi<any>(`/courses/${props.courseId}/lessons/${props.lessonId}/quiz/${quiz.value.id}/submit`, {
       method: 'POST',
-      body: { 
+      body: {
         attempt_id: attemptId.value,
-        answers: userAnswers.value 
+        answers: userAnswers.value,
       },
-      token: auth.token
+      headers: authHeaders(),
     })
     result.value = res.attempt
+    if (res.attempt) {
+      emit('completed', {
+        passed: Boolean(res.attempt.passed),
+        score: res.attempt.score,
+      })
+    }
   } catch (e) {
     alert('Không thể nộp bài, vui lòng thử lại sau.')
   } finally {
