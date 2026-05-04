@@ -1,6 +1,5 @@
 <template>
-  <NuxtLayout name="instructor">
-    <section class="space-y-8">
+      <section class="space-y-8">
       <div class="flex flex-col gap-4 lg:gap-5">
         <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary">Instructor</p>
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -67,8 +66,7 @@
         </UiCard>
       </div>
     </section>
-  </NuxtLayout>
-</template>
+  </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
@@ -76,7 +74,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
-definePageMeta({ middleware: 'instructor' })
+definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 const route = useRoute()
 const auth = useAuthStore()
 const courseId = Number(route.params.id)

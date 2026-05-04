@@ -189,11 +189,8 @@
               </template>
 
               <template v-else-if="lesson.type === 'quiz'">
-                <div class="learn-player-placeholder">
-                  <span class="material-symbols-outlined">quiz</span>
-                  <h3>{{ lesson.quiz?.title || lesson.title }}</h3>
-                  <p>{{ lesson.quiz?.description || 'Bài học này là bài kiểm tra. Mở tab Kiểm tra để bắt đầu làm bài.' }}</p>
-                  <button type="button" class="learn-resource-link" @click="activeTab = 'quiz'">Mở bài kiểm tra</button>
+                <div class="learn-quiz-inline">
+                  <StudentQuiz :course-id="courseId" :lesson-id="lesson.id" @completed="onQuizCompleted" />
                 </div>
               </template>
 
@@ -797,7 +794,7 @@ onMounted(init)
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: linear-gradient(180deg, #2f7a45 0%, #1f5d33 100%);
+  background: #2f7a45;
   color: #fff;
   font-weight: 800;
   font-size: 0.85rem;
@@ -909,6 +906,13 @@ onMounted(init)
 .learn-player-placeholder .material-symbols-outlined { font-size: 64px; color: rgba(47, 122, 69, 0.7); }
 .learn-player-loading .material-symbols-outlined { font-size: 40px; animation: spin 1.2s linear infinite; }
 
+.learn-quiz-inline {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: #fff;
+}
+
 .learn-audio { width: min(100%, 480px); }
 .learn-resource-link {
   display: inline-flex;
@@ -917,7 +921,7 @@ onMounted(init)
   height: 40px;
   padding: 0 18px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #2f7a45 0%, #1f5d33 100%);
+  background: #2f7a45;
   color: #fff;
   font-weight: 700;
   text-decoration: none;
@@ -954,7 +958,7 @@ onMounted(init)
   flex-direction: column;
   justify-content: center;
   gap: 14px;
-  background: linear-gradient(180deg, rgba(47, 122, 69, 0.07), #ffffff);
+  background: rgba(47, 122, 69, 0.07);
   border-right: 1px solid rgba(17, 17, 17, 0.08);
 }
 
@@ -1052,7 +1056,7 @@ onMounted(init)
   flex-direction: column;
   justify-content: center;
   gap: 14px;
-  background: linear-gradient(180deg, rgba(47, 122, 69, 0.07), #ffffff);
+  background: rgba(47, 122, 69, 0.07);
   border-right: 1px solid rgba(17, 17, 17, 0.08);
 }
 
@@ -1078,7 +1082,7 @@ onMounted(init)
   flex-direction: column;
   justify-content: center;
   gap: 14px;
-  background: linear-gradient(180deg, rgba(47, 122, 69, 0.07), #ffffff);
+  background: rgba(47, 122, 69, 0.07);
   border-right: 1px solid rgba(17, 17, 17, 0.08);
 }
 
@@ -1152,7 +1156,7 @@ onMounted(init)
 }
 
 .learn-complete-btn {
-  background: linear-gradient(180deg, #2f7a45 0%, #1f5d33 100%);
+  background: #2f7a45;
   color: #fff;
   border: none;
   cursor: pointer;
@@ -1275,7 +1279,7 @@ onMounted(init)
   gap: 8px;
   padding: 12px 20px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #2f7a45 0%, #1f5d33 100%);
+  background: #2f7a45;
   color: #fff;
   font-weight: 700;
   font-size: 0.9rem;
@@ -1331,7 +1335,7 @@ onMounted(init)
   margin: 16px 20px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, rgba(47, 122, 69, 0.08), rgba(47, 122, 69, 0.04));
+  background: rgba(47, 122, 69, 0.06);
   border: 1px solid rgba(47, 122, 69, 0.18);
 }
 .learn-streak-icon {
@@ -1482,7 +1486,7 @@ onMounted(init)
   height: 38px;
   padding: 0 18px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #2f7a45 0%, #1f5d33 100%);
+  background: #2f7a45;
   color: #fff;
   font-size: 0.78rem;
   font-weight: 800;

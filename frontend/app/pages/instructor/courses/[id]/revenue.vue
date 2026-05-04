@@ -1,6 +1,5 @@
 <template>
-  <NuxtLayout name="instructor">
-    <section class="space-y-8">
+      <section class="space-y-8">
       <AppPageHeader eyebrow="Instructor" title="Doanh thu khóa học" description="Theo dõi doanh thu, đơn hàng đã thanh toán và giá trị trung bình của từng giao dịch.">
         <template #actions>
           <UiButton to="/instructor/courses" variant="secondary">Quay lại</UiButton>
@@ -55,8 +54,7 @@
         </UiCard>
       </template>
     </section>
-  </NuxtLayout>
-</template>
+  </template>
 
 <script setup lang="ts">
 // @ts-nocheck
@@ -65,7 +63,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
-definePageMeta({ middleware: 'instructor' })
+definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 const route = useRoute()
 const auth = useAuthStore()
 const courseId = Number(route.params.id)

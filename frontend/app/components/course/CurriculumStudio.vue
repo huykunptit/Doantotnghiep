@@ -16,7 +16,6 @@ const sections = ref<any[]>([])
 const loading = ref(true)
 const auth = useAuthStore()
 
-// Modal States
 const showSectionModal = ref(false)
 const showLessonModal = ref(false)
 const editingSection = ref<any>(null)
@@ -31,7 +30,7 @@ async function loadSections() {
   loading.value = true
   try {
     const res = await $fetch<{ data: any[] }>(`/api/courses/${props.courseId}/sections`, {
-      headers: { Authorization: `Bearer ${auth.token}` }
+      headers: { Authorization: `Bearer ${auth.token}` },
     })
     sections.value = res.data || []
   } catch (error) {
@@ -41,7 +40,6 @@ async function loadSections() {
   }
 }
 
-// Section Actions
 function handleAddSection() {
   editingSection.value = null
   sectionForm.value = { title: '', description: '' }
@@ -61,18 +59,18 @@ async function saveSection() {
       await $fetch(`/api/sections/${editingSection.value.id}`, {
         method: 'PUT',
         body: sectionForm.value,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     } else {
       await $fetch(`/api/courses/${props.courseId}/sections`, {
         method: 'POST',
         body: sectionForm.value,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     }
     showSectionModal.value = false
     await loadSections()
-  } catch (error) {
+  } catch {
     alert('Không thể lưu chương học.')
   } finally {
     saving.value = false
@@ -84,15 +82,14 @@ async function deleteSection(id: number) {
   try {
     await $fetch(`/api/sections/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${auth.token}` }
+      headers: { Authorization: `Bearer ${auth.token}` },
     })
     await loadSections()
-  } catch (error) {
+  } catch {
     alert('Lỗi khi xóa chương.')
   }
 }
 
-// Lesson Actions
 function handleAddLesson(section: any) {
   currentSectionForLesson.value = section
   editingLesson.value = null
@@ -122,13 +119,13 @@ async function saveLesson(formData: any) {
       await $fetch(`/api/courses/${props.courseId}/lessons/${editingLesson.value.id}`, {
         method: 'PUT',
         body: basePayload,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     } else {
       const response = await $fetch<any>(`/api/courses/${props.courseId}/lessons`, {
         method: 'POST',
         body: { ...basePayload, section_id: currentSectionForLesson.value.id, order: 0 },
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
       lessonId = response?.lesson?.id
     }
@@ -141,7 +138,7 @@ async function saveLesson(formData: any) {
       await $fetch(`/api/courses/${props.courseId}/lessons/${lessonId}/upload-video`, {
         method: 'POST',
         body: videoPayload,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     }
 
@@ -149,7 +146,7 @@ async function saveLesson(formData: any) {
       await $fetch(`/api/courses/${props.courseId}/lessons/${lessonId}/assignment`, {
         method: 'POST',
         body: formData.assignment,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     }
 
@@ -157,7 +154,7 @@ async function saveLesson(formData: any) {
       await $fetch(`/api/courses/${props.courseId}/lessons/${lessonId}/virtual-class`, {
         method: 'POST',
         body: formData.virtual_class,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     }
 
@@ -169,11 +166,10 @@ async function saveLesson(formData: any) {
       if (formData.scorm_package?.identifier) payload.append('identifier', formData.scorm_package.identifier)
       if (formData.scorm_package?.version) payload.append('version', formData.scorm_package.version)
       if (formData.scorm_file) payload.append('scorm_file', formData.scorm_file)
-
       await $fetch(`/api/courses/${props.courseId}/lessons/${lessonId}/scorm-package`, {
         method: 'POST',
         body: payload,
-        headers: { Authorization: `Bearer ${auth.token}` }
+        headers: { Authorization: `Bearer ${auth.token}` },
       })
     }
 
@@ -184,14 +180,14 @@ async function saveLesson(formData: any) {
         return $fetch(`/api/courses/${props.courseId}/lessons/${lessonId}/attachments`, {
           method: 'POST',
           body: payload,
-          headers: { Authorization: `Bearer ${auth.token}` }
+          headers: { Authorization: `Bearer ${auth.token}` },
         })
       }))
     }
 
     showLessonModal.value = false
     await loadSections()
-  } catch (error) {
+  } catch {
     alert('Không thể lưu bài học.')
   } finally {
     saving.value = false
@@ -203,34 +199,26 @@ async function deleteLesson(lesson: any) {
   try {
     await $fetch(`/api/courses/${props.courseId}/lessons/${lesson.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${auth.token}` }
+      headers: { Authorization: `Bearer ${auth.token}` },
     })
     await loadSections()
-  } catch (error) {
+  } catch {
     alert('Lỗi khi xóa bài học.')
   }
 }
 
-// Reordering Logic
 async function moveSection(section: any, direction: 'up' | 'down') {
   const index = sections.value.findIndex(s => s.id === section.id)
   if (direction === 'up' && index === 0) return
   if (direction === 'down' && index === sections.value.length - 1) return
-
   const neighbor = direction === 'up' ? sections.value[index - 1] : sections.value[index + 1]
-  
   try {
-    // Simple swap order simulation (if API supports order update)
-    // Here we just notify the API of new order or swap locally for now
-    const newOrderA = neighbor.order || 0
-    const newOrderB = section.order || 0
-
     await Promise.all([
-      $fetch(`/api/sections/${section.id}`, { method: 'PUT', body: { order: newOrderA }, headers: { Authorization: `Bearer ${auth.token}` } }),
-      $fetch(`/api/sections/${neighbor.id}`, { method: 'PUT', body: { order: newOrderB }, headers: { Authorization: `Bearer ${auth.token}` } })
+      $fetch(`/api/sections/${section.id}`, { method: 'PUT', body: { order: neighbor.order || 0 }, headers: { Authorization: `Bearer ${auth.token}` } }),
+      $fetch(`/api/sections/${neighbor.id}`, { method: 'PUT', body: { order: section.order || 0 }, headers: { Authorization: `Bearer ${auth.token}` } }),
     ])
     await loadSections()
-  } catch (error) {
+  } catch {
     console.error('Reorder failed')
   }
 }
@@ -240,19 +228,14 @@ async function moveLesson(section: any, lesson: any, direction: 'up' | 'down') {
   const index = lessons.findIndex((l: any) => l.id === lesson.id)
   if (direction === 'up' && index === 0) return
   if (direction === 'down' && index === lessons.length - 1) return
-
   const neighbor = direction === 'up' ? lessons[index - 1] : lessons[index + 1]
-
   try {
-    const newOrderA = neighbor.order || 0
-    const newOrderB = lesson.order || 0
-
     await Promise.all([
-      $fetch(`/api/courses/${props.courseId}/lessons/${lesson.id}`, { method: 'PUT', body: { order: newOrderA }, headers: { Authorization: `Bearer ${auth.token}` } }),
-      $fetch(`/api/courses/${props.courseId}/lessons/${neighbor.id}`, { method: 'PUT', body: { order: newOrderB }, headers: { Authorization: `Bearer ${auth.token}` } })
+      $fetch(`/api/courses/${props.courseId}/lessons/${lesson.id}`, { method: 'PUT', body: { order: neighbor.order || 0 }, headers: { Authorization: `Bearer ${auth.token}` } }),
+      $fetch(`/api/courses/${props.courseId}/lessons/${neighbor.id}`, { method: 'PUT', body: { order: lesson.order || 0 }, headers: { Authorization: `Bearer ${auth.token}` } }),
     ])
     await loadSections()
-  } catch (error) {
+  } catch {
     console.error('Lesson reorder failed')
   }
 }
@@ -261,115 +244,109 @@ defineExpose({ loadSections })
 </script>
 
 <template>
-  <div class="curriculum-studio space-y-12">
-    <!-- Studio Header -->
-    <div class="flex items-center justify-between">
+  <section class="dashboard-card crud-panel" style="gap:0; padding:0; overflow:hidden;">
+    <!-- Studio Toolbar -->
+    <div class="crud-toolbar" style="border-bottom:1px solid rgba(17,17,17,0.07); padding:18px 24px;">
       <div>
-        <h2 class="text-3xl font-headline font-bold text-on-surface">Cấu trúc Giáo trình</h2>
-        <p class="text-on-surface-variant text-sm mt-1">Quản lý và sắp xếp các bài giảng của bạn theo cách chuyên nghiệp nhất.</p>
+        <p class="section-kicker" style="margin:0 0 2px;">Cấu trúc Giáo trình</p>
+        <p style="margin:0; font-size:0.85rem; color:var(--muted);">Quản lý chương học và bài giảng của khóa học.</p>
       </div>
-      <button 
-        @click="handleAddSection"
-        class="flex items-center gap-3 px-6 py-3 bg-surface-low text-primary rounded-[1.25rem] font-bold shadow-sm hover:bg-surface-high transition-all border border-primary/10"
-      >
-        <span class="material-symbols-outlined">add_circle</span>
+      <button class="crud-primary-btn" style="display:flex;align-items:center;gap:8px;" @click="handleAddSection">
+        <span class="material-symbols-outlined" style="font-size:18px;">add_circle</span>
         Tạo Chương mới
       </button>
     </div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="space-y-8">
-      <div v-for="i in 2" :key="i" class="h-64 bg-surface-low animate-pulse rounded-[2.5rem]"></div>
-    </div>
+    <!-- Content Area -->
+    <div style="padding:20px 24px; display:grid; gap:16px;">
+      <!-- Loading -->
+      <template v-if="loading">
+        <div v-for="i in 2" :key="i" style="height:180px; border-radius:16px; background:rgba(17,17,17,0.05); animation:pulse 1.5s ease-in-out infinite;"></div>
+      </template>
 
-    <!-- Empty State -->
-    <div v-else-if="sections.length === 0" class="py-24 text-center bg-surface-lowest rounded-[3rem] border-2 border-dashed border-surface-dim/40">
-      <div class="w-20 h-20 bg-surface-low rounded-3xl flex items-center justify-center mx-auto mb-6 text-outline">
-        <span class="material-symbols-outlined text-4xl">inventory_2</span>
+      <!-- Empty State -->
+      <div v-else-if="sections.length === 0" style="padding:60px 24px; text-align:center;">
+        <div style="width:64px;height:64px;border-radius:20px;background:rgba(17,17,17,0.05);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:var(--muted);">
+          <span class="material-symbols-outlined" style="font-size:32px;">inventory_2</span>
+        </div>
+        <h3 style="margin:0 0 8px; font-size:1.1rem; font-weight:800;">Giáo trình đang trống</h3>
+        <p style="margin:0 0 20px; color:var(--muted); font-size:0.9rem; max-width:380px; margin-left:auto; margin-right:auto;">Hãy bắt đầu bằng việc tạo chương học đầu tiên để hướng dẫn học viên qua lộ trình của bạn.</p>
+        <button class="crud-primary-btn" @click="handleAddSection">Bắt đầu ngay</button>
       </div>
-      <h3 class="text-2xl font-headline font-bold text-on-surface">Giáo trình đang trống</h3>
-      <p class="text-on-surface-variant mt-2 max-w-sm mx-auto">Hãy bắt đầu bằng việc tạo chương học đầu tiên để hướng dẫn học viên qua lộ trình của bạn.</p>
-      <button @click="handleAddSection" class="mt-8 px-8 py-3 cta-gradient text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all">
-        Bắt đầu ngay
-      </button>
-    </div>
 
-    <!-- Sections List -->
-    <div v-else class="space-y-8">
-      <SectionBlock 
-        v-for="(section, index) in sections" 
-        :key="section.id"
-        :section="section"
-        :course-id="courseId"
-        :index="index"
-        :is-first="index === 0"
-        :is-last="index === sections.length - 1"
-        @edit-section="handleEditSection"
-        @delete-section="deleteSection"
-        @move-section-up="moveSection($event, 'up')"
-        @move-section-down="moveSection($event, 'down')"
-        @add-lesson="handleAddLesson"
-        @edit-lesson="handleEditLesson"
-        @delete-lesson="deleteLesson"
-        @upload-video="emit('uploadVideo', $event)"
-        @move-lesson-up="moveLesson"
-        @move-lesson-down="moveLesson"
-      />
+      <!-- Sections List -->
+      <template v-else>
+        <SectionBlock
+          v-for="(section, index) in sections"
+          :key="section.id"
+          :section="section"
+          :course-id="courseId"
+          :index="index"
+          :is-first="index === 0"
+          :is-last="index === sections.length - 1"
+          @edit-section="handleEditSection"
+          @delete-section="deleteSection"
+          @move-section-up="moveSection($event, 'up')"
+          @move-section-down="moveSection($event, 'down')"
+          @add-lesson="handleAddLesson"
+          @edit-lesson="handleEditLesson"
+          @delete-lesson="deleteLesson"
+          @upload-video="emit('uploadVideo', $event)"
+          @move-lesson-up="moveLesson"
+          @move-lesson-down="moveLesson"
+        />
+      </template>
     </div>
+  </section>
 
-    <!-- Section Modal -->
-    <Teleport to="body">
-      <div v-if="showSectionModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md" @click.self="showSectionModal = false">
-        <div class="w-full max-w-lg rounded-[2.5rem] bg-surface-lowest p-8 shadow-2xl modal-bounce border border-white/20">
-          <div class="mb-8 flex items-center justify-between border-b border-surface-dim/30 pb-6">
-            <h3 class="font-headline text-2xl font-bold text-on-surface flex items-center gap-3">
-              <span class="material-symbols-outlined text-primary">{{ editingSection ? 'edit' : 'view_cozy' }}</span>
-              {{ editingSection ? 'Sửa Chương' : 'Chương Mới' }}
-            </h3>
-            <button class="text-outline hover:bg-surface-low p-2 rounded-full transition-colors" @click="showSectionModal = false">
-              <span class="material-symbols-outlined text-[20px]">close</span>
+  <!-- Section Modal -->
+  <Teleport to="body">
+    <div v-if="showSectionModal" class="crud-modal-backdrop" @click.self="showSectionModal = false">
+      <div class="crud-modal">
+        <div class="crud-modal-head">
+          <div>
+            <p class="section-kicker">{{ editingSection ? 'Chỉnh sửa' : 'Tạo mới' }}</p>
+            <h3>{{ editingSection ? 'Sửa tên Chương' : 'Chương học mới' }}</h3>
+          </div>
+          <button class="topbar-ghost" type="button" @click="showSectionModal = false">✕</button>
+        </div>
+
+        <form @submit.prevent="saveSection">
+          <div class="crud-form-grid">
+            <div class="crud-field crud-field-full">
+              <span>Tiêu đề Chương <span style="color:#ae3d37;">*</span></span>
+              <input v-model="sectionForm.title" type="text" placeholder="VD: Chương 1: Kiến thức nền tảng" required>
+            </div>
+            <div class="crud-field crud-field-full">
+              <span>Mô tả ngắn <span style="color:var(--muted); font-weight:400;">(Tùy chọn)</span></span>
+              <textarea v-model="sectionForm.description" rows="3" class="crud-textarea" placeholder="Mô tả nội dung tổng quan của chương học này..."></textarea>
+            </div>
+          </div>
+
+          <div class="crud-modal-foot">
+            <button class="crud-secondary-btn" type="button" @click="showSectionModal = false">Hủy bỏ</button>
+            <button class="crud-primary-btn" type="submit" :disabled="saving">
+              {{ saving ? 'Đang lưu...' : (editingSection ? 'Cập nhật' : 'Tạo chương') }}
             </button>
           </div>
-          
-          <form class="space-y-6" @submit.prevent="saveSection">
-            <UiInput v-model="sectionForm.title" label="Tiêu đề Chương" placeholder="VD: Chương 1: Kiến thức nền tảng" required />
-            <div class="space-y-2">
-              <label class="block font-bold text-sm text-on-surface ml-1">Mô tả ngắn (Tùy chọn)</label>
-              <textarea v-model="sectionForm.description" rows="3" class="w-full rounded-2xl border border-outline-variant bg-surface-lowest px-4 py-4 text-sm focus:border-primary focus:ring-1 focus:ring-primary shadow-sm outline-none transition-all"></textarea>
-            </div>
-            
-            <div class="sticky bottom-0 -mx-8 -mb-8 mt-8 flex flex-col gap-3 border-t border-surface-dim/30 bg-surface-lowest/95 px-8 py-5 backdrop-blur sm:flex-row sm:justify-end">
-              <UiButton type="button" variant="secondary" size="lg" @click="showSectionModal = false">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-                Hủy bỏ
-              </UiButton>
-              <UiButton type="submit" size="lg" :loading="saving">
-                <span v-if="!saving" class="material-symbols-outlined text-[18px]">task_alt</span>
-                Lưu chương
-              </UiButton>
-            </div>
-          </form>
-        </div>
+        </form>
       </div>
-    </Teleport>
+    </div>
+  </Teleport>
 
-    <!-- Unified Lesson Modal -->
-    <LessonFormModal 
-      :show="showLessonModal" 
-      :lesson="editingLesson" 
-      :saving="saving"
-      @close="showLessonModal = false"
-      @save="saveLesson"
-    />
-  </div>
+  <!-- Lesson Modal -->
+  <LessonFormModal
+    :show="showLessonModal"
+    :lesson="editingLesson"
+    :saving="saving"
+    @close="showLessonModal = false"
+    @save="saveLesson"
+  />
 </template>
 
 <style scoped>
-.modal-bounce {
-  animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes modalBounce {
-  0% { opacity: 0; transform: scale(0.9) translateY(20px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 </style>

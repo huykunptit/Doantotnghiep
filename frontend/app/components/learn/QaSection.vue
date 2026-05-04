@@ -336,7 +336,7 @@ onMounted(loadQas)
   font-size: 0.95rem;
 }
 .qa-avatar--me {
-  background: linear-gradient(180deg, #2f7a45, #1f5d33);
+  background: #2f7a45;
   color: #fff;
 }
 .qa-avatar--sm {
@@ -403,7 +403,7 @@ onMounted(loadQas)
   transition: filter 0.15s, background 0.15s, transform 0.15s;
 }
 .qa-btn-primary {
-  background: linear-gradient(180deg, #2f7a45, #1f5d33);
+  background: #2f7a45;
   color: #fff;
   box-shadow: 0 6px 14px rgba(47, 122, 69, 0.32);
 }
@@ -447,7 +447,7 @@ onMounted(loadQas)
 .qa-skeleton {
   height: 92px;
   border-radius: 14px;
-  background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9);
+  background: #f1f5f9;
   background-size: 200% 100%;
   animation: qa-shimmer 1.4s linear infinite;
 }

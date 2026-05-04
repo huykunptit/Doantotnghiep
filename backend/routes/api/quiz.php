@@ -13,6 +13,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/lessons/{lesson}/quiz', [QuizController::class, 'storeOrUpdate']);
     Route::post('/courses/{course}/lessons/{lesson}/quiz/{quiz}/submit', [QuizController::class, 'submit']);
 
+    // ── All question banks across courses (admin/instructor) ───────────
+    Route::get('/admin/question-banks', [QuestionBankController::class, 'allBanks']);
+
     // ── Question Bank (Instructor/Admin) ────────────────────────────────
     Route::get('/courses/{course}/question-banks', [QuestionBankController::class, 'index']);
     Route::post('/courses/{course}/question-banks', [QuestionBankController::class, 'store']);
@@ -25,6 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/courses/{course}/question-banks/{bank}/questions', [QuestionBankController::class, 'storeQuestion']);
     Route::put('/courses/{course}/question-banks/{bank}/questions/{question}', [QuestionBankController::class, 'updateQuestion']);
     Route::delete('/courses/{course}/question-banks/{bank}/questions/{question}', [QuestionBankController::class, 'destroyQuestion']);
+    Route::post('/courses/{course}/question-banks/{bank}/questions/{question}/attachments', [QuestionBankController::class, 'uploadAttachment']);
+    Route::delete('/courses/{course}/question-banks/{bank}/questions/{question}/attachments/{attachment}', [QuestionBankController::class, 'destroyAttachment']);
 
     // ── Course-bound exams ──────────────────────────────────────────────
     Route::get('/courses/{course}/exams', [ExamController::class, 'index']);
@@ -41,6 +46,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/exams/{exam}/detail', [ExamController::class, 'showStandalone']);
     Route::put('/exams/{exam}', [ExamController::class, 'updateStandalone']);
     Route::delete('/exams/{exam}', [ExamController::class, 'destroyStandalone']);
+    Route::get('/exams/{exam}/quiz', [QuizController::class, 'showStandaloneExamQuiz']);
+    Route::post('/exams/{exam}/quiz', [QuizController::class, 'storeOrUpdateStandaloneExamQuiz']);
 
     // ── Exam enrollment management ──────────────────────────────────────
     Route::post('/exams/{exam}/enroll', [ExamController::class, 'enrollUsers']);

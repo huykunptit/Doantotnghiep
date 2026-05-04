@@ -58,6 +58,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
         Route::post('/upload', [AdminController::class, 'uploadAsset']);
 
+        // Roles & Permissions
+        Route::get('/roles', [AdminController::class, 'roles']);
+        Route::put('/roles/{role}/permissions', [AdminController::class, 'updateRolePermissions']);
+
         // Users
         Route::get('/users', [AdminController::class, 'users']);
         Route::post('/users', [AdminController::class, 'storeUser']);

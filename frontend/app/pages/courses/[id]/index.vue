@@ -264,6 +264,9 @@ onMounted(async () => {
               </div>
             </div>
           </section>
+
+          <!-- Reviews Section -->
+          <CourseReviewSection :course-id="courseId" :is-enrolled="isEnrolled" />
         </div>
 
         <!-- Right Sidebar (Sticky) -->
@@ -330,14 +333,10 @@ onMounted(async () => {
 <style scoped>
 /* ── Hero ─────────────────────────────────────── */
 .cd-hero {
-  background: linear-gradient(135deg, #1a3d28 0%, #1f5d33 50%, #2f7a45 100%);
+  background: #2f7a45;
   color: #fff; padding: 3rem 1rem 2.5rem; position: relative; overflow: hidden;
 }
-.cd-hero::before {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 50%),
-              radial-gradient(circle at 20% 80%, rgba(255,255,255,0.04) 0%, transparent 50%);
-}
+.cd-hero::before { content: none; }
 .cd-hero-inner { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
 .cd-breadcrumb {
   display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.6); margin-bottom: 1rem;
@@ -421,7 +420,7 @@ onMounted(async () => {
 .cd-instructor { display: flex; align-items: center; gap: 1rem; }
 .cd-instructor-avatar {
   width: 56px; height: 56px; border-radius: 50%; overflow: hidden;
-  background: linear-gradient(180deg, #2f7a45, #1f5d33); display: flex;
+  background: #2f7a45; display: flex;
   align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 1.2rem; flex-shrink: 0;
 }
 .cd-instructor-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -440,7 +439,7 @@ onMounted(async () => {
 .cd-cta-btn {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
   padding: 14px; border: none; border-radius: 12px; font-size: 1rem; font-weight: 800;
-  background: linear-gradient(180deg, #2f7a45, #1f5d33); color: #fff; cursor: pointer;
+  background: #2f7a45; color: #fff; cursor: pointer;
   transition: all 0.2s; box-shadow: 0 4px 14px -4px rgba(47,122,69,0.5);
 }
 .cd-cta-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px -4px rgba(47,122,69,0.6); }

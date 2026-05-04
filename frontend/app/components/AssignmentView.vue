@@ -522,7 +522,7 @@ async function submitAssignment() {
   position: relative;
   border: 2px dashed #cbd5e1;
   border-radius: 16px;
-  background: linear-gradient(180deg, #fafafa, #f1f5f9);
+  background: #f5f7fa;
   padding: 28px;
   cursor: pointer;
   transition: all 0.15s;
@@ -530,7 +530,7 @@ async function submitAssignment() {
 .assignment-dropzone:hover,
 .assignment-dropzone.is-dragging {
   border-color: #2563eb;
-  background: linear-gradient(180deg, #eff6ff, #dbeafe);
+  background: #e6efff;
 }
 .assignment-dropzone.has-file {
   border-style: solid;
@@ -665,7 +665,7 @@ async function submitAssignment() {
   padding: 13px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #16a34a, #15803d);
+  background: #16a34a;
   color: #fff;
   font-weight: 800;
   font-size: 0.95rem;
@@ -697,7 +697,7 @@ async function submitAssignment() {
 
 /* ───── Already submitted ───── */
 .assignment-submitted {
-  background: linear-gradient(180deg, #f0fdf4, #dcfce7);
+  background: #ecfaef;
   border: 1px solid #bbf7d0;
   border-radius: 16px;
   padding: 20px;

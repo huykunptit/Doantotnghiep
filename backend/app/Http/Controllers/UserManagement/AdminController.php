@@ -17,6 +17,8 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class AdminController extends Controller
 {
@@ -283,6 +285,53 @@ class AdminController extends Controller
 
         return response()->json([
             'message' => 'User deleted',
+        ]);
+    }
+
+    // ─── Roles & Permissions ────────────────────────────────────────────────────
+
+    public function roles(Request $request): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        if (Permission::count() === 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'RoleSeeder']);
+        }
+
+        $roles = Role::with('permissions')->get();
+        $permissions = Permission::all();
+
+        return response()->json([
+            'roles' => $roles,
+            'permissions' => $permissions,
+        ]);
+    }
+
+    public function updateRolePermissions(Request $request, Role $role): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        if ($role->name === 'admin') {
+            return response()->json([
+                'message' => 'Không thể sửa quyền của Admin tối cao.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'permissions' => ['present', 'array'],
+            'permissions.*' => ['string', 'exists:permissions,name'],
+        ]);
+
+        $role->syncPermissions($validated['permissions']);
+        $role->load('permissions');
+
+        return response()->json([
+            'message' => 'Role permissions updated successfully',
+            'role' => $role,
         ]);
     }
 

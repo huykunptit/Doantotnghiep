@@ -1163,7 +1163,7 @@ onMounted(() => {
   padding: 28px 20px;
   border: 2px dashed rgba(249, 115, 22, 0.85);
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 247, 237, 0.75), #fff);
+  background: rgba(255, 247, 237, 0.75);
   text-align: center;
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
@@ -1310,7 +1310,7 @@ onMounted(() => {
 .assignment-timeline {
   padding: 18px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(241, 245, 249, 0.5));
+  background: rgba(248, 250, 252, 0.9);
   border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
@@ -1335,7 +1335,7 @@ onMounted(() => {
   align-self: center;
   height: 2px;
   width: 28px;
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.18));
+  background: rgba(15, 23, 42, 0.15);
   border-radius: 2px;
 }
 
@@ -1442,7 +1442,7 @@ onMounted(() => {
     height: 16px;
     width: 2px;
     justify-self: center;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.18));
+    background: rgba(15, 23, 42, 0.15);
   }
 }
 

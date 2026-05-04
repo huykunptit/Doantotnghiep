@@ -64,7 +64,7 @@ function formatTime(dateStr: string) {
   padding: 3rem;
   display: flex;
   justify-content: center;
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  background: #f1f5f9;
   min-height: 450px;
 }
 

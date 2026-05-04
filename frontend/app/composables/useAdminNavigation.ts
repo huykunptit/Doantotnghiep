@@ -9,6 +9,12 @@ export interface AdminNavGroup {
   items: AdminNavItem[]
 }
 
+export interface AdminSupportItem {
+  label: string
+  to?: string
+  comingSoon?: boolean
+}
+
 export function useAdminNavigation() {
   const groups: AdminNavGroup[] = [
     {
@@ -21,6 +27,7 @@ export function useAdminNavigation() {
       label: 'Quản lý người dùng',
       items: [
         { label: 'Người dùng', icon: '◎', to: '/admin/users' },
+        { label: 'Phân quyền', icon: '◐', to: '/admin/roles' },
       ],
     },
     {
@@ -47,8 +54,14 @@ export function useAdminNavigation() {
     },
   ]
 
+  const supportItems: AdminSupportItem[] = [
+    { label: 'Thông báo hệ thống', comingSoon: true },
+    { label: 'Nhật ký hoạt động', comingSoon: true },
+    { label: 'Trợ giúp kỹ thuật', comingSoon: true },
+  ]
+
   return {
     groups,
-    supportItems: ['Phân quyền', 'Thông báo hệ thống', 'Nhật ký hoạt động', 'Trợ giúp kỹ thuật'],
+    supportItems,
   }
 }

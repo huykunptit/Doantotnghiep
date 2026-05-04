@@ -8,13 +8,45 @@ use App\Models\Course;
 use App\Models\QuestionBank;
 use App\Models\QuestionGroup;
 use App\Models\Question;
+use App\Models\QuestionAttachment;
 use App\Models\Answer;
+use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class QuestionBankController extends Controller
 {
+    /**
+     * List all question banks across all courses (admin/instructor).
+     * Returns each bank with its course info and difficulty distribution stats.
+     */
+    public function allBanks(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $user->hasRole('instructor')), 403);
+
+        $query = QuestionBank::with('course:id,title')
+            ->withCount('questions');
+
+        if (!$user->hasRole('admin')) {
+            $query->whereHas('course', fn ($q) => $q->where('user_id', $user->id));
+        }
+
+        $banks = $query->orderBy('created_at')->get()->map(function ($bank) {
+            $distrib = DB::table('questions')
+                ->where('question_bank_id', $bank->id)
+                ->selectRaw('difficulty, count(*) as cnt')
+                ->groupBy('difficulty')
+                ->pluck('cnt', 'difficulty')
+                ->mapWithKeys(fn ($v, $k) => [(string) $k => (int) $v]);
+            $bank->difficulty_distribution = $distrib;
+            return $bank;
+        });
+
+        return response()->json(['banks' => $banks]);
+    }
+
     /**
      * List all banks for a course.
      */
@@ -156,7 +188,9 @@ class QuestionBankController extends Controller
 
         return response()->json($bank->load([
             'groups.questions.answers',
+            'groups.questions.attachments',
             'questions.answers',
+            'questions.attachments',
         ]));
     }
 
@@ -267,11 +301,79 @@ class QuestionBankController extends Controller
 
             DB::commit();
 
-            return response()->json($question->fresh()->load(['answers', 'group']), $request->isMethod('post') ? 201 : 200);
+            return response()->json($question->fresh()->load(['answers', 'group', 'attachments']), $request->isMethod('post') ? 201 : 200);
         } catch (\Throwable $e) {
             DB::rollBack();
 
             return response()->json(['message' => 'Error', 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Upload a file attachment for a question.
+     */
+    public function uploadAttachment(Request $request, Course $course, QuestionBank $bank, Question $question, MediaService $mediaService): JsonResponse
+    {
+        if ($question->question_bank_id !== $bank->id || $question->course_id !== $course->id) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240'], // 10MB max
+        ]);
+
+        $file = $request->file('file');
+        $uploaded = $mediaService->upload($file, 'questions');
+
+        $attachment = QuestionAttachment::create([
+            'question_id'   => $question->id,
+            'original_name' => $file->getClientOriginalName(),
+            'file_path'     => $uploaded['path'],
+            'file_size'     => $this->formatFileSize($file->getSize()),
+            'mime_type'     => $file->getMimeType(),
+            'type'          => $this->detectAttachmentType($file->getMimeType()),
+        ]);
+
+        $attachment->url = $mediaService->getUrl($attachment->file_path);
+
+        return response()->json($attachment, 201);
+    }
+
+    /**
+     * Delete a question attachment.
+     */
+    public function destroyAttachment(Course $course, QuestionBank $bank, Question $question, QuestionAttachment $attachment, MediaService $mediaService): JsonResponse
+    {
+        if ($question->question_bank_id !== $bank->id || $question->course_id !== $course->id) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        if ($attachment->question_id !== $question->id) {
+            return response()->json(['message' => 'Attachment not found'], 404);
+        }
+
+        if ($mediaService->exists($attachment->file_path)) {
+            $mediaService->delete($attachment->file_path);
+        }
+
+        $attachment->delete();
+
+        return response()->json(['message' => 'Attachment deleted']);
+    }
+
+    private function formatFileSize(int $bytes): string
+    {
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
+        return round($bytes / 1024, 1) . ' KB';
+    }
+
+    private function detectAttachmentType(?string $mimeType): string
+    {
+        if (!$mimeType) return 'file';
+        if (str_starts_with($mimeType, 'image/')) return 'image';
+        if (str_starts_with($mimeType, 'audio/')) return 'audio';
+        return 'file';
     }
 }
