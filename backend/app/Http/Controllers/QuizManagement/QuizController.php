@@ -337,6 +337,66 @@ class QuizController extends Controller
         ]);
     }
 
+    public function showStandaloneExamQuiz(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        $quiz = Quiz::where('exam_id', $exam->id)->where('scope', 'exam')->first();
+        if (!$quiz) {
+            return response()->json(['quiz' => null]);
+        }
+
+        return response()->json([
+            'quiz'      => $quiz->load('questions.answers'),
+            'questions' => $quiz->questions,
+        ]);
+    }
+
+    public function storeOrUpdateStandaloneExamQuiz(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        $validated = $request->validate([
+            'title'          => 'required|string|max:255',
+            'description'    => 'nullable|string',
+            'time_limit'     => 'nullable|integer|min:0',
+            'pass_score'     => 'required|integer|min:0|max:100',
+            'question_ids'   => 'nullable|array',
+            'question_ids.*' => 'integer|exists:questions,id',
+            'settings'       => 'nullable|array',
+        ]);
+
+        $quiz = Quiz::firstOrNew(['exam_id' => $exam->id, 'scope' => 'exam']);
+
+        $quiz->fill([
+            'course_id'   => null,
+            'lesson_id'   => null,
+            'scope'       => 'exam',
+            'title'       => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'time_limit'  => $validated['time_limit'] ?? $exam->duration,
+            'pass_score'  => $validated['pass_score'] ?? $exam->pass_score,
+            'settings'    => $validated['settings'] ?? null,
+        ]);
+        $quiz->save();
+
+        $syncPayload = collect($validated['question_ids'] ?? [])
+            ->values()
+            ->mapWithKeys(fn ($id, $index) => [$id => ['order' => $index, 'points' => 10]])
+            ->all();
+
+        $quiz->questions()->sync($syncPayload);
+
+        return response()->json([
+            'message' => 'Exam quiz saved',
+            'quiz'    => $quiz->fresh()->load('questions.answers'),
+        ]);
+    }
+
     /**
      * Submit an attempt — supports multiple question types.
      */

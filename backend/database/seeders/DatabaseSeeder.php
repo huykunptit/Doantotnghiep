@@ -123,6 +123,7 @@ class DatabaseSeeder extends Seeder
         $this->seedCareerDemoData($students, $publishedCourses, $flags);
 
         $this->call(CourseContentSeeder::class);
+        $this->call(QuestionBankSeeder::class);
     }
 
     private function schemaFlags(): array

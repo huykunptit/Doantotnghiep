@@ -68,9 +68,18 @@ async function handleLogout() {
     </nav>
 
     <section class="sidebar-section">
-      <p class="sidebar-label">Ho tro</p>
-      <ul>
-        <li v-for="item in supportItems" :key="item">{{ item }}</li>
+      <p class="sidebar-label">Hỗ trợ</p>
+      <ul class="sidebar-support-list">
+        <li
+          v-for="item in supportItems"
+          :key="item.label"
+          class="sidebar-support-item"
+          :class="{ 'is-disabled': item.comingSoon }"
+          :title="item.comingSoon ? 'Sắp ra mắt' : ''"
+        >
+          <span>{{ item.label }}</span>
+          <span v-if="item.comingSoon" class="sidebar-support-badge">Sắp có</span>
+        </li>
       </ul>
     </section>
 

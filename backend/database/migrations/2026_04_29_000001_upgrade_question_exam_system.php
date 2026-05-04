@@ -78,7 +78,7 @@ return new class extends Migration
                 // in_progress | paused | submitted | force_stopped
             }
             if (!Schema::hasColumn('quiz_attempts', 'paused_at')) {
-                $table->timestamp('paused_at')->nullable()->after('completed_at');
+                $table->timestamp('paused_at')->nullable()->after('answers_data');
             }
             if (!Schema::hasColumn('quiz_attempts', 'resumed_at')) {
                 $table->timestamp('resumed_at')->nullable()->after('paused_at');

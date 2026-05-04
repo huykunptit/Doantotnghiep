@@ -1,6 +1,5 @@
 <template>
-  <NuxtLayout name="instructor">
-    <div class="mx-auto max-w-6xl px-4 py-8">
+      <div class="mx-auto max-w-6xl px-4 py-8">
       <div class="mb-6 flex items-center justify-between">
         <div>
           <NuxtLink :to="`/instructor/courses/${courseId}/exams`" class="text-sm text-on-surface-variant hover:text-primary">← Quay lại danh sách kỳ thi</NuxtLink>
@@ -57,11 +56,10 @@
         </UiCard>
       </div>
     </div>
-  </NuxtLayout>
-</template>
+  </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'instructor' })
+definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
 const route = useRoute()
 const auth = useAuthStore()

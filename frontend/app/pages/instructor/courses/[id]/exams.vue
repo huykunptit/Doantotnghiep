@@ -1,6 +1,5 @@
 <template>
-  <NuxtLayout name="instructor">
-    <section class="space-y-8">
+      <section class="space-y-8">
       <AppPageHeader eyebrow="Instructor" title="Kỳ thi độc lập" :description="`Quản lý quiz độc lập ngoài lesson cho khóa học #${courseId}`">
         <template #actions>
           <UiButton :to="`/instructor/courses/${courseId}/question-bank`" variant="secondary">Question Bank</UiButton>
@@ -23,6 +22,7 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                   <UiButton :to="`/instructor/courses/${courseId}/exams/${exam.id}`" size="sm">Quản lý Quiz</UiButton>
+                  <UiButton :to="`/exam/${exam.id}`" size="sm" variant="secondary" target="_blank">Thi thử</UiButton>
                   <UiButton size="sm" variant="secondary" @click="openEdit(exam)">Sửa meta</UiButton>
                   <UiButton size="sm" variant="danger" @click="removeExam(exam)">Xóa</UiButton>
                 </div>
@@ -56,11 +56,10 @@
         </div>
       </UiCard>
     </section>
-  </NuxtLayout>
-</template>
+  </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'instructor' })
+definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
 const route = useRoute()
 const auth = useAuthStore()

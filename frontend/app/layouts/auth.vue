@@ -1,7 +1,7 @@
 <template>
-  <main class="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,_rgba(23,78,166,0.14),_transparent_34%),linear-gradient(180deg,_#f8fbff_0%,_#eef4ff_46%,_#f7f9fc_100%)] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+  <main class="min-h-screen overflow-x-hidden bg-surface px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
     <div class="mx-auto grid min-h-[calc(100vh-2.5rem)] w-full max-w-6xl overflow-hidden rounded-[28px] border border-white/70 bg-white/88 shadow-[0_24px_80px_-32px_rgba(23,78,166,0.28)] backdrop-blur lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <section class="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between bg-[linear-gradient(160deg,#0f3f91_0%,#174ea6_40%,#2b6ce2_100%)] p-12 text-white">
+      <section class="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between bg-primary p-12 text-white">
         <NuxtLink to="/" class="relative z-10 block space-y-3">
           <p class="text-xs font-semibold uppercase tracking-[0.32em] text-white/70">PTIT LMS</p>
           <div>

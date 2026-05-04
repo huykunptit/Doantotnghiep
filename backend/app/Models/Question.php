@@ -65,6 +65,11 @@ class Question extends Model
         return $this->hasMany(Answer::class);
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(QuestionAttachment::class);
+    }
+
     public function quizzes(): BelongsToMany
     {
         return $this->belongsToMany(Quiz::class, 'quiz_question')

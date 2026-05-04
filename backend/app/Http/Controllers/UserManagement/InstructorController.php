@@ -10,6 +10,7 @@ use App\Models\LessonProgress;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class InstructorController extends Controller
 {
@@ -46,12 +47,52 @@ class InstructorController extends Controller
             ->groupBy('status')
             ->pluck('count', 'status');
 
+        $monthKeys = collect(range(5, 0))->map(fn (int $i) => now()->subMonths($i)->format('Y-m'));
+
+        $revenueRows = Order::query()
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, SUM(amount) as total")
+            ->whereIn('course_id', $courseIds)
+            ->whereIn('status', $paidStatuses)
+            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        $studentRows = Enrollment::query()
+            ->selectRaw("DATE_FORMAT(enrolled_at, '%Y-%m') as month, COUNT(DISTINCT user_id) as total")
+            ->whereIn('course_id', $courseIds)
+            ->where('enrolled_at', '>=', now()->subMonths(5)->startOfMonth())
+            ->groupBy('month')
+            ->pluck('total', 'month');
+
+        $topCourses = Course::query()
+            ->where('user_id', $user->id)
+            ->withCount('enrollments')
+            ->orderByDesc('enrollments_count')
+            ->limit(5)
+            ->get(['id', 'title', 'enrollments_count', 'price']);
+
         return response()->json([
             'total_courses'     => $courseIds->count(),
             'total_students'    => $totalStudents,
             'total_revenue'     => $totalRevenue,
             'courses_by_status' => $coursesByStatus,
+            'revenue_by_month'  => $this->hydrateMonthlySeries($monthKeys, $revenueRows),
+            'students_by_month' => $this->hydrateMonthlySeries($monthKeys, $studentRows),
+            'top_courses'       => $topCourses,
         ]);
+    }
+
+    private function hydrateMonthlySeries(Collection $monthKeys, Collection $rows): array
+    {
+        return $monthKeys->map(function (string $monthKey) use ($rows) {
+            [$year, $month] = explode('-', $monthKey);
+
+            return [
+                'month' => $monthKey,
+                'label' => sprintf('%s/%s', $month, substr($year, -2)),
+                'value' => (int) ($rows[$monthKey] ?? 0),
+            ];
+        })->values()->all();
     }
 
     public function students(Request $request, Course $course): JsonResponse

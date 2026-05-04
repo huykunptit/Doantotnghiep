@@ -18,11 +18,16 @@
         <div class="header-main">
           <h3>{{ quiz.title }}</h3>
           <p v-if="quiz.description">{{ quiz.description }}</p>
+          <div v-if="warnings > 0" class="mt-2 text-xs font-bold text-red-500">
+            <i class="fas fa-exclamation-triangle"></i> Cảnh báo gian lận: Rời khỏi màn hình {{ warnings }} lần
+          </div>
         </div>
         <div class="header-stats">
           <div class="stat-item"><i class="fas fa-list-ul"></i> {{ questions?.length }} câu</div>
           <div class="stat-item"><i class="fas fa-bullseye"></i> Đạt {{ quiz.pass_score }}%</div>
-          <div class="stat-item v-if='quiz.time_limit'"><i class="fas fa-clock"></i> {{ quiz.time_limit }}'</div>
+          <div v-if="quiz.time_limit" class="stat-item timer" :class="{ 'text-red-500': timeRemaining < 60 && timeRemaining > 0 }">
+            <i class="fas fa-clock"></i> {{ formattedTime }}
+          </div>
         </div>
       </div>
 
@@ -81,14 +86,23 @@
 
             <!-- Ordering Type -->
             <div v-else-if="q.type === 'ordering'" class="ordering-wrap">
-               <p class="instr">Kéo thả để sắp xếp theo đúng thứ tự:</p>
-               <div class="sortable-list">
-                 <div v-for="(ans, sIdx) in (userAnswers[q.id] || q.answers)" :key="ans.id" class="sort-item">
-                   <i class="fas fa-grip-lines"></i>
-                   <span>{{ ans.content }}</span>
+               <p class="instr mb-3 text-sm text-gray-500">Sắp xếp theo đúng thứ tự (Dùng nút lên/xuống):</p>
+               <div class="sortable-list space-y-2">
+                 <div v-for="(ans, sIdx) in (userAnswers[q.id] || q.answers)" :key="ans.id" class="sort-item flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-3">
+                   <div class="flex items-center gap-3">
+                     <span class="font-bold text-gray-400">{{ sIdx + 1 }}.</span>
+                     <span class="text-gray-700 font-medium">{{ ans.content }}</span>
+                   </div>
+                   <div class="flex flex-col">
+                     <button type="button" @click="moveOrder(q.id, sIdx, -1)" :disabled="sIdx === 0" class="text-gray-400 hover:text-blue-500 disabled:opacity-30">
+                       <i class="fas fa-chevron-up"></i>
+                     </button>
+                     <button type="button" @click="moveOrder(q.id, sIdx, 1)" :disabled="sIdx === (userAnswers[q.id] || q.answers).length - 1" class="text-gray-400 hover:text-blue-500 disabled:opacity-30">
+                       <i class="fas fa-chevron-down"></i>
+                     </button>
+                   </div>
                  </div>
                </div>
-               <p class="hint-dev">(Tính năng kéo thả sắp xếp đang được hoàn thiện)</p>
             </div>
           </div>
         </div>
@@ -105,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 const props = defineProps<{
@@ -125,6 +139,17 @@ const questions = ref<any[]>([])
 const attemptId = ref<number | null>(null)
 const userAnswers = ref<Record<string, any>>({})
 const result = ref<any>(null)
+
+const timeRemaining = ref(0)
+const timerInterval = ref<any>(null)
+const warnings = ref(0)
+
+const formattedTime = computed(() => {
+  if (timeRemaining.value <= 0) return '00:00'
+  const m = Math.floor(timeRemaining.value / 60)
+  const s = timeRemaining.value % 60
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+})
 
 const authHeaders = () => auth.token ? { Authorization: `Bearer ${auth.token}` } : undefined
 
@@ -164,6 +189,43 @@ const answeredCount = computed(() => {
   }).length
 })
 
+function moveOrder(qId: number, index: number, direction: number) {
+  const arr = [...(userAnswers.value[qId] || [])]
+  if (index + direction < 0 || index + direction >= arr.length) return
+  
+  const temp = arr[index]
+  arr[index] = arr[index + direction]
+  arr[index + direction] = temp
+  
+  userAnswers.value[qId] = arr
+}
+
+function startTimer() {
+  if (timerInterval.value) clearInterval(timerInterval.value)
+  if (!quiz.value?.time_limit) return
+  
+  timeRemaining.value = quiz.value.time_limit * 60
+  
+  timerInterval.value = setInterval(() => {
+    timeRemaining.value--
+    if (timeRemaining.value <= 0) {
+      clearInterval(timerInterval.value)
+      submitQuiz(true) // auto submit
+    }
+  }, 1000)
+}
+
+function stopTimer() {
+  if (timerInterval.value) clearInterval(timerInterval.value)
+}
+
+function handleVisibilityChange() {
+  if (document.hidden && !result.value && quiz.value) {
+    warnings.value++
+    alert(`CẢNH BÁO GIAN LẬN (${warnings.value}): Bạn vừa chuyển tab hoặc rời khỏi cửa sổ làm bài!`)
+  }
+}
+
 async function loadQuiz() {
   loading.value = true
   result.value = null
@@ -179,6 +241,10 @@ async function loadQuiz() {
       else if (q.type === 'ordering') userAnswers.value[q.id] = [...q.answers]
       else userAnswers.value[q.id] = null
     })
+
+    warnings.value = 0
+    startTimer()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
   } catch (e: any) {
     quiz.value = null
   } finally {
@@ -186,11 +252,13 @@ async function loadQuiz() {
   }
 }
 
-async function submitQuiz() {
-  if (answeredCount.value < questions.value.length) {
+async function submitQuiz(auto = false) {
+  if (!auto && answeredCount.value < questions.value.length) {
     if (!confirm('Bạn chưa trả lời hết các câu hỏi. Vẫn muốn nộp bài?')) return
   }
 
+  stopTimer()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   submitting.value = true
   try {
     const res = await useApi<any>(`/courses/${props.courseId}/lessons/${props.lessonId}/quiz/${quiz.value.id}/submit`, {
@@ -216,8 +284,15 @@ async function submitQuiz() {
 }
 
 function resetQuiz() {
+  stopTimer()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   loadQuiz()
 }
+
+onBeforeUnmount(() => {
+  stopTimer()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 
 onMounted(loadQuiz)
 watch(() => props.lessonId, loadQuiz)

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import AdminFooter from '~/components/dashboard/AdminFooter.vue'
 import AdminSidebar from '~/components/dashboard/AdminSidebar.vue'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
 import { useAuthStore } from '~/stores/auth'
@@ -58,11 +59,14 @@ watch(
         <AdminTopbar
           :search-placeholder="searchPlaceholder"
           :user-name="user?.name || 'Admin User'"
+          :user-avatar="user?.avatar"
           user-role="Admin"
           @toggle-sidebar="sidebarOpen = !sidebarOpen"
         />
 
         <slot />
+
+        <AdminFooter />
       </section>
     </div>
   </main>
