@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(open -a Docker)",
-      "Bash(echo \"exit: $?\")",
-      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost/instructor/courses/31/students)"
-    ]
-  }
-}
