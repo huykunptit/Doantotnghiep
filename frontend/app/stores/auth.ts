@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
+import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 
 interface User {
   id: number
   name: string
   email: string
   avatar?: string | null
-  role?: string
+  role?: string | null
   roles?: string[]
 }
 
@@ -28,16 +29,12 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     setUser(user: User | null) {
       this.user = user
+      useAuthUserCookie().value = user
     },
 
     setToken(token: string | null) {
       this.token = token
-      const tokenCookie = useCookie('token', {
-        maxAge: 60 * 60 * 24 * 7, // 1 week
-        path: '/',
-        watch: true,
-      })
-      tokenCookie.value = token
+      useAuthTokenCookie().value = token
     },
 
     async register(payload: { name: string; email: string; password: string }) {
@@ -90,12 +87,13 @@ export const useAuthStore = defineStore('auth', {
       try {
         const user = await useApi<User>('/auth/me', {
           method: 'GET',
-          token: this.token,
+          headers: { Authorization: `Bearer ${this.token}` },
         })
         this.user = user
+        useAuthUserCookie().value = user
       } catch {
         this.setToken(null)
-        this.user = null
+        this.setUser(null)
       }
     },
 
@@ -103,9 +101,9 @@ export const useAuthStore = defineStore('auth', {
       const data = await useApi<{ user: User }>('/auth/profile', {
         method: 'PUT',
         body: payload,
-        token: this.token,
+        headers: { Authorization: `Bearer ${this.token}` },
       })
-      this.user = data.user
+      this.setUser(data.user)
     },
 
     async changePassword(payload: {
@@ -116,15 +114,15 @@ export const useAuthStore = defineStore('auth', {
       await useApi('/auth/change-password', {
         method: 'PUT',
         body: payload,
-        token: this.token,
+        headers: { Authorization: `Bearer ${this.token}` },
       })
     },
 
     initFromStorage() {
-      const tokenCookie = useCookie('token')
-      if (tokenCookie.value) {
-        this.token = tokenCookie.value
-      }
+      const tokenCookie = useAuthTokenCookie()
+      const userCookie = useAuthUserCookie()
+      this.token = tokenCookie.value || null
+      this.user = userCookie.value || null
       this.isReady = true
     },
 
@@ -133,14 +131,14 @@ export const useAuthStore = defineStore('auth', {
         try {
           await useApi('/auth/logout', {
             method: 'POST',
-            token: this.token,
+            headers: { Authorization: `Bearer ${this.token}` },
           })
         } catch {
           // Ignore failed logout call and clear local state anyway.
         }
       }
 
-      this.user = null
+      this.setUser(null)
       this.setToken(null)
       this.isReady = true
     },

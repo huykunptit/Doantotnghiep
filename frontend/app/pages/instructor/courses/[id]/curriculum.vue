@@ -1,114 +1,103 @@
 <template>
-  <NuxtLayout name="instructor">
-    <div class="space-y-10 pb-20">
-      <!-- High-End Page Header -->
-      <div class="glass-header rounded-[2.5rem] p-8 shadow-sm border border-surface-dim bg-surface-lowest flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 overflow-hidden relative group">
-        <!-- Background shimmer -->
-        <div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
-
-        <div class="flex items-center gap-6 relative z-10">
-          <div class="w-16 h-16 rounded-[2rem] bg-surface-high flex items-center justify-center text-primary shadow-inner rotate-3">
-            <span class="material-symbols-outlined text-[32px]">editor_choice</span>
-          </div>
-          <div>
-            <h1 class="font-headline font-bold text-3xl tracking-tight text-on-surface mb-2">{{ course?.title || 'Studio Giáo trình' }}</h1>
-            <div class="flex flex-wrap items-center gap-4">
-              <div class="flex items-center gap-2 px-3 py-1 bg-surface-low rounded-full text-xs font-bold text-on-surface-variant border border-surface-dim/30">
-                <span class="material-symbols-outlined text-[14px]">history_edu</span>
-                Bản nháp Giáo trình
-              </div>
-              <StatusBadge :value="course?.status || 'draft'" v-if="course" />
-            </div>
-          </div>
-        </div>
-        
-        <div class="flex items-center gap-3 w-full lg:w-auto relative z-10">
-          <NuxtLink to="/instructor/courses" class="px-5 py-3 text-sm font-bold text-on-surface hover:bg-surface-low rounded-xl transition-all border border-surface-dim/40">
-            Quay lại
-          </NuxtLink>
-          <button @click="previewCourse" class="px-5 py-3 text-sm font-bold text-on-surface-variant hover:bg-surface-low rounded-xl transition-all border border-surface-dim/40 flex items-center gap-2">
-            <span class="material-symbols-outlined text-[18px]">visibility</span> Xem trước
-          </button>
-          <div class="h-8 w-[1px] bg-surface-dim/30 mx-2"></div>
-          <button v-if="course?.status === 'draft' || course?.status === 'rejected'" :disabled="submitting" @click="submitForReview" class="cta-gradient text-white px-8 py-3 rounded-xl text-sm font-bold shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 hover:shadow-primary/30">
-            <span class="material-symbols-outlined text-[18px]">rocket_launch</span> 
-            {{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}
-          </button>
+  <section class="crud-page">
+    <!-- Page Header -->
+    <header class="crud-page-header dashboard-card">
+      <div>
+        <p class="section-kicker">Giảng viên / Studio Giáo trình</p>
+        <h2>{{ course?.title || 'Studio Giáo trình' }}</h2>
+        <p>Quản lý cấu trúc chương học, bài giảng và tài nguyên của khóa học.</p>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+          <StatusBadge :value="course?.status || 'draft'" v-if="course" />
         </div>
       </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap;">
+        <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Quay lại</NuxtLink>
+        <button
+          class="crud-secondary-btn"
+          style="display:flex; align-items:center; gap:6px;"
+          @click="previewCourse"
+        >
+          <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
+          Xem trước
+        </button>
+        <button
+          v-if="course?.status === 'draft' || course?.status === 'rejected'"
+          :disabled="submitting"
+          class="crud-primary-btn"
+          style="display:flex; align-items:center; gap:6px;"
+          @click="submitForReview"
+        >
+          <span class="material-symbols-outlined" style="font-size:18px;">rocket_launch</span>
+          {{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}
+        </button>
+      </div>
+    </header>
 
-      <!-- Main Content Grid -->
-      <div class="grid grid-cols-1 xl:grid-cols-12 gap-10">
-        
-        <!-- Left: The Studio Orchestrator -->
-        <div class="xl:col-span-8">
-          <CurriculumStudio 
+    <!-- Main Content Grid -->
+    <div style="display:grid; grid-template-columns:1fr; gap:20px;">
+      <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:20px;" class="curriculum-content-wrap">
+        <!-- Studio -->
+        <div>
+          <CurriculumStudio
             ref="studioRef"
-            :course-id="courseId" 
+            :course-id="courseId"
             @upload-video="handleUploadTrigger"
           />
         </div>
 
-        <!-- Right: Publishing Guide & Assets -->
-        <div class="xl:col-span-4 space-y-8">
-          <div class="bg-surface-lowest rounded-[2.5rem] p-8 shadow-sm border border-surface-dim sticky top-24">
-            <h3 class="font-headline font-bold text-2xl mb-8 text-on-surface flex items-center gap-3">
-              <span class="material-symbols-outlined text-amber-500">lightbulb</span>
-              Studio Guide
-            </h3>
-            
-            <div class="space-y-6">
-              <div v-for="(tip, i) in tips" :key="i" class="flex gap-5 items-start p-6 bg-surface-low/40 rounded-3xl border border-surface-dim/10 hover:border-primary/20 transition-all duration-300">
-                <div class="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm shrink-0">
-                  <span class="material-symbols-outlined text-sm">{{ tip.icon }}</span>
+        <!-- Guide Sidebar -->
+        <div>
+          <div class="dashboard-card" style="position:sticky; top:24px; display:grid; gap:18px;">
+            <div>
+              <p class="section-kicker">Studio Guide</p>
+              <h3 style="margin:4px 0 0; font-size:1.2rem; letter-spacing:-0.03em;">Hướng dẫn nhanh</h3>
+            </div>
+
+            <div style="display:grid; gap:12px;">
+              <div v-for="(tip, i) in tips" :key="i" class="week-one-item week-one-item is-static" style="flex-direction:column; align-items:flex-start; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:32px;height:32px;border-radius:10px;background:rgba(47,122,69,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <span class="material-symbols-outlined" style="font-size:16px;color:var(--green-deep);">{{ tip.icon }}</span>
+                  </div>
+                  <strong style="font-size:0.88rem;">{{ tip.title }}</strong>
                 </div>
-                <div>
-                  <h4 class="text-sm font-bold text-on-surface">{{ tip.title }}</h4>
-                  <p class="text-[12px] text-on-surface-variant mt-1.5 leading-relaxed">{{ tip.desc }}</p>
-                </div>
+                <p style="margin:0;font-size:0.8rem;color:var(--muted);line-height:1.6;">{{ tip.desc }}</p>
               </div>
             </div>
 
-            <div class="mt-10 p-6 bg-gradient-to-br from-primary/5 to-secondary/5 rounded-3xl border border-primary/10">
-              <p class="text-[11px] font-bold text-primary uppercase tracking-widest mb-2">Lời khuyên từ EduPress</p>
-              <p class="text-xs text-on-surface-variant leading-relaxed italic">"Một giáo trình tốt bắt đầu từ sự rõ ràng. Hãy chia nhỏ nội dung vào các Chương để học viên không bị ngợp."</p>
+            <div style="padding:16px;background:rgba(47,122,69,0.06);border-radius:16px;border:1px solid rgba(47,122,69,0.12);">
+              <p class="sidebar-eyebrow" style="margin:0 0 6px;">Lời khuyên</p>
+              <p style="margin:0;font-size:0.8rem;color:var(--muted);line-height:1.7;font-style:italic;">"Một giáo trình tốt bắt đầu từ sự rõ ràng. Hãy chia nhỏ nội dung vào các Chương để học viên không bị ngợp."</p>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Video Upload Modal -->
-      <Teleport to="body">
-        <div v-if="showUploadModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-md" @click.self="closeUploadModal">
-          <div class="w-full max-w-2xl rounded-[2.5rem] bg-surface-lowest p-8 shadow-2xl modal-bounce border border-white/20">
-            <div class="mb-8 flex items-center justify-between border-b border-surface-dim/30 pb-6">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                  <span class="material-symbols-outlined">video_library</span>
-                </div>
-                <div>
-                  <h3 class="font-headline text-2xl font-bold text-on-surface">Tải lên Bài giảng</h3>
-                  <p class="text-sm font-medium text-on-surface-variant truncate max-w-[300px]">{{ uploadingLesson?.title }}</p>
-                </div>
-              </div>
-              <button class="text-outline hover:bg-surface-low p-2 rounded-full transition-colors" @click="closeUploadModal">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-            
-            <VideoUploader 
-              v-if="uploadingLesson" 
-              :course-id="courseId" 
-              :lesson-id="uploadingLesson.id" 
-              :existing-video-url="uploadingLesson.video_url" 
-              @uploaded="handleVideoUploaded" 
-              @error="handleUploadError" 
-            />
-          </div>
-        </div>
-      </Teleport>
     </div>
-  </NuxtLayout>
+
+    <!-- Video Upload Modal -->
+    <Teleport to="body">
+      <div v-if="showUploadModal" class="crud-modal-backdrop" @click.self="closeUploadModal">
+        <div class="crud-modal">
+          <div class="crud-modal-head">
+            <div>
+              <p class="section-kicker">Upload Video</p>
+              <h3>Tải lên Bài giảng</h3>
+              <p class="crud-meta" style="margin:4px 0 0; display:block;">{{ uploadingLesson?.title }}</p>
+            </div>
+            <button class="topbar-ghost" type="button" @click="closeUploadModal">✕</button>
+          </div>
+          <VideoUploader
+            v-if="uploadingLesson"
+            :course-id="courseId"
+            :lesson-id="uploadingLesson.id"
+            :existing-video-url="uploadingLesson.video_url"
+            @uploaded="handleVideoUploaded"
+            @error="handleUploadError"
+          />
+        </div>
+      </div>
+    </Teleport>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -119,7 +108,7 @@ import StatusBadge from '~/components/common/StatusBadge.vue'
 import CurriculumStudio from '~/components/course/CurriculumStudio.vue'
 import VideoUploader from '~/components/VideoUploader.vue'
 
-definePageMeta({ middleware: 'instructor' })
+definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -134,15 +123,15 @@ const submitting = ref(false)
 const tips = [
   { icon: 'play_lesson', title: 'Video Preview', desc: 'Chọn ít nhất 1-2 bài học miễn phí để học viên dễ dàng quyết định mua khóa học.' },
   { icon: 'speed', title: 'Xử lý Media', desc: 'Hệ thống sẽ tự động nén và tối ưu hóa video sau khi tải lên. Vui lòng đợi trong giây lát.' },
-  { icon: 'checklist', title: 'Danh mục', desc: 'Phân chia bài học vào các chương (Section) một cách logic giúp tỷ lệ hoàn thành cao hơn.' }
+  { icon: 'checklist', title: 'Danh mục', desc: 'Phân chia bài học vào các chương (Section) một cách logic giúp tỷ lệ hoàn thành cao hơn.' },
 ]
 
-const loadCourse = async () => { 
-  try { 
+const loadCourse = async () => {
+  try {
     course.value = await $fetch(`/api/courses/${courseId}`, { headers: { Authorization: `Bearer ${auth.token}` } })
-  } catch (error) { 
+  } catch {
     course.value = await $fetch(`/api/instructor/courses/${courseId}`, { headers: { Authorization: `Bearer ${auth.token}` } }).catch(() => null)
-  } 
+  }
 }
 
 onMounted(loadCourse)
@@ -174,9 +163,9 @@ async function submitForReview() {
   if (!confirm('Gửi khóa học này cho ban biên tập EduPress để duyệt xuất bản?')) return
   submitting.value = true
   try {
-    const res = await $fetch<any>(`/api/courses/${courseId}/publish`, { 
-      method: 'POST', 
-      headers: { Authorization: `Bearer ${auth.token}` } 
+    const res = await $fetch<any>(`/api/courses/${courseId}/publish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${auth.token}` },
     })
     course.value = res.course
     alert('Gửi duyệt thành công! Vui lòng đợi kết quả từ Admin.')
@@ -189,23 +178,12 @@ async function submitForReview() {
 </script>
 
 <style scoped>
-html { scroll-behavior: smooth; }
-
-.modal-bounce {
-  animation: modalBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.curriculum-content-wrap {
+  grid-template-columns: minmax(0, 1fr);
 }
-
-@keyframes modalBounce {
-  0% { opacity: 0; transform: scale(0.9) translateY(20px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.glass-header {
-  @apply relative overflow-hidden;
-}
-
-.glass-header::after {
-  content: '';
-  @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none;
+@media (min-width: 1280px) {
+  .curriculum-content-wrap {
+    grid-template-columns: minmax(0, 2fr) 360px;
+  }
 }
 </style>

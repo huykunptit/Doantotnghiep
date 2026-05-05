@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useAuthStore } from '~/stores/auth'
 import { type AuthResponse, getDashboardPath, setAuthSession, useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
+
+definePageMeta({ layout: false })
 
 const form = reactive({
   email: '',
@@ -15,6 +18,7 @@ const successMessage = ref('')
 
 const token = useAuthTokenCookie()
 const currentUser = useAuthUserCookie()
+const auth = useAuthStore()
 
 if (token.value && currentUser.value) {
   await navigateTo(getDashboardPath(currentUser.value.role), { replace: true })
@@ -37,6 +41,9 @@ async function handleLogin() {
     })
 
     setAuthSession(data)
+    auth.setToken(data.access_token)
+    auth.setUser(data.user)
+    auth.isReady = true
 
     successMessage.value = `Chào mừng ${data.user.name}, bạn đã sẵn sàng tiếp tục học tập.`
     await navigateTo(getDashboardPath(data.user.role), { replace: true })

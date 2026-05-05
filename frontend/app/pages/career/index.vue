@@ -177,7 +177,7 @@
                     <div v-else class="h-full w-full bg-surface-low flex items-center justify-center">
                       <span class="material-symbols-outlined text-outline text-4xl">book</span>
                     </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                    <div class="absolute inset-0 bg-black/45 flex items-end p-4">
                        <p class="text-white text-sm font-bold line-clamp-2">{{ course.title }}</p>
                     </div>
                   </div>

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import NotificationBell from '~/components/NotificationBell.vue'
 import { publicNavigation } from '~/constants/navigation'
 import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
 
-const searchQuery = ref('')
 const showMenu = ref(false)
 const showMobileMenu = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
@@ -15,15 +15,9 @@ const menuRef = ref<HTMLElement | null>(null)
 const isAdmin = computed(() => auth.user?.roles?.includes('admin'))
 const isInstructor = computed(() => auth.user?.roles?.includes('instructor') || isAdmin.value)
 
-function handleSearch() {
-  if (!searchQuery.value.trim()) return
-  router.push({ path: '/courses', query: { search: searchQuery.value.trim() } })
-  searchQuery.value = ''
-  showMobileMenu.value = false
-}
-
 async function handleLogout() {
   showMenu.value = false
+  showMobileMenu.value = false
   await auth.logout()
   router.push('/')
 }
@@ -37,143 +31,372 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 </script>
 
 <template>
-  <nav class="fixed top-0 w-full z-50 bg-surface-lowest/95 backdrop-blur-md border-b border-surface-dim shadow-sm transition-all duration-300">
-    <div class="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-      <!-- Logo Branding -->
-      <NuxtLink to="/" class="flex items-center gap-3 text-on-surface hover:opacity-80 transition-opacity">
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl cta-gradient shadow-lg shadow-primary/20 text-white font-bold">E</div>
-        <div>
-          <span class="block font-headline text-lg font-bold tracking-tight leading-none text-on-surface">EduPress</span>
-          <span class="block text-[10px] uppercase tracking-widest text-outline mt-0.5">Digital EduPress</span>
+  <header class="cd-header">
+    <div class="cd-header-inner">
+      <NuxtLink to="/" class="cd-brand">
+        <div class="cd-brand-icon">P</div>
+        <div class="cd-brand-text">
+          <p class="cd-brand-title">PTIT Learning</p>
+          <p class="cd-brand-slogan">Học trực tuyến • Công nghệ • Kết nối</p>
         </div>
       </NuxtLink>
 
-      <!-- Central Nav Links & Search -->
-      <div class="hidden items-center gap-8 md:flex">
-        <div class="flex gap-6 items-center flex-1 justify-center">
-          <NuxtLink 
-            v-for="item in publicNavigation" 
-            :key="item.to" 
-            :to="item.to" 
-            class="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors duration-200 border-b-2 border-transparent hover:border-primary pb-0.5"
-            active-class="text-primary border-primary"
-          >
-            {{ item.label }}
-          </NuxtLink>
-          <ClientOnly>
-            <NuxtLink v-if="auth.isLoggedIn" to="/my-courses" class="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors duration-200 border-b-2 border-transparent hover:border-primary pb-0.5" active-class="text-primary border-primary">Khóa học của tôi</NuxtLink>
-          </ClientOnly>
-        </div>
-      </div>
+      <nav class="cd-nav">
+        <NuxtLink
+          v-for="item in publicNavigation"
+          :key="item.to"
+          :to="item.to"
+          class="cd-nav-link"
+          active-class="is-active"
+        >
+          {{ item.label }}
+        </NuxtLink>
+        <NuxtLink
+          v-if="auth.isLoggedIn"
+          to="/student"
+          class="cd-nav-link"
+          active-class="is-active"
+        >
+          Khóa học của tôi
+        </NuxtLink>
+      </nav>
 
-      <!-- User Interface & Auth -->
-      <div class="flex items-center gap-4">
-        <div class="hidden lg:block w-48 relative">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-outline material-symbols-outlined text-lg">search</span>
-          <input 
-            v-model="searchQuery" 
-            class="w-full bg-surface-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:bg-surface-lowest transition-all text-on-surface placeholder:text-outline/70"
-            placeholder="Tìm kiếm..." 
-            @keyup.enter="handleSearch"
-          />
-        </div>
-
+      <div class="cd-actions">
         <ClientOnly>
           <template v-if="!auth.isLoggedIn">
-            <NuxtLink to="/login" class="px-6 py-2 rounded-lg text-primary hover:text-primary-dark font-bold transition-all text-sm">Đăng nhập</NuxtLink>
-            <NuxtLink to="/register" class="hidden sm:block px-6 py-2 rounded-lg cta-gradient text-white shadow-md hover:shadow-lg transition-all text-sm font-bold">Đăng ký</NuxtLink>
+            <NuxtLink to="/login" class="cd-nav-link cd-nav-login">Đăng nhập</NuxtLink>
+            <NuxtLink to="/register" class="cd-btn-primary">Bắt đầu ngay</NuxtLink>
           </template>
 
           <template v-else>
-          <NotificationBell />
-          <div ref="menuRef" class="relative">
-            <button class="flex items-center gap-2 rounded-full bg-surface-low p-1.5 pr-3 transition hover:bg-surface-high" @click="showMenu = !showMenu">
-              <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary">
-                <img v-if="auth.user?.avatar" :src="auth.user.avatar" class="h-full w-full object-cover">
-                <span v-else>{{ auth.user?.name?.charAt(0) }}</span>
-              </div>
-              <span class="hidden text-sm font-semibold text-on-surface sm:block">{{ auth.user?.name }}</span>
-              <span class="material-symbols-outlined text-sm text-outline">expand_more</span>
-            </button>
-            
-            <!-- Dropdown -->
-            <div v-if="showMenu" class="absolute right-0 mt-3 w-64 rounded-2xl bg-surface-lowest p-2 shadow-ambient border border-surface-dim fade-in-up">
-              <div class="px-4 py-3 bg-surface-low rounded-xl mb-2">
-                <p class="text-sm font-bold text-on-surface">{{ auth.user?.name }}</p>
-                <p class="text-xs text-outline">{{ auth.user?.email }}</p>
-              </div>
-              
-              <div class="space-y-1 text-sm font-medium">
-                <NuxtLink to="/profile" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-low hover:text-on-surface" @click="showMenu = false">
-                  <span class="material-symbols-outlined text-[20px]">person</span> Hồ sơ
-                </NuxtLink>
-                <NuxtLink to="/orders" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-on-surface-variant hover:bg-surface-low hover:text-on-surface" @click="showMenu = false">
-                  <span class="material-symbols-outlined text-[20px]">receipt_long</span> Lịch sử đơn hàng
-                </NuxtLink>
-                
-                <div v-if="isInstructor || isAdmin" class="my-2 border-t border-surface-dim"></div>
-                
-                <NuxtLink v-if="isInstructor" to="/instructor" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-primary hover:bg-primary/5" @click="showMenu = false">
-                  <span class="material-symbols-outlined text-[20px]">workspace_premium</span> Chuyển sang Giảng dạy
-                </NuxtLink>
-                <NuxtLink v-if="isAdmin" to="/admin" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-secondary hover:bg-secondary/5" @click="showMenu = false">
-                  <span class="material-symbols-outlined text-[20px]">admin_panel_settings</span> Bảng quản trị
-                </NuxtLink>
-                
-                <div class="my-2 border-t border-surface-dim"></div>
-                
-                <button class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-error hover:bg-error-container/70 transition-colors" @click="handleLogout">
-                  <span class="material-symbols-outlined text-[20px]">logout</span> Đăng xuất
-                </button>
+            <NotificationBell />
+            <div ref="menuRef" class="cd-user-menu">
+              <button class="cd-user-btn" @click="showMenu = !showMenu">
+                <div class="cd-user-avatar">
+                  <img v-if="auth.user?.avatar" :src="auth.user.avatar" alt="Avatar">
+                  <span v-else>{{ auth.user?.name?.charAt(0) }}</span>
+                </div>
+                <div class="cd-user-info">
+                  <p class="cd-user-name">{{ auth.user?.name }}</p>
+                  <p class="cd-user-role">PTIT Member</p>
+                </div>
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+
+              <div v-if="showMenu" class="cd-dropdown">
+                <div class="cd-dropdown-header">
+                  <p class="cd-dropdown-name">{{ auth.user?.name }}</p>
+                  <p class="cd-dropdown-email">{{ auth.user?.email }}</p>
+                </div>
+                <div class="cd-dropdown-body">
+                  <NuxtLink to="/profile" class="cd-dropdown-item" @click="showMenu = false">
+                    <span class="material-symbols-outlined">person</span> Hồ sơ cá nhân
+                  </NuxtLink>
+                  <NuxtLink to="/orders" class="cd-dropdown-item" @click="showMenu = false">
+                    <span class="material-symbols-outlined">receipt_long</span> Đơn hàng
+                  </NuxtLink>
+                  <NuxtLink v-if="isInstructor" to="/instructor" class="cd-dropdown-item cd-dropdown-item--primary" @click="showMenu = false">
+                    <span class="material-symbols-outlined">school</span> Khu vực giảng viên
+                  </NuxtLink>
+                  <NuxtLink v-if="isAdmin" to="/admin" class="cd-dropdown-item cd-dropdown-item--danger" @click="showMenu = false">
+                    <span class="material-symbols-outlined">admin_panel_settings</span> Quản trị hệ thống
+                  </NuxtLink>
+                  <button class="cd-dropdown-item cd-dropdown-item--error" @click="handleLogout">
+                    <span class="material-symbols-outlined">logout</span> Đăng xuất
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
           </template>
         </ClientOnly>
 
-        <!-- Mobile Menu Toggle -->
-        <button class="flex items-center justify-center rounded-lg p-2 text-outline hover:bg-surface-low md:hidden" @click="showMobileMenu = !showMobileMenu">
+        <button class="cd-mobile-toggle" @click="showMobileMenu = !showMobileMenu">
           <span class="material-symbols-outlined">{{ showMobileMenu ? 'close' : 'menu' }}</span>
         </button>
       </div>
     </div>
 
-    <!-- Mobile Dropdown Navigation -->
-    <div v-if="showMobileMenu" class="bg-surface-lowest shadow-lg border-t border-surface-dim md:hidden fade-in-up absolute w-full left-0 top-16">
-      <div class="p-4 space-y-4">
-        <div class="relative flex items-center">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-outline material-symbols-outlined text-lg">search</span>
-          <input 
-            v-model="searchQuery" 
-            class="w-full bg-surface-low border-none rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:bg-surface-lowest transition-all text-on-surface"
-            placeholder="Tìm kiếm khóa học..." 
-            @keyup.enter="handleSearch"
-          />
-        </div>
-        
-        <nav class="space-y-1 font-semibold">
-          <NuxtLink 
-            v-for="item in publicNavigation" 
-            :key="item.to" 
-            :to="item.to" 
-            class="block rounded-xl px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors" 
-            @click="showMobileMenu = false"
-          >
-            {{ item.label }}
-          </NuxtLink>
-          <ClientOnly>
-            <NuxtLink v-if="auth.isLoggedIn" to="/my-courses" class="block rounded-xl px-4 py-3 text-sm text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors" @click="showMobileMenu = false">Khóa học của tôi</NuxtLink>
-            <NuxtLink 
-              v-if="!auth.isLoggedIn" 
-              to="/login" 
-              class="block rounded-xl px-4 py-3 text-sm text-primary bg-primary/10 hover:bg-primary/20 transition-colors mt-2" 
-              @click="showMobileMenu = false"
-            >
-              Đăng nhập
-            </NuxtLink>
-          </ClientOnly>
-        </nav>
+    <div v-if="showMobileMenu" class="cd-mobile-menu">
+      <div class="cd-mobile-header">
+        <p class="cd-mobile-title">PTIT Learning Platform</p>
+        <p class="cd-mobile-desc">Truy cập nhanh khóa học, lộ trình nghề nghiệp và tài khoản của bạn trên mọi thiết bị.</p>
       </div>
+      <nav class="cd-mobile-nav">
+        <NuxtLink v-for="item in publicNavigation" :key="item.to" :to="item.to" class="cd-mobile-link" @click="showMobileMenu = false">
+          {{ item.label }}
+        </NuxtLink>
+        <NuxtLink v-if="auth.isLoggedIn" to="/student" class="cd-mobile-link" @click="showMobileMenu = false">
+          Khóa học của tôi
+        </NuxtLink>
+        <NuxtLink v-if="auth.isLoggedIn" to="/profile" class="cd-mobile-link" @click="showMobileMenu = false">
+          Hồ sơ cá nhân
+        </NuxtLink>
+        <NuxtLink v-if="!auth.isLoggedIn" to="/login" class="cd-mobile-link cd-mobile-link--bordered" @click="showMobileMenu = false">
+          Đăng nhập
+        </NuxtLink>
+        <NuxtLink v-if="!auth.isLoggedIn" to="/register" class="cd-mobile-link cd-mobile-link--primary" @click="showMobileMenu = false">
+          Tạo tài khoản mới
+        </NuxtLink>
+        <button v-if="auth.isLoggedIn" class="cd-mobile-link cd-mobile-link--primary" @click="handleLogout">
+          Đăng xuất
+        </button>
+      </nav>
     </div>
-  </nav>
+  </header>
 </template>
+
+<style scoped>
+.cd-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(47, 122, 69, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.cd-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .cd-header-inner { padding: 0 1.5rem; }
+}
+
+/* Brand */
+.cd-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  min-width: 0;
+  transition: opacity 0.2s;
+}
+.cd-brand:hover { opacity: 0.9; }
+
+.cd-brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px; height: 48px;
+  border-radius: 16px;
+  background: #2f7a45;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(47, 122, 69, 0.2);
+}
+
+.cd-brand-text { min-width: 0; }
+.cd-brand-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--on-surface, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cd-brand-slogan {
+  margin: 0;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--outline, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Navigation */
+.cd-nav {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background: rgba(248, 250, 252, 0.8);
+  border: 1px solid rgba(47, 122, 69, 0.1);
+  border-radius: 999px;
+}
+@media (min-width: 768px) {
+  .cd-nav { display: flex; }
+}
+
+.cd-nav-link {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--on-surface-variant, #475569);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.cd-nav-link:hover {
+  background: rgba(47, 122, 69, 0.1);
+  color: var(--primary, #2f7a45);
+}
+.cd-nav-link.is-active {
+  background: #2f7a45;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.cd-nav-login { display: none; }
+@media (min-width: 640px) { .cd-nav-login { display: block; } }
+
+/* Actions */
+.cd-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.cd-btn-primary {
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: #2f7a45;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(47, 122, 69, 0.2);
+  transition: opacity 0.2s;
+}
+.cd-btn-primary:hover { opacity: 0.9; }
+
+/* User Menu */
+.cd-user-menu { position: relative; display: none; }
+@media (min-width: 640px) { .cd-user-menu { display: block; } }
+
+.cd-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(47, 122, 69, 0.1);
+  background: var(--surface, #f8fafc);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cd-user-btn:hover {
+  border-color: rgba(47, 122, 69, 0.3);
+  background: var(--surface-high, #e2e8f0);
+}
+
+.cd-user-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(47, 122, 69, 0.1);
+  color: var(--primary, #2f7a45);
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.cd-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.cd-user-info { display: none; text-align: left; }
+@media (min-width: 1024px) { .cd-user-info { display: block; } }
+.cd-user-name {
+  margin: 0; font-size: 0.875rem; font-weight: 600;
+  color: var(--on-surface, #0f172a);
+  max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cd-user-role { margin: 0; font-size: 0.75rem; color: var(--outline, #64748b); }
+
+.cd-user-btn .material-symbols-outlined { font-size: 20px; color: var(--outline, #64748b); }
+
+/* Dropdown */
+.cd-dropdown {
+  position: absolute; right: 0; top: calc(100% + 8px);
+  width: 288px;
+  background: #fff;
+  border: 1px solid rgba(47, 122, 69, 0.1);
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+}
+.cd-dropdown-header {
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(47, 122, 69, 0.1);
+  margin-bottom: 12px;
+}
+.cd-dropdown-name { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--on-surface, #0f172a); }
+.cd-dropdown-email { margin: 4px 0 0; font-size: 0.75rem; color: var(--outline, #64748b); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.cd-dropdown-body { display: flex; flex-direction: column; gap: 4px; }
+.cd-dropdown-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: none; background: transparent;
+  font-size: 0.875rem; font-weight: 500;
+  color: var(--on-surface-variant, #475569);
+  text-decoration: none; cursor: pointer; text-align: left;
+  transition: all 0.2s;
+}
+.cd-dropdown-item:hover { background: var(--surface, #f8fafc); color: var(--on-surface, #0f172a); }
+.cd-dropdown-item .material-symbols-outlined { font-size: 20px; }
+
+.cd-dropdown-item--primary { color: var(--primary, #2f7a45); }
+.cd-dropdown-item--primary:hover { background: rgba(47, 122, 69, 0.1); color: var(--primary, #2f7a45); }
+.cd-dropdown-item--danger { color: #d71920; }
+.cd-dropdown-item--danger:hover { background: rgba(215, 25, 32, 0.1); color: #d71920; }
+.cd-dropdown-item--error { color: #ef4444; }
+.cd-dropdown-item--error:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* Mobile Menu */
+.cd-mobile-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(47, 122, 69, 0.1);
+  background: var(--surface, #f8fafc);
+  color: var(--on-surface, #0f172a);
+  cursor: pointer;
+}
+@media (min-width: 768px) { .cd-mobile-toggle { display: none; } }
+
+.cd-mobile-menu {
+  padding: 16px;
+  background: #fff;
+  border-top: 1px solid rgba(47, 122, 69, 0.1);
+}
+@media (min-width: 768px) { .cd-mobile-menu { display: none; } }
+
+.cd-mobile-header {
+  padding: 16px; margin-bottom: 16px;
+  border-radius: 24px;
+  background: rgba(47, 122, 69, 0.1);
+}
+.cd-mobile-title { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--on-surface, #0f172a); }
+.cd-mobile-desc { margin: 4px 0 0; font-size: 0.75rem; line-height: 1.5; color: var(--on-surface-variant, #475569); }
+
+.cd-mobile-nav { display: flex; flex-direction: column; gap: 8px; }
+.cd-mobile-link {
+  display: block; padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 0.875rem; font-weight: 600;
+  color: var(--on-surface-variant, #475569);
+  text-decoration: none; border: none; background: transparent; cursor: pointer; text-align: left;
+  transition: all 0.2s;
+}
+.cd-mobile-link:hover { background: var(--surface, #f8fafc); color: var(--primary, #2f7a45); }
+.cd-mobile-link--bordered { border: 1px solid rgba(47, 122, 69, 0.1); }
+.cd-mobile-link--primary {
+  background: #2f7a45;
+  color: #fff; text-align: center;
+}
+.cd-mobile-link--primary:hover { opacity: 0.9; color: #fff; }
+</style>

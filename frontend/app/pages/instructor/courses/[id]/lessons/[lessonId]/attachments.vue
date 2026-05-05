@@ -175,9 +175,14 @@ async function deleteFile(file: any) {
 
 <style scoped>
 .btn-icon {
-  @apply p-2 rounded-lg transition-colors border-none bg-transparent;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  border: none;
+  background: transparent;
 }
+
 .btn-icon:hover {
-  @apply bg-gray-100;
+  background: #f3f4f6;
 }
 </style>

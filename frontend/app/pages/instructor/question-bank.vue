@@ -1,68 +1,68 @@
 <template>
-  <NuxtLayout name="instructor">
-    <section class="space-y-8">
-      <AppPageHeader eyebrow="Instructor" title="Ngân hàng câu hỏi" description="Quản lý câu hỏi và bộ đề theo từng khóa học." />
+  <section class="crud-page">
+    <header class="crud-page-header dashboard-card">
+      <div>
+        <p class="section-kicker">Giảng viên</p>
+        <h2>Ngân hàng câu hỏi</h2>
+        <p>Quản lý câu hỏi và bộ đề theo từng khóa học.</p>
+      </div>
+      <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Xem khóa học</NuxtLink>
+    </header>
 
-      <UiCard>
-        <!-- Search -->
-        <div class="mb-6">
-          <div class="relative max-w-sm">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
-            <input v-model="search" type="text" placeholder="Tìm khóa học..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-surface-dim bg-surface-lowest text-sm placeholder-outline focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-          </div>
-        </div>
-
-        <!-- Loading -->
-        <div v-if="loading" class="space-y-3">
-          <div v-for="i in 5" :key="i" class="h-14 rounded-xl bg-surface-high animate-pulse" />
-        </div>
-
-        <UiEmptyState v-else-if="filteredCourses.length === 0" title="Chưa có khóa học" description="Tạo khóa học trước khi xây dựng ngân hàng câu hỏi." />
-
-        <!-- Table -->
-        <div v-else class="overflow-x-auto rounded-xl border border-surface-dim">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-surface-low text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                <th class="px-5 py-3.5">#</th>
-                <th class="px-5 py-3.5">Khóa học</th>
-                <th class="px-5 py-3.5 text-center">Bài học</th>
-                <th class="px-5 py-3.5 text-center">Học viên</th>
-                <th class="px-5 py-3.5 text-center">Trạng thái</th>
-                <th class="px-5 py-3.5 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-dim/50">
-              <tr v-for="(course, idx) in filteredCourses" :key="course.id" class="hover:bg-surface-low/50 transition-colors">
-                <td class="px-5 py-4 text-on-surface-variant font-medium">{{ idx + 1 }}</td>
-                <td class="px-5 py-4">
-                  <div class="flex items-center gap-3">
-                    <div class="h-10 w-14 shrink-0 rounded-lg overflow-hidden bg-surface-high">
-                      <img v-if="course.thumbnail" :src="course.thumbnail" class="h-full w-full object-cover">
-                      <div v-else class="flex h-full items-center justify-center text-sm">📘</div>
-                    </div>
-                    <span class="font-semibold text-on-surface line-clamp-1">{{ course.title }}</span>
+    <section class="dashboard-card crud-panel">
+      <div class="crud-toolbar">
+        <form class="crud-toolbar-main" @submit.prevent>
+          <input v-model="search" class="crud-search" type="text" placeholder="Tìm khóa học...">
+        </form>
+      </div>
+      <div class="crud-table-wrap">
+        <table class="crud-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Khóa học</th>
+              <th>Bài học</th>
+              <th>Học viên</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="6" class="crud-empty">Đang tải...</td>
+            </tr>
+            <tr v-else-if="filteredCourses.length === 0">
+              <td colspan="6" class="crud-empty">Chưa có khóa học.</td>
+            </tr>
+            <tr v-for="(course, idx) in filteredCourses" :key="course.id">
+              <td>{{ idx + 1 }}</td>
+              <td>
+                <div class="crud-course">
+                  <div class="crud-course-thumb">
+                    <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
+                    <span v-else>📘</span>
                   </div>
-                </td>
-                <td class="px-5 py-4 text-center text-on-surface-variant">{{ course.lessons_count || 0 }}</td>
-                <td class="px-5 py-4 text-center text-on-surface-variant">{{ course.enrollments_count || 0 }}</td>
-                <td class="px-5 py-4 text-center"><StatusBadge :value="statusLabel(course.status)" /></td>
-                <td class="px-5 py-4 text-right">
-                  <NuxtLink :to="`/instructor/courses/${course.id}/question-bank`" class="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">visibility</span> Chi tiết
-                  </NuxtLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </UiCard>
+                  <div><strong>{{ course.title }}</strong></div>
+                </div>
+              </td>
+              <td>{{ course.lessons_count || 0 }}</td>
+              <td>{{ course.enrollments_count || 0 }}</td>
+              <td><span class="crud-badge" :class="statusClass(course.status)">{{ statusLabel(course.status) }}</span></td>
+              <td>
+                <div class="crud-actions">
+                  <NuxtLink :to="`/instructor/courses/${course.id}/question-bank`" class="action-btn is-view">Chi tiết</NuxtLink>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
-  </NuxtLayout>
+  </section>
 </template>
 
 <script setup lang="ts">
-definePageMeta({ middleware: 'instructor' })
+definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
 const courseStore = useCourseStore()
 const loading = ref(true)
@@ -73,6 +73,8 @@ const statusLabel = (status: string) => {
   const map: Record<string, string> = { published: 'Đã xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Bị từ chối' }
   return map[status] || status
 }
+
+const statusClass = (s: string) => ({ published: 'role-instructor', pending_review: 'role-student', draft: 'role-admin', rejected: 'role-admin' }[s] || 'role-admin')
 
 const filteredCourses = computed(() => {
   if (!search.value.trim()) return courses.value

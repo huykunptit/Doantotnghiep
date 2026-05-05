@@ -6,6 +6,10 @@ defineProps<{
 
 const route = useRoute()
 const { groups, supportItems } = useAdminNavigation()
+<<<<<<< HEAD
+const { siteName, siteLogo } = useSiteSettings()
+=======
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 
 function isActive(path: string) {
   if (path === '/admin') {
@@ -40,8 +44,14 @@ async function handleLogout() {
   <aside class="dashboard-sidebar">
     <div class="sidebar-brand">
       <div class="brand-line">
+<<<<<<< HEAD
+        <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="brand-logo">
+        <span v-else class="brand-mark" />
+        <span class="brand-name">{{ siteName }}</span>
+=======
         <span class="brand-mark" />
         <span class="brand-name">PTIT LMS</span>
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
       </div>
       <div>
         <p class="sidebar-eyebrow">Admin role</p>
@@ -68,9 +78,18 @@ async function handleLogout() {
     </nav>
 
     <section class="sidebar-section">
-      <p class="sidebar-label">Ho tro</p>
-      <ul>
-        <li v-for="item in supportItems" :key="item">{{ item }}</li>
+      <p class="sidebar-label">Hỗ trợ</p>
+      <ul class="sidebar-support-list">
+        <li
+          v-for="item in supportItems"
+          :key="item.label"
+          class="sidebar-support-item"
+          :class="{ 'is-disabled': item.comingSoon }"
+          :title="item.comingSoon ? 'Sắp ra mắt' : ''"
+        >
+          <span>{{ item.label }}</span>
+          <span v-if="item.comingSoon" class="sidebar-support-badge">Sắp có</span>
+        </li>
       </ul>
     </section>
 

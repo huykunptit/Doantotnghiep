@@ -18,7 +18,7 @@ const emit = defineEmits<{
 }>()
 
 function formatDuration(seconds: number) {
-  if (!seconds) return '--:--'
+  if (!seconds) return '--'
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return `${mins}:${secs.toString().padStart(2, '0')}`
@@ -52,104 +52,108 @@ function lessonSummary(lesson: any) {
   if (lesson.type === 'quiz') return 'Quản lý câu hỏi ở trang quiz của bài học'
   return 'Chưa cấu hình nội dung'
 }
+
+function typeIconStyle(lesson: any) {
+  const type = lesson.type || 'video'
+  const map: Record<string, string> = {
+    assignment: 'background:rgba(217,119,6,0.12);color:#b45309;',
+    virtual_class: 'background:rgba(14,165,233,0.12);color:#0284c7;',
+    document: 'background:rgba(124,58,237,0.12);color:#7c3aed;',
+    scorm: 'background:rgba(234,88,12,0.12);color:#ea580c;',
+    h5p: 'background:rgba(236,72,153,0.12);color:#db2777;',
+    quiz: 'background:rgba(124,58,237,0.12);color:#7c3aed;',
+  }
+  if (type === 'video') {
+    return lesson.video_url || lesson.video_status === 'ready'
+      ? 'background:rgba(47,122,69,0.12);color:var(--green-deep);'
+      : 'background:rgba(47,122,69,0.06);color:var(--green-deep);'
+  }
+  return map[type] || 'background:rgba(47,122,69,0.06);color:var(--green-deep);'
+}
 </script>
 
 <template>
-  <div 
-    class="lesson-block group bg-surface-lowest p-5 rounded-[1.5rem] border border-surface-dim shadow-sm hover:border-primary/40 hover:shadow-md transition-all flex flex-col md:flex-row md:items-center gap-6"
-  >
-    <!-- Left: Drag/Order Handle Style & Icon -->
-    <div class="flex items-center gap-4 flex-1">
-      <div class="flex flex-col gap-1 shrink-0">
-        <button 
-          @click="emit('moveUp', lesson)" 
-          :disabled="isFirst"
-          class="p-1 hover:bg-surface-low rounded text-outline-variant disabled:opacity-20 hover:text-primary transition-colors"
-        >
-          <span class="material-symbols-outlined text-[18px]">keyboard_arrow_up</span>
-        </button>
-        <button 
-          @click="emit('moveDown', lesson)" 
-          :disabled="isLast"
-          class="p-1 hover:bg-surface-low rounded text-outline-variant disabled:opacity-20 hover:text-primary transition-colors"
-        >
-          <span class="material-symbols-outlined text-[18px]">keyboard_arrow_down</span>
-        </button>
-      </div>
+  <div class="curriculum-lesson">
+    <!-- Order buttons -->
+    <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0;">
+      <button class="curriculum-order-btn" :disabled="isFirst" @click="emit('moveUp', lesson)">
+        <span class="material-symbols-outlined" style="font-size:14px;">expand_less</span>
+      </button>
+      <button class="curriculum-order-btn" :disabled="isLast" @click="emit('moveDown', lesson)">
+        <span class="material-symbols-outlined" style="font-size:14px;">expand_more</span>
+      </button>
+    </div>
 
-      <div 
-        class="w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center transition-colors shadow-sm"
-        :class="lesson.type === 'assignment' ? 'bg-amber-50 text-amber-600' : lesson.type === 'virtual_class' ? 'bg-sky-50 text-sky-600' : lesson.type === 'document' ? 'bg-violet-50 text-violet-600' : lesson.type === 'scorm' || lesson.type === 'h5p' ? 'bg-orange-50 text-orange-600' : lesson.video_url || lesson.video_status === 'ready' ? 'bg-emerald-50 text-emerald-600' : 'bg-primary/5 text-primary'"
-      >
-        <span class="material-symbols-outlined text-[24px]">
-          {{ lessonIcon(lesson) }}
+    <!-- Type icon -->
+    <div class="curriculum-type-icon" :style="typeIconStyle(lesson)">
+      <span class="material-symbols-outlined" style="font-size:20px;">{{ lessonIcon(lesson) }}</span>
+    </div>
+
+    <!-- Info -->
+    <div style="min-width:0; flex:1;">
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px; flex-wrap:wrap;">
+        <strong style="font-size:0.9rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;">
+          {{ lesson.title }}
+        </strong>
+        <span
+          v-if="lesson.is_preview"
+          style="font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; padding:2px 6px; border-radius:6px; background:rgba(47,122,69,0.12); color:var(--green-deep); flex-shrink:0;"
+        >
+          PREVIEW
+        </span>
+        <span style="font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; padding:2px 6px; border-radius:6px; background:rgba(17,17,17,0.06); color:var(--muted); flex-shrink:0;">
+          {{ lessonChip(lesson) }}
         </span>
       </div>
-
-        <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2 mb-1">
-            <p class="font-bold text-on-surface truncate pr-4 text-base tracking-tight">{{ lesson.title }}</p>
-            <UiBadge v-if="lesson.is_preview" variant="success" size="sm">PREVIEW</UiBadge>
-            <UiBadge variant="default" size="sm">{{ lessonChip(lesson) }}</UiBadge>
-          </div>
-          <p class="mb-2 text-sm text-on-surface-variant">{{ lessonSummary(lesson) }}</p>
-          <div class="flex items-center gap-4 text-[11px] font-bold text-outline-variant uppercase tracking-widest">
-           <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> {{ formatDuration(lesson.duration) }}</span>
-           <span v-if="lesson.video_status === 'processing'" class="text-amber-600 flex items-center gap-1">
-             <span class="material-symbols-outlined text-[14px] animate-spin">sync</span> ĐANG XỬ LÝ VIDEO
-           </span>
-           <span v-else-if="lesson.video_status === 'ready' || lesson.video_url" class="text-emerald-600 flex items-center gap-1">
-             <span class="material-symbols-outlined text-[14px]">check_circle</span> VIDEO SẴN SÀNG
-           </span>
-        </div>
+      <p style="margin:0 0 4px; font-size:0.77rem; color:var(--muted);">{{ lessonSummary(lesson) }}</p>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); display:flex; align-items:center; gap:3px;">
+          <span class="material-symbols-outlined" style="font-size:13px;">schedule</span>
+          {{ formatDuration(lesson.duration) }}
+        </span>
+        <span
+          v-if="lesson.video_status === 'processing'"
+          style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#b45309; display:flex; align-items:center; gap:3px;"
+        >
+          <span class="material-symbols-outlined" style="font-size:13px;">sync</span>
+          Đang xử lý
+        </span>
+        <span
+          v-else-if="lesson.video_status === 'ready' || lesson.video_url"
+          style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--green-deep); display:flex; align-items:center; gap:3px;"
+        >
+          <span class="material-symbols-outlined" style="font-size:13px;">check_circle</span>
+          Sẵn sàng
+        </span>
       </div>
     </div>
 
-    <!-- Right: Action Bar -->
-    <div class="flex items-center justify-between md:justify-end gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-surface-dim">
-      <div class="flex items-center gap-2">
-        <button 
-          @click="emit('edit', lesson)" 
-          class="p-2.5 bg-surface-low text-on-surface-variant hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
-          title="Chỉnh sửa nội dung"
-        >
-          <span class="material-symbols-outlined text-[20px]">edit_square</span>
-        </button>
-        <button 
-          @click="emit('uploadVideo', lesson)" 
-          v-if="lesson.type === 'video'"
-          class="flex items-center gap-2 px-4 py-2.5 bg-primary text-white font-bold text-xs rounded-xl shadow-sm hover:shadow-md hover:bg-primary-dark transition-all"
-        >
-          <span class="material-symbols-outlined text-[18px]">cloud_upload</span>
-          VIDEO
-        </button>
-      </div>
-
-      <div class="h-8 w-[1px] bg-surface-dim/30 mx-1 hidden md:block"></div>
-
-      <div class="flex items-center gap-2">
-        <NuxtLink 
-          :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/quiz`"
-          class="p-2.5 bg-surface-low text-on-surface-variant hover:text-secondary hover:bg-secondary/5 rounded-xl transition-all"
-          title="Bài kiểm tra (Quiz)"
-        >
-          <span class="material-symbols-outlined text-[20px]">quiz</span>
-        </NuxtLink>
-        <NuxtLink 
-          :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/attachments`"
-          class="p-2.5 bg-surface-low text-on-surface-variant hover:text-secondary hover:bg-secondary/5 rounded-xl transition-all"
-          :title="lesson.type === 'document' ? 'Quản lý file đính kèm' : 'Tài liệu đính kèm'"
-        >
-          <span class="material-symbols-outlined text-[20px]">attachment</span>
-        </NuxtLink>
-        <button 
-          @click="emit('delete', lesson)" 
-          class="p-2.5 bg-surface-low text-outline-variant hover:text-error hover:bg-error/5 rounded-xl transition-all"
-          title="Xóa bài học"
-        >
-          <span class="material-symbols-outlined text-[20px]">delete</span>
-        </button>
-      </div>
+    <!-- Actions -->
+    <div class="crud-actions" style="flex-shrink:0; margin-left:auto;">
+      <button class="action-btn is-edit" type="button" @click="emit('edit', lesson)">
+        <span class="material-symbols-outlined" style="font-size:15px; margin-right:3px;">edit</span>
+        Sửa
+      </button>
+      <button
+        v-if="lesson.type === 'video'"
+        class="action-btn is-view"
+        type="button"
+        @click="emit('uploadVideo', lesson)"
+      >
+        <span class="material-symbols-outlined" style="font-size:15px; margin-right:3px;">cloud_upload</span>
+        Video
+      </button>
+      <NuxtLink
+        :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/quiz`"
+        class="action-btn is-view"
+        title="Quản lý Quiz"
+        style="display:inline-flex; align-items:center;"
+      >
+        <span class="material-symbols-outlined" style="font-size:15px;">quiz</span>
+      </NuxtLink>
+      <button class="action-btn is-delete" type="button" @click="emit('delete', lesson)">
+        <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
+      </button>
     </div>
   </div>
 </template>

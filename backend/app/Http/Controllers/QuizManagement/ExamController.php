@@ -5,39 +5,97 @@ namespace App\Http\Controllers\QuizManagement;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\ExamEnrollment;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
+    /**
+     * List exams for a course.
+     */
     public function index(Request $request, Course $course): JsonResponse
     {
         $this->authorizeOwner($request, $course);
 
         $exams = $course->exams()
             ->with('quiz')
+            ->withCount('examEnrollments')
             ->get();
 
         return response()->json($exams);
     }
 
-    public function store(Request $request, Course $course): JsonResponse
+    /**
+     * List all standalone exams (not bound to any course).
+     */
+    public function standaloneIndex(Request $request): JsonResponse
     {
-        $this->authorizeOwner($request, $course);
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $user->hasRole('instructor')), 403);
+
+        $query = Exam::standalone()->with('quiz', 'creator')->withCount('examEnrollments');
+
+        // Instructors can only see their own standalone exams
+        if (!$user->hasRole('admin')) {
+            $query->where('created_by', $user->id);
+        }
+
+        $exams = $query->latest()->get();
+
+        return response()->json($exams);
+    }
+
+    /**
+     * Create a new exam (course-bound or standalone).
+     */
+    public function store(Request $request, ?Course $course = null): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($course) {
+            $this->authorizeOwner($request, $course);
+        } else {
+            abort_unless($user && ($user->hasRole('admin') || $user->hasRole('instructor')), 403);
+        }
 
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'status' => ['nullable', 'in:draft,scheduled,published,closed'],
-            'duration' => ['nullable', 'integer', 'min:0'],
-            'pass_score' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date'],
+            'title'              => ['required', 'string', 'max:255'],
+            'description'        => ['nullable', 'string'],
+            'type'               => ['nullable', 'in:course_final,standalone'],
+            'status'             => ['nullable', 'in:draft,scheduled,active,closed,archived'],
+            'duration'           => ['nullable', 'integer', 'min:0'],
+            'pass_score'         => ['nullable', 'integer', 'min:0', 'max:100'],
+            'max_attempts'       => ['nullable', 'integer', 'min:1', 'max:99'],
+            'shuffle_questions'  => ['nullable', 'boolean'],
+            'shuffle_answers'    => ['nullable', 'boolean'],
+            'review_options'     => ['nullable', 'array'],
+            'starts_at'          => ['nullable', 'date'],
+            'ends_at'            => ['nullable', 'date'],
+            'proctoring_enabled' => ['nullable', 'boolean'],
         ]);
 
-        $exam = $course->exams()->create($validated);
+        $validated['created_by'] = $user->id;
+
+        if ($course) {
+            $validated['type'] = $validated['type'] ?? 'course_final';
+            $exam = $course->exams()->create($validated);
+        } else {
+            $validated['type'] = 'standalone';
+            $validated['course_id'] = null;
+            $exam = Exam::create($validated);
+        }
 
         return response()->json($exam->load('quiz'), 201);
+    }
+
+    /**
+     * Create a standalone exam (dedicated route without course prefix).
+     */
+    public function storeStandalone(Request $request): JsonResponse
+    {
+        return $this->store($request, null);
     }
 
     public function show(Request $request, Course $course, Exam $exam): JsonResponse
@@ -48,24 +106,70 @@ class ExamController extends Controller
         return response()->json($exam->load('quiz.questions.answers'));
     }
 
+    /**
+     * Show a standalone exam.
+     */
+    public function showStandalone(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        return response()->json($exam->load(['quiz.questions.answers', 'examEnrollments.user']));
+    }
+
     public function update(Request $request, Course $course, Exam $exam): JsonResponse
     {
         $this->authorizeOwner($request, $course);
         abort_if($exam->course_id !== $course->id, 404);
 
         $validated = $request->validate([
-            'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'status' => ['nullable', 'in:draft,scheduled,published,closed'],
-            'duration' => ['nullable', 'integer', 'min:0'],
-            'pass_score' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date'],
+            'title'              => ['sometimes', 'required', 'string', 'max:255'],
+            'description'        => ['nullable', 'string'],
+            'status'             => ['nullable', 'in:draft,scheduled,active,closed,archived'],
+            'duration'           => ['nullable', 'integer', 'min:0'],
+            'pass_score'         => ['nullable', 'integer', 'min:0', 'max:100'],
+            'max_attempts'       => ['nullable', 'integer', 'min:1', 'max:99'],
+            'shuffle_questions'  => ['nullable', 'boolean'],
+            'shuffle_answers'    => ['nullable', 'boolean'],
+            'review_options'     => ['nullable', 'array'],
+            'starts_at'          => ['nullable', 'date'],
+            'ends_at'            => ['nullable', 'date'],
+            'proctoring_enabled' => ['nullable', 'boolean'],
         ]);
 
         $exam->update($validated);
 
         return response()->json($exam->fresh()->load('quiz'));
+    }
+
+    /**
+     * Update a standalone exam.
+     */
+    public function updateStandalone(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        $validated = $request->validate([
+            'title'              => ['sometimes', 'required', 'string', 'max:255'],
+            'description'        => ['nullable', 'string'],
+            'status'             => ['nullable', 'in:draft,scheduled,active,closed,archived'],
+            'duration'           => ['nullable', 'integer', 'min:0'],
+            'pass_score'         => ['nullable', 'integer', 'min:0', 'max:100'],
+            'max_attempts'       => ['nullable', 'integer', 'min:1', 'max:99'],
+            'shuffle_questions'  => ['nullable', 'boolean'],
+            'shuffle_answers'    => ['nullable', 'boolean'],
+            'review_options'     => ['nullable', 'array'],
+            'starts_at'          => ['nullable', 'date'],
+            'ends_at'            => ['nullable', 'date'],
+            'proctoring_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $exam->update($validated);
+
+        return response()->json($exam->fresh()->load(['quiz', 'examEnrollments.user']));
     }
 
     public function destroy(Request $request, Course $course, Exam $exam): JsonResponse
@@ -76,6 +180,80 @@ class ExamController extends Controller
         $exam->delete();
 
         return response()->json(['message' => 'Exam deleted']);
+    }
+
+    /**
+     * Delete a standalone exam.
+     */
+    public function destroyStandalone(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        $exam->delete();
+
+        return response()->json(['message' => 'Standalone exam deleted']);
+    }
+
+    // ── Enrollment management (standalone exams) ────────────────────────
+
+    /**
+     * Enroll users into a standalone exam.
+     */
+    public function enrollUsers(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+
+        $validated = $request->validate([
+            'user_ids'   => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $enrolled = 0;
+        foreach ($validated['user_ids'] as $userId) {
+            ExamEnrollment::firstOrCreate(
+                ['exam_id' => $exam->id, 'user_id' => $userId],
+                ['enrolled_by' => $user->id, 'enrolled_at' => now()]
+            );
+            $enrolled++;
+        }
+
+        return response()->json([
+            'message'  => "Đã gán {$enrolled} thí sinh.",
+            'enrolled' => $exam->fresh()->load('examEnrollments.user')->examEnrollments,
+        ]);
+    }
+
+    /**
+     * Remove a user from a standalone exam.
+     */
+    public function unenrollUser(Request $request, Exam $exam, User $targetUser): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+
+        ExamEnrollment::where('exam_id', $exam->id)
+            ->where('user_id', $targetUser->id)
+            ->delete();
+
+        return response()->json(['message' => 'Đã xóa thí sinh khỏi kỳ thi.']);
+    }
+
+    /**
+     * List enrolled users for an exam.
+     */
+    public function enrolledUsers(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+
+        $enrollments = $exam->examEnrollments()
+            ->with('user:id,name,email')
+            ->get();
+
+        return response()->json($enrollments);
     }
 
     private function authorizeOwner(Request $request, Course $course): void

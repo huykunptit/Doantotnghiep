@@ -1,18 +1,30 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import AdminFooter from '~/components/dashboard/AdminFooter.vue'
 import AdminSidebar from '~/components/dashboard/AdminSidebar.vue'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
+import { useAuthStore } from '~/stores/auth'
+import { getDashboardPath } from '~/composables/useAuthSession'
 
-const user = useAuthUserCookie()
+const auth = useAuthStore()
 
-if (!user.value) {
+if (!auth.isReady) {
+  auth.initFromStorage()
+}
+
+if (auth.token && !auth.user) {
+  await auth.fetchMe()
+}
+
+if (!auth.isLoggedIn || !auth.user) {
   await navigateTo('/login', { replace: true })
 }
 
-if (user.value && normalizeRole(user.value.role) !== 'admin') {
-  await navigateTo(getDashboardPath(user.value.role), { replace: true })
+if (auth.user && !(auth.user.roles || []).includes('admin')) {
+  await navigateTo(getDashboardPath(auth.user.role), { replace: true })
 }
 
+const user = computed(() => auth.user)
 const route = useRoute()
 const sidebarOpen = ref(false)
 
@@ -47,11 +59,14 @@ watch(
         <AdminTopbar
           :search-placeholder="searchPlaceholder"
           :user-name="user?.name || 'Admin User'"
+          :user-avatar="user?.avatar"
           user-role="Admin"
           @toggle-sidebar="sidebarOpen = !sidebarOpen"
         />
 
         <slot />
+
+        <AdminFooter />
       </section>
     </div>
   </main>

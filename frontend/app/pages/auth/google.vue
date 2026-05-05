@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { type AuthResponse, getDashboardPath, setAuthSession } from '~/composables/useAuthSession'
+
+definePageMeta({ layout: false })
 
 const route = useRoute()
+const auth = useAuthStore()
 const errorMessage = ref('')
 
 const queryString = new URLSearchParams(
@@ -19,6 +24,9 @@ const queryString = new URLSearchParams(
 try {
   const data = await useApi<AuthResponse>(queryString ? `/auth/google/callback?${queryString}` : '/auth/google/callback')
   setAuthSession(data)
+  auth.setToken(data.access_token)
+  auth.setUser(data.user)
+  auth.isReady = true
   await navigateTo(getDashboardPath(data.user.role), { replace: true })
 } catch (error: any) {
   errorMessage.value = error?.data?.message || 'Dang nhap bang Google that bai.'

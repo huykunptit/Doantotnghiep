@@ -1,254 +1,260 @@
 <template>
-  <section class="bg-surface">
-    <div class="border-b border-surface-dim/50 bg-surface-lowest">
-      <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-8 gap-y-3 px-4 py-3 text-sm font-semibold text-on-surface-variant sm:px-6 lg:px-8">
-        <NuxtLink
-          v-for="segment in audienceSegments"
-          :key="segment"
-          to="/courses"
-          class="transition-colors hover:text-primary"
-        >
-          {{ segment }}
-        </NuxtLink>
-      </div>
-    </div>
+  <div class="courses-shell">
 
-    <div class="border-b border-surface-dim/50 bg-surface-lowest">
-      <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex items-center gap-4">
-            <NuxtLink to="/" class="font-headline text-4xl font-extrabold tracking-[-0.06em] text-primary">
-              EduPress
-            </NuxtLink>
-            <div class="hidden items-center gap-2 rounded-full border border-surface-dim/50 bg-surface px-4 py-2 text-sm font-semibold text-on-surface-variant md:flex">
-              <span>Khám phá</span>
-              <span class="material-symbols-outlined text-[18px]">expand_more</span>
-            </div>
-          </div>
+    <!-- ── Sidebar ───────────────────────── -->
+    <aside :class="['courses-sidebar', { 'is-open': sidebarOpen }]">
+      <div class="sidebar-overlay" @click="sidebarOpen = false" />
 
-          <form class="flex w-full max-w-3xl items-center gap-3 rounded-full border border-surface-dim/60 bg-surface px-3 py-3 shadow-sm" @submit.prevent="submitSearch">
-            <input
-              v-model="filters.search"
-              type="text"
-              placeholder="Tìm khóa học, kỹ năng, chuyên đề..."
-              class="min-w-0 flex-1 bg-transparent px-4 text-base text-on-surface outline-none placeholder:text-outline"
+      <div class="sidebar-inner">
+        <!-- Categories -->
+        <section class="sidebar-card">
+          <p class="sidebar-kicker">Danh mục</p>
+
+          <div class="cat-list">
+            <button
+              type="button"
+              :class="['cat-item', { 'is-active': filters.category === '' }]"
+              @click="selectCategory('')"
             >
-            <button type="submit" class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 transition-transform hover:scale-105">
-              <span class="material-symbols-outlined text-[22px]">search</span>
+              <span class="cat-name">Tất cả khóa học</span>
+              <span class="cat-count">{{ allCourses.length }}</span>
             </button>
-          </form>
 
-          <div class="hidden items-center gap-5 lg:flex">
-            <NuxtLink to="/login" class="text-sm font-semibold text-primary hover:opacity-80">Đăng nhập</NuxtLink>
-            <NuxtLink to="/register" class="rounded-2xl border border-primary px-5 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-white">
-              Tham gia miễn phí
-            </NuxtLink>
+            <button
+              v-for="cat in categoriesWithCounts"
+              :key="cat.id"
+              type="button"
+              :class="['cat-item', { 'is-active': filters.category === String(cat.id) }]"
+              @click="selectCategory(cat.id)"
+            >
+              <span class="cat-name">{{ cat.name }}</span>
+              <span class="cat-count">{{ cat.total_courses }}</span>
+            </button>
           </div>
-        </div>
+        </section>
 
-        <div class="flex flex-wrap gap-3">
-          <button
-            v-for="item in categoryChips"
-            :key="item.id"
-            type="button"
-            class="rounded-full border px-4 py-2 text-sm font-semibold transition-all"
-            :class="filters.category === String(item.id) ? 'border-primary bg-primary text-white shadow-lg shadow-primary/15' : 'border-surface-dim/50 bg-surface text-on-surface hover:border-primary/40 hover:text-primary'"
-            @click="selectCategory(item.id)"
+        <!-- Filters -->
+        <section class="sidebar-card">
+          <div class="sidebar-filter-head">
+            <p class="sidebar-kicker">Bộ lọc</p>
+            <button type="button" class="clear-btn" @click="resetFilters">Xóa lọc</button>
+          </div>
+
+          <div class="filter-fields">
+            <label class="filter-field">
+              <span class="filter-label">Học phí</span>
+              <select v-model="filters.price" class="filter-select">
+                <option value="">Tất cả</option>
+                <option value="free">Miễn phí</option>
+                <option value="paid">Trả phí</option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span class="filter-label">Sắp xếp theo</span>
+              <select v-model="filters.sort" class="filter-select">
+                <option value="newest">Mới nhất</option>
+                <option value="popular">Nhiều học viên</option>
+                <option value="price_asc">Giá thấp → cao</option>
+                <option value="price_desc">Giá cao → thấp</option>
+                <option value="rating">Đánh giá cao</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="sidebar-card sidebar-stats">
+          <div class="stat-row">
+            <span class="stat-num">{{ allCourses.length }}</span>
+            <span class="stat-lbl">Khóa học</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-num">{{ categoriesWithCounts.length }}</span>
+            <span class="stat-lbl">Danh mục</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-num">{{ freeCoursesCount }}</span>
+            <span class="stat-lbl">Miễn phí</span>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- ── Main ──────────────────────────── -->
+    <main class="courses-main">
+
+      <!-- Search bar -->
+      <div class="search-bar-wrap">
+        <button type="button" class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+
+        <form class="search-bar" @submit.prevent="submitSearch">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="Tìm khóa học, kỹ năng, chuyên đề..."
+            class="search-input"
           >
-            {{ item.name }}
-            <span class="ml-2 text-xs opacity-70">{{ item.count }}</span>
+          <button v-if="filters.search" type="button" class="search-clear" @click="filters.search = ''">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </form>
+
+        <!-- View toggle -->
+        <div class="view-toggle">
+          <button
+            type="button"
+            :class="['view-btn', { 'is-active': viewMode === 'grid' }]"
+            title="Dạng lưới"
+            @click="viewMode = 'grid'"
+          >
+            <span class="material-symbols-outlined">grid_view</span>
+          </button>
+          <button
+            type="button"
+            :class="['view-btn', { 'is-active': viewMode === 'topic' }]"
+            title="Theo chủ đề"
+            @click="viewMode = 'topic'"
+          >
+            <span class="material-symbols-outlined">category</span>
           </button>
         </div>
       </div>
-    </div>
 
-    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div class="grid gap-8 xl:grid-cols-[290px_minmax(0,1fr)]">
-        <aside class="space-y-6">
-          <section class="rounded-[2rem] border border-surface-dim bg-surface-lowest p-6 shadow-sm">
-            <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-outline">Danh mục nổi bật</p>
-            <div class="mt-5 space-y-3">
-              <button
-                type="button"
-                class="flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all"
-                :class="filters.category === '' ? 'border-primary bg-primary/5 text-primary' : 'border-surface-dim/40 bg-surface hover:border-primary/30'"
-                @click="selectCategory('')"
-              >
-                <span class="font-semibold">Tất cả danh mục</span>
-                <span class="text-xs font-bold uppercase tracking-[0.2em]">{{ allCourses.length }}</span>
-              </button>
+      <!-- Hero strip -->
+      <div class="hero-strip">
+        <div class="hero-text">
+          <h1 class="hero-title">{{ heroTitle }}</h1>
+          <p class="hero-sub">{{ filteredCourses.length }} khóa học phù hợp</p>
+        </div>
 
-              <button
-                v-for="category in categoriesWithCounts"
-                :key="category.id"
-                type="button"
-                class="flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all"
-                :class="filters.category === String(category.id) ? 'border-primary bg-primary/5 text-primary' : 'border-surface-dim/40 bg-surface hover:border-primary/30'"
-                @click="selectCategory(category.id)"
-              >
-                <div>
-                  <p class="font-semibold">{{ category.name }}</p>
-                  <p v-if="category.children?.length" class="mt-1 text-xs text-on-surface-variant">
-                    {{ category.children.length }} nhánh con
-                  </p>
-                </div>
-                <span class="text-xs font-bold uppercase tracking-[0.2em]">{{ category.total_courses }}</span>
-              </button>
-            </div>
-          </section>
-
-          <section class="rounded-[2rem] border border-surface-dim bg-surface-lowest p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-outline">Bộ lọc</p>
-                <h3 class="mt-2 font-headline text-2xl font-bold text-on-surface">Tùy chọn hiển thị</h3>
-              </div>
-              <button type="button" class="text-sm font-semibold text-primary hover:opacity-80" @click="resetFilters">
-                Xóa lọc
-              </button>
-            </div>
-
-            <div class="mt-6 space-y-5">
-              <label class="block space-y-2">
-                <span class="text-sm font-semibold text-on-surface-variant">Chủ đề</span>
-                <select v-model="filters.category" class="w-full rounded-2xl border border-surface-dim/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary">
-                  <option value="">Tất cả danh mục</option>
-                  <template v-for="category in categories" :key="category.id">
-                    <option :value="String(category.id)">{{ category.name }}</option>
-                    <option v-for="child in category.children || []" :key="child.id" :value="String(child.id)">
-                      - {{ child.name }}
-                    </option>
-                  </template>
-                </select>
-              </label>
-
-              <label class="block space-y-2">
-                <span class="text-sm font-semibold text-on-surface-variant">Loại học phí</span>
-                <select v-model="filters.price" class="w-full rounded-2xl border border-surface-dim/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary">
-                  <option value="">Tất cả</option>
-                  <option value="free">Miễn phí</option>
-                  <option value="paid">Trả phí</option>
-                </select>
-              </label>
-
-              <label class="block space-y-2">
-                <span class="text-sm font-semibold text-on-surface-variant">Sắp xếp</span>
-                <select v-model="filters.sort" class="w-full rounded-2xl border border-surface-dim/40 bg-surface px-4 py-3 text-sm text-on-surface outline-none transition-all focus:border-primary">
-                  <option value="newest">Mới nhất</option>
-                  <option value="popular">Nhiều học viên nhất</option>
-                  <option value="price_asc">Giá thấp đến cao</option>
-                  <option value="price_desc">Giá cao đến thấp</option>
-                  <option value="rating">Đánh giá cao</option>
-                </select>
-              </label>
-            </div>
-          </section>
-        </aside>
-
-        <div class="space-y-8">
-          <div class="rounded-[2.25rem] border border-surface-dim bg-surface-lowest p-6 shadow-sm lg:p-8">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div class="max-w-3xl">
-                <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-outline">Khám phá khóa học</p>
-                <h1 class="mt-3 font-headline text-4xl font-bold tracking-[-0.04em] text-on-surface">
-                  {{ heroTitle }}
-                </h1>
-                <p class="mt-3 text-sm leading-7 text-on-surface-variant">
-                  Duyệt toàn bộ danh mục, tìm kỹ năng đang cần và chọn khóa học phù hợp với mục tiêu học tập hoặc chuyển đổi nghề nghiệp của bạn.
-                </p>
-              </div>
-
-              <div class="grid gap-3 sm:grid-cols-3 lg:min-w-[360px]">
-                <div class="rounded-2xl bg-surface p-4">
-                  <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Tổng khóa học</p>
-                  <p class="mt-3 text-3xl font-headline font-bold text-on-surface">{{ filteredCourses.length }}</p>
-                </div>
-                <div class="rounded-2xl bg-surface p-4">
-                  <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Danh mục</p>
-                  <p class="mt-3 text-3xl font-headline font-bold text-on-surface">{{ categoryChips.length - 1 }}</p>
-                </div>
-                <div class="rounded-2xl bg-surface p-4">
-                  <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-outline">Khóa miễn phí</p>
-                  <p class="mt-3 text-3xl font-headline font-bold text-on-surface">{{ freeCoursesCount }}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-6 flex flex-wrap items-center gap-3">
-              <div
-                v-for="tag in activeFilterTags"
-                :key="tag.label"
-                class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary"
-              >
-                <span>{{ tag.label }}</span>
-                <button type="button" class="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10" @click="tag.clear()">
-                  <span class="material-symbols-outlined text-[14px]">close</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="loading" class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            <div v-for="item in 9" :key="item" class="h-[25rem] rounded-[1.75rem] bg-surface-high animate-pulse" />
-          </div>
-
-          <UiEmptyState
-            v-else-if="paginatedCourses.length === 0"
-            title="Không tìm thấy khóa học phù hợp"
-            description="Thử đổi từ khóa, xóa bộ lọc hoặc quay về tất cả danh mục để xem thêm khóa học."
+        <!-- Active filter tags -->
+        <div v-if="activeFilterTags.length" class="filter-tags">
+          <span
+            v-for="tag in activeFilterTags"
+            :key="tag.label"
+            class="filter-tag"
           >
-            <UiButton @click="resetFilters">Xem toàn bộ khóa học</UiButton>
-          </UiEmptyState>
-
-          <template v-else>
-            <div class="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              <CourseCard v-for="course in paginatedCourses" :key="course.id" :course="course" />
-            </div>
-
-            <div v-if="totalPages > 1" class="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <button
-                type="button"
-                class="flex h-11 min-w-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all"
-                :class="currentPage === 1 ? 'cursor-not-allowed bg-surface text-outline' : 'bg-surface-high text-on-surface hover:bg-surface-highest'"
-                :disabled="currentPage === 1"
-                @click="goToPage(currentPage - 1)"
-              >
-                Trước
-              </button>
-              <button
-                v-for="page in paginationItems"
-                :key="page"
-                type="button"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold transition-all"
-                :class="currentPage === page ? 'cta-gradient text-white shadow-lg shadow-primary/20' : 'bg-surface-high text-on-surface-variant hover:bg-surface-highest hover:text-on-surface'"
-                @click="goToPage(page)"
-              >
-                {{ page }}
-              </button>
-              <button
-                type="button"
-                class="flex h-11 min-w-11 items-center justify-center rounded-full px-4 text-sm font-semibold transition-all"
-                :class="currentPage === totalPages ? 'cursor-not-allowed bg-surface text-outline' : 'bg-surface-high text-on-surface hover:bg-surface-highest'"
-                :disabled="currentPage === totalPages"
-                @click="goToPage(currentPage + 1)"
-              >
-                Sau
-              </button>
-            </div>
-          </template>
+            {{ tag.label }}
+            <button type="button" class="tag-close" @click="tag.clear()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </span>
         </div>
       </div>
-    </div>
-  </section>
+
+      <!-- Category chips (quick filter) -->
+      <div class="chip-row">
+        <button
+          v-for="item in categoryChips"
+          :key="item.id"
+          type="button"
+          :class="['chip', { 'is-active': filters.category === String(item.id) }]"
+          @click="selectCategory(item.id)"
+        >
+          {{ item.name }}
+          <span class="chip-count">{{ item.count }}</span>
+        </button>
+      </div>
+
+      <!-- Loading skeleton -->
+      <div v-if="loading" class="course-grid">
+        <div v-for="i in 9" :key="i" class="skeleton-card" />
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="filteredCourses.length === 0" class="empty-state">
+        <span class="material-symbols-outlined empty-icon">search_off</span>
+        <h3>Không tìm thấy khóa học</h3>
+        <p>Thử đổi từ khóa hoặc xóa bộ lọc để xem thêm.</p>
+        <button type="button" class="reset-btn" @click="resetFilters">Xem tất cả</button>
+      </div>
+
+      <!-- Grid view -->
+      <template v-else-if="viewMode === 'grid'">
+        <div class="course-grid">
+          <CourseCard v-for="course in paginatedCourses" :key="course.id" :course="course" />
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="pagination">
+          <button
+            type="button"
+            class="page-btn page-btn--prev"
+            :disabled="currentPage === 1"
+            @click="goToPage(currentPage - 1)"
+          >
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button
+            v-for="page in paginationItems"
+            :key="page"
+            type="button"
+            :class="['page-btn', { 'is-active': currentPage === page }]"
+            @click="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+          <button
+            type="button"
+            class="page-btn page-btn--next"
+            :disabled="currentPage === totalPages"
+            @click="goToPage(currentPage + 1)"
+          >
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </template>
+
+      <!-- Topic grouped view -->
+      <template v-else>
+        <div v-if="groupedCourses.length === 0" class="empty-state">
+          <span class="material-symbols-outlined empty-icon">search_off</span>
+          <h3>Không có khóa học nào</h3>
+        </div>
+
+        <div v-for="group in groupedCourses" :key="group.categoryId" class="topic-group">
+          <div class="topic-head">
+            <div class="topic-head-left">
+              <span class="topic-dot" />
+              <h2 class="topic-title">{{ group.categoryName }}</h2>
+              <span class="topic-count">{{ group.courses.length }} khóa học</span>
+            </div>
+            <button
+              v-if="group.courses.length > 3"
+              type="button"
+              class="topic-see-all"
+              @click="selectCategory(group.categoryId); viewMode = 'grid'"
+            >
+              Xem tất cả
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+
+          <div class="topic-grid">
+            <CourseCard
+              v-for="course in group.courses.slice(0, 4)"
+              :key="course.id"
+              :course="course"
+            />
+          </div>
+        </div>
+      </template>
+
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import CourseCard from '~/components/course/CourseCard.vue'
-import UiButton from '~/components/ui/UiButton.vue'
-import UiEmptyState from '~/components/ui/UiEmptyState.vue'
 import { useApi } from '~/composables/useApi'
+
+definePageMeta({ layout: 'default' })
 
 type CourseCategory = {
   id: number
@@ -264,8 +270,6 @@ type FilterState = {
   price: '' | 'free' | 'paid'
 }
 
-const audienceSegments = ['Dành cho Cá nhân', 'Dành cho Doanh nghiệp', 'Dành cho Trường đại học', 'Dành cho Chính phủ']
-
 const route = useRoute()
 const router = useRouter()
 const allCourses = ref<any[]>([])
@@ -273,6 +277,8 @@ const categories = ref<CourseCategory[]>([])
 const loading = ref(true)
 const currentPage = ref(Number(route.query.page || 1))
 const perPage = 9
+const viewMode = ref<'grid' | 'topic'>('grid')
+const sidebarOpen = ref(false)
 
 const filters = reactive<FilterState>({
   search: (route.query.search as string) || '',
@@ -280,10 +286,6 @@ const filters = reactive<FilterState>({
   sort: ((route.query.sort as FilterState['sort']) || 'newest'),
   price: ((route.query.price as FilterState['price']) || ''),
 })
-
-function normalizeCategoryName(course: any) {
-  return course.category?.name || course.category || ''
-}
 
 function includesCategory(category: CourseCategory, targetId: number): boolean {
   if (category.id === targetId) return true
@@ -295,28 +297,21 @@ function countAllCourses(category: CourseCategory): number {
 }
 
 const categoriesWithCounts = computed(() =>
-  categories.value.map((category) => ({
-    ...category,
-    total_courses: countAllCourses(category),
-  })),
+  categories.value.map((cat) => ({ ...cat, total_courses: countAllCourses(cat) })),
 )
 
 const categoryLookup = computed(() => {
   const map = new Map<string, string>()
-  categories.value.forEach((category) => {
-    map.set(String(category.id), category.name)
-    ;(category.children || []).forEach((child) => map.set(String(child.id), `${category.name} / ${child.name}`))
+  categories.value.forEach((cat) => {
+    map.set(String(cat.id), cat.name)
+    ;(cat.children || []).forEach((child) => map.set(String(child.id), `${cat.name} / ${child.name}`))
   })
   return map
 })
 
 const categoryChips = computed(() => [
   { id: '', name: 'Tất cả', count: allCourses.value.length },
-  ...categoriesWithCounts.value.map((category) => ({
-    id: category.id,
-    name: category.name,
-    count: category.total_courses,
-  })),
+  ...categoriesWithCounts.value.map((cat) => ({ id: cat.id, name: cat.name, count: cat.total_courses })),
 ])
 
 const filteredCourses = computed(() => {
@@ -326,84 +321,73 @@ const filteredCourses = computed(() => {
 
   if (keyword) {
     items = items.filter((course) => {
-      const haystack = [
-        course.title,
-        course.description,
-        normalizeCategoryName(course),
-        course.instructor?.name,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
+      const haystack = [course.title, course.description, course.category?.name, course.instructor?.name]
+        .filter(Boolean).join(' ').toLowerCase()
       return haystack.includes(keyword)
     })
   }
 
   if (filters.category) {
     items = items.filter((course) => {
-      const courseCategoryId = Number(course.category?.id || course.category_id || 0)
-      if (!courseCategoryId) return false
-      if (courseCategoryId === categoryId) return true
-      return categories.value.some((category) => category.id === categoryId && includesCategory(category, courseCategoryId))
+      const id = Number(course.category?.id || course.category_id || 0)
+      if (!id) return false
+      if (id === categoryId) return true
+      return categories.value.some((cat) => cat.id === categoryId && includesCategory(cat, id))
     })
   }
 
-  if (filters.price === 'free') {
-    items = items.filter((course) => Number(course.price || 0) === 0)
-  }
-
-  if (filters.price === 'paid') {
-    items = items.filter((course) => Number(course.price || 0) > 0)
-  }
+  if (filters.price === 'free') items = items.filter((c) => Number(c.price || 0) === 0)
+  if (filters.price === 'paid') items = items.filter((c) => Number(c.price || 0) > 0)
 
   items.sort((a, b) => {
     if (filters.sort === 'price_asc') return Number(a.price || 0) - Number(b.price || 0)
     if (filters.sort === 'price_desc') return Number(b.price || 0) - Number(a.price || 0)
     if (filters.sort === 'popular') return Number(b.enrollments_count || 0) - Number(a.enrollments_count || 0)
-    if (filters.sort === 'rating') return Number(b.reviews_avg_rating || b.avg_rating || 0) - Number(a.reviews_avg_rating || a.avg_rating || 0)
+    if (filters.sort === 'rating') return Number(b.reviews_avg_rating || 0) - Number(a.reviews_avg_rating || 0)
     return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
   })
 
   return items
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredCourses.value.length / perPage)))
+const groupedCourses = computed(() => {
+  const groups: Array<{ categoryId: string; categoryName: string; courses: any[] }> = []
+  const seen = new Map<string, any[]>()
 
+  for (const course of filteredCourses.value) {
+    const catId = String(course.category?.id || course.category_id || '')
+    const catName = course.category?.name || course.category || 'Khác'
+    if (!catId) continue
+    if (!seen.has(catId)) seen.set(catId, [])
+    seen.get(catId)!.push(course)
+  }
+
+  seen.forEach((courses, catId) => {
+    const catName = categoryLookup.value.get(catId) || courses[0]?.category?.name || 'Khác'
+    groups.push({ categoryId: catId, categoryName: catName, courses })
+  })
+
+  return groups.sort((a, b) => b.courses.length - a.courses.length)
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredCourses.value.length / perPage)))
 const paginatedCourses = computed(() => {
   const start = (currentPage.value - 1) * perPage
   return filteredCourses.value.slice(start, start + perPage)
 })
-
-const freeCoursesCount = computed(() => allCourses.value.filter((course) => Number(course.price || 0) === 0).length)
+const freeCoursesCount = computed(() => allCourses.value.filter((c) => Number(c.price || 0) === 0).length)
 
 const heroTitle = computed(() => {
   if (filters.search.trim()) return `Kết quả cho "${filters.search.trim()}"`
-  if (filters.category) return `Khóa học trong ${categoryLookup.value.get(filters.category) || 'danh mục đã chọn'}`
-  return 'Khám phá toàn bộ danh mục và khóa học'
+  if (filters.category) return categoryLookup.value.get(filters.category) || 'Danh mục đã chọn'
+  return 'Khám phá toàn bộ khóa học'
 })
 
 const activeFilterTags = computed(() => {
   const tags: Array<{ label: string; clear: () => void }> = []
-
-  if (filters.search) {
-    tags.push({ label: `Từ khóa: ${filters.search}`, clear: () => { filters.search = '' } })
-  }
-
-  if (filters.category) {
-    tags.push({
-      label: `Danh mục: ${categoryLookup.value.get(filters.category) || filters.category}`,
-      clear: () => { filters.category = '' },
-    })
-  }
-
-  if (filters.price) {
-    tags.push({
-      label: filters.price === 'free' ? 'Miễn phí' : 'Trả phí',
-      clear: () => { filters.price = '' },
-    })
-  }
-
+  if (filters.search) tags.push({ label: `"${filters.search}"`, clear: () => { filters.search = '' } })
+  if (filters.category) tags.push({ label: categoryLookup.value.get(filters.category) || filters.category, clear: () => { filters.category = '' } })
+  if (filters.price) tags.push({ label: filters.price === 'free' ? 'Miễn phí' : 'Trả phí', clear: () => { filters.price = '' } })
   return tags
 })
 
@@ -411,7 +395,7 @@ const paginationItems = computed(() => {
   const pages = []
   const start = Math.max(1, currentPage.value - 2)
   const end = Math.min(totalPages.value, start + 4)
-  for (let page = start; page <= end; page += 1) pages.push(page)
+  for (let p = start; p <= end; p++) pages.push(p)
   return pages
 })
 
@@ -422,12 +406,10 @@ async function fetchData() {
       useApi<CourseCategory[]>('/categories').catch(() => []),
       useApi<any>('/courses?per_page=100').catch(() => ({ data: [] })),
     ])
-
     categories.value = categoryData
     allCourses.value = courseData.data || []
-  } finally {
-    loading.value = false
   }
+  finally { loading.value = false }
 }
 
 function syncRoute() {
@@ -440,53 +422,604 @@ function syncRoute() {
   router.replace({ query })
 }
 
-function submitSearch() {
-  currentPage.value = 1
-}
+function submitSearch() { currentPage.value = 1 }
+function selectCategory(id: number | string) { filters.category = String(id); currentPage.value = 1 }
+function resetFilters() { filters.search = ''; filters.category = ''; filters.sort = 'newest'; filters.price = ''; currentPage.value = 1 }
+function goToPage(page: number) { currentPage.value = page; window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-function selectCategory(categoryId: number | string) {
-  filters.category = String(categoryId)
-  currentPage.value = 1
-}
-
-function resetFilters() {
-  filters.search = ''
-  filters.category = ''
-  filters.sort = 'newest'
-  filters.price = ''
-  currentPage.value = 1
-}
-
-function goToPage(page: number) {
-  currentPage.value = page
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-
-watch(
-  () => ({ ...filters }),
-  () => {
-    currentPage.value = 1
-    syncRoute()
-  },
-  { deep: true },
-)
-
+watch(() => ({ ...filters }), () => { currentPage.value = 1; syncRoute() }, { deep: true })
 watch(currentPage, syncRoute)
-
-watch(totalPages, (value) => {
-  if (currentPage.value > value) currentPage.value = value
+watch(totalPages, (v) => { if (currentPage.value > v) currentPage.value = v })
+watch(() => route.query, (q) => {
+  filters.search = (q.search as string) || ''
+  filters.category = (q.category as string) || ''
+  filters.sort = ((q.sort as FilterState['sort']) || 'newest')
+  filters.price = ((q.price as FilterState['price']) || '')
+  currentPage.value = Math.max(1, Number(q.page || 1))
 })
-
-watch(
-  () => route.query,
-  (query) => {
-    filters.search = (query.search as string) || ''
-    filters.category = (query.category as string) || ''
-    filters.sort = ((query.sort as FilterState['sort']) || 'newest')
-    filters.price = ((query.price as FilterState['price']) || '')
-    currentPage.value = Math.max(1, Number(query.page || 1))
-  },
-)
 
 onMounted(fetchData)
 </script>
+
+<style scoped>
+/* ── Shell ─────────────────────────────── */
+.courses-shell {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  gap: 20px;
+  min-height: 100vh;
+  padding: 20px;
+  align-items: start;
+}
+
+/* ── Sidebar ───────────────────────────── */
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar-overlay { display: none; }
+
+.sidebar-card {
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 24px 60px -30px rgba(17, 17, 17, 0.12);
+  border-radius: 26px;
+  padding: 20px;
+}
+
+.sidebar-kicker {
+  margin: 0 0 14px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--green-deep, #1f5d33);
+}
+
+/* Category list */
+.cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  color: var(--muted, #5f675f);
+}
+.cat-item:hover {
+  background: rgba(47, 122, 69, 0.06);
+  color: var(--text, #111111);
+  transform: translateX(2px);
+}
+.cat-item.is-active {
+  background: rgba(47, 122, 69, 0.1);
+  border-color: rgba(47, 122, 69, 0.22);
+  color: var(--green-deep, #1f5d33);
+  font-weight: 700;
+  transform: translateX(2px);
+}
+
+.cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-count {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--muted, #5f675f);
+}
+.cat-item.is-active .cat-count { color: var(--green-deep, #1f5d33); }
+
+/* Filter panel */
+.sidebar-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.sidebar-filter-head .sidebar-kicker { margin: 0; }
+
+.clear-btn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--green-deep, #1f5d33);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 180ms ease;
+}
+.clear-btn:hover { opacity: 0.7; }
+
+.filter-fields { display: flex; flex-direction: column; gap: 12px; }
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.filter-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text, #111111);
+}
+.filter-select {
+  min-height: 46px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0 14px;
+  font-size: 0.88rem;
+  color: var(--text, #111111);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.filter-select:focus {
+  border-color: rgba(47, 122, 69, 0.42);
+  box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.08);
+}
+
+/* Stats */
+.sidebar-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.stat-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  border-right: 1px solid rgba(17, 17, 17, 0.07);
+}
+.stat-row:last-child { border-right: none; }
+.stat-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--text, #111111);
+  line-height: 1;
+}
+.stat-lbl {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted, #5f675f);
+}
+
+/* ── Main ──────────────────────────────── */
+.courses-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Search bar */
+.search-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  border-radius: 26px;
+  padding: 12px 16px;
+  box-shadow: 0 24px 60px -30px rgba(17, 17, 17, 0.12);
+}
+
+.sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: rgba(17, 17, 17, 0.03);
+  color: var(--muted, #5f675f);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sidebar-toggle .material-symbols-outlined { font-size: 22px; }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: rgba(17, 17, 17, 0.02);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.search-bar:focus-within {
+  border-color: rgba(47, 122, 69, 0.42);
+  box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.08);
+}
+.search-icon { font-size: 20px; color: var(--muted, #5f675f); flex-shrink: 0; }
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--text, #111111);
+}
+.search-input::placeholder { color: var(--muted, #5f675f); }
+.search-clear {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted, #5f675f);
+  padding: 0;
+  flex-shrink: 0;
+}
+.search-clear .material-symbols-outlined { font-size: 18px; }
+
+.view-toggle {
+  display: flex;
+  gap: 4px;
+  background: rgba(17, 17, 17, 0.04);
+  border-radius: 14px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+.view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #5f675f);
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease;
+}
+.view-btn:hover { color: var(--text, #111111); }
+.view-btn.is-active {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--green-deep, #1f5d33);
+  box-shadow: 0 2px 8px rgba(17, 17, 17, 0.08);
+}
+.view-btn .material-symbols-outlined { font-size: 20px; }
+
+/* Hero strip */
+.hero-strip {
+  border: 1px solid rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  border-radius: 26px;
+  padding: 22px 26px;
+  box-shadow: 0 24px 60px -30px rgba(17, 17, 17, 0.12);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.hero-title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--text, #111111);
+}
+.hero-sub {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted, #5f675f);
+}
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(47, 122, 69, 0.22);
+  background: rgba(47, 122, 69, 0.08);
+  color: var(--green-deep, #1f5d33);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.tag-close {
+  display: flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--green-deep, #1f5d33);
+  padding: 0;
+}
+.tag-close .material-symbols-outlined { font-size: 14px; }
+
+/* Category chips */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--muted, #5f675f);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.chip:hover {
+  border-color: rgba(47, 122, 69, 0.3);
+  color: var(--green-deep, #1f5d33);
+}
+.chip.is-active {
+  background: #2f7a45;
+  border-color: transparent;
+  color: #fff;
+}
+.chip-count {
+  font-size: 0.72rem;
+  font-weight: 800;
+  opacity: 0.7;
+}
+.chip.is-active .chip-count { opacity: 0.85; }
+
+/* ── Course grid ───────────────────────── */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Skeleton */
+.skeleton-card {
+  height: 340px;
+  border-radius: 26px;
+  background: rgba(17,17,17,0.06);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 320px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  padding: 40px;
+}
+.empty-icon {
+  font-size: 56px;
+  color: rgba(47, 122, 69, 0.3);
+}
+.empty-state h3 { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text, #111111); }
+.empty-state p { margin: 0; color: var(--muted, #5f675f); font-size: 0.9rem; }
+.reset-btn {
+  margin-top: 8px;
+  height: 42px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: none;
+  background: #2f7a45;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(47, 122, 69, 0.3);
+  transition: filter 180ms ease, transform 180ms ease;
+}
+.reset-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+/* ── Pagination ────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 8px;
+}
+.page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 42px;
+  padding: 0 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--muted, #5f675f);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.page-btn:hover:not(:disabled) {
+  border-color: rgba(47, 122, 69, 0.3);
+  color: var(--green-deep, #1f5d33);
+  transform: translateY(-1px);
+}
+.page-btn.is-active {
+  background: #2f7a45;
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(47, 122, 69, 0.3);
+}
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.page-btn .material-symbols-outlined { font-size: 20px; }
+
+/* ── Topic groups ──────────────────────── */
+.topic-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.topic-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.topic-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topic-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #2f7a45;
+  box-shadow: 0 0 0 4px rgba(47, 122, 69, 0.12);
+  flex-shrink: 0;
+}
+.topic-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text, #111111);
+}
+.topic-count {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted, #5f675f);
+  background: rgba(17, 17, 17, 0.05);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.topic-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(47, 122, 69, 0.22);
+  background: rgba(47, 122, 69, 0.06);
+  color: var(--green-deep, #1f5d33);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.topic-see-all:hover { background: rgba(47, 122, 69, 0.12); transform: translateY(-1px); }
+.topic-see-all .material-symbols-outlined { font-size: 16px; transition: transform 180ms ease; }
+.topic-see-all:hover .material-symbols-outlined { transform: translateX(2px); }
+
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* ── Responsive ────────────────────────── */
+@media (max-width: 1280px) {
+  .course-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .topic-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 1080px) {
+  .courses-shell { grid-template-columns: 1fr; }
+
+  .courses-sidebar {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+  .courses-sidebar.is-open {
+    pointer-events: all;
+    opacity: 1;
+  }
+  .sidebar-overlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.28);
+  }
+  .sidebar-inner {
+    position: relative;
+    z-index: 1;
+    width: min(320px, 85vw);
+    height: 100%;
+    overflow-y: auto;
+    padding: 20px 16px;
+    background: #f6f8f3;
+    border-right: 1px solid rgba(17, 17, 17, 0.08);
+    box-shadow: 4px 0 24px rgba(17, 17, 17, 0.12);
+  }
+  .sidebar-toggle { display: flex; }
+}
+
+@media (max-width: 760px) {
+  .courses-shell { padding: 12px; gap: 12px; }
+  .course-grid { grid-template-columns: 1fr; }
+  .topic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-strip { padding: 18px; }
+  .hero-title { font-size: 1.35rem; }
+}
+
+@media (max-width: 480px) {
+  .topic-grid { grid-template-columns: 1fr; }
+}
+</style>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Exam;
+use App\Models\ExamEnrollment;
 use App\Models\Lesson;
 use App\Models\Question;
 use App\Models\Quiz;
@@ -48,17 +49,20 @@ class QuizController extends Controller
         // 2. If not, generate a new set of questions based on quiz rules
         $attempt = QuizAttempt::where('user_id', $user->id)
             ->where('quiz_id', $quiz->id)
-            ->whereNull('completed_at')
+            ->whereIn('status', ['in_progress', 'paused'])
             ->orderBy('created_at', 'desc')
             ->first();
 
         if (!$attempt) {
             $questions = $quiz->resolveQuestions();
             $attempt = QuizAttempt::create([
-                'user_id' => $user->id,
-                'quiz_id' => $quiz->id,
+                'user_id'      => $user->id,
+                'quiz_id'      => $quiz->id,
+                'status'       => 'in_progress',
                 'question_ids' => $questions->pluck('id')->toArray(),
-                'started_at' => now(),
+                'started_at'   => now(),
+                'ip_address'   => $request->ip(),
+                'user_agent'   => $request->userAgent(),
             ]);
         } else {
             $questions = Question::whereIn('id', $attempt->question_ids)
@@ -79,9 +83,108 @@ class QuizController extends Controller
         }
 
         return response()->json([
-            'quiz' => $quiz,
-            'questions' => $questions->values(),
-            'attempt_id' => $attempt->id
+            'quiz'           => $quiz,
+            'questions'      => $questions->values(),
+            'attempt_id'     => $attempt->id,
+            'remaining_time' => $attempt->remainingTime(),
+            'status'         => $attempt->status,
+        ]);
+    }
+
+    /**
+     * Start/show an exam quiz for a student.
+     */
+    public function startExamQuiz(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        // Check access: course enrollment or exam enrollment
+        if ($exam->isCourseExam()) {
+            $isEnrolled = Enrollment::where('user_id', $user->id)
+                ->where('course_id', $exam->course_id)->exists();
+            abort_unless($isEnrolled || $user->hasRole('admin'), 403, 'Bạn chưa đăng ký khóa học này.');
+        } else {
+            $isEnrolled = ExamEnrollment::where('exam_id', $exam->id)
+                ->where('user_id', $user->id)->exists();
+            abort_unless($isEnrolled || $user->hasRole('admin'), 403, 'Bạn chưa được gán vào kỳ thi này.');
+        }
+
+        // Check if exam is open
+        if (!$exam->isOpen() && !$user->hasRole('admin')) {
+            return response()->json(['message' => 'Kỳ thi chưa mở hoặc đã đóng.'], 422);
+        }
+
+        $quiz = $exam->quiz;
+        if (!$quiz) {
+            return response()->json(['message' => 'Exam chưa có đề thi.'], 404);
+        }
+
+        // Check max attempts
+        $attemptCount = QuizAttempt::where('user_id', $user->id)
+            ->where('quiz_id', $quiz->id)
+            ->whereIn('status', ['submitted', 'force_stopped'])
+            ->count();
+
+        if ($attemptCount >= ($exam->max_attempts ?? 1) && !$user->hasRole('admin')) {
+            return response()->json([
+                'message'      => 'Bạn đã hết lượt thi.',
+                'max_attempts' => $exam->max_attempts,
+                'used'         => $attemptCount,
+            ], 422);
+        }
+
+        // Find active attempt or create new
+        $attempt = QuizAttempt::where('user_id', $user->id)
+            ->where('quiz_id', $quiz->id)
+            ->whereIn('status', ['in_progress', 'paused'])
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        if (!$attempt) {
+            $questions = $quiz->resolveQuestions();
+
+            // Shuffle if enabled
+            if ($exam->shuffle_questions) {
+                $questions = $questions->shuffle();
+            }
+
+            $attempt = QuizAttempt::create([
+                'user_id'      => $user->id,
+                'quiz_id'      => $quiz->id,
+                'status'       => 'in_progress',
+                'question_ids' => $questions->pluck('id')->toArray(),
+                'started_at'   => now(),
+                'ip_address'   => $request->ip(),
+                'user_agent'   => $request->userAgent(),
+            ]);
+        } else {
+            $questions = Question::whereIn('id', $attempt->question_ids)
+                ->with('answers')
+                ->get()
+                ->sortBy(fn ($q) => array_search($q->id, $attempt->question_ids));
+        }
+
+        // Shuffle answers if enabled
+        if ($exam->shuffle_answers) {
+            $questions->each(function ($question) {
+                $question->setRelation('answers', $question->answers->shuffle());
+            });
+        }
+
+        // Hide correct answers from student
+        $questions->each(function ($question) {
+            $question->answers->each(fn ($a) => $a->makeHidden('is_correct'));
+        });
+
+        return response()->json([
+            'exam'           => $exam->only(['id', 'title', 'description', 'duration', 'pass_score', 'type', 'proctoring_enabled']),
+            'quiz'           => $quiz->only(['id', 'title', 'time_limit']),
+            'questions'      => $questions->values(),
+            'attempt_id'     => $attempt->id,
+            'remaining_time' => $attempt->remainingTime(),
+            'status'         => $attempt->status,
+            'saved_answers'  => $attempt->answers_json,
         ]);
     }
 
@@ -94,37 +197,37 @@ class QuizController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'time_limit' => 'nullable|integer|min:0',
-            'pass_score' => 'required|integer|min:0|max:100',
-            'question_ids' => 'nullable|array',
+            'time_limit'  => 'nullable|integer|min:0',
+            'pass_score'  => 'required|integer|min:0|max:100',
+            'question_ids'  => 'nullable|array',
             'question_ids.*' => 'integer|exists:questions,id',
-            'settings' => 'nullable|array',
-            'questions' => 'nullable|array',
+            'settings'    => 'nullable|array',
+            'questions'   => 'nullable|array',
             'questions.*.content' => 'required|string',
-            'questions.*.type' => 'nullable|string',
+            'questions.*.type'    => 'nullable|string',
             'questions.*.difficulty' => 'nullable|integer|min:1|max:5',
             'questions.*.explanation' => 'nullable|string',
-            'questions.*.answers' => 'required|array|min:1',
-            'questions.*.answers.*.content' => 'required|string',
+            'questions.*.answers'     => 'required|array|min:1',
+            'questions.*.answers.*.content'    => 'required|string',
             'questions.*.answers.*.is_correct' => 'required|boolean',
         ]);
 
         $quiz = Quiz::firstOrNew([
             'lesson_id' => $lesson->id,
-            'scope' => 'lesson',
+            'scope'     => 'lesson',
         ]);
 
         DB::transaction(function () use ($validated, $course, $quiz) {
             $quiz->fill([
-                'course_id' => $course->id,
-                'scope' => 'lesson',
-                'title' => $validated['title'],
+                'course_id'   => $course->id,
+                'scope'       => 'lesson',
+                'title'       => $validated['title'],
                 'description' => $validated['description'] ?? null,
-                'time_limit' => $validated['time_limit'] ?? null,
-                'pass_score' => $validated['pass_score'],
-                'settings' => $validated['settings'] ?? null,
+                'time_limit'  => $validated['time_limit'] ?? null,
+                'pass_score'  => $validated['pass_score'],
+                'settings'    => $validated['settings'] ?? null,
             ]);
             $quiz->save();
 
@@ -133,18 +236,18 @@ class QuizController extends Controller
             if (!empty($validated['questions'])) {
                 foreach ($validated['questions'] as $questionData) {
                     $question = Question::create([
-                        'course_id' => $course->id,
-                        'content' => $questionData['content'],
-                        'type' => $questionData['type'] ?? 'single_choice',
-                        'difficulty' => $questionData['difficulty'] ?? 1,
+                        'course_id'   => $course->id,
+                        'content'     => $questionData['content'],
+                        'type'        => $questionData['type'] ?? 'single_choice',
+                        'difficulty'  => $questionData['difficulty'] ?? 1,
                         'explanation' => $questionData['explanation'] ?? null,
                     ]);
 
                     foreach ($questionData['answers'] as $index => $answerData) {
                         $question->answers()->create([
-                            'content' => $answerData['content'],
+                            'content'    => $answerData['content'],
                             'is_correct' => $answerData['is_correct'],
-                            'order' => $index,
+                            'order'      => $index,
                         ]);
                     }
 
@@ -163,7 +266,7 @@ class QuizController extends Controller
 
         return response()->json([
             'message' => 'Quiz saved',
-            'quiz' => $quiz->fresh()->load('questions.answers'),
+            'quiz'    => $quiz->fresh()->load('questions.answers'),
         ]);
     }
 
@@ -183,7 +286,7 @@ class QuizController extends Controller
         }
 
         return response()->json([
-            'quiz' => $quiz,
+            'quiz'      => $quiz,
             'questions' => $quiz->questions,
         ]);
     }
@@ -195,29 +298,29 @@ class QuizController extends Controller
         abort_if($exam->course_id !== $course->id, 404);
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'time_limit' => 'nullable|integer|min:0',
-            'pass_score' => 'required|integer|min:0|max:100',
-            'question_ids' => 'nullable|array',
+            'title'          => 'required|string|max:255',
+            'description'    => 'nullable|string',
+            'time_limit'     => 'nullable|integer|min:0',
+            'pass_score'     => 'required|integer|min:0|max:100',
+            'question_ids'   => 'nullable|array',
             'question_ids.*' => 'integer|exists:questions,id',
-            'settings' => 'nullable|array',
+            'settings'       => 'nullable|array',
         ]);
 
         $quiz = Quiz::firstOrNew([
             'exam_id' => $exam->id,
-            'scope' => 'exam',
+            'scope'   => 'exam',
         ]);
 
         $quiz->fill([
-            'course_id' => $course->id,
-            'lesson_id' => null,
-            'scope' => 'exam',
-            'title' => $validated['title'],
+            'course_id'   => $course->id,
+            'lesson_id'   => null,
+            'scope'       => 'exam',
+            'title'       => $validated['title'],
             'description' => $validated['description'] ?? null,
-            'time_limit' => $validated['time_limit'] ?? $exam->duration,
-            'pass_score' => $validated['pass_score'] ?? $exam->pass_score,
-            'settings' => $validated['settings'] ?? null,
+            'time_limit'  => $validated['time_limit'] ?? $exam->duration,
+            'pass_score'  => $validated['pass_score'] ?? $exam->pass_score,
+            'settings'    => $validated['settings'] ?? null,
         ]);
         $quiz->save();
 
@@ -230,12 +333,72 @@ class QuizController extends Controller
 
         return response()->json([
             'message' => 'Exam quiz saved',
-            'quiz' => $quiz->fresh()->load('questions.answers'),
+            'quiz'    => $quiz->fresh()->load('questions.answers'),
+        ]);
+    }
+
+    public function showStandaloneExamQuiz(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        $quiz = Quiz::where('exam_id', $exam->id)->where('scope', 'exam')->first();
+        if (!$quiz) {
+            return response()->json(['quiz' => null]);
+        }
+
+        return response()->json([
+            'quiz'      => $quiz->load('questions.answers'),
+            'questions' => $quiz->questions,
+        ]);
+    }
+
+    public function storeOrUpdateStandaloneExamQuiz(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($exam->isStandalone(), 404);
+
+        $validated = $request->validate([
+            'title'          => 'required|string|max:255',
+            'description'    => 'nullable|string',
+            'time_limit'     => 'nullable|integer|min:0',
+            'pass_score'     => 'required|integer|min:0|max:100',
+            'question_ids'   => 'nullable|array',
+            'question_ids.*' => 'integer|exists:questions,id',
+            'settings'       => 'nullable|array',
+        ]);
+
+        $quiz = Quiz::firstOrNew(['exam_id' => $exam->id, 'scope' => 'exam']);
+
+        $quiz->fill([
+            'course_id'   => null,
+            'lesson_id'   => null,
+            'scope'       => 'exam',
+            'title'       => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'time_limit'  => $validated['time_limit'] ?? $exam->duration,
+            'pass_score'  => $validated['pass_score'] ?? $exam->pass_score,
+            'settings'    => $validated['settings'] ?? null,
+        ]);
+        $quiz->save();
+
+        $syncPayload = collect($validated['question_ids'] ?? [])
+            ->values()
+            ->mapWithKeys(fn ($id, $index) => [$id => ['order' => $index, 'points' => 10]])
+            ->all();
+
+        $quiz->questions()->sync($syncPayload);
+
+        return response()->json([
+            'message' => 'Exam quiz saved',
+            'quiz'    => $quiz->fresh()->load('questions.answers'),
         ]);
     }
 
     /**
-     * Submit an attempt.
+     * Submit an attempt — supports multiple question types.
      */
     public function submit(Request $request, Course $course, Lesson $lesson, Quiz $quiz): JsonResponse
     {
@@ -248,51 +411,221 @@ class QuizController extends Controller
 
         $validated = $request->validate([
             'attempt_id' => 'required|exists:quiz_attempts,id',
-            'answers' => 'required|array', // key: question_id, value: array of answer_ids or text
+            'answers'    => 'required|array', // key: question_id, value: array of answer_ids or text
         ]);
 
         $attempt = QuizAttempt::findOrFail($validated['attempt_id']);
-        if ($attempt->user_id !== $user->id || $attempt->completed_at !== null) {
+        if ($attempt->user_id !== $user->id || $attempt->isCompleted()) {
             return response()->json(['message' => 'Invalid or completed attempt'], 403);
         }
 
+        return $this->gradeAndSubmit($attempt, $validated['answers'], $quiz);
+    }
+
+    /**
+     * Submit an exam attempt.
+     */
+    public function submitExam(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $quiz = $exam->quiz;
+        abort_unless($quiz, 404);
+
+        $validated = $request->validate([
+            'attempt_id' => 'required|exists:quiz_attempts,id',
+            'answers'    => 'required|array',
+        ]);
+
+        $attempt = QuizAttempt::findOrFail($validated['attempt_id']);
+        if ($attempt->user_id !== $user->id || $attempt->isCompleted()) {
+            return response()->json(['message' => 'Invalid or completed attempt'], 403);
+        }
+
+        $result = $this->gradeAndSubmit($attempt, $validated['answers'], $quiz);
+
+        // Apply review options filtering
+        $responseData = json_decode($result->getContent(), true);
+
+        if (!$user->hasRole('admin') && $exam->review_options) {
+            $reviewOpts = $exam->review_options['after_submit'] ?? [];
+
+            if (!($reviewOpts['marks'] ?? true)) {
+                unset($responseData['score']);
+            }
+            if (!($reviewOpts['correctness'] ?? true)) {
+                unset($responseData['passed']);
+            }
+            if (!($reviewOpts['right_answer'] ?? false)) {
+                unset($responseData['correct_answers']);
+            }
+        }
+
+        return response()->json($responseData);
+    }
+
+    /**
+     * Get exam results with review options applied.
+     */
+    public function examResults(Request $request, Exam $exam, QuizAttempt $attempt): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $isOwner = $user->hasRole('admin') || $exam->created_by === $user->id;
+        $isStudent = $attempt->user_id === $user->id;
+        abort_unless($isOwner || $isStudent, 403);
+        abort_unless($attempt->isCompleted(), 422);
+
+        $quiz = $exam->quiz;
+        $questions = Question::whereIn('id', $attempt->question_ids ?? [])
+            ->with('answers')
+            ->get();
+
+        $reviewOpts = $exam->review_options['after_submit'] ?? Exam::defaultReviewOptions()['after_submit'];
+
+        $result = [
+            'attempt_id' => $attempt->id,
+            'status'     => $attempt->status,
+        ];
+
+        if ($isOwner || ($reviewOpts['marks'] ?? false)) {
+            $result['score'] = $attempt->score;
+            $result['passed'] = $attempt->passed;
+        }
+
+        if ($isOwner || ($reviewOpts['attempt'] ?? false)) {
+            $result['student_answers'] = $attempt->answers_json;
+        }
+
+        if ($isOwner || ($reviewOpts['right_answer'] ?? false)) {
+            $result['questions'] = $questions->map(function ($q) {
+                return [
+                    'id'      => $q->id,
+                    'content' => $q->content,
+                    'type'    => $q->type,
+                    'answers' => $q->answers,
+                ];
+            });
+        } elseif ($isOwner || ($reviewOpts['correctness'] ?? false)) {
+            // Show which were right/wrong but not the correct answers
+            $result['questions'] = $questions->map(function ($q) use ($attempt) {
+                $studentAnswer = ($attempt->answers_json ?? [])[$q->id] ?? null;
+                return [
+                    'id'         => $q->id,
+                    'content'    => $q->content,
+                    'type'       => $q->type,
+                    'is_correct' => $this->isAnswerCorrect($q, $studentAnswer),
+                ];
+            });
+        }
+
+        if ($isOwner || ($reviewOpts['specific_feedback'] ?? false)) {
+            $result['feedback'] = $questions->pluck('feedback', 'id')->filter();
+        }
+
+        if ($isOwner || ($reviewOpts['general_feedback'] ?? false)) {
+            $result['general_feedback'] = $questions->pluck('general_feedback', 'id')->filter();
+        }
+
+        if ($isOwner || ($reviewOpts['overall_feedback'] ?? false)) {
+            $result['overall_feedback'] = $attempt->passed
+                ? 'Chúc mừng, bạn đã vượt qua bài thi!'
+                : 'Bạn chưa đạt điểm tối thiểu. Hãy ôn tập và thử lại.';
+        }
+
+        return response()->json($result);
+    }
+
+    // ── Private grading helpers ─────────────────────────────────────────
+
+    private function gradeAndSubmit(QuizAttempt $attempt, array $studentAnswers, Quiz $quiz): JsonResponse
+    {
         $questions = Question::whereIn('id', $attempt->question_ids)->with('answers')->get();
-        $totalQuestions = $questions->count();
-        $correctCount = 0;
-        $studentAnswers = $validated['answers'];
+        $totalPoints = 0;
+        $earnedPoints = 0;
 
         foreach ($questions as $question) {
             $submitted = $studentAnswers[$question->id] ?? null;
+            $qScore = $question->default_score ?? 1;
+            $totalPoints += $qScore;
 
-            if ($question->type === 'single_choice' || $question->type === 'multiple_choice') {
-                $correctIds = $question->answers->where('is_correct', true)->pluck('id')->toArray();
-                $submittedIds = is_array($submitted) ? $submitted : [$submitted];
-                
-                sort($correctIds);
-                sort($submittedIds);
-                
-                if ($correctIds === $submittedIds) {
-                    $correctCount++;
-                }
-            } 
-            // Prepared for expansion: matching, ordering, short_answer
+            if ($this->isAnswerCorrect($question, $submitted)) {
+                $earnedPoints += $qScore;
+            }
         }
 
-        $score = ($totalQuestions > 0) ? ($correctCount / $totalQuestions) * 100 : 0;
+        $score = ($totalPoints > 0) ? ($earnedPoints / $totalPoints) * 100 : 0;
         $passed = $score >= $quiz->pass_score;
 
         $attempt->update([
-            'score' => round($score, 2),
-            'passed' => $passed,
+            'status'       => 'submitted',
+            'score'        => round($score, 2),
+            'passed'       => $passed,
             'answers_json' => $studentAnswers,
             'completed_at' => now(),
         ]);
 
         return response()->json([
-            'message' => 'Quiz submitted',
-            'score' => round($score, 2),
-            'passed' => $passed,
-            'attempt' => $attempt
+            'message' => 'Đã nộp bài thi.',
+            'score'   => round($score, 2),
+            'passed'  => $passed,
+            'attempt' => $attempt,
         ]);
+    }
+
+    /**
+     * Check if a student's answer is correct for a given question.
+     */
+    private function isAnswerCorrect(Question $question, mixed $submitted): bool
+    {
+        if ($submitted === null) return false;
+
+        $correctAnswers = $question->answers->where('is_correct', true);
+
+        switch ($question->type) {
+            case 'single_choice':
+            case 'true_false':
+                $correctId = $correctAnswers->first()?->id;
+                $submittedId = is_array($submitted) ? ($submitted[0] ?? null) : $submitted;
+                return (int) $submittedId === (int) $correctId;
+
+            case 'multiple_choice':
+                $correctIds = $correctAnswers->pluck('id')->sort()->values()->toArray();
+                $submittedIds = collect(is_array($submitted) ? $submitted : [$submitted])
+                    ->map(fn ($v) => (int) $v)->sort()->values()->toArray();
+                return $correctIds === $submittedIds;
+
+            case 'short_answer':
+                $correctTexts = $correctAnswers->pluck('content')
+                    ->map(fn ($c) => mb_strtolower(trim($c)));
+                $submittedText = mb_strtolower(trim(is_array($submitted) ? ($submitted[0] ?? '') : $submitted));
+                return $correctTexts->contains($submittedText);
+
+            case 'numerical':
+                $correctAnswer = $correctAnswers->first();
+                if (!$correctAnswer) return false;
+                $correctValue = (float) $correctAnswer->content;
+                $tolerance = (float) ($question->metadata['tolerance'] ?? 0);
+                $submittedValue = (float) (is_array($submitted) ? ($submitted[0] ?? 0) : $submitted);
+                return abs($submittedValue - $correctValue) <= $tolerance;
+
+            case 'matching':
+                // Submitted as { left_id: right_content }
+                $pairs = $question->answers->mapWithKeys(fn ($a) => [$a->id => $a->sub_content]);
+                if (!is_array($submitted)) return false;
+                foreach ($pairs as $id => $expectedRight) {
+                    if (($submitted[$id] ?? null) !== $expectedRight) return false;
+                }
+                return true;
+
+            case 'essay':
+                // Essay requires manual grading, mark as pending
+                return false;
+
+            default:
+                return false;
+        }
     }
 }

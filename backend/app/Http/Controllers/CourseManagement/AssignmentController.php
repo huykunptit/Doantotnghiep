@@ -51,19 +51,23 @@ class AssignmentController extends Controller
         }
 
         $validated = $request->validate([
-            'instructions' => 'required|string',
-            'max_file_size' => 'nullable|integer|min:1',
+            'instructions'       => 'required|string',
+            'max_file_size'      => 'nullable|integer|min:1',
             'allowed_extensions' => 'nullable|string|max:255',
-            'due_at' => 'nullable|date',
+            'available_from'     => 'nullable|date',
+            'submission_open_at' => 'nullable|date|after_or_equal:available_from',
+            'due_at'             => 'nullable|date|after_or_equal:submission_open_at',
         ]);
 
         $assignment = LessonAssignment::updateOrCreate(
             ['lesson_id' => $lesson->id],
             [
-                'instructions' => $validated['instructions'],
-                'max_file_size' => $validated['max_file_size'] ?? 10240,
+                'instructions'       => $validated['instructions'],
+                'max_file_size'      => $validated['max_file_size'] ?? 10240,
                 'allowed_extensions' => $validated['allowed_extensions'] ?? 'pdf,doc,docx,zip',
-                'due_at' => $validated['due_at'] ?? null,
+                'available_from'     => $validated['available_from'] ?? null,
+                'submission_open_at' => $validated['submission_open_at'] ?? null,
+                'due_at'             => $validated['due_at'] ?? null,
             ]
         );
 

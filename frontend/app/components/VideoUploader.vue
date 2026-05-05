@@ -80,6 +80,8 @@ const videoUrl = ref(props.existingVideoUrl || null)
 const dragOver = ref(false)
 const error = ref('')
 
+const runtimeConfig = useRuntimeConfig()
+
 const MAX_SIZE = 1000 * 1024 * 1024 // 1GB now allowed
 
 const handleFileSelect = (event: Event) => {
@@ -118,24 +120,47 @@ const uploadVideo = async () => {
   if (!selectedFile.value) return
 
   uploading.value = true
-  uploadProgress.value = 15
+  uploadProgress.value = 0
   error.value = ''
   const auth = useAuthStore()
 
   const formData = new FormData()
   formData.append('video', selectedFile.value)
 
-  const progressTimer = setInterval(() => {
-    if (uploadProgress.value < 90) {
-      uploadProgress.value += 5
-    }
-  }, 300)
+  const base = (runtimeConfig.public.apiBase as string).replace(/\/$/, '')
 
   try {
-    const response = await $fetch<{ lesson?: any }>(`/api/courses/${props.courseId}/lessons/${props.lessonId}/upload-video`, {
-      method: 'POST',
-      body: formData,
-      headers: { Authorization: `Bearer ${auth.token}` }
+    const response = await new Promise<any>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${base}/courses/${props.courseId}/lessons/${props.lessonId}/upload-video`, true)
+      if (auth.token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${auth.token}`)
+      }
+      xhr.setRequestHeader('Accept', 'application/json')
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          uploadProgress.value = Math.min(100, Math.round((event.loaded / event.total) * 100))
+        }
+      }
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState !== XMLHttpRequest.DONE) return
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText))
+          } catch (parseError) {
+            reject(new Error('Phản hồi upload không hợp lệ.'))
+          }
+        } else {
+          const responseBody = xhr.responseText || xhr.statusText
+          reject(new Error(responseBody))
+        }
+      }
+
+      xhr.onerror = () => reject(new Error('Lỗi mạng khi tải lên video.'))
+      xhr.send(formData)
     })
 
     if (response.lesson) {
@@ -143,14 +168,21 @@ const uploadVideo = async () => {
       setTimeout(() => {
         videoUrl.value = response.lesson.video_url
         emit('uploaded', response.lesson)
-      }, 500)
+      }, 300)
     }
-
   } catch (err: any) {
-    error.value = err?.data?.message || 'Băng thông gặp sự cố. Quá trình tải lên thất bại.'
+    let message = 'Băng thông gặp sự cố. Quá trình tải lên thất bại.'
+    if (err?.message) {
+      try {
+        const parsed = JSON.parse(err.message)
+        message = parsed.message || message
+      } catch {
+        message = err.message
+      }
+    }
+    error.value = message
     emit('error', error.value)
   } finally {
-    clearInterval(progressTimer)
     uploading.value = false
   }
 }
