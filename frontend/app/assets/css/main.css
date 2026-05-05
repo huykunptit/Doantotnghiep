@@ -112,6 +112,7 @@ input {
   box-shadow: 0 0 0 6px rgba(47, 122, 69, 0.1);
 }
 
+<<<<<<< HEAD
 .brand-logo {
   width: 24px;
   height: 24px;
@@ -119,6 +120,8 @@ input {
   border-radius: 6px;
 }
 
+=======
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 .brand-name,
 .eyebrow,
 .panel-kicker,

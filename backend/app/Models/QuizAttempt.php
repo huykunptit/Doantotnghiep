@@ -99,14 +99,12 @@ class QuizAttempt extends Model
     {
         if (!$this->started_at) return 0;
 
-        // Carbon 3 returns signed floats from diffInSeconds; use $past->diffInSeconds(now())
-        // so the result is positive (now - past).
-        $totalElapsed = (int) $this->started_at->diffInSeconds(now());
-        $pausedSeconds = (int) ($this->paused_duration ?? 0);
+        $totalElapsed = now()->diffInSeconds($this->started_at);
+        $pausedSeconds = $this->paused_duration ?? 0;
 
         // If currently paused, add the current pause duration
         if ($this->isPaused() && $this->paused_at) {
-            $pausedSeconds += (int) $this->paused_at->diffInSeconds(now());
+            $pausedSeconds += now()->diffInSeconds($this->paused_at);
         }
 
         return max(0, $totalElapsed - $pausedSeconds);

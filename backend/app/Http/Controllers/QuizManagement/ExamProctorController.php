@@ -61,17 +61,16 @@ class ExamProctorController extends Controller
             ], 422);
         }
 
-        // Calculate paused duration to add. In Carbon 3, $past->diffInSeconds(now())
-        // returns a positive (now - past) signed value; cast to int for the integer column.
+        // Calculate paused duration to add
         $pausedSeconds = $attempt->paused_at
-            ? (int) $attempt->paused_at->diffInSeconds(now())
+            ? now()->diffInSeconds($attempt->paused_at)
             : 0;
 
         $attempt->update([
             'status'          => 'in_progress',
             'resumed_at'      => now(),
             'paused_at'       => null,
-            'paused_duration' => (int) ($attempt->paused_duration ?? 0) + $pausedSeconds,
+            'paused_duration' => ($attempt->paused_duration ?? 0) + $pausedSeconds,
         ]);
 
         Notification::send(
@@ -108,14 +107,14 @@ class ExamProctorController extends Controller
         // If paused, add paused time before stopping
         $pausedAdd = 0;
         if ($attempt->isPaused() && $attempt->paused_at) {
-            $pausedAdd = (int) $attempt->paused_at->diffInSeconds(now());
+            $pausedAdd = now()->diffInSeconds($attempt->paused_at);
         }
 
         $attempt->update([
             'status'            => 'force_stopped',
             'completed_at'      => now(),
             'force_stop_reason' => $validated['reason'],
-            'paused_duration'   => (int) ($attempt->paused_duration ?? 0) + $pausedAdd,
+            'paused_duration'   => ($attempt->paused_duration ?? 0) + $pausedAdd,
             'paused_at'         => null,
         ]);
 
@@ -164,34 +163,6 @@ class ExamProctorController extends Controller
             'message'         => "Đã gia hạn thêm {$validated['minutes']} phút.",
             'total_extensions' => $attempt->fresh()->time_extensions,
             'remaining_time'   => $attempt->fresh()->remainingTime(),
-        ]);
-    }
-
-    /**
-     * Send a custom warning/notice to the student during the exam.
-     */
-    public function warnAttempt(Request $request, QuizAttempt $attempt): JsonResponse
-    {
-        $this->authorizeProctor($request, $attempt);
-
-        if ($attempt->isCompleted()) {
-            return response()->json(['message' => 'Bài thi đã hoàn thành.'], 422);
-        }
-
-        $validated = $request->validate([
-            'message'  => ['required', 'string', 'max:500'],
-            'severity' => ['nullable', 'string', 'in:info,warning,critical'],
-        ]);
-
-        Notification::send(
-            $attempt->user_id,
-            'exam_warning',
-            $validated['severity'] === 'critical' ? '⚠ Cảnh báo nghiêm trọng từ giám thị' : 'Thông báo từ giám thị',
-            $validated['message'],
-        );
-
-        return response()->json([
-            'message' => 'Đã gửi cảnh báo tới thí sinh.',
         ]);
     }
 
@@ -249,28 +220,12 @@ class ExamProctorController extends Controller
         $user = $request->user();
         abort_unless($user && $attempt->user_id === $user->id, 403);
 
-        $sinceTimestamp = $request->query('since');
-        $messagesQuery = Notification::where('user_id', $user->id)
-            ->whereIn('type', ['exam_warning', 'exam_paused', 'exam_resumed', 'exam_time_extended', 'exam_force_stopped'])
-            ->orderBy('created_at', 'desc')
-            ->limit(10);
-
-        if ($sinceTimestamp) {
-            try {
-                $since = \Carbon\Carbon::parse($sinceTimestamp);
-                $messagesQuery->where('created_at', '>', $since);
-            } catch (\Throwable $e) {
-                // Ignore malformed timestamp
-            }
-        }
-
         return response()->json([
             'status'         => $attempt->status,
             'remaining_time' => $attempt->remainingTime(),
             'paused_at'      => $attempt->paused_at,
             'time_expired'   => $attempt->isTimeExpired(),
             'violations_count' => $attempt->violations()->count(),
-            'messages'       => $messagesQuery->get(['id', 'type', 'title', 'message', 'created_at']),
         ]);
     }
 

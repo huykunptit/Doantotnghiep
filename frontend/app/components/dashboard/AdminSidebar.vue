@@ -6,7 +6,10 @@ defineProps<{
 
 const route = useRoute()
 const { groups, supportItems } = useAdminNavigation()
+<<<<<<< HEAD
 const { siteName, siteLogo } = useSiteSettings()
+=======
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 
 function isActive(path: string) {
   if (path === '/admin') {
@@ -41,9 +44,14 @@ async function handleLogout() {
   <aside class="dashboard-sidebar">
     <div class="sidebar-brand">
       <div class="brand-line">
+<<<<<<< HEAD
         <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="brand-logo">
         <span v-else class="brand-mark" />
         <span class="brand-name">{{ siteName }}</span>
+=======
+        <span class="brand-mark" />
+        <span class="brand-name">PTIT LMS</span>
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
       </div>
       <div>
         <p class="sidebar-eyebrow">Admin role</p>

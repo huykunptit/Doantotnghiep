@@ -14,7 +14,10 @@ defineProps<{
 }>()
 
 const auth = useAuthStore()
+<<<<<<< HEAD
 const { siteName, siteLogo } = useSiteSettings()
+=======
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 
 /* ── Notifications ── */
 const notifOpen = ref(false)
@@ -124,9 +127,14 @@ onUnmounted(() => {
       </button>
 
       <div class="tb-brand-pill">
+<<<<<<< HEAD
         <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="tb-brand-logo">
         <span v-else class="tb-brand-dot" />
         <span class="tb-brand-text">{{ siteName }}</span>
+=======
+        <span class="tb-brand-dot" />
+        <span class="tb-brand-text">PTIT LMS</span>
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
       </div>
     </div>
 
@@ -244,8 +252,11 @@ onUnmounted(() => {
 <style scoped>
 /* ── Base ── */
 .tb {
+<<<<<<< HEAD
   position: relative;
   z-index: 200;
+=======
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
   display: flex;
   align-items: center;
   gap: 14px;
@@ -293,12 +304,15 @@ onUnmounted(() => {
   background: #2f7a45;
   box-shadow: 0 0 0 4px rgba(47, 122, 69, 0.12);
 }
+<<<<<<< HEAD
 .tb-brand-logo {
   width: 22px;
   height: 22px;
   object-fit: contain;
   border-radius: 6px;
 }
+=======
+>>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 .tb-brand-text {
   font-size: 0.72rem;
   font-weight: 800;
