@@ -12,6 +12,7 @@ const examId = computed(() => route.query.exam as string | undefined)
 const loading = ref(true)
 const monitorData = ref<any>(null)
 const error = ref('')
+const success = ref('')
 const pollInterval = ref<any>(null)
 
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
@@ -19,47 +20,112 @@ const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
 const statusLabel: Record<string, string> = { in_progress: '🟢 Đang thi', paused: '🟡 Tạm dừng', submitted: '✅ Đã nộp', force_stopped: '🔴 Bị dừng' }
 const statusBg: Record<string, string> = { in_progress: '#e8f5e9', paused: '#fff8e1', submitted: '#e3f2fd', force_stopped: '#fce4ec' }
 
-function formatTime(seconds: number | null) {
-  if (!seconds || seconds <= 0) return '00:00'
-  const m = Math.floor(seconds / 60); const s = seconds % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+type ActionType = 'pause' | 'resume' | 'force-stop' | 'extend' | 'warn'
+interface ActiveAction { type: ActionType; attempt: any }
+
+const activeAction = ref<ActiveAction | null>(null)
+const actionSubmitting = ref(false)
+const reasonInput = ref('')
+const minutesInput = ref(5)
+const messageInput = ref('')
+const severityInput = ref<'info' | 'warning' | 'critical'>('warning')
+
+const modalTitle = computed(() => {
+  if (!activeAction.value) return ''
+  const name = activeAction.value.attempt?.user?.name || 'thí sinh'
+  switch (activeAction.value.type) {
+    case 'pause': return `Tạm dừng bài thi của ${name}?`
+    case 'resume': return `Cho ${name} tiếp tục bài thi?`
+    case 'force-stop': return `Dừng hẳn bài thi của ${name}?`
+    case 'extend': return `Gia hạn thời gian cho ${name}`
+    case 'warn': return `Gửi cảnh báo tới ${name}`
+    default: return ''
+  }
+})
+
+function openAction(type: ActionType, attempt: any) {
+  activeAction.value = { type, attempt }
+  reasonInput.value = ''
+  minutesInput.value = 5
+  messageInput.value = ''
+  severityInput.value = type === 'force-stop' ? 'critical' : 'warning'
+  error.value = ''
+  success.value = ''
+}
+
+function closeAction() {
+  if (actionSubmitting.value) return
+  activeAction.value = null
+}
+
+function flashSuccess(msg: string) {
+  success.value = msg
+  setTimeout(() => { if (success.value === msg) success.value = '' }, 4000)
 }
 
 async function fetchMonitor() {
   if (!examId.value) return
   try {
     monitorData.value = await useApi(`/exams/${examId.value}/live-monitor`, { headers: authHeaders() })
+    if (loading.value) loading.value = false
   } catch (e: any) { error.value = e?.data?.message || 'Không thể tải dữ liệu giám sát.' }
   finally { loading.value = false }
 }
 
-async function pauseAttempt(attemptId: number) {
+async function confirmAction() {
+  if (!activeAction.value) return
+  const { type, attempt } = activeAction.value
+  const id = attempt.id
+
+  if (type === 'force-stop' && !reasonInput.value.trim()) {
+    error.value = 'Vui lòng nhập lý do dừng bài.'
+    return
+  }
+  if (type === 'extend' && (!minutesInput.value || minutesInput.value <= 0)) {
+    error.value = 'Số phút gia hạn phải lớn hơn 0.'
+    return
+  }
+  if (type === 'warn' && !messageInput.value.trim()) {
+    error.value = 'Vui lòng nhập nội dung cảnh báo.'
+    return
+  }
+
+  actionSubmitting.value = true
+  error.value = ''
   try {
-    await useApi(`/attempts/${attemptId}/pause`, { method: 'POST', headers: authHeaders() })
+    if (type === 'pause') {
+      await useApi(`/attempts/${id}/pause`, { method: 'POST', headers: authHeaders() })
+      flashSuccess('Đã tạm dừng bài thi.')
+    } else if (type === 'resume') {
+      await useApi(`/attempts/${id}/resume`, { method: 'POST', headers: authHeaders() })
+      flashSuccess('Đã cho tiếp tục bài thi.')
+    } else if (type === 'force-stop') {
+      await useApi(`/attempts/${id}/force-stop`, { method: 'POST', headers: authHeaders(), body: { reason: reasonInput.value.trim() } })
+      flashSuccess('Đã dừng bài thi.')
+    } else if (type === 'extend') {
+      await useApi(`/attempts/${id}/extend-time`, { method: 'POST', headers: authHeaders(), body: { minutes: Number(minutesInput.value) } })
+      flashSuccess(`Đã gia hạn thêm ${minutesInput.value} phút.`)
+    } else if (type === 'warn') {
+      await useApi(`/attempts/${id}/warn`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: { message: messageInput.value.trim(), severity: severityInput.value },
+      })
+      flashSuccess('Đã gửi cảnh báo tới thí sinh.')
+    }
+    activeAction.value = null
     await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
+  } catch (e: any) {
+    error.value = e?.data?.message || 'Lỗi thực hiện thao tác.'
+  } finally {
+    actionSubmitting.value = false
+  }
 }
-async function resumeAttempt(attemptId: number) {
-  try {
-    await useApi(`/attempts/${attemptId}/resume`, { method: 'POST', headers: authHeaders() })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
-}
-async function forceStopAttempt(attemptId: number) {
-  const reason = prompt('Nhập lý do dừng bài thi:')
-  if (!reason) return
-  try {
-    await useApi(`/attempts/${attemptId}/force-stop`, { method: 'POST', headers: authHeaders(), body: { reason } })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
-}
-async function extendTime(attemptId: number) {
-  const minutes = prompt('Số phút gia hạn thêm:')
-  if (!minutes || isNaN(Number(minutes))) return
-  try {
-    await useApi(`/attempts/${attemptId}/extend-time`, { method: 'POST', headers: authHeaders(), body: { minutes: Number(minutes) } })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
+
+function formatTime(seconds: number | null) {
+  if (!seconds || seconds <= 0) return '00:00'
+  const m = Math.floor(seconds / 60); const s = seconds % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
 onMounted(async () => {
@@ -70,7 +136,7 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
 </script>
 
 <template>
-  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý thi', 'Giám sát kỳ thi']" title="Giám sát kỳ thi trực tiếp" description="Theo dõi thí sinh đang thi, tạm dừng / cho tiếp tục / dừng bài thi trong trường hợp vi phạm.">
+  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý thi', 'Giám sát kỳ thi']" title="Giám sát kỳ thi trực tiếp" description="Theo dõi thí sinh đang thi, tạm dừng / cho tiếp tục / dừng / gia hạn / gửi cảnh báo trong trường hợp vi phạm.">
 
     <div v-if="!examId" class="dashboard-card crud-panel">
       <div class="crud-empty" style="padding: 3rem;">Vui lòng chọn kỳ thi từ trang <NuxtLink to="/admin/quiz" style="color: var(--primary);">Quản lý quiz / đề thi</NuxtLink>.</div>
@@ -110,7 +176,8 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
           </div>
           <button class="crud-primary-btn" type="button" @click="fetchMonitor">↻ Làm mới</button>
         </div>
-        <div v-if="error" class="crud-alert is-error">{{ error }}</div>
+        <div v-if="error && !activeAction" class="crud-alert is-error">{{ error }}</div>
+        <div v-if="success" class="crud-alert is-success">{{ success }}</div>
         <div v-if="loading" class="crud-empty" style="padding: 2rem;">Đang tải...</div>
         <div v-else class="crud-table-wrap">
           <table class="crud-table">
@@ -136,10 +203,11 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
                 <td style="font-size: 0.75rem;">{{ a.auto_saved_at ? new Date(a.auto_saved_at).toLocaleTimeString('vi') : '—' }}</td>
                 <td>
                   <div class="crud-actions" style="flex-wrap: wrap;">
-                    <button v-if="a.status === 'in_progress'" class="action-btn is-edit" type="button" @click="pauseAttempt(a.id)" title="Tạm dừng">⏸ Dừng</button>
-                    <button v-if="a.status === 'paused'" class="action-btn is-view" type="button" @click="resumeAttempt(a.id)" title="Cho tiếp tục">▶ Tiếp</button>
-                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn is-delete" type="button" @click="forceStopAttempt(a.id)" title="Dừng hẳn (vi phạm)">⛔ Dừng hẳn</button>
-                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" @click="extendTime(a.id)" title="Gia hạn thời gian" style="color: #2196f3;">⏱ Gia hạn</button>
+                    <button v-if="a.status === 'in_progress'" class="action-btn is-edit" type="button" title="Tạm dừng" @click="openAction('pause', a)">⏸ Dừng</button>
+                    <button v-if="a.status === 'paused'" class="action-btn is-view" type="button" title="Cho tiếp tục" @click="openAction('resume', a)">▶ Tiếp</button>
+                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn is-delete" type="button" title="Dừng hẳn (vi phạm)" @click="openAction('force-stop', a)">⛔ Dừng hẳn</button>
+                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gia hạn thời gian" style="color: #2196f3;" @click="openAction('extend', a)">⏱ Gia hạn</button>
+                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gửi cảnh báo tới màn hình thí sinh" style="color: #d97706;" @click="openAction('warn', a)">⚠ Cảnh báo</button>
                   </div>
                   <div v-if="a.force_stop_reason" style="font-size: 0.75rem; color: #f44336; margin-top: 4px;">Lý do: {{ a.force_stop_reason }}</div>
                 </td>
@@ -149,5 +217,157 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
         </div>
       </section>
     </template>
+
+    <Teleport to="body">
+      <div v-if="activeAction" class="proctor-overlay" @click.self="closeAction">
+        <div class="proctor-modal">
+          <header class="proctor-modal__header">
+            <h3>{{ modalTitle }}</h3>
+            <button class="proctor-modal__close" type="button" :disabled="actionSubmitting" @click="closeAction">✕</button>
+          </header>
+
+          <div class="proctor-modal__body">
+            <div v-if="error" class="crud-alert is-error" style="margin-bottom: 12px;">{{ error }}</div>
+
+            <p v-if="activeAction.type === 'pause'" class="proctor-modal__hint">
+              Thí sinh sẽ thấy màn hình tạm dừng và đồng hồ sẽ ngừng đếm ngược cho đến khi bạn cho tiếp tục.
+            </p>
+
+            <p v-else-if="activeAction.type === 'resume'" class="proctor-modal__hint">
+              Bài thi sẽ tiếp tục đếm ngược. Khoảng thời gian tạm dừng sẽ được cộng thêm vào tổng thời gian.
+            </p>
+
+            <template v-else-if="activeAction.type === 'force-stop'">
+              <p class="proctor-modal__hint">Thao tác này sẽ kết thúc bài thi của thí sinh và đánh dấu là vi phạm.</p>
+              <label class="proctor-field">
+                <span>Lý do dừng (bắt buộc)</span>
+                <textarea v-model="reasonInput" rows="3" maxlength="500" placeholder="VD: Phát hiện gian lận khi sử dụng tài liệu..."></textarea>
+              </label>
+            </template>
+
+            <template v-else-if="activeAction.type === 'extend'">
+              <p class="proctor-modal__hint">Cộng thêm thời gian vào tổng thời gian được phép cho bài thi.</p>
+              <label class="proctor-field">
+                <span>Số phút gia hạn</span>
+                <input v-model.number="minutesInput" type="number" min="1" max="180" placeholder="5">
+              </label>
+              <div class="proctor-quick-row">
+                <button v-for="m in [5, 10, 15, 30]" :key="m" type="button" class="proctor-quick-btn" @click="minutesInput = m">+{{ m }}p</button>
+              </div>
+            </template>
+
+            <template v-else-if="activeAction.type === 'warn'">
+              <p class="proctor-modal__hint">Tin nhắn sẽ hiển thị ngay trên màn hình của thí sinh trong vòng 10 giây tới.</p>
+              <label class="proctor-field">
+                <span>Mức độ</span>
+                <select v-model="severityInput">
+                  <option value="info">Thông tin</option>
+                  <option value="warning">Cảnh báo</option>
+                  <option value="critical">Nghiêm trọng</option>
+                </select>
+              </label>
+              <label class="proctor-field">
+                <span>Nội dung cảnh báo</span>
+                <textarea v-model="messageInput" rows="3" maxlength="500" placeholder="VD: Vui lòng tập trung vào màn hình bài thi và không mở tab khác."></textarea>
+              </label>
+            </template>
+          </div>
+
+          <footer class="proctor-modal__footer">
+            <button class="crud-secondary-btn" type="button" :disabled="actionSubmitting" @click="closeAction">Hủy</button>
+            <button class="crud-primary-btn" type="button" :disabled="actionSubmitting" @click="confirmAction">
+              {{ actionSubmitting ? 'Đang xử lý...' : 'Xác nhận' }}
+            </button>
+          </footer>
+        </div>
+      </div>
+    </Teleport>
   </AdminWorkspaceShell>
 </template>
+
+<style scoped>
+.proctor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 70;
+}
+.proctor-modal {
+  width: min(100%, 520px);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+.proctor-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.proctor-modal__header h3 { margin: 0; font-size: 1.05rem; }
+.proctor-modal__close {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+}
+.proctor-modal__close:hover:not(:disabled) { background: #f1f5f9; color: #0f172a; }
+.proctor-modal__body { padding: 1.25rem; overflow: auto; }
+.proctor-modal__hint { margin: 0 0 0.85rem; color: #475569; font-size: 0.9rem; line-height: 1.5; }
+.proctor-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding: 0.95rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.proctor-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 0.85rem;
+}
+.proctor-field span { font-size: 0.8rem; font-weight: 700; color: #334155; }
+.proctor-field input,
+.proctor-field select,
+.proctor-field textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  font: inherit;
+  background: #fff;
+}
+.proctor-field input:focus,
+.proctor-field select:focus,
+.proctor-field textarea:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+}
+.proctor-quick-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+.proctor-quick-btn {
+  padding: 0.45rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+}
+.proctor-quick-btn:hover { border-color: #1976d2; color: #1558b0; background: #e8f1ff; }
+</style>

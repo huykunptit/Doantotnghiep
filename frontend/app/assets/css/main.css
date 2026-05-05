@@ -112,6 +112,13 @@ input {
   box-shadow: 0 0 0 6px rgba(47, 122, 69, 0.1);
 }
 
+.brand-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
 .brand-name,
 .eyebrow,
 .panel-kicker,

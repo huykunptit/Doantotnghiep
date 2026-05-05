@@ -68,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/attempts/{attempt}/resume', [ExamProctorController::class, 'resumeAttempt']);
     Route::post('/attempts/{attempt}/force-stop', [ExamProctorController::class, 'forceStopAttempt']);
     Route::post('/attempts/{attempt}/extend-time', [ExamProctorController::class, 'extendTime']);
+    Route::post('/attempts/{attempt}/warn', [ExamProctorController::class, 'warnAttempt']);
     Route::post('/attempts/{attempt}/violations', [ExamProctorController::class, 'logViolation']);
 
     // ── Live monitoring ─────────────────────────────────────────────────

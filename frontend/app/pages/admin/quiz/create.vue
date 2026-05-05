@@ -80,14 +80,30 @@ const loadingBankQ = ref(false)
 const allUsers = ref<UserItem[]>([])
 const loadingUsers = ref(false)
 const userSearch = ref('')
+const userFilter = ref<'all' | 'selected' | 'available'>('all')
+const importError = ref('')
+const importing = ref(false)
+const importMessage = ref('')
 
 const activeBanks = computed(() =>
   form.type === 'standalone' ? allBanks.value : courseBanks.value
 )
 
 const filteredUsers = computed(() => {
-  const q = userSearch.value.toLowerCase()
-  return q ? allUsers.value.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) : allUsers.value
+  const q = userSearch.value.toLowerCase().trim()
+  let items = allUsers.value
+
+  if (q) {
+    items = items.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+  }
+
+  if (userFilter.value === 'selected') {
+    items = items.filter(u => form.enrollUserIds.includes(u.id))
+  } else if (userFilter.value === 'available') {
+    items = items.filter(u => !form.enrollUserIds.includes(u.id))
+  }
+
+  return items
 })
 
 // ── Computed for difficulty mode ───────────────────────────────────────────
@@ -241,6 +257,82 @@ function toggleEnroll(userId: number) {
   const idx = form.enrollUserIds.indexOf(userId)
   if (idx > -1) form.enrollUserIds.splice(idx, 1)
   else form.enrollUserIds.push(userId)
+}
+
+function parseCsvRows(content: string) {
+  const lines = content.split(/\r?\n/).map(line => line.trim()).filter(line => line)
+  if (!lines.length) return []
+
+  const headers = lines[0].split(/,|;|\t/).map(h => h.trim().toLowerCase())
+  const hasHeader = headers.some(h => ['email', 'name', 'id'].includes(h))
+  const rows = hasHeader ? lines.slice(1) : lines
+  const result: { id?: number; email?: string }[] = []
+
+  for (const row of rows) {
+    const cells = row.split(/,|;|\t/).map(cell => cell.trim())
+    if (hasHeader) {
+      const rowData: any = {}
+      cells.forEach((cell, idx) => { rowData[headers[idx]] = cell })
+      if (rowData.email) result.push({ email: rowData.email.toLowerCase() })
+      else if (rowData.id && !Number.isNaN(Number(rowData.id))) result.push({ id: Number(rowData.id) })
+    } else {
+      const maybeEmail = cells[0]?.toLowerCase()
+      if (maybeEmail && maybeEmail.includes('@')) result.push({ email: maybeEmail })
+      else if (maybeEmail && !Number.isNaN(Number(maybeEmail))) result.push({ id: Number(maybeEmail) })
+    }
+  }
+
+  return result
+}
+
+async function handleImportFile(event: Event) {
+  importError.value = ''
+  importMessage.value = ''
+  const target = event.target as HTMLInputElement
+  const file = target?.files?.[0]
+  if (!file) return
+  if (!allUsers.value.length) await fetchUsers()
+
+  const ext = file.name.split('.').pop()?.toLowerCase()
+  if (ext !== 'csv') {
+    importError.value = 'Hiện tại chỉ hỗ trợ import file CSV. Vui lòng lưu file Excel dưới dạng CSV.'
+    return
+  }
+
+  importing.value = true
+  try {
+    const text = await file.text()
+    const parsed = parseCsvRows(text)
+    if (!parsed.length) {
+      importError.value = 'File import không chứa dữ liệu hợp lệ.'
+      return
+    }
+
+    const matchedIds = new Set<number>()
+    const unmatched: string[] = []
+
+    for (const item of parsed) {
+      if (item.id) {
+        const user = allUsers.value.find(u => u.id === item.id)
+        if (user) matchedIds.add(user.id)
+        else unmatched.push(String(item.id))
+      } else if (item.email) {
+        const user = allUsers.value.find(u => u.email.toLowerCase() === item.email.toLowerCase())
+        if (user) matchedIds.add(user.id)
+        else unmatched.push(item.email)
+      }
+    }
+
+    form.enrollUserIds = Array.from(new Set([...form.enrollUserIds, ...Array.from(matchedIds)]))
+    importMessage.value = `Đã thêm ${matchedIds.size} học viên từ file.`
+    if (unmatched.length) {
+      importMessage.value += ` Không tìm thấy ${unmatched.length} email/ID (${unmatched.slice(0, 5).join(', ')}${unmatched.length > 5 ? ', ...' : ''}).` }
+  } catch (error) {
+    importError.value = 'Không thể đọc file import. Vui lòng thử lại với file CSV hợp lệ.'
+  } finally {
+    importing.value = false
+    if (target) target.value = ''
+  }
 }
 
 // ── Submit ─────────────────────────────────────────────────────────────────
@@ -604,13 +696,27 @@ await fetchCourses()
 
           <div class="enroll-toolbar">
             <input v-model="userSearch" type="text" class="crud-input" style="max-width:320px;" placeholder="Tìm theo tên hoặc email...">
-            <div style="display:flex;gap:0.5rem;">
+            <select v-model="userFilter" class="crud-input" style="max-width:180px;">
+              <option value="all">Tất cả</option>
+              <option value="selected">Đã chọn</option>
+              <option value="available">Chưa chọn</option>
+            </select>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
               <button type="button" class="crud-btn-secondary" @click="form.enrollUserIds = allUsers.map(u => u.id)">Chọn tất cả</button>
               <button type="button" class="crud-btn-secondary" @click="form.enrollUserIds = []">Bỏ chọn</button>
             </div>
           </div>
 
-          <div class="enroll-count">{{ form.enrollUserIds.length }} / {{ allUsers.length }} học viên đã chọn</div>
+          <div class="enroll-meta-row">
+            <div class="enroll-count">{{ form.enrollUserIds.length }} / {{ allUsers.length }} học viên đã chọn</div>
+            <label class="import-label">
+              <span class="import-title">Import từ Excel/CSV</span>
+              <input type="file" accept=".csv,.xlsx,.xls" @change="handleImportFile" class="import-input">
+            </label>
+          </div>
+          <p class="import-note">Tải file Excel về dạng CSV trước khi import. File cần có cột <strong>email</strong> hoặc <strong>id</strong>.</p>
+          <div v-if="importMessage" class="crud-alert is-success">{{ importMessage }}</div>
+          <div v-if="importError" class="crud-alert is-error">{{ importError }}</div>
 
           <div v-if="loadingUsers" class="crud-empty">Đang tải danh sách học viên...</div>
           <div v-else class="user-checklist">
@@ -854,7 +960,18 @@ await fetchCourses()
 
 /* ── Enrollment ── */
 .enroll-toolbar { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; }
-.enroll-count { font-size: 0.85rem; font-weight: 600; color: var(--primary, #1976d2); margin-bottom: 0.75rem; }
+.enroll-meta-row {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;
+}
+.import-label {
+  display: inline-flex; align-items: center; gap: 0.75rem; cursor: pointer;
+  border: 1px dashed var(--border-color, #cbd5e1); padding: 0.75rem 1rem; border-radius: 10px;
+  background: var(--surface-hover, #fafafa);
+}
+.import-title { font-size: 0.84rem; font-weight: 600; color: var(--text-primary, #222); }
+.import-input { display: none; }
+.import-note { font-size: 0.82rem; color: var(--text-secondary, #666); margin: 0 0 0.75rem; }
+.enroll-count { font-size: 0.85rem; font-weight: 600; color: var(--primary, #1976d2); }
 .user-checklist {
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 10px; overflow: hidden;

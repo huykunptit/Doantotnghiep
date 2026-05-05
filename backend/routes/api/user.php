@@ -92,5 +92,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Site Settings
         Route::get('/settings', [AdminController::class, 'siteSettings']);
         Route::put('/settings', [AdminController::class, 'updateSiteSettings']);
+        Route::post('/settings/test-smtp', [AdminController::class, 'testSmtp']);
     });
 });

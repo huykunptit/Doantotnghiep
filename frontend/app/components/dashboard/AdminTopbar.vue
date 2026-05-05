@@ -14,6 +14,7 @@ defineProps<{
 }>()
 
 const auth = useAuthStore()
+const { siteName, siteLogo } = useSiteSettings()
 
 /* ── Notifications ── */
 const notifOpen = ref(false)
@@ -123,8 +124,9 @@ onUnmounted(() => {
       </button>
 
       <div class="tb-brand-pill">
-        <span class="tb-brand-dot" />
-        <span class="tb-brand-text">PTIT LMS</span>
+        <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="tb-brand-logo">
+        <span v-else class="tb-brand-dot" />
+        <span class="tb-brand-text">{{ siteName }}</span>
       </div>
     </div>
 
@@ -242,6 +244,8 @@ onUnmounted(() => {
 <style scoped>
 /* ── Base ── */
 .tb {
+  position: relative;
+  z-index: 200;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -288,6 +292,12 @@ onUnmounted(() => {
   border-radius: 999px;
   background: #2f7a45;
   box-shadow: 0 0 0 4px rgba(47, 122, 69, 0.12);
+}
+.tb-brand-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 6px;
 }
 .tb-brand-text {
   font-size: 0.72rem;

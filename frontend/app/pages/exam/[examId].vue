@@ -8,6 +8,9 @@ if (!user.value || !token.value) await navigateTo('/login', { replace: true })
 
 const examId = route.params.examId as string
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+const bookmarkStorageKey = computed(() => `exam-bookmarks:${examId}`)
+
+interface ProctorMessage { id: number; type: string; title: string; message: string; created_at: string }
 
 const loading = ref(true)
 const examData = ref<any>(null)
@@ -16,6 +19,7 @@ const attemptId = ref<number | null>(null)
 const remainingTime = ref<number | null>(null)
 const currentIndex = ref(0)
 const answers = ref<Record<string, any>>({})
+const bookmarks = ref<Record<string, boolean>>({})
 const status = ref('in_progress')
 const error = ref('')
 const autoSaveStatus = ref('')
@@ -23,6 +27,8 @@ const submitting = ref(false)
 const showResult = ref(false)
 const result = ref<any>(null)
 const confirmSubmitOpen = ref(false)
+const proctorAlert = ref<ProctorMessage | null>(null)
+const lastMessageAt = ref<string | null>(null)
 
 // Timer
 const timerInterval = ref<any>(null)
@@ -36,6 +42,29 @@ const timerUrgent = computed(() => remainingTime.value !== null && remainingTime
 const currentQuestion = computed(() => questions.value[currentIndex.value] || null)
 const answeredCount = computed(() => Object.keys(answers.value).filter(k => answers.value[k] !== null && answers.value[k] !== undefined && answers.value[k] !== '').length)
 const totalQuestions = computed(() => questions.value.length)
+const bookmarkedCount = computed(() => Object.values(bookmarks.value).filter(Boolean).length)
+const isCurrentBookmarked = computed(() => !!(currentQuestion.value && bookmarks.value[currentQuestion.value.id]))
+
+function loadBookmarks() {
+  if (typeof window === 'undefined') return
+  try {
+    const raw = window.localStorage.getItem(bookmarkStorageKey.value)
+    bookmarks.value = raw ? JSON.parse(raw) : {}
+  } catch { bookmarks.value = {} }
+}
+
+function persistBookmarks() {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.setItem(bookmarkStorageKey.value, JSON.stringify(bookmarks.value)) } catch {}
+}
+
+function toggleBookmark(questionId?: number) {
+  const id = questionId ?? currentQuestion.value?.id
+  if (id === undefined || id === null) return
+  bookmarks.value = { ...bookmarks.value, [id]: !bookmarks.value[id] }
+  if (!bookmarks.value[id]) delete bookmarks.value[id]
+  persistBookmarks()
+}
 
 async function loadExam() {
   try {
@@ -113,12 +142,20 @@ const statusPollInterval = ref<any>(null)
 async function pollStatus() {
   if (!attemptId.value) return
   try {
-    const res = await useApi<any>(`/attempts/${attemptId.value}/status`, { headers: authHeaders() })
+    const query = lastMessageAt.value ? `?since=${encodeURIComponent(lastMessageAt.value)}` : ''
+    const res = await useApi<any>(`/attempts/${attemptId.value}/status${query}`, { headers: authHeaders() })
     status.value = res.status
     if (res.remaining_time !== null && res.remaining_time !== undefined) { remainingTime.value = res.remaining_time }
     if (res.time_expired) { handleTimeUp() }
+    if (Array.isArray(res.messages) && res.messages.length > 0) {
+      const newest = res.messages[0]
+      proctorAlert.value = newest
+      lastMessageAt.value = newest.created_at
+    }
   } catch {}
 }
+
+function dismissProctorAlert() { proctorAlert.value = null }
 
 async function submitExam() {
   if (!attemptId.value || submitting.value) return
@@ -137,6 +174,8 @@ async function submitExam() {
 }
 
 onMounted(async () => {
+  loadBookmarks()
+  lastMessageAt.value = new Date().toISOString()
   await loadExam()
   statusPollInterval.value = setInterval(pollStatus, 10000)
 })
@@ -156,6 +195,7 @@ onUnmounted(() => {
         <div class="exam-meta">
           <span>{{ answeredCount }}/{{ totalQuestions }} câu đã trả lời</span>
           <span>{{ totalQuestions - answeredCount }} câu chưa trả lời</span>
+          <span v-if="bookmarkedCount > 0">★ {{ bookmarkedCount }} câu đã đánh dấu</span>
         </div>
       </div>
 
@@ -171,7 +211,7 @@ onUnmounted(() => {
 
     <div v-if="status === 'paused'" class="exam-overlay">
       <div class="exam-overlay-card">
-        <div class="exam-overlay-icon">⏸</div>
+        <span class="material-symbols-outlined exam-overlay-icon">pause_circle</span>
         <h2>Bài thi đang tạm dừng</h2>
         <p>Giám thị đã tạm dừng bài thi của bạn. Vui lòng chờ đến khi hệ thống cho phép tiếp tục.</p>
       </div>
@@ -185,14 +225,50 @@ onUnmounted(() => {
       <NuxtLink to="/dashboard" class="exam-submit-btn exam-link-btn">Về trang chủ</NuxtLink>
     </div>
 
-    <div v-else-if="showResult" class="exam-result-wrap">
-      <div class="exam-result-card">
-        <div class="exam-result-icon">{{ result?.passed ? '🎉' : '📝' }}</div>
+    <div v-else-if="showResult" class="exam-result-fullscreen" :class="{ passed: result?.passed }">
+      <div class="exam-result-content">
+        <div class="exam-result-icon-wrap" :class="{ passed: result?.passed }">
+          <span class="material-symbols-outlined">{{ result?.passed ? 'workspace_premium' : 'task_alt' }}</span>
+        </div>
         <p class="exam-kicker">Kết quả bài thi</p>
-        <h2>{{ result?.passed ? 'Chúc mừng, bạn đã đạt!' : 'Bạn chưa đạt điểm tối thiểu' }}</h2>
-        <div v-if="result?.score !== undefined" class="exam-score" :class="{ passed: result?.passed }">{{ result.score }}%</div>
-        <p>{{ result?.message }}</p>
-        <NuxtLink to="/dashboard" class="exam-submit-btn exam-link-btn">Về trang chủ</NuxtLink>
+        <h1 class="exam-result-title">{{ result?.passed ? 'Chúc mừng, bạn đã đạt!' : 'Bạn chưa đạt điểm tối thiểu' }}</h1>
+        <div v-if="result?.score !== undefined" class="exam-score-wrap">
+          <div class="exam-score-ring" :class="{ passed: result?.passed }">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-bg" cx="60" cy="60" r="52" />
+              <circle
+                class="ring-fg"
+                cx="60"
+                cy="60"
+                r="52"
+                :stroke-dasharray="326.7"
+                :stroke-dashoffset="326.7 - (Math.min(Math.max(Number(result.score) || 0, 0), 100) / 100) * 326.7"
+              />
+            </svg>
+            <div class="exam-score" :class="{ passed: result?.passed }">{{ result.score }}<span>%</span></div>
+          </div>
+        </div>
+        <p v-if="result?.message" class="exam-result-message">{{ result.message }}</p>
+        <div class="exam-result-stats">
+          <div class="exam-result-stat">
+            <span class="material-symbols-outlined">check_circle</span>
+            <div>
+              <strong>{{ answeredCount }}/{{ totalQuestions }}</strong>
+              <span>Câu đã trả lời</span>
+            </div>
+          </div>
+          <div class="exam-result-stat">
+            <span class="material-symbols-outlined">bookmark</span>
+            <div>
+              <strong>{{ bookmarkedCount }}</strong>
+              <span>Câu đã đánh dấu</span>
+            </div>
+          </div>
+        </div>
+        <NuxtLink to="/dashboard" class="exam-submit-btn exam-link-btn">
+          <span class="material-symbols-outlined">home</span>
+          Về trang chủ
+        </NuxtLink>
       </div>
     </div>
 
@@ -206,11 +282,21 @@ onUnmounted(() => {
               <button
                 v-for="(q, idx) in questions"
                 :key="q.id"
-                :class="['q-nav-btn', { active: idx === currentIndex, answered: answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== '' }]"
+                :class="['q-nav-btn', {
+                  active: idx === currentIndex,
+                  answered: answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== '',
+                  bookmarked: !!bookmarks[q.id],
+                }]"
+                :title="bookmarks[q.id] ? 'Đã đánh dấu' : ''"
                 @click="currentIndex = idx"
               >
-                {{ idx + 1 }}
+                <span>{{ idx + 1 }}</span>
+                <span v-if="bookmarks[q.id]" class="material-symbols-outlined q-nav-flag" aria-hidden="true">bookmark</span>
               </button>
+            </div>
+            <div class="question-nav-legend">
+              <span><i class="legend-dot legend-answered"></i> Đã trả lời</span>
+              <span><i class="legend-dot legend-bookmark"></i> Đã đánh dấu</span>
             </div>
           </div>
         </aside>
@@ -222,7 +308,19 @@ onUnmounted(() => {
                 <p class="exam-kicker">Câu hỏi {{ currentIndex + 1 }}/{{ totalQuestions }}</p>
                 <h2>{{ examData?.title || 'Bài thi' }}</h2>
               </div>
-              <span class="question-type">{{ currentQuestion.type }}</span>
+              <div class="question-panel__head-actions">
+                <button
+                  type="button"
+                  :class="['bookmark-btn', { 'is-active': isCurrentBookmarked }]"
+                  :aria-pressed="isCurrentBookmarked"
+                  :title="isCurrentBookmarked ? 'Bỏ đánh dấu câu này' : 'Đánh dấu câu này để xem lại sau'"
+                  @click="toggleBookmark()"
+                >
+                  <span class="material-symbols-outlined bookmark-icon">{{ isCurrentBookmarked ? 'bookmark' : 'bookmark_border' }}</span>
+                  <span>{{ isCurrentBookmarked ? 'Đã đánh dấu' : 'Đánh dấu' }}</span>
+                </button>
+                <span class="question-type">{{ currentQuestion.type }}</span>
+              </div>
             </div>
 
             <div class="question-content">{{ currentQuestion.content }}</div>
@@ -280,6 +378,20 @@ onUnmounted(() => {
       </div>
 
       <Teleport to="body">
+        <div v-if="proctorAlert" class="exam-overlay" @click.self="dismissProctorAlert">
+          <div class="exam-overlay-card proctor-alert-card" :class="{ 'is-critical': proctorAlert.type === 'exam_force_stopped' || proctorAlert.title?.includes('nghiêm trọng') }">
+            <span class="material-symbols-outlined exam-overlay-icon">{{ proctorAlert.type === 'exam_force_stopped' ? 'gpp_bad' : 'campaign' }}</span>
+            <p class="exam-kicker">Thông báo từ giám thị</p>
+            <h2>{{ proctorAlert.title }}</h2>
+            <p class="proctor-alert-message">{{ proctorAlert.message }}</p>
+            <div class="question-nav-buttons question-nav-buttons--modal">
+              <button class="exam-submit-btn" @click="dismissProctorAlert">Đã hiểu</button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
         <div v-if="confirmSubmitOpen" class="exam-overlay" @click.self="confirmSubmitOpen = false">
           <div class="exam-overlay-card exam-submit-modal">
             <h2>Xác nhận nộp bài</h2>
@@ -319,10 +431,28 @@ onUnmounted(() => {
 .exam-sidebar__card h3 { margin: 0 0 0.45rem; }
 .exam-sidebar__card p { margin: 0 0 1rem; color: #64748b; font-size: 0.92rem; line-height: 1.6; }
 .question-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; }
-.q-nav-btn { min-height: 44px; border: 1px solid #dbe6f5; border-radius: 14px; background: #fff; color: #475569; font-weight: 800; }
+.q-nav-btn { position: relative; min-height: 44px; border: 1px solid #dbe6f5; border-radius: 14px; background: #fff; color: #475569; font-weight: 800; cursor: pointer; }
 .q-nav-btn.active { background: #e8f1ff; color: #1976d2; border-color: #90caf9; }
 .q-nav-btn.answered { background: #ecfdf3; color: #15803d; border-color: #86efac; }
 .q-nav-btn.active.answered { box-shadow: inset 0 0 0 1px #1976d2; }
+.q-nav-btn.bookmarked { border-color: #f59e0b; box-shadow: inset 0 0 0 1px #fbbf24; }
+.q-nav-flag { position: absolute; top: -6px; right: -6px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: #f59e0b; color: #fff; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4); font-variation-settings: 'FILL' 1, 'wght' 600; font-size: 14px !important; line-height: 1; }
+.question-nav-legend { display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed #dbe6f5; color: #64748b; font-size: 0.78rem; }
+.question-nav-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.legend-answered { background: #ecfdf3; border: 1px solid #86efac; }
+.legend-bookmark { background: #fff; border: 1px solid #f59e0b; box-shadow: inset 0 0 0 1px #fbbf24; }
+.question-panel__head-actions { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+.bookmark-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 0.85rem; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; color: #64748b; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: 0.15s ease; }
+.bookmark-btn:hover { border-color: #f59e0b; color: #b45309; background: #fffbeb; }
+.bookmark-btn.is-active { background: #fffbeb; border-color: #f59e0b; color: #b45309; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.18); }
+.bookmark-icon { font-size: 18px !important; line-height: 1; font-variation-settings: 'FILL' 0, 'wght' 500; }
+.bookmark-btn.is-active .bookmark-icon { font-variation-settings: 'FILL' 1, 'wght' 600; }
+.proctor-alert-card { border: 2px solid #f59e0b; }
+.proctor-alert-card.is-critical { border-color: #d71920; }
+.proctor-alert-card .exam-overlay-icon { color: #d97706; }
+.proctor-alert-card.is-critical .exam-overlay-icon { color: #d71920; }
+.proctor-alert-message { white-space: pre-wrap; line-height: 1.6; color: #14213d; }
 .exam-main { min-width: 0; }
 .question-panel { padding: 1.5rem; }
 .question-panel__header, .question-nav-buttons { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -342,16 +472,121 @@ onUnmounted(() => {
 .nav-btn--primary { background: #14213d; color: #fff; border-color: #14213d; }
 .exam-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(15, 23, 42, 0.6); z-index: 60; }
 .exam-overlay-card { width: min(100%, 520px); padding: 2rem; text-align: center; }
-.exam-overlay-icon, .exam-result-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+.exam-overlay-icon { font-size: 3rem; margin-bottom: 0.5rem; display: inline-block; }
+.exam-overlay-icon.material-symbols-outlined { font-size: 56px; font-variation-settings: 'FILL' 1, 'wght' 500; color: #d97706; }
+.proctor-alert-card .exam-overlay-icon.material-symbols-outlined { color: #d97706; }
+.proctor-alert-card.is-critical .exam-overlay-icon.material-symbols-outlined { color: #d71920; }
 .exam-submit-modal { text-align: left; }
 .question-nav-buttons--modal { justify-content: flex-end; margin-top: 1.25rem; }
 .exam-warning { color: #d71920; font-weight: 700; }
-.exam-state-card, .exam-result-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 88px); padding: 1.5rem; }
-.exam-state-card { flex-direction: column; gap: 0.75rem; text-align: center; margin: 1.5rem; padding: 2rem; }
+.exam-state-card { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 88px); padding: 1.5rem; flex-direction: column; gap: 0.75rem; text-align: center; margin: 1.5rem; padding: 2rem; }
 .exam-state-card.is-error { color: #991b1b; }
-.exam-result-card { width: min(100%, 560px); padding: 2rem; text-align: center; }
-.exam-score { margin: 1rem 0; font-size: 3.2rem; font-weight: 900; color: #d71920; }
+
+.exam-result-fullscreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: radial-gradient(circle at top, #fff5f5 0%, #fef2f2 35%, #fee2e2 100%);
+  z-index: 50;
+  overflow: auto;
+}
+.exam-result-fullscreen.passed {
+  background: radial-gradient(circle at top, #f0fdf4 0%, #dcfce7 35%, #bbf7d0 100%);
+}
+.exam-result-content {
+  width: min(100%, 640px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.exam-result-icon-wrap {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow: 0 14px 40px rgba(215, 25, 32, 0.18);
+  margin-bottom: 0.5rem;
+}
+.exam-result-icon-wrap .material-symbols-outlined {
+  font-size: 56px;
+  color: #d71920;
+  font-variation-settings: 'FILL' 1, 'wght' 500;
+}
+.exam-result-icon-wrap.passed {
+  box-shadow: 0 14px 40px rgba(21, 128, 61, 0.22);
+}
+.exam-result-icon-wrap.passed .material-symbols-outlined { color: #15803d; }
+.exam-result-title { margin: 0; font-size: 2rem; line-height: 1.2; }
+.exam-score-wrap { margin: 0.5rem 0 0.25rem; }
+.exam-score-ring { position: relative; width: 200px; height: 200px; }
+.exam-score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.exam-score-ring .ring-bg { fill: none; stroke: rgba(215, 25, 32, 0.12); stroke-width: 12; }
+.exam-score-ring .ring-fg {
+  fill: none;
+  stroke: #d71920;
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s ease-out;
+}
+.exam-score-ring.passed .ring-bg { stroke: rgba(21, 128, 61, 0.15); }
+.exam-score-ring.passed .ring-fg { stroke: #15803d; }
+.exam-score {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #d71920;
+  letter-spacing: -0.02em;
+}
+.exam-score span { font-size: 1.2rem; font-weight: 700; margin-left: 2px; }
 .exam-score.passed { color: #15803d; }
+.exam-result-message {
+  margin: 0;
+  color: #475569;
+  line-height: 1.65;
+  max-width: 480px;
+}
+.exam-result-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.85rem;
+  margin: 1rem 0 0.5rem;
+}
+.exam-result-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  text-align: left;
+  min-width: 180px;
+}
+.exam-result-stat .material-symbols-outlined { font-size: 28px; color: #1976d2; }
+.exam-result-stat strong { display: block; font-size: 1.1rem; }
+.exam-result-stat span { font-size: 0.8rem; color: #64748b; }
+.exam-result-fullscreen .exam-submit-btn {
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.exam-result-fullscreen .exam-submit-btn .material-symbols-outlined { font-size: 20px; }
 @media (max-width: 1024px) {
   .exam-layout { grid-template-columns: 1fr; }
   .exam-sidebar__card { position: static; }

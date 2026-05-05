@@ -626,17 +626,21 @@ class AdminController extends Controller
 
     // ─── Site Settings ─────────────────────────────────────────────────────────
 
+    private function decorateSettings(array $settings, MediaService $mediaService): array
+    {
+        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
+        $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
+
+        return $settings;
+    }
+
     public function siteSettings(Request $request, MediaService $mediaService): JsonResponse
     {
         if ($forbidden = $this->ensureAdmin($request)) {
             return $forbidden;
         }
 
-        $settings = SiteSetting::getAll();
-        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
-        $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
-
-        return response()->json($settings);
+        return response()->json($this->decorateSettings(SiteSetting::getAll(), $mediaService));
     }
 
     public function updateSiteSettings(Request $request, MediaService $mediaService): JsonResponse
@@ -646,10 +650,27 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
+            // Branding
             'site_name'        => ['sometimes', 'nullable', 'string', 'max:255'],
+            'site_tagline'     => ['sometimes', 'nullable', 'string', 'max:255'],
             'site_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'site_logo'        => ['sometimes', 'nullable', 'string', 'max:2048'],
             'site_favicon'     => ['sometimes', 'nullable', 'string', 'max:2048'],
+
+            // Contact
+            'contact_email'    => ['sometimes', 'nullable', 'email', 'max:255'],
+            'contact_phone'    => ['sometimes', 'nullable', 'string', 'max:50'],
+            'contact_address'  => ['sometimes', 'nullable', 'string', 'max:500'],
+            'support_hours'    => ['sometimes', 'nullable', 'string', 'max:255'],
+
+            // Social
+            'social_facebook'  => ['sometimes', 'nullable', 'string', 'max:255'],
+            'social_youtube'   => ['sometimes', 'nullable', 'string', 'max:255'],
+            'social_tiktok'    => ['sometimes', 'nullable', 'string', 'max:255'],
+            'social_linkedin'  => ['sometimes', 'nullable', 'string', 'max:255'],
+            'social_zalo'      => ['sometimes', 'nullable', 'string', 'max:255'],
+
+            // SMTP
             'smtp_host'        => ['sometimes', 'nullable', 'string', 'max:255'],
             'smtp_port'        => ['sometimes', 'nullable', 'string', 'max:10'],
             'smtp_username'    => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -657,29 +678,91 @@ class AdminController extends Controller
             'smtp_encryption'  => ['sometimes', 'nullable', 'string', 'in:tls,ssl,none'],
             'smtp_from_address' => ['sometimes', 'nullable', 'email', 'max:255'],
             'smtp_from_name'   => ['sometimes', 'nullable', 'string', 'max:255'],
+
+            // Legal / Footer
+            'footer_copyright'   => ['sometimes', 'nullable', 'string', 'max:500'],
+            'legal_company_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'legal_tax_code'     => ['sometimes', 'nullable', 'string', 'max:50'],
+            'terms_url'          => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'privacy_url'        => ['sometimes', 'nullable', 'string', 'max:2048'],
+
+            // Localization
+            'default_locale'   => ['sometimes', 'nullable', 'string', 'in:vi,en'],
+            'default_currency' => ['sometimes', 'nullable', 'string', 'max:10'],
+            'timezone'         => ['sometimes', 'nullable', 'string', 'max:64'],
         ]);
 
         SiteSetting::setMany($validated);
-        $settings = SiteSetting::getAll();
-        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
-        $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
 
         return response()->json([
             'message' => 'Cập nhật cài đặt thành công',
-            'settings' => $settings,
+            'settings' => $this->decorateSettings(SiteSetting::getAll(), $mediaService),
         ]);
     }
 
     public function publicSiteSettings(MediaService $mediaService): JsonResponse
     {
-        $keys = ['site_name', 'site_description', 'site_logo', 'site_favicon'];
+        $keys = [
+            'site_name', 'site_tagline', 'site_description', 'site_logo', 'site_favicon',
+            'contact_email', 'contact_phone', 'contact_address', 'support_hours',
+            'social_facebook', 'social_youtube', 'social_tiktok', 'social_linkedin', 'social_zalo',
+            'footer_copyright', 'legal_company_name', 'legal_tax_code', 'terms_url', 'privacy_url',
+            'default_locale', 'default_currency', 'timezone',
+        ];
         $settings = SiteSetting::whereIn('key', $keys)->pluck('value', 'key')->toArray();
 
-        return response()->json([
-            'site_name' => $settings['site_name'] ?? null,
-            'site_description' => $settings['site_description'] ?? null,
-            'site_logo' => !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null,
-            'site_favicon' => !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null,
+        $payload = [];
+        foreach ($keys as $key) {
+            $payload[$key] = $settings[$key] ?? null;
+        }
+        $payload['site_logo'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
+        $payload['site_favicon'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
+
+        return response()->json($payload);
+    }
+
+    public function testSmtp(Request $request): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $validated = $request->validate([
+            'to' => ['required', 'email', 'max:255'],
         ]);
+
+        $settings = SiteSetting::getAll();
+        $host = $settings['smtp_host'] ?? null;
+        $port = $settings['smtp_port'] ?? null;
+        if (empty($host) || empty($port)) {
+            return response()->json(['message' => 'Vui lòng cấu hình SMTP host và port trước.'], 422);
+        }
+
+        try {
+            config([
+                'mail.mailers.smtp.host'       => $host,
+                'mail.mailers.smtp.port'       => (int) $port,
+                'mail.mailers.smtp.username'   => $settings['smtp_username'] ?? null,
+                'mail.mailers.smtp.password'   => $settings['smtp_password'] ?? null,
+                'mail.mailers.smtp.encryption' => ($settings['smtp_encryption'] ?? 'tls') === 'none' ? null : ($settings['smtp_encryption'] ?? 'tls'),
+                'mail.from.address'            => $settings['smtp_from_address'] ?? config('mail.from.address'),
+                'mail.from.name'               => $settings['smtp_from_name'] ?? ($settings['site_name'] ?? config('mail.from.name')),
+                'mail.default'                 => 'smtp',
+            ]);
+
+            \Illuminate\Support\Facades\Mail::raw(
+                'Đây là email kiểm tra cấu hình SMTP từ ' . ($settings['site_name'] ?? 'hệ thống') . '.',
+                function ($message) use ($validated, $settings) {
+                    $message->to($validated['to'])
+                        ->subject('[' . ($settings['site_name'] ?? 'LMS') . '] Kiểm tra SMTP');
+                }
+            );
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Gửi email kiểm tra thất bại: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json(['message' => 'Đã gửi email kiểm tra tới ' . $validated['to']]);
     }
 }
