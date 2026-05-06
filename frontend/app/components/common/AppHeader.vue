@@ -37,7 +37,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
         <div class="cd-brand-icon">P</div>
         <div class="cd-brand-text">
           <p class="cd-brand-title">PTIT Learning</p>
-          <p class="cd-brand-slogan">Học trực tuyến • Công nghệ • Kết nối</p>
+          <p class="cd-brand-slogan">Học, học nữa, học mãi</p>
         </div>
       </NuxtLink>
 
