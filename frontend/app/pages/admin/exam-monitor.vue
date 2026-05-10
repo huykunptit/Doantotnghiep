@@ -149,16 +149,16 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
           <div style="font-size: 2rem; font-weight: 800;">{{ monitorData.summary?.total || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Tổng thí sinh</div>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #4caf50;">
-          <div style="font-size: 2rem; font-weight: 800; color: #4caf50;">{{ monitorData.summary?.in_progress || 0 }}</div>
+        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid var(--green);">
+          <div style="font-size: 2rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.in_progress || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Đang thi</div>
         </div>
         <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #ff9800;">
           <div style="font-size: 2rem; font-weight: 800; color: #ff9800;">{{ monitorData.summary?.paused || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Tạm dừng</div>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #2196f3;">
-          <div style="font-size: 2rem; font-weight: 800; color: #2196f3;">{{ monitorData.summary?.submitted || 0 }}</div>
+        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid var(--green);">
+          <div style="font-size: 2rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.submitted || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Đã nộp</div>
         </div>
         <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #f44336;">
@@ -198,7 +198,7 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
                 </td>
                 <td>
                   <span v-if="a.violations_count > 0" style="color: #f44336; font-weight: 700;">⚠ {{ a.violations_count }}</span>
-                  <span v-else style="color: #4caf50;">0</span>
+                  <span v-else style="color: var(--green);">0</span>
                 </td>
                 <td style="font-size: 0.75rem;">{{ a.auto_saved_at ? new Date(a.auto_saved_at).toLocaleTimeString('vi') : '—' }}</td>
                 <td>
@@ -206,7 +206,7 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
                     <button v-if="a.status === 'in_progress'" class="action-btn is-edit" type="button" title="Tạm dừng" @click="openAction('pause', a)">⏸ Dừng</button>
                     <button v-if="a.status === 'paused'" class="action-btn is-view" type="button" title="Cho tiếp tục" @click="openAction('resume', a)">▶ Tiếp</button>
                     <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn is-delete" type="button" title="Dừng hẳn (vi phạm)" @click="openAction('force-stop', a)">⛔ Dừng hẳn</button>
-                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gia hạn thời gian" style="color: #2196f3;" @click="openAction('extend', a)">⏱ Gia hạn</button>
+                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gia hạn thời gian" style="color: var(--green);" @click="openAction('extend', a)">⏱ Gia hạn</button>
                     <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gửi cảnh báo tới màn hình thí sinh" style="color: #d97706;" @click="openAction('warn', a)">⚠ Cảnh báo</button>
                   </div>
                   <div v-if="a.force_stop_reason" style="font-size: 0.75rem; color: #f44336; margin-top: 4px;">Lý do: {{ a.force_stop_reason }}</div>
@@ -355,8 +355,8 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
 .proctor-field select:focus,
 .proctor-field textarea:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.15);
 }
 .proctor-quick-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
 .proctor-quick-btn {
@@ -369,5 +369,5 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
   font-weight: 700;
   color: #334155;
 }
-.proctor-quick-btn:hover { border-color: #1976d2; color: #1558b0; background: #e8f1ff; }
+.proctor-quick-btn:hover { border-color: var(--green); color: #1558b0; background: rgba(var(--green-rgb), 0.05); }
 </style>

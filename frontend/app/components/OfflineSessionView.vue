@@ -143,7 +143,7 @@ function formatTime(dateStr: string) {
 }
 
 .note-box i {
-  color: #3b82f6;
+  color: var(--green);
   margin-top: 0.2rem;
 }
 </style>

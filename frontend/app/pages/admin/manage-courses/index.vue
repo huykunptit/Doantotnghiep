@@ -19,6 +19,24 @@ const defaultForm = { title: '', description: '', price: 0, category_id: '' }
 const form = reactive({ ...defaultForm })
 
 const statuses = [{ label: 'Tất cả', value: '' }, { label: 'Đã xuất bản', value: 'published' }, { label: 'Chờ duyệt', value: 'pending_review' }, { label: 'Bản nháp', value: 'draft' }, { label: 'Bị từ chối', value: 'rejected' }]
+const selectedIds = ref<number[]>([])
+const activeDropdown = ref<number | null>(null)
+
+const isAllSelected = computed(() => {
+  return courses.value.length > 0 && courses.value.every(c => selectedIds.value.includes(c.id))
+})
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = courses.value.map(c => c.id)
+  }
+}
+
+function toggleDropdown(id: number) {
+  activeDropdown.value = activeDropdown.value === id ? null : id
+}
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
 
 const statusLabel = (value: string) => ({ pending_review: 'Chờ duyệt', published: 'Đã xuất bản', rejected: 'Bị từ chối', draft: 'Bản nháp' }[value] || value)
@@ -99,11 +117,13 @@ onMounted(() => {
       
       <div class="crud-table-wrap">
         <table class="crud-table">
-          <thead><tr><th>Khóa học</th><th>Giảng viên</th><th>Danh mục</th><th>Trạng thái</th><th>Nội dung</th><th>Thao tác</th></tr></thead>
+          <thead><tr><th style="width: 40px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th><th style="width: 60px">STT</th><th>Khóa học</th><th>Giảng viên</th><th>Danh mục</th><th>Trạng thái</th><th>Nội dung</th><th style="text-align: right">Thao tác</th></tr></thead>
           <tbody>
             <tr v-if="loading"><td colspan="6" class="crud-empty">Đang tải dữ liệu khóa học...</td></tr>
             <tr v-else-if="courses.length === 0"><td colspan="6" class="crud-empty">Chưa có khóa học.</td></tr>
-            <tr v-for="course in courses" :key="course.id">
+            <tr v-for="(course, idx) in courses" :key="course.id">
+              <td><input type="checkbox" v-model="selectedIds" :value="course.id"></td>
+              <td>{{ (currentPage - 1) * 12 + idx + 1 }}</td>
               <td>
                 <div class="crud-course">
                   <div class="crud-course-thumb">
@@ -121,10 +141,16 @@ onMounted(() => {
               <td><span class="crud-badge" :class="statusClass(course.status)">{{ statusLabel(course.status) }}</span></td>
               <td>{{ course.lessons_count || 0 }} bài</td>
               <td>
-                <div class="crud-actions">
-                  <button class="action-btn" type="button" @click="navigateTo(`/courses/${course.id}`)">Xem thử</button>
-                  <button class="action-btn is-edit" type="button" @click="navigateTo(`/admin/manage-courses/${course.id}`)">Xây dựng nội dung</button>
-                  <button class="action-btn is-delete" type="button" @click="selectedCourse = course; confirmOpen = true">Xóa</button>
+                <div class="crud-actions-dropdown" style="text-align: right">
+                  <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(course.id)">
+                    <span class="material-symbols-outlined">more_vert</span>
+                  </button>
+                  <div v-if="activeDropdown === course.id" class="dropdown-menu">
+                    <button class="dropdown-item" type="button" @click="navigateTo(`/courses/${course.id}`)">Xem thử</button>
+                    <button class="dropdown-item" type="button" @click="navigateTo(`/admin/manage-courses/${course.id}`)">Xây dựng nội dung</button>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item is-danger" type="button" @click="selectedCourse = course; confirmOpen = true">Xóa khóa học</button>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -175,3 +201,76 @@ onMounted(() => {
     <CrudConfirmModal :open="confirmOpen" title="Xóa khóa học" :description="`Thao tác này sẽ xóa hoàn toàn khóa học ${selectedCourse?.title}. Không thể hoàn tác.`" confirm-text="Xóa khóa học" tone="danger" @close="confirmOpen = false" @confirm="deleteCourse" />
   </AdminWorkspaceShell>
 </template>
+
+<style scoped>
+/* Dropdown Styles */
+.crud-actions-dropdown {
+  position: relative;
+  display: block;
+}
+
+.action-toggle-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: background-color 0.2s;
+}
+
+.action-toggle-btn:hover {
+  background-color: rgba(17, 17, 17, 0.05);
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  z-index: 50;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.dropdown-item {
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1e293b;
+  transition: all 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(var(--green-rgb), 0.08);
+  color: var(--green);
+}
+
+.dropdown-item.is-danger {
+  color: #dc2626;
+}
+
+.dropdown-item.is-danger:hover {
+  background-color: #fef2f2;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: rgba(17, 17, 17, 0.1);
+  margin: 4px 0;
+}
+</style>

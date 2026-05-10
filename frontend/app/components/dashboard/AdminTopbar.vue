@@ -123,11 +123,11 @@ onUnmounted(() => {
         <span class="material-symbols-outlined">menu</span>
       </button>
 
-      <div class="tb-brand-pill">
+      <!-- <div class="tb-brand-pill">
         <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="tb-brand-logo">
         <span v-else class="tb-brand-dot" />
         <span class="tb-brand-text">{{ siteName }}</span>
-      </div>
+      </div> -->
     </div>
 
     <!-- Center: search -->
@@ -274,7 +274,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: background 150ms ease;
 }
-.tb-toggle:hover { background: rgba(47, 122, 69, 0.06); }
+.tb-toggle:hover { background: rgba(var(--green-rgb), 0.06); }
 .tb-toggle .material-symbols-outlined { font-size: 22px; }
 
 .tb-brand-pill {
@@ -290,8 +290,8 @@ onUnmounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #2f7a45;
-  box-shadow: 0 0 0 4px rgba(47, 122, 69, 0.12);
+  background: var(--green);
+  box-shadow: 0 0 0 4px rgba(var(--green-rgb), 0.12);
 }
 .tb-brand-logo {
   width: 22px;
@@ -322,8 +322,8 @@ onUnmounted(() => {
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 .tb-search:focus-within {
-  border-color: rgba(47, 122, 69, 0.4);
-  box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.08);
+  border-color: rgba(var(--green-rgb), 0.4);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.08);
   background: rgba(255, 255, 255, 0.9);
 }
 .tb-search-icon { font-size: 19px; color: var(--muted, #5f675f); flex-shrink: 0; }
@@ -376,7 +376,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: background 150ms ease, color 150ms ease, transform 150ms ease;
 }
-.tb-icon-btn:hover { background: rgba(47, 122, 69, 0.08); color: var(--green-deep, #1f5d33); transform: translateY(-1px); }
+.tb-icon-btn:hover { background: rgba(var(--green-rgb), 0.08); color: var(--green-deep, var(--green-deep)); transform: translateY(-1px); }
 .tb-icon-btn .material-symbols-outlined { font-size: 20px; }
 
 .tb-badge {
@@ -409,7 +409,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: background 150ms ease, transform 150ms ease;
 }
-.tb-user-chip:hover { background: rgba(47, 122, 69, 0.06); transform: translateY(-1px); }
+.tb-user-chip:hover { background: rgba(var(--green-rgb), 0.06); transform: translateY(-1px); }
 
 .tb-avatar {
   display: grid;
@@ -417,7 +417,7 @@ onUnmounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   font-weight: 800;
   font-size: 0.82rem;
@@ -484,7 +484,7 @@ onUnmounted(() => {
 .tb-mark-read {
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--green-deep, #1f5d33);
+  color: var(--green-deep, var(--green-deep));
   background: transparent;
   border: none;
   cursor: pointer;
@@ -518,8 +518,8 @@ onUnmounted(() => {
   color: inherit;
   transition: background 150ms ease;
 }
-.tb-notif-item:hover { background: rgba(47, 122, 69, 0.04); }
-.tb-notif-item.is-unread { background: rgba(47, 122, 69, 0.03); }
+.tb-notif-item:hover { background: rgba(var(--green-rgb), 0.04); }
+.tb-notif-item.is-unread { background: rgba(var(--green-rgb), 0.03); }
 .tb-notif-item:last-child { border-bottom: none; }
 
 .tb-notif-icon {
@@ -533,8 +533,8 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .tb-notif-icon.is-unread {
-  background: rgba(47, 122, 69, 0.1);
-  color: var(--green-deep, #1f5d33);
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green-deep, var(--green-deep));
 }
 .tb-notif-icon .material-symbols-outlined { font-size: 16px; }
 
@@ -564,7 +564,7 @@ onUnmounted(() => {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: var(--green-deep, #1f5d33);
+  background: var(--green-deep, var(--green-deep));
   flex-shrink: 0;
   margin-top: 6px;
 }
@@ -604,7 +604,7 @@ onUnmounted(() => {
   width: 100%;
 }
 .tb-menu-item:hover {
-  background: rgba(47, 122, 69, 0.07);
+  background: rgba(var(--green-rgb), 0.07);
   color: var(--text, #111111);
 }
 .tb-menu-item .material-symbols-outlined { font-size: 18px; }

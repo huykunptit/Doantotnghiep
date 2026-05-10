@@ -17,7 +17,7 @@ const props = withDefaults(
   },
 )
 
-const PALETTE = ['#2f7a45', '#16a34a', '#d97706', '#dc2626', '#1976d2', '#7c3aed']
+const PALETTE = ['var(--green)', 'var(--green)', '#d97706', '#dc2626', 'var(--green)', '#7c3aed']
 
 const total = computed(() => props.segments.reduce((sum, s) => sum + s.value, 0))
 

@@ -82,7 +82,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
 .course-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 48px -18px rgba(17, 17, 17, 0.2);
-  border-color: rgba(47, 122, 69, 0.2);
+  border-color: rgba(var(--green-rgb), 0.2);
 }
 
 /* Thumbnail */
@@ -90,7 +90,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
   position: relative;
   height: 188px;
   overflow: hidden;
-  background: rgba(47, 122, 69, 0.08);
+  background: rgba(var(--green-rgb), 0.08);
   flex-shrink: 0;
 }
 .thumb-img {
@@ -107,11 +107,11 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: rgba(47,122,69,0.08);
+  background: rgba(var(--green-rgb),0.08);
 }
 .thumb-fallback .material-symbols-outlined {
   font-size: 48px;
-  color: rgba(47, 122, 69, 0.4);
+  color: rgba(var(--green-rgb), 0.4);
 }
 
 .thumb-overlay {
@@ -140,7 +140,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
   text-transform: uppercase;
 }
 .badge--free {
-  background: rgba(47, 122, 69, 0.9);
+  background: rgba(var(--green-rgb), 0.9);
   color: #fff;
 }
 .badge--cat {
@@ -200,7 +200,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
   overflow: hidden;
   transition: color 180ms ease;
 }
-.course-card:hover .card-title { color: var(--green-deep, #1f5d33); }
+.course-card:hover .card-title { color: var(--green-deep, var(--green-deep)); }
 
 .card-excerpt {
   margin: 0 0 12px;
@@ -259,7 +259,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--green-deep, #1f5d33);
+  color: var(--green-deep, var(--green-deep));
 }
 
 .card-cta {
@@ -268,7 +268,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
   gap: 4px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--green-deep, #1f5d33);
+  color: var(--green-deep, var(--green-deep));
   white-space: nowrap;
 }
 .cta-arrow {

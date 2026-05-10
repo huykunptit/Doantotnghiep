@@ -142,7 +142,7 @@ if (import.meta.client) {
   width: 40px; height: 40px;
   border-radius: 50%;
   background: #fff;
-  border: 1px solid rgba(47, 122, 69, 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
@@ -150,7 +150,7 @@ if (import.meta.client) {
 .cd-bell-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
 .cd-bell-icon { font-size: 20px; color: var(--outline, #64748b); transition: color 0.2s; }
-.cd-bell-btn:hover .cd-bell-icon { color: var(--primary, #2f7a45); }
+.cd-bell-btn:hover .cd-bell-icon { color: var(--primary, var(--green)); }
 
 .cd-bell-badge {
   position: absolute; top: -2px; right: -2px;
@@ -167,7 +167,7 @@ if (import.meta.client) {
   width: 320px;
   background: #fff;
   border-radius: 24px;
-  border: 1px solid rgba(47, 122, 69, 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
   box-shadow: 0 12px 40px rgba(0,0,0,0.12);
   overflow: hidden;
 }
@@ -182,7 +182,7 @@ if (import.meta.client) {
 .cd-notif-title { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--on-surface, #0f172a); }
 .cd-notif-mark-read {
   background: transparent; border: none; padding: 0;
-  font-size: 0.75rem; font-weight: 600; color: var(--primary, #2f7a45);
+  font-size: 0.75rem; font-weight: 600; color: var(--primary, var(--green));
   cursor: pointer;
 }
 .cd-notif-mark-read:hover { text-decoration: underline; }
@@ -203,14 +203,14 @@ if (import.meta.client) {
 }
 .cd-notif-item:last-child { border-bottom: none; }
 .cd-notif-item:hover { background: var(--surface-low, #f1f5f9); }
-.cd-notif-item.is-unread { background: rgba(47, 122, 69, 0.04); }
+.cd-notif-item.is-unread { background: rgba(var(--green-rgb), 0.04); }
 
 .cd-notif-icon-wrap {
   display: flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; margin-top: 2px;
   background: var(--surface-high, #e2e8f0); color: var(--outline, #64748b);
 }
-.cd-notif-icon-wrap.is-unread-icon { background: rgba(47, 122, 69, 0.1); color: var(--primary, #2f7a45); }
+.cd-notif-icon-wrap.is-unread-icon { background: rgba(var(--green-rgb), 0.1); color: var(--primary, var(--green)); }
 .cd-notif-icon-wrap .material-symbols-outlined { font-size: 16px; }
 
 .cd-notif-content { min-width: 0; flex: 1; }
@@ -224,7 +224,7 @@ if (import.meta.client) {
 }
 .cd-notif-time { margin: 4px 0 0; font-size: 0.625rem; color: var(--outline, #64748b); }
 
-.cd-notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary, #2f7a45); margin-top: 8px; flex-shrink: 0; }
+.cd-notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary, var(--green)); margin-top: 8px; flex-shrink: 0; }
 
 .cd-notif-overlay { position: fixed; inset: 0; z-index: 40; }
 

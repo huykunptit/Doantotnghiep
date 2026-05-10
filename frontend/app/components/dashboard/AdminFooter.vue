@@ -18,7 +18,7 @@ const quickLinks = [
         <div class="af-brand-mark" />
         <div>
           <p class="af-brand-name">EduPress Admin</p>
-          <p class="af-brand-sub">Đồ án tốt nghiệp · PTIT {{ year }}</p>
+          <p class="af-brand-sub"> PTIT {{ year }}</p>
         </div>
       </div>
 
@@ -76,7 +76,7 @@ const quickLinks = [
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: #2f7a45;
+  background: var(--green);
   flex-shrink: 0;
   position: relative;
 }
@@ -119,8 +119,8 @@ const quickLinks = [
   transition: background 150ms ease, color 150ms ease;
 }
 .af-link:hover {
-  background: rgba(47, 122, 69, 0.08);
-  color: var(--green-deep, #1f5d33);
+  background: rgba(var(--green-rgb), 0.08);
+  color: var(--green-deep, var(--green-deep));
 }
 
 /* ── Right ── */
@@ -138,18 +138,18 @@ const quickLinks = [
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: #2f7a45;
-  box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.18);
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.18);
   animation: af-pulse 2.4s ease-in-out infinite;
 }
 @keyframes af-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.18); }
-  50% { box-shadow: 0 0 0 5px rgba(47, 122, 69, 0.08); }
+  0%, 100% { box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.18); }
+  50% { box-shadow: 0 0 0 5px rgba(var(--green-rgb), 0.08); }
 }
 .af-status-text {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--green-deep, #1f5d33);
+  color: var(--green-deep, var(--green-deep));
 }
 .af-version {
   font-size: 0.72rem;

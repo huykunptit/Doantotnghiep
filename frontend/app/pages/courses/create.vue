@@ -18,21 +18,27 @@
                 </template>
               </select>
             </label>
+            <label class="block space-y-2 text-sm font-semibold text-slate-700">
+              <span>Chứng chỉ hoàn thành</span>
+              <select v-model.number="form.certificate_template_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary">
+                <option :value="0">-- Không cấp chứng chỉ --</option>
+                <option v-for="cert in certificates" :key="cert.id" :value="cert.id">{{ cert.name }}</option>
+              </select>
+            </label>
             <UiInput v-model="form.price" label="Giá (VNĐ)" type="number" />
           </div>
 
           <UiTextarea v-model="form.description" label="Mô tả khóa học" :rows="6" placeholder="Mô tả mục tiêu, nội dung chính và đối tượng phù hợp..." />
 
-          <div class="space-y-3">
-            <UiInput v-model="form.thumbnail" label="URL ảnh bìa" type="url" placeholder="https://..." />
-            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 transition hover:border-primary/40 hover:bg-white">
-              <span>{{ thumbnailFile ? thumbnailFile.name : 'Hoặc chọn file ảnh từ máy' }}</span>
-              <input type="file" accept="image/*" class="hidden" @change="handleThumbnailChange">
-              <span class="font-semibold text-primary">Chọn ảnh</span>
-            </label>
-          </div>
-          <div v-if="thumbnailPreview" class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 h-52">
-            <img :src="thumbnailPreview" alt="preview" class="h-full w-full object-cover" @error="thumbnailPreview = ''">
+          <div class="space-y-2">
+            <p class="text-sm font-semibold text-slate-700">Ảnh bìa khóa học</p>
+            <MediaUpload
+              v-model="form.thumbnail"
+              folder="courses"
+              variant="banner"
+              label="Ảnh bìa"
+              hint="JPG, PNG, WEBP — tối đa 5MB. Tự động tải lên khi chọn tệp."
+            />
           </div>
 
           <div v-if="error" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
@@ -47,10 +53,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useCourseStore } from '~/stores/course'
+import MediaUpload from '~/components/common/MediaUpload.vue'
 
 definePageMeta({ middleware: 'instructor' })
 const router = useRouter()
@@ -58,21 +65,9 @@ const auth = useAuthStore()
 const courseStore = useCourseStore()
 const loading = ref(false)
 const error = ref('')
-const form = reactive({ title: '', description: '', price: 0, category_id: 0, thumbnail: '' })
-const thumbnailFile = ref<File | null>(null)
-const thumbnailPreview = ref('')
-onMounted(async () => { if (auth.token && !auth.user) await auth.fetchMe(); await courseStore.fetchCategories(); if (!auth.user?.roles?.some((r) => ['admin', 'instructor'].includes(r))) router.push('/courses') })
-
-watch(() => form.thumbnail, (value) => {
-  if (!thumbnailFile.value) thumbnailPreview.value = value || ''
-})
-
-function handleThumbnailChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  thumbnailFile.value = file || null
-  thumbnailPreview.value = file ? URL.createObjectURL(file) : (form.thumbnail || '')
-}
+const certificates = ref<any[]>([])
+const form = reactive({ title: '', description: '', price: 0, category_id: 0, certificate_template_id: 0, thumbnail: '' })
+onMounted(async () => { if (auth.token && !auth.user) await auth.fetchMe(); await courseStore.fetchCategories(); try { certificates.value = await useApi<any[]>('/admin/certificates', { headers: { Authorization: `Bearer ${auth.token}` } }) } catch(e) {} if (!auth.user?.roles?.some((r) => ['admin', 'instructor'].includes(r))) router.push('/courses') })
 
 async function handleSubmit() {
   loading.value = true
@@ -83,8 +78,8 @@ async function handleSubmit() {
     payload.append('description', form.description || '')
     payload.append('price', String(Number(form.price)))
     if (form.category_id) payload.append('category_id', String(form.category_id))
+    if (form.certificate_template_id) payload.append('certificate_template_id', String(form.certificate_template_id))
     if (form.thumbnail) payload.append('thumbnail', form.thumbnail)
-    if (thumbnailFile.value) payload.append('thumbnail_file', thumbnailFile.value)
 
     const course = await courseStore.createCourse(payload)
     router.push(`/instructor/courses/${course.id}/curriculum`)

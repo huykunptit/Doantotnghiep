@@ -1,13 +1,13 @@
 export default defineNuxtPlugin(async () => {
-  const { settings, siteName, siteFavicon, refreshSettings } = useSiteSettings()
+  const { settings, siteTitle, siteFavicon, refreshSettings } = useSiteSettings()
 
   if (!settings.value) {
     await refreshSettings()
   }
 
   useHead({
-    title: () => siteName.value,
-    titleTemplate: (chunk) => (chunk && chunk !== siteName.value ? `${chunk} · ${siteName.value}` : siteName.value),
+    title: () => siteTitle.value,
+    titleTemplate: (chunk) => (chunk && chunk !== siteTitle.value ? `${chunk} · ${siteTitle.value}` : siteTitle.value),
     link: () => {
       const favicon = siteFavicon.value
       return favicon

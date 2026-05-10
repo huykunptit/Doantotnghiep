@@ -41,8 +41,8 @@ const questionTypes = [
 ]
 
 const difficultyLevels = [
-  { value: 1, label: 'Nhận biết', color: '#4caf50' },
-  { value: 2, label: 'Thông hiểu', color: '#2196f3' },
+  { value: 1, label: 'Nhận biết', color: 'var(--green)' },
+  { value: 2, label: 'Thông hiểu', color: 'var(--green)' },
   { value: 3, label: 'Vận dụng', color: '#ff9800' },
   { value: 4, label: 'Vận dụng cao', color: '#f44336' },
   { value: 5, label: 'Sáng tạo', color: '#9c27b0' },
@@ -364,8 +364,8 @@ onMounted(fetchBank)
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  background: rgba(47, 122, 69, 0.08);
-  color: var(--green-deep, #2f7a45);
+  background: rgba(var(--green-rgb), 0.08);
+  color: var(--green-deep, var(--green));
   border-radius: 20px;
   font-size: 0.88rem;
   font-weight: 600;
@@ -442,12 +442,12 @@ onMounted(fetchBank)
 }
 
 .qf-tf-option:hover {
-  border-color: var(--green-deep, #2f7a45);
+  border-color: var(--green-deep, var(--green));
 }
 
 .qf-tf-option.is-selected {
-  border-color: var(--green-deep, #2f7a45);
-  background: rgba(47, 122, 69, 0.04);
+  border-color: var(--green-deep, var(--green));
+  background: rgba(var(--green-rgb), 0.04);
 }
 
 .qf-tf-option input[type="radio"] {
@@ -466,7 +466,7 @@ onMounted(fetchBank)
 
 .qf-tf-icon--true {
   background: rgba(76, 175, 80, 0.12);
-  color: #4caf50;
+  color: var(--green);
 }
 
 .qf-tf-icon--false {
@@ -502,7 +502,7 @@ onMounted(fetchBank)
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: var(--green-deep, #2f7a45);
+  background: var(--green-deep, var(--green));
   color: #fff;
   font-weight: 700;
   font-size: 0.82rem;

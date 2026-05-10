@@ -336,7 +336,7 @@ onMounted(loadQas)
   font-size: 0.95rem;
 }
 .qa-avatar--me {
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
 }
 .qa-avatar--sm {
@@ -358,8 +358,8 @@ onMounted(loadQas)
 }
 .qa-composer.is-focused {
   background: #fff;
-  border-color: rgba(47, 122, 69, 0.42);
-  box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.08);
+  border-color: rgba(var(--green-rgb), 0.42);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.08);
 }
 
 .qa-composer-body {
@@ -403,9 +403,9 @@ onMounted(loadQas)
   transition: filter 0.15s, background 0.15s, transform 0.15s;
 }
 .qa-btn-primary {
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
-  box-shadow: 0 6px 14px rgba(47, 122, 69, 0.32);
+  box-shadow: 0 6px 14px rgba(var(--green-rgb), 0.32);
 }
 .qa-btn-primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
 .qa-btn-primary:disabled {
@@ -530,8 +530,8 @@ onMounted(loadQas)
 .qa-action .material-symbols-outlined { font-size: 16px; }
 
 .qa-action.is-active {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green);
 }
 .qa-action.is-active.is-dislike {
   background: rgba(220, 38, 38, 0.1);
@@ -540,7 +540,7 @@ onMounted(loadQas)
 
 .qa-action-toggle {
   margin-left: auto;
-  color: #2563eb;
+  color: var(--green);
 }
 
 /* ───── Replies ───── */
@@ -582,8 +582,8 @@ onMounted(loadQas)
   transition: border-color 0.15s, background 0.15s;
 }
 .qa-reply-input:focus {
-  border-color: #2563eb;
+  border-color: var(--green);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.1);
 }
 </style>

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 import CourseProgressCard from '~/components/student/CourseProgressCard.vue'
+import DashboardSchedule from '~/components/dashboard/DashboardSchedule.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -40,6 +41,12 @@ const filteredCourses = computed(() => {
 const totalCourses = computed(() => enrollments.value.length)
 const completedCourses = computed(() => enrollments.value.filter(e => e.progress >= 100).length)
 const inProgressCourses = computed(() => totalCourses.value - completedCourses.value)
+
+const mockEvents = [
+  { id: 1, title: 'Học nhóm Nuxt.js', time: '08:30', date: 'Hôm nay', type: 'lesson', course: 'Nuxt.js Masterclass', location: 'Phòng học 302' },
+  { id: 2, title: 'Kiểm tra giữa kỳ', time: '14:00', date: 'Hôm nay', type: 'exam', course: 'Cơ sở dữ liệu', location: 'Trực tuyến' },
+  { id: 3, title: 'Hạn chót nộp đồ án', time: '23:59', date: 'Ngày mai', type: 'deadline', course: 'Lập trình Web' },
+] as any[]
 </script>
 
 <template>
@@ -59,14 +66,14 @@ const inProgressCourses = computed(() => totalCourses.value - completedCourses.v
             </div>
           </div>
           <div class="sp-stat-card">
-            <span class="material-symbols-outlined" style="color: #3b82f6">pending_actions</span>
+            <span class="material-symbols-outlined" style="color: var(--green)">pending_actions</span>
             <div>
               <div class="sp-stat-value">{{ inProgressCourses }}</div>
               <div class="sp-stat-label">Đang học</div>
             </div>
           </div>
           <div class="sp-stat-card">
-            <span class="material-symbols-outlined" style="color: #10b981">verified</span>
+            <span class="material-symbols-outlined" style="color: var(--green)">verified</span>
             <div>
               <div class="sp-stat-value">{{ completedCourses }}</div>
               <div class="sp-stat-label">Đã hoàn thành</div>
@@ -79,6 +86,9 @@ const inProgressCourses = computed(() => totalCourses.value - completedCourses.v
     <!-- Main Content -->
     <main class="sp-main">
       <div class="sp-container">
+        <!-- Learning Schedule -->
+        <DashboardSchedule :events="mockEvents" title="Lịch học của tôi" style="margin-bottom: 2.5rem;" />
+
         <div class="sp-header">
           <h2 class="sp-section-title">Khóa học của tôi</h2>
           <div class="sp-filters">
@@ -127,7 +137,7 @@ const inProgressCourses = computed(() => totalCourses.value - completedCourses.v
 
 /* ── Hero Section ── */
 .sp-hero {
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   padding: 3rem 1.5rem;
   position: relative;
@@ -235,7 +245,7 @@ const inProgressCourses = computed(() => totalCourses.value - completedCourses.v
 }
 .sp-filter-btn.active {
   background: var(--surface-lowest, #fff);
-  color: var(--primary, #2f7a45);
+  color: var(--primary, var(--green));
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
@@ -260,7 +270,7 @@ const inProgressCourses = computed(() => totalCourses.value - completedCourses.v
 .sp-spinner {
   width: 40px; height: 40px;
   border: 3px solid var(--surface-dim, #e5e7eb);
-  border-top-color: var(--primary, #2f7a45);
+  border-top-color: var(--primary, var(--green));
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -295,7 +305,7 @@ const inProgressCourses = computed(() => totalCourses.value - completedCourses.v
 .sp-btn-primary {
   display: inline-block;
   padding: 12px 24px;
-  background: var(--primary, #2f7a45);
+  background: var(--primary, var(--green));
   color: #fff;
   border-radius: 12px;
   font-weight: 700;

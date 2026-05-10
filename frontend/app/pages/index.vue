@@ -85,7 +85,7 @@ useSeoMeta({
   twitterDescription: SITE_DESCRIPTION,
   twitterImage: `${SITE_URL}/og-cover.png`,
   robots: 'index,follow,max-image-preview:large',
-  themeColor: '#2f7a45',
+  themeColor: 'var(--green)',
 })
 
 const courseListJsonLd = computed(() => ({
@@ -163,6 +163,16 @@ const steps = [
   { num: '02', title: 'Chọn khoá học', desc: 'Duyệt theo danh mục, lộ trình nghề nghiệp hoặc tìm kiếm theo từ khoá.' },
   { num: '03', title: 'Học và thi', desc: 'Xem video, làm quiz, tham gia kỳ thi và nhận chứng chỉ khi hoàn thành.' },
 ]
+
+const googleMapsApiKey = (config.public.googleMapsApiKey as string | undefined) || ''
+const mapQuery = encodeURIComponent('Học viện Công nghệ Bưu chính viễn thông')
+const googleMapEmbedUrl = computed(() => {
+  if (googleMapsApiKey) {
+    return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${mapQuery}`
+  }
+
+  return `https://www.google.com/maps?q=${mapQuery}&z=16&output=embed`
+})
 </script>
 
 <template>
@@ -339,6 +349,44 @@ const steps = [
         </div>
       </div>
     </section>
+
+    <section class="map" aria-labelledby="map-title">
+      <div class="map-inner">
+        <div class="map-copy">
+          <p class="section-kicker">Bản đồ</p>
+          <h2 id="map-title">Tìm đường đến PTIT</h2>
+          <p>
+            Xem nhanh vị trí Học viện Công nghệ Bưu chính Viễn thông trên Google Maps.
+            Bạn có thể phóng to, thu nhỏ hoặc mở trực tiếp trong Google Maps để chỉ đường.
+          </p>
+          <div class="cta-actions">
+            <a
+              class="btn-hero-primary"
+              :href="`https://www.google.com/maps/search/?api=1&query=${mapQuery}`"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="material-symbols-outlined">map</span>
+              Mở Google Maps
+            </a>
+            <NuxtLink to="/register" class="btn-hero-ghost">
+              Tạo tài khoản miễn phí
+            </NuxtLink>
+          </div>
+        </div>
+
+        <div class="map-frame-wrap">
+          <iframe
+            class="map-frame"
+            :src="googleMapEmbedUrl"
+            title="Bản đồ PTIT trên Google Maps"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            allowfullscreen
+          />
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -354,7 +402,7 @@ const steps = [
 .hero {
   position: relative;
   padding: 80px 24px 60px;
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   overflow: hidden;
 }
@@ -422,7 +470,7 @@ const steps = [
 }
 .btn-hero-primary {
   background: #fff;
-  color: #2f7a45;
+  color: var(--green);
 }
 .btn-hero-primary:hover {
   transform: translateY(-2px);
@@ -504,7 +552,7 @@ section.cta { max-width: none; }
 .section-link {
   font-size: 0.86rem;
   font-weight: 700;
-  color: #2f7a45;
+  color: var(--green);
   text-decoration: none;
 }
 .section-link:hover { text-decoration: underline; }
@@ -532,8 +580,8 @@ section.cta { max-width: none; }
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: rgba(47, 122, 69, 0.1);
-  color: #2f7a45;
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green);
   font-size: 28px;
   margin-bottom: 18px;
 }
@@ -571,8 +619,8 @@ section.cta { max-width: none; }
   transition: all 0.18s ease;
 }
 .category-card:hover {
-  border-color: rgba(47, 122, 69, 0.4);
-  background: rgba(47, 122, 69, 0.04);
+  border-color: rgba(var(--green-rgb), 0.4);
+  background: rgba(var(--green-rgb), 0.04);
   transform: translateY(-2px);
 }
 .category-card h3 {
@@ -587,7 +635,7 @@ section.cta { max-width: none; }
 }
 .category-card .material-symbols-outlined {
   font-size: 18px;
-  color: #2f7a45;
+  color: var(--green);
   flex-shrink: 0;
 }
 
@@ -615,12 +663,12 @@ section.cta { max-width: none; }
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  background: rgba(47, 122, 69, 0.08);
+  background: rgba(var(--green-rgb), 0.08);
 }
 .course-thumb-placeholder {
   display: grid;
   place-items: center;
-  color: rgba(47, 122, 69, 0.5);
+  color: rgba(var(--green-rgb), 0.5);
 }
 .course-thumb-placeholder .material-symbols-outlined { font-size: 48px; }
 
@@ -631,7 +679,7 @@ section.cta { max-width: none; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #2f7a45;
+  color: var(--green);
 }
 .course-title { margin: 0; font-size: 0.98rem; font-weight: 700; line-height: 1.4; }
 .course-title a {
@@ -643,7 +691,7 @@ section.cta { max-width: none; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.course-title a:hover { color: #2f7a45; }
+.course-title a:hover { color: var(--green); }
 .course-instructor {
   margin: 0;
   font-size: 0.82rem;
@@ -673,7 +721,7 @@ section.cta { max-width: none; }
   margin-left: auto;
   font-size: 0.92rem;
   font-weight: 800;
-  color: #2f7a45;
+  color: var(--green);
   font-variant-numeric: tabular-nums;
 }
 
@@ -698,7 +746,7 @@ section.cta { max-width: none; }
   font-size: 1.6rem;
   font-weight: 900;
   letter-spacing: -0.03em;
-  color: rgba(47, 122, 69, 0.4);
+  color: rgba(var(--green-rgb), 0.4);
   margin-bottom: 8px;
   font-variant-numeric: tabular-nums;
 }
@@ -724,7 +772,7 @@ section.cta { max-width: none; }
   max-width: 1200px;
   margin: 0 auto;
   padding: 56px 32px;
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   border-radius: 28px;
   text-align: center;
@@ -749,9 +797,79 @@ section.cta { max-width: none; }
   gap: 12px;
 }
 
+/* ── Map ────────────────────────── */
+.map {
+  padding: 0 24px;
+}
+.map-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: stretch;
+}
+.map-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%);
+  border: 1px solid rgba(var(--green-rgb), 0.12);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+.map-copy h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--on-surface, #0f172a);
+}
+.map-copy p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--on-surface-variant, #475569);
+}
+.map-frame-wrap {
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(var(--green-rgb), 0.12);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  background: #e2e8f0;
+}
+.map-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border: 0;
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .map-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 600px) {
   .home { gap: 56px; }
   .hero { padding: 56px 20px 40px; }
   .section-head { flex-direction: column; align-items: flex-start; }
+  .map,
+  .cta {
+    padding: 0 20px;
+  }
+  .map-copy,
+  .cta-inner {
+    padding: 28px 20px;
+  }
+  .map-frame-wrap,
+  .map-frame {
+    min-height: 320px;
+  }
 }
 </style>

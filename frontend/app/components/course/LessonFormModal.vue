@@ -264,7 +264,7 @@ function handleSubmit() {
                   <small style="font-size:0.75rem; color:var(--muted); margin-top:4px;">YouTube, Google Drive, OneDrive hoặc URL trực tiếp.</small>
                 </div>
               </div>
-              <div v-if="lesson?.video_url" style="padding:10px 14px; border-radius:12px; background:rgba(47,122,69,0.06); border:1px solid rgba(47,122,69,0.12); font-size:0.8rem; color:var(--green-deep);">
+              <div v-if="lesson?.video_url" style="padding:10px 14px; border-radius:12px; background:rgba(var(--green-rgb),0.06); border:1px solid rgba(var(--green-rgb),0.12); font-size:0.8rem; color:var(--green-deep);">
                 <strong>Trạng thái:</strong> Bài học này đã có video/link video.
               </div>
             </div>
@@ -481,9 +481,9 @@ function handleSubmit() {
 }
 
 .picker-tab.is-active {
-  background: rgba(47, 122, 69, 0.12);
-  color: var(--green-deep, #1f5d33);
-  border-color: rgba(47, 122, 69, 0.2);
+  background: rgba(var(--green-rgb), 0.12);
+  color: var(--green-deep, var(--green-deep));
+  border-color: rgba(var(--green-rgb), 0.2);
   font-weight: 700;
 }
 
@@ -519,7 +519,7 @@ function handleSubmit() {
 
 .content-picker-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(47, 122, 69, 0.2);
+  border-color: rgba(var(--green-rgb), 0.2);
   box-shadow: 0 18px 40px -28px rgba(17, 17, 17, 0.3);
 }
 
@@ -539,7 +539,7 @@ function handleSubmit() {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: rgba(47, 122, 69, 0.1);
+  background: rgba(var(--green-rgb), 0.1);
   font-size: 1.4rem;
 }
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
-import { useApi } from '~/composables/useApi'
+import MediaUpload from '~/components/common/MediaUpload.vue'
 
 const auth = useAuthStore()
 
@@ -45,20 +45,19 @@ async function handleSubmit() {
       <UiInput :model-value="auth.user?.email || ''" label="Email" type="email" disabled />
     </div>
 
-    <UiInput v-model="form.avatar" label="URL ảnh đại diện" type="url" placeholder="https://example.com/avatar.jpg" />
-
-    <div v-if="form.avatar" class="rounded-2xl border border-surface-dim bg-surface-low p-4">
-      <p class="mb-3 text-sm font-semibold text-on-surface-variant">Xem trước ảnh đại diện</p>
-      <div class="flex items-center gap-4">
-        <img :src="form.avatar" alt="avatar preview" class="h-14 w-14 rounded-2xl object-cover" @error="form.avatar = ''">
-        <div>
-          <p class="font-semibold text-on-surface">{{ form.name || auth.user?.name }}</p>
-          <p class="text-sm text-on-surface-variant">{{ auth.user?.email }}</p>
-        </div>
-      </div>
+    <div class="space-y-2">
+      <p class="text-sm font-semibold text-on-surface-variant">Ảnh đại diện</p>
+      <MediaUpload
+        v-model="form.avatar"
+        folder="users"
+        variant="avatar"
+        label="Ảnh đại diện"
+        hint="JPG, PNG, WEBP — tối đa 5MB. Tự động tải lên khi chọn tệp."
+        :placeholder-initial="(form.name || auth.user?.name || '?').charAt(0).toUpperCase()"
+      />
     </div>
 
-    <div v-if="success" class="rounded-2xl border border-secondary/20 bg-secondary-50 px-4 py-3 text-sm text-secondary">{{ success }}</div>
+    <div v-if="success" class="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">{{ success }}</div>
     <div v-if="error" class="rounded-2xl border border-error/20 bg-error-container px-4 py-3 text-sm text-error">{{ error }}</div>
 
     <div class="flex justify-end">

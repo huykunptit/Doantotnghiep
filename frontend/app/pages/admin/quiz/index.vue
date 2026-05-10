@@ -19,7 +19,7 @@ const STATUS_MAP: Record<string, string> = {
   draft: 'Nháp', scheduled: 'Lên lịch', active: 'Đang thi', closed: 'Đã đóng', archived: 'Lưu trữ'
 }
 const STATUS_COLOR: Record<string, string> = {
-  draft: '#999', scheduled: '#2196f3', active: '#4caf50', closed: '#f44336', archived: '#666'
+  draft: '#999', scheduled: 'var(--green)', active: 'var(--green)', closed: '#f44336', archived: '#666'
 }
 
 const user = useAuthUserCookie(); const token = useAuthTokenCookie()
@@ -214,15 +214,15 @@ onMounted(async () => {
   font-weight: 600; font-size: 0.9rem; color: var(--text-secondary, #666);
   border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;
 }
-.tab-btn.active { color: var(--primary, #1976d2); border-bottom-color: var(--primary, #1976d2); }
-.tab-btn:hover { color: var(--primary, #1976d2); }
+.tab-btn.active { color: var(--primary, var(--green)); border-bottom-color: var(--primary, var(--green)); }
+.tab-btn:hover { color: var(--primary, var(--green)); }
 
 .list-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   margin-bottom: 1.25rem; gap: 1rem;
 }
 .inline-link {
-  background: none; border: none; color: var(--primary, #1976d2);
+  background: none; border: none; color: var(--primary, var(--green));
   cursor: pointer; font-size: 0.85rem; text-decoration: underline; margin-left: 0.5rem;
 }
 </style>

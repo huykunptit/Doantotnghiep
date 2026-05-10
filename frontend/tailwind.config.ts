@@ -16,6 +16,7 @@ export default {
           lowest: '#ffffff',
           low: '#f4f6f4',
           high: '#dde0db',
+          highest: '#d1d5cf',
           dim: '#ced2cc',
           tint: '#e8f2eb',
         },
@@ -24,17 +25,28 @@ export default {
           DEFAULT: '#111111',
           variant: '#5f675f',
         },
-        // Primary green
+        // Dynamic Primary from CSS Variables
         primary: {
-          DEFAULT: '#2f7a45',
-          dark: '#1f5d33',
-          300: '#58b56c',
-          600: '#1f5d33',
+          DEFAULT: 'rgb(var(--primary-rgb, 47, 122, 69))',
+          50: 'rgba(var(--primary-rgb, 47, 122, 69), 0.05)',
+          100: 'rgba(var(--primary-rgb, 47, 122, 69), 0.1)',
         },
-        // Secondary green
         secondary: {
-          DEFAULT: '#3a8c55',
-          50: '#f0faf2',
+          DEFAULT: 'rgba(var(--primary-rgb, 47, 122, 69), 0.8)',
+          50: 'rgba(var(--primary-rgb, 47, 122, 69), 0.02)',
+          100: 'rgba(var(--primary-rgb, 47, 122, 69), 0.05)',
+        },
+        // Tertiary (Emerald/Mint)
+        tertiary: {
+          DEFAULT: '#10b981',
+          dark: '#059669',
+          50: '#f0fdf4',
+          100: '#dcfce7',
+        },
+        // Warning / Orange
+        warning: {
+          DEFAULT: '#d97706',
+          container: '#fff7ed',
         },
         // Outline / muted text
         outline: '#8a9388',
@@ -45,8 +57,8 @@ export default {
         },
         // Success
         success: {
-          DEFAULT: '#16a34a',
-          container: '#dcfce7',
+          DEFAULT: '#2f7a45', // Align with primary
+          container: '#f0faf2',
         },
       },
       fontFamily: {

@@ -1,17 +1,29 @@
+<script setup lang="ts">
+const { brandMark, siteLogo, siteName, siteTagline, settings } = useSiteSettings()
+
+const siteDescription = computed(
+  () => settings.value?.site_description || 'Hệ thống học tập trực tuyến dành cho sinh viên, giảng viên và quản trị viên với trải nghiệm hiện đại, rõ ràng và dễ sử dụng.',
+)
+const supportEmail = computed(() => settings.value?.contact_email || 'support@example.com')
+const supportPhone = computed(() => settings.value?.contact_phone || '1900 9999')
+const footerCopyright = computed(
+  () => settings.value?.footer_copyright || `© ${new Date().getFullYear()} ${siteName.value}. Đồ án tốt nghiệp.`,
+)
+</script>
+
 <template>
   <footer class="cd-footer">
     <div class="cd-footer-inner">
       <div class="cd-footer-brand">
         <div class="cd-footer-logo-group">
-          <div class="cd-footer-icon">P</div>
+          <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="cd-footer-logo">
+          <div v-else class="cd-footer-icon">{{ brandMark }}</div>
           <div>
-            <p class="cd-footer-title">PTIT Learning</p>
-            <p class="cd-footer-slogan">Nền tảng học tập số</p>
+            <p class="cd-footer-title">{{ siteName }}</p>
+            <p class="cd-footer-slogan">{{ siteTagline || 'Nền tảng học tập số' }}</p>
           </div>
         </div>
-        <p class="cd-footer-desc">
-          Hệ thống học tập trực tuyến dành cho sinh viên, giảng viên và quản trị viên với trải nghiệm hiện đại, rõ ràng và dễ sử dụng.
-        </p>
+        <p class="cd-footer-desc">{{ siteDescription }}</p>
         <div class="cd-footer-tags">
           <span class="cd-tag">E-Learning</span>
           <span class="cd-tag">LMS</span>
@@ -32,8 +44,8 @@
       <div class="cd-footer-links">
         <h3 class="cd-footer-heading">Hỗ trợ</h3>
         <ul class="cd-footer-list">
-          <li><a href="mailto:support@ptitlearning.local" class="cd-footer-link">support@ptitlearning.local</a></li>
-          <li><a href="tel:19009999" class="cd-footer-link">1900 9999</a></li>
+          <li><a :href="`mailto:${supportEmail}`" class="cd-footer-link">{{ supportEmail }}</a></li>
+          <li><a :href="`tel:${supportPhone}`" class="cd-footer-link">{{ supportPhone }}</a></li>
           <li><NuxtLink to="/profile" class="cd-footer-link">Tài khoản của bạn</NuxtLink></li>
           <li><NuxtLink to="/orders" class="cd-footer-link">Lịch sử đơn hàng</NuxtLink></li>
         </ul>
@@ -51,7 +63,7 @@
 
     <div class="cd-footer-bottom">
       <div class="cd-footer-bottom-inner">
-        <p class="cd-copyright">© {{ new Date().getFullYear() }} PTIT Learning. Đồ án tốt nghiệp.</p>
+        <p class="cd-copyright">{{ footerCopyright }}</p>
         <div class="cd-tech-stack">
           <span>Modern UI</span>
           <span>Responsive</span>
@@ -88,9 +100,14 @@
 .cd-footer-icon {
   display: flex; align-items: center; justify-content: center;
   width: 48px; height: 48px; border-radius: 16px;
-  background: #2f7a45;
+  background: var(--green);
   color: #fff; font-size: 1.125rem; font-weight: 900;
-  box-shadow: 0 8px 20px rgba(47, 122, 69, 0.2);
+  box-shadow: 0 8px 20px rgba(var(--green-rgb), 0.2);
+}
+.cd-footer-logo {
+  width: 48px; height: 48px; border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 8px 20px rgba(var(--green-rgb), 0.2);
 }
 .cd-footer-title { margin: 0; font-size: 1.125rem; font-weight: 900; letter-spacing: -0.02em; color: var(--on-surface, #0f172a); }
 .cd-footer-slogan { margin: 0; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.28em; color: var(--outline, #64748b); }
@@ -112,7 +129,7 @@
 .cd-footer-link {
   font-size: 0.875rem; color: var(--on-surface-variant, #475569); text-decoration: none; transition: color 0.2s;
 }
-.cd-footer-link:hover { color: var(--primary, #2f7a45); }
+.cd-footer-link:hover { color: var(--primary, var(--green)); }
 
 /* CTA */
 .cd-footer-cta {
@@ -126,7 +143,7 @@
 
 .cd-btn-primary {
   padding: 10px 20px; border-radius: 999px;
-  background: var(--primary, #2f7a45); color: #fff;
+  background: var(--primary, var(--green)); color: #fff;
   font-size: 0.875rem; font-weight: 600; text-decoration: none; transition: opacity 0.2s;
 }
 .cd-btn-primary:hover { opacity: 0.9; }
@@ -137,7 +154,7 @@
   color: var(--on-surface, #0f172a);
   font-size: 0.875rem; font-weight: 600; text-decoration: none; transition: all 0.2s;
 }
-.cd-btn-outline:hover { border-color: rgba(47, 122, 69, 0.4); color: var(--primary, #2f7a45); }
+.cd-btn-outline:hover { border-color: rgba(var(--green-rgb), 0.4); color: var(--primary, var(--green)); }
 
 /* Bottom */
 .cd-footer-bottom { border-top: 1px solid rgba(17, 17, 17, 0.08); }
@@ -155,5 +172,5 @@
 .cd-copyright { margin: 0; }
 .cd-tech-stack { display: flex; align-items: center; gap: 20px; }
 .cd-tech-stack span { transition: color 0.2s; cursor: default; }
-.cd-tech-stack span:hover { color: var(--primary, #2f7a45); }
+.cd-tech-stack span:hover { color: var(--primary, var(--green)); }
 </style>

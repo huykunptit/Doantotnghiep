@@ -22,18 +22,20 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <AuthFormCard title="Quên mật khẩu?" description="Nhập email liên kết với tài khoản để nhận hướng dẫn đặt lại mật khẩu.">
-    <div v-if="sent" class="rounded-2xl border border-secondary/20 bg-secondary-50 px-4 py-5 text-sm text-secondary">
+  <div>
+    <div v-if="sent" class="feedback feedback-success">
       Yêu cầu đã được gửi. Vui lòng kiểm tra email của bạn.
     </div>
-    <form v-else class="space-y-4" @submit.prevent="handleSubmit">
-      <div v-if="error" class="rounded-2xl border border-error/20 bg-error-container px-4 py-3 text-sm text-error">{{ error }}</div>
-      <UiInput v-model="email" label="Email của bạn" type="email" placeholder="Nhập email" />
-      <UiButton type="submit" block :disabled="loading">{{ loading ? 'Đang gửi...' : 'Gửi yêu cầu' }}</UiButton>
+    <form v-else class="auth-form" @submit.prevent="handleSubmit">
+      <div v-if="error" class="feedback feedback-error">{{ error }}</div>
+      <label class="field">
+        <span>Email của bạn</span>
+        <input v-model="email" type="email" placeholder="Nhập email" required>
+      </label>
+      <button class="primary-button" type="submit" :disabled="loading">
+        {{ loading ? 'Đang gửi...' : 'Gửi yêu cầu' }}
+      </button>
     </form>
-    <div class="pt-4 text-center text-sm">
-      <NuxtLink to="/login" class="font-semibold text-on-surface-variant hover:text-primary">Quay lại đăng nhập</NuxtLink>
-    </div>
-  </AuthFormCard>
+  </div>
 </template>
 

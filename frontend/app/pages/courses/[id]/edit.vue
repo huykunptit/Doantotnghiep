@@ -30,6 +30,13 @@
                 </template>
               </select>
             </label>
+            <label class="block space-y-2 text-sm font-semibold text-slate-700">
+              <span>Chứng chỉ hoàn thành</span>
+              <select v-model.number="form.certificate_template_id" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-primary">
+                <option :value="0">-- Không cấp chứng chỉ --</option>
+                <option v-for="cert in certificates" :key="cert.id" :value="cert.id">{{ cert.name }}</option>
+              </select>
+            </label>
           </div>
 
           <div class="space-y-2">
@@ -46,16 +53,15 @@
             <p v-if="!canPublish" class="text-xs text-amber-700">Chỉ Admin mới có quyền tự chuyển trạng thái sang xuất bản.</p>
           </div>
 
-          <div class="space-y-3">
-            <UiInput v-model="form.thumbnail" label="Thumbnail URL" type="url" placeholder="https://example.com/image.jpg" />
-            <label class="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 transition hover:border-primary/40 hover:bg-white">
-              <span>{{ thumbnailFile ? thumbnailFile.name : 'Hoặc chọn file thumbnail mới' }}</span>
-              <input type="file" accept="image/*" class="hidden" @change="handleThumbnailChange">
-              <span class="font-semibold text-primary">Chọn ảnh</span>
-            </label>
-          </div>
-          <div v-if="thumbnailPreview" class="h-52 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
-            <img :src="thumbnailPreview" alt="thumbnail preview" class="h-full w-full object-cover" @error="thumbnailPreview = ''">
+          <div class="space-y-2">
+            <p class="text-sm font-semibold text-slate-700">Ảnh bìa khóa học</p>
+            <MediaUpload
+              v-model="form.thumbnail"
+              folder="courses"
+              variant="banner"
+              label="Ảnh bìa"
+              hint="JPG, PNG, WEBP — tối đa 5MB. Tự động tải lên khi chọn tệp."
+            />
           </div>
 
           <div v-if="error" class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{{ error }}</div>
@@ -72,10 +78,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useCourseStore } from '~/stores/course'
+import MediaUpload from '~/components/common/MediaUpload.vue'
 
 definePageMeta({ middleware: 'instructor', layout: false })
 const route = useRoute()
@@ -87,10 +94,9 @@ const pageLoading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
-const thumbnailFile = ref<File | null>(null)
-const thumbnailPreview = ref('')
 const canPublish = computed(() => auth.user?.roles?.includes('admin'))
-const form = reactive({ title: '', description: '', price: 0, category_id: 0, thumbnail: '', status: 'draft' as 'draft' | 'published' | 'closed' | 'pending_review' | 'rejected' })
+const certificates = ref<any[]>([])
+const form = reactive({ title: '', description: '', price: 0, category_id: 0, certificate_template_id: 0, thumbnail: '', status: 'draft' as 'draft' | 'published' | 'closed' | 'pending_review' | 'rejected' })
 const statusOptions = [
   { value: 'draft', label: 'Bản nháp', help: 'Đang soạn thảo', activeClass: 'border-primary bg-primary/10' },
   { value: 'published', label: 'Xuất bản', help: 'Hiển thị công khai', activeClass: 'border-emerald-500 bg-emerald-50' },
@@ -101,19 +107,9 @@ onMounted(async () => {
   await courseStore.fetchCategories()
   const course = await courseStore.fetchCourse(courseId)
   if (!auth.user?.roles?.includes('admin') && Number(course.user_id) !== Number(auth.user?.id)) return router.push(`/courses/${courseId}`)
-  form.title = course.title; form.description = course.description ?? ''; form.price = course.price; form.category_id = Number((course as any).category_id || (course as any).category?.id || 0); form.thumbnail = course.thumbnail ?? ''; form.status = course.status; thumbnailPreview.value = course.thumbnail ?? ''; pageLoading.value = false
+  try { certificates.value = await useApi<any[]>('/admin/certificates', { headers: { Authorization: `Bearer ${auth.token}` } }) } catch (e) {}
+  form.title = course.title; form.description = course.description ?? ''; form.price = course.price; form.category_id = Number((course as any).category_id || (course as any).category?.id || 0); form.certificate_template_id = Number((course as any).certificate_template_id || 0); form.thumbnail = course.thumbnail ?? ''; form.status = course.status; pageLoading.value = false
 })
-
-watch(() => form.thumbnail, (value) => {
-  if (!thumbnailFile.value) thumbnailPreview.value = value || ''
-})
-
-function handleThumbnailChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  thumbnailFile.value = file || null
-  thumbnailPreview.value = file ? URL.createObjectURL(file) : (form.thumbnail || '')
-}
 
 async function handleSubmit() {
   saving.value = true
@@ -126,8 +122,8 @@ async function handleSubmit() {
     payload.append('price', String(Number(form.price)))
     payload.append('status', form.status)
     if (form.category_id) payload.append('category_id', String(form.category_id))
+    if (form.certificate_template_id) payload.append('certificate_template_id', String(form.certificate_template_id))
     if (form.thumbnail) payload.append('thumbnail', form.thumbnail)
-    if (thumbnailFile.value) payload.append('thumbnail_file', thumbnailFile.value)
 
     await courseStore.updateCourse(courseId, payload)
     success.value = 'Bạn đã cập nhật thông tin khóa học thành công!'

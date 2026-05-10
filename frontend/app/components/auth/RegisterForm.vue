@@ -21,8 +21,13 @@ async function handleRegister() {
   }
   loading.value = true
   try {
-    await auth.register({ name: form.name, email: form.email, password: form.password })
-    router.push('/')
+    const result = await auth.register({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      password_confirmation: form.password_confirmation,
+    })
+    router.push(`/verify-email?email=${encodeURIComponent(result.email)}&registered=1`)
   } catch (e: any) {
     error.value = e?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.'
   } finally {
@@ -105,17 +110,10 @@ async function handleGoogleLogin() {
         Bằng việc tạo tài khoản, bạn có thể đăng nhập vào hệ thống học tập, quản lý khóa học và theo dõi tiến độ học.
       </p>
 
-      <button type="submit" :disabled="loading" class="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl cta-gradient px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 disabled:opacity-70">
+      <button type="submit" :disabled="loading" class="primary-button mt-2 flex w-full items-center justify-center gap-2 rounded-2xl cta-gradient px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 disabled:opacity-70">
         <span v-if="loading" class="material-symbols-outlined animate-spin">progress_activity</span>
         <span>{{ loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}</span>
       </button>
     </form>
-
-    <div class="mt-6 rounded-2xl border border-outline-variant/30 bg-surface-low px-4 py-4 text-center">
-      <p class="text-sm text-on-surface-variant">
-        Đã có tài khoản?
-        <NuxtLink to="/login" class="font-bold text-primary hover:underline underline-offset-4 decoration-2">Đăng nhập ngay</NuxtLink>
-      </p>
-    </div>
   </div>
 </template>

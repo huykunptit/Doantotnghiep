@@ -1,23 +1,10 @@
 import { defineStore } from 'pinia'
+import type { AuthResponse, AuthUser, RegisterResponse } from '~/composables/useAuthSession'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
-
-interface User {
-  id: number
-  name: string
-  email: string
-  avatar?: string | null
-  role?: string | null
-  roles?: string[]
-}
-
-interface AuthPayload {
-  access_token: string
-  user: User
-}
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null as User | null,
+    user: null as AuthUser | null,
     token: null as string | null,
     isReady: false,
   }),
@@ -27,7 +14,7 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    setUser(user: User | null) {
+    setUser(user: AuthUser | null) {
       this.user = user
       useAuthUserCookie().value = user
     },
@@ -37,19 +24,20 @@ export const useAuthStore = defineStore('auth', {
       useAuthTokenCookie().value = token
     },
 
-    async register(payload: { name: string; email: string; password: string }) {
-      const data = await useApi<AuthPayload>('/auth/register', {
+    async register(payload: { name: string; email: string; password: string; password_confirmation: string }) {
+      const data = await useApi<RegisterResponse>('/auth/register', {
         method: 'POST',
         body: payload,
       })
 
-      this.setToken(data.access_token)
-      this.setUser(data.user)
+      this.setToken(null)
+      this.setUser(null)
       this.isReady = true
+      return data
     },
 
     async login(payload: { email: string; password: string }) {
-      const data = await useApi<AuthPayload>('/auth/login', {
+      const data = await useApi<AuthResponse>('/auth/login', {
         method: 'POST',
         body: payload,
       })
@@ -57,6 +45,7 @@ export const useAuthStore = defineStore('auth', {
       this.setToken(data.access_token)
       this.setUser(data.user)
       this.isReady = true
+      return data
     },
 
     async getGoogleLoginUrl() {

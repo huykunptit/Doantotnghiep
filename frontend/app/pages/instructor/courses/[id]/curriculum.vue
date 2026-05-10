@@ -56,7 +56,7 @@
             <div style="display:grid; gap:12px;">
               <div v-for="(tip, i) in tips" :key="i" class="week-one-item week-one-item is-static" style="flex-direction:column; align-items:flex-start; gap:10px;">
                 <div style="display:flex; align-items:center; gap:10px;">
-                  <div style="width:32px;height:32px;border-radius:10px;background:rgba(47,122,69,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div style="width:32px;height:32px;border-radius:10px;background:rgba(var(--green-rgb),0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <span class="material-symbols-outlined" style="font-size:16px;color:var(--green-deep);">{{ tip.icon }}</span>
                   </div>
                   <strong style="font-size:0.88rem;">{{ tip.title }}</strong>
@@ -65,7 +65,7 @@
               </div>
             </div>
 
-            <div style="padding:16px;background:rgba(47,122,69,0.06);border-radius:16px;border:1px solid rgba(47,122,69,0.12);">
+            <div style="padding:16px;background:rgba(var(--green-rgb),0.06);border-radius:16px;border:1px solid rgba(var(--green-rgb),0.12);">
               <p class="sidebar-eyebrow" style="margin:0 0 6px;">Lời khuyên</p>
               <p style="margin:0;font-size:0.8rem;color:var(--muted);line-height:1.7;font-style:italic;">"Một giáo trình tốt bắt đầu từ sự rõ ràng. Hãy chia nhỏ nội dung vào các Chương để học viên không bị ngợp."</p>
             </div>

@@ -34,7 +34,7 @@ const emit = defineEmits<{
       :disabled="props.disabled"
       :class="[
         'w-full rounded-lg border-0 bg-surface-low px-4 py-3 text-sm text-on-surface outline-none transition-all duration-200 placeholder:text-outline/70',
-        props.error ? 'bg-error-container/70 focus:ring-2 focus:ring-error/15' : 'focus:bg-surface-lowest focus:ring-2 focus:ring-surface-tint/20',
+        props.error ? 'bg-error-container/70 focus:ring-2 focus:ring-error/15' : 'focus:bg-surface-lowest focus:ring-2 focus:ring-primary/20',
         props.disabled && 'cursor-not-allowed bg-surface-high text-outline',
       ]"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"

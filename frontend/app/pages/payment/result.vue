@@ -61,7 +61,7 @@ const message = computed(() => {
 const title = computed(() => isSuccess.value ? 'Thanh toán thành công' : (isCancelled.value ? 'Bạn đã huỷ giao dịch' : 'Thanh toán chưa hoàn tất'))
 const icon = computed(() => isSuccess.value ? '✓' : (isCancelled.value ? '↺' : '✕'))
 const badgeValue = computed(() => isSuccess.value ? 'paid' : (isCancelled.value ? 'cancelled' : 'failed'))
-const panelClass = computed(() => isSuccess.value ? 'bg-[#2f7a45]' : (isCancelled.value ? 'bg-[#c8961a]' : 'bg-[#ae3d37]'))
+const panelClass = computed(() => isSuccess.value ? 'bg-[var(--green)]' : (isCancelled.value ? 'bg-[#c8961a]' : 'bg-[#ae3d37]'))
 const helperText = computed(() => isSuccess.value ? 'Hệ thống đã xác nhận đơn hàng và tự động ghi danh cho bạn vào khóa học.' : (isCancelled.value ? 'Bạn có thể quay lại trang checkout bất kỳ lúc nào để tiếp tục thanh toán.' : 'Nếu tiền đã bị trừ nhưng trạng thái chưa cập nhật, hãy kiểm tra lại sau ít phút hoặc liên hệ hỗ trợ.'))
 const nextStep = computed(() => isSuccess.value ? 'Vào học ngay' : 'Quay lại checkout')
 const retryLink = computed(() => {

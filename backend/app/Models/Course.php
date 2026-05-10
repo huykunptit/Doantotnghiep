@@ -14,10 +14,17 @@ class Course extends Model
     protected $fillable = [
         'user_id',
         'category_id',
+        'program_type_id',
+        'program_id',
+        'major_id',
+        'curriculum_id',
         'title',
         'slug',
         'description',
         'price',
+        'course_mode',
+        'is_credit_bearing',
+        'credit_value',
         'status',
         'thumbnail',
         'reject_reason',
@@ -26,6 +33,8 @@ class Course extends Model
 
     protected $casts = [
         'price'        => 'integer',
+        'is_credit_bearing' => 'boolean',
+        'credit_value' => 'integer',
         'published_at' => 'datetime',
     ];
 
@@ -37,6 +46,26 @@ class Course extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function programType(): BelongsTo
+    {
+        return $this->belongsTo(ProgramType::class);
+    }
+
+    public function program(): BelongsTo
+    {
+        return $this->belongsTo(Program::class);
+    }
+
+    public function major(): BelongsTo
+    {
+        return $this->belongsTo(Major::class);
+    }
+
+    public function curriculum(): BelongsTo
+    {
+        return $this->belongsTo(Curriculum::class);
     }
 
     public function sections(): HasMany
@@ -82,5 +111,25 @@ class Course extends Model
     public function exams(): HasMany
     {
         return $this->hasMany(Exam::class)->latest();
+    }
+
+    public function classSections(): HasMany
+    {
+        return $this->hasMany(ClassSection::class);
+    }
+
+    public function gradeComponents(): HasMany
+    {
+        return $this->hasMany(GradeComponent::class)->orderBy('position');
+    }
+
+    public function learningOutcomes(): HasMany
+    {
+        return $this->hasMany(CourseLearningOutcome::class)->orderBy('position');
+    }
+
+    public function skills(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Skill::class, 'course_skills')->withPivot('weight')->withTimestamps();
     }
 }

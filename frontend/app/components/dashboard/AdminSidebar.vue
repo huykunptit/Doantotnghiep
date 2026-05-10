@@ -43,7 +43,7 @@ async function handleLogout() {
       <div class="brand-line">
         <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="brand-logo">
         <span v-else class="brand-mark" />
-        <span class="brand-name">{{ siteName }}</span>
+       
       </div>
       <div>
         <p class="sidebar-eyebrow">Admin role</p>

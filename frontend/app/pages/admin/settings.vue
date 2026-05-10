@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import MediaUpload from '~/components/common/MediaUpload.vue'
 import { useAuthUserCookie } from '~/composables/useAuthSession'
-import { useAdminUpload } from '~/composables/useAdminUpload'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm cài đặt...' })
 
 interface SiteSettings {
   // Branding
+  theme_color_primary?: string | null
+  theme_color_deep?: string | null
+  brand_name?: string | null
+  brand_mark?: string | null
+  brand_logo?: string | null
+  brand_logo_url?: string | null
+  site_title?: string | null
+  auth_page_image?: string | null
+  auth_page_image_url?: string | null
   site_name?: string | null
   site_tagline?: string | null
   site_description?: string | null
@@ -46,9 +55,11 @@ interface SiteSettings {
   timezone?: string | null
 }
 
-type FormState = Required<Omit<SiteSettings, 'site_logo_url' | 'site_favicon_url'>>
+type FormState = Required<Omit<SiteSettings, 'brand_logo_url' | 'auth_page_image_url' | 'site_logo_url' | 'site_favicon_url'>>
 
 const FORM_DEFAULTS: FormState = {
+  theme_color_primary: 'var(--green)', theme_color_deep: 'var(--green-deep)',
+  brand_name: '', brand_mark: '', brand_logo: '', site_title: '', auth_page_image: '',
   site_name: '', site_tagline: '', site_description: '', site_logo: '', site_favicon: '',
   contact_email: '', contact_phone: '', contact_address: '', support_hours: '',
   social_facebook: '', social_youtube: '', social_tiktok: '', social_linkedin: '', social_zalo: '',
@@ -71,19 +82,15 @@ type TabId = (typeof TABS)[number]['id']
 const user = useAuthUserCookie()
 if (!user.value) await navigateTo('/login', { replace: true })
 const token = useAuthTokenCookie()
-const { uploadImage } = useAdminUpload()
 const { refreshSettings } = useSiteSettings()
 
 const loading = ref(false)
 const saving = ref(false)
-const uploadingLogo = ref(false)
-const uploadingFavicon = ref(false)
 const sendingTest = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const logoFile = ref<File | null>(null)
-const faviconFile = ref<File | null>(null)
 const logoPreviewUrl = ref('')
+const authImagePreviewUrl = ref('')
 const faviconPreviewUrl = ref('')
 const activeTab = ref<TabId>('branding')
 const testEmail = ref('')
@@ -110,7 +117,13 @@ function applySettings(data?: SiteSettings | { settings?: SiteSettings }) {
     }
   }
   Object.assign(form, FORM_DEFAULTS, merged)
-  logoPreviewUrl.value = payload?.site_logo_url || ''
+  form.brand_name = form.brand_name || form.site_name
+  form.site_name = form.site_name || form.brand_name
+  form.brand_logo = form.brand_logo || form.site_logo
+  form.site_logo = form.site_logo || form.brand_logo
+  form.site_title = form.site_title || form.brand_name || form.site_name
+  logoPreviewUrl.value = payload?.brand_logo_url || payload?.site_logo_url || ''
+  authImagePreviewUrl.value = payload?.auth_page_image_url || ''
   faviconPreviewUrl.value = payload?.site_favicon_url || ''
 }
 
@@ -135,6 +148,13 @@ async function saveSettings() {
       const value = form[key] ?? ''
       payload[key] = key === 'site_description' ? String(value).slice(0, 500) : String(value)
     }
+    const normalizedBrandName = payload.brand_name || payload.site_name || ''
+    const normalizedBrandLogo = payload.brand_logo || payload.site_logo || ''
+    payload.brand_name = normalizedBrandName
+    payload.site_name = normalizedBrandName
+    payload.brand_logo = normalizedBrandLogo
+    payload.site_logo = normalizedBrandLogo
+    payload.site_title = payload.site_title || normalizedBrandName
     const response = await useApi<{ message?: string; settings?: SiteSettings }>('/admin/settings', {
       method: 'PUT',
       headers: authHeaders(),
@@ -150,46 +170,55 @@ async function saveSettings() {
   }
 }
 
-async function uploadSettingImage(type: 'logo' | 'favicon') {
-  const file = type === 'logo' ? logoFile.value : faviconFile.value
-  if (!file) return
+type UploadedPayload = { url: string; path: string }
+
+async function onLogoUploaded({ path }: UploadedPayload) {
   resetAlerts()
-  if (type === 'logo') uploadingLogo.value = true
-  else uploadingFavicon.value = true
-  try {
-    const oldPath = type === 'logo' ? form.site_logo : form.site_favicon
-    const uploaded = await uploadImage(file, 'settings', oldPath || null)
-    if (type === 'logo') {
-      form.site_logo = uploaded.path
-      logoPreviewUrl.value = uploaded.url
-      logoFile.value = null
-    } else {
-      form.site_favicon = uploaded.path
-      faviconPreviewUrl.value = uploaded.url
-      faviconFile.value = null
-    }
-    await saveSettings()
-    successMessage.value = type === 'logo' ? 'Đã cập nhật logo website.' : 'Đã cập nhật favicon.'
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải ảnh lên.'
-  } finally {
-    if (type === 'logo') uploadingLogo.value = false
-    else uploadingFavicon.value = false
-  }
+  form.brand_logo = path
+  form.site_logo = path
+  await saveSettings()
+  successMessage.value = 'Đã cập nhật logo website.'
 }
 
-async function clearImage(type: 'logo' | 'favicon') {
-  if (type === 'logo') {
-    form.site_logo = ''
-    logoPreviewUrl.value = ''
-    logoFile.value = null
-  } else {
-    form.site_favicon = ''
-    faviconPreviewUrl.value = ''
-    faviconFile.value = null
-  }
+async function onAuthUploaded({ path }: UploadedPayload) {
+  resetAlerts()
+  form.auth_page_image = path
   await saveSettings()
+  successMessage.value = 'Đã cập nhật ảnh nền trang xác thực.'
 }
+
+async function onFaviconUploaded({ path }: UploadedPayload) {
+  resetAlerts()
+  form.site_favicon = path
+  await saveSettings()
+  successMessage.value = 'Đã cập nhật favicon.'
+}
+
+function onUploadError(message: string) {
+  errorMessage.value = message
+}
+
+watch(logoPreviewUrl, async (val, prev) => {
+  if (prev && !val && (form.brand_logo || form.site_logo)) {
+    form.brand_logo = ''
+    form.site_logo = ''
+    await saveSettings()
+  }
+})
+
+watch(authImagePreviewUrl, async (val, prev) => {
+  if (prev && !val && form.auth_page_image) {
+    form.auth_page_image = ''
+    await saveSettings()
+  }
+})
+
+watch(faviconPreviewUrl, async (val, prev) => {
+  if (prev && !val && form.site_favicon) {
+    form.site_favicon = ''
+    await saveSettings()
+  }
+})
 
 async function sendTestEmail() {
   if (!testEmail.value) {
@@ -285,8 +314,24 @@ onMounted(fetchSettings)
         <!-- Branding -->
         <div v-show="activeTab === 'branding'" class="crud-form-grid">
           <label class="crud-field">
-            <span>Tên website</span>
-            <input v-model="form.site_name" type="text" placeholder="ERIPT LMS">
+            <span>Màu chủ đạo (Primary Color)</span>
+            <input v-model="form.theme_color_primary" type="color" class="color-picker-input">
+          </label>
+          <label class="crud-field">
+            <span>Màu chủ đạo đậm (Deep Color)</span>
+            <input v-model="form.theme_color_deep" type="color" class="color-picker-input">
+          </label>
+          <label class="crud-field">
+            <span>Brand name</span>
+            <input v-model="form.brand_name" type="text" placeholder="PTIT LMS">
+          </label>
+          <label class="crud-field">
+            <span>Brand mark</span>
+            <input v-model="form.brand_mark" type="text" maxlength="32" placeholder="PTIT">
+          </label>
+          <label class="crud-field">
+            <span>Site title</span>
+            <input v-model="form.site_title" type="text" placeholder="PTIT LMS">
           </label>
           <label class="crud-field">
             <span>Slogan</span>
@@ -299,51 +344,48 @@ onMounted(fetchSettings)
           </label>
 
           <div class="crud-field crud-field-full">
-            <span>Logo website</span>
-            <div class="crud-image-preview">
-              <img v-if="logoPreviewUrl" :src="logoPreviewUrl" alt="Logo website">
-              <div v-else class="crud-image-fallback">LG</div>
-              <div class="settings-upload-wrap">
-                <label class="upload-dropzone upload-dropzone-compact">
-                  <input class="upload-dropzone-input" type="file" accept="image/*" @change="logoFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                  <span class="upload-dropzone-icon">🖼️</span>
-                  <strong>Tải logo website</strong>
-                  <span>{{ logoFile?.name || 'PNG/SVG, nền trong suốt, tối thiểu 128×128.' }}</span>
-                </label>
-                <div class="crud-inline-actions crud-modal-foot">
-                  <button class="crud-secondary-btn" type="button" :disabled="uploadingLogo || !logoFile" @click="uploadSettingImage('logo')">
-                    {{ uploadingLogo ? 'Đang tải...' : 'Tải logo lên' }}
-                  </button>
-                  <button v-if="form.site_logo" class="crud-secondary-btn" type="button" :disabled="uploadingLogo" @click="clearImage('logo')">
-                    Xoá logo
-                  </button>
-                </div>
-              </div>
-            </div>
+            <span>Brand logo</span>
+            <MediaUpload
+              v-model="logoPreviewUrl"
+              folder="settings"
+              variant="square"
+              accept="image/*"
+              label="Tải brand logo"
+              hint="PNG/SVG, nền trong suốt, tối thiểu 128×128 — tự động tải lên."
+              :placeholder-initial="form.brand_mark || 'LG'"
+              @uploaded="onLogoUploaded"
+              @error="onUploadError"
+            />
+          </div>
+
+          <div class="crud-field crud-field-full">
+            <span>Ảnh trang xác thực</span>
+            <MediaUpload
+              v-model="authImagePreviewUrl"
+              folder="settings"
+              variant="banner"
+              accept="image/*"
+              label="Ảnh trang đăng nhập/đăng ký"
+              hint="Ảnh lớn dùng cho khối minh hoạ bên trái — tối đa 5MB."
+              placeholder-initial="AUTH"
+              @uploaded="onAuthUploaded"
+              @error="onUploadError"
+            />
           </div>
 
           <div class="crud-field crud-field-full">
             <span>Favicon</span>
-            <div class="crud-image-preview">
-              <img v-if="faviconPreviewUrl" :src="faviconPreviewUrl" alt="Favicon website">
-              <div v-else class="crud-image-fallback">FV</div>
-              <div class="settings-upload-wrap">
-                <label class="upload-dropzone upload-dropzone-compact">
-                  <input class="upload-dropzone-input" type="file" accept="image/png,image/x-icon,image/svg+xml,image/*" @change="faviconFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                  <span class="upload-dropzone-icon">⭐</span>
-                  <strong>Tải favicon</strong>
-                  <span>{{ faviconFile?.name || 'ICO/PNG, kích thước 32×32 hoặc 64×64.' }}</span>
-                </label>
-                <div class="crud-inline-actions crud-modal-foot">
-                  <button class="crud-secondary-btn" type="button" :disabled="uploadingFavicon || !faviconFile" @click="uploadSettingImage('favicon')">
-                    {{ uploadingFavicon ? 'Đang tải...' : 'Tải favicon lên' }}
-                  </button>
-                  <button v-if="form.site_favicon" class="crud-secondary-btn" type="button" :disabled="uploadingFavicon" @click="clearImage('favicon')">
-                    Xoá favicon
-                  </button>
-                </div>
-              </div>
-            </div>
+            <MediaUpload
+              v-model="faviconPreviewUrl"
+              folder="settings"
+              variant="square"
+              accept="image/png,image/x-icon,image/svg+xml,image/*"
+              label="Tải favicon"
+              hint="ICO/PNG/SVG, kích thước 32×32 hoặc 64×64."
+              placeholder-initial="FV"
+              @uploaded="onFaviconUploaded"
+              @error="onUploadError"
+            />
           </div>
         </div>
 
@@ -537,5 +579,22 @@ onMounted(fetchSettings)
 .settings-test-row input {
   flex: 1 1 240px;
   min-width: 240px;
+}
+
+.color-picker-input {
+  padding: 0;
+  border: none;
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: transparent;
+}
+.color-picker-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.color-picker-input::-webkit-color-swatch {
+  border: 1px solid var(--line);
+  border-radius: 8px;
 }
 </style>

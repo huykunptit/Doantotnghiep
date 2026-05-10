@@ -8,6 +8,10 @@ return new class extends Migration {
     {
         $now = now();
         $defaults = [
+            // Theme Colors
+            'theme_color_primary' => '#2f7a45',
+            'theme_color_deep'    => '#1f5d33',
+
             // Branding
             'site_tagline'       => 'Học mọi lúc, mọi nơi',
 
@@ -60,6 +64,7 @@ return new class extends Migration {
     public function down(): void
     {
         DB::table('site_settings')->whereIn('key', [
+            'theme_color_primary', 'theme_color_deep',
             'site_tagline',
             'contact_email', 'contact_phone', 'contact_address', 'support_hours',
             'social_facebook', 'social_youtube', 'social_tiktok', 'social_linkedin', 'social_zalo',

@@ -6,6 +6,7 @@ import UiStatCard from '~/components/dashboard/charts/UiStatCard.vue'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
+import DashboardSchedule from '~/components/dashboard/DashboardSchedule.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -55,7 +56,7 @@ const studentDelta = computed(() => computeDelta(studentValues.value))
 const courseStatusSegments = computed(() => {
   const map = stats.value.courses_by_status ?? {}
   const colorMap: Record<string, { label: string; color: string }> = {
-    published: { label: 'Đã xuất bản', color: '#16a34a' },
+    published: { label: 'Đã xuất bản', color: 'var(--green)' },
     pending_review: { label: 'Chờ duyệt', color: '#d97706' },
     draft: { label: 'Bản nháp', color: '#64748b' },
     rejected: { label: 'Bị từ chối', color: '#dc2626' },
@@ -65,7 +66,7 @@ const courseStatusSegments = computed(() => {
     .map(([key, value]) => ({
       label: colorMap[key]?.label || key,
       value: Number(value),
-      color: colorMap[key]?.color || '#2f7a45',
+      color: colorMap[key]?.color || 'var(--green)',
     }))
     .filter((s) => s.value > 0)
 })
@@ -87,6 +88,12 @@ const loadStats = async () => {
     loading.value = false
   }
 }
+
+const mockEvents = [
+  { id: 1, title: 'Buổi giải đáp thắc mắc', time: '09:00', date: 'Hôm nay', type: 'meeting', course: 'Vue.js Advanced', location: 'Zoom Meet' },
+  { id: 2, title: 'Duyệt bài tập lớn', time: '13:30', date: 'Hôm nay', type: 'lesson', course: 'Laravel Backend', location: 'Văn phòng' },
+  { id: 3, title: 'Cập nhật tài liệu chương 4', time: '17:00', date: 'Ngày mai', type: 'deadline', course: 'UI/UX Design' },
+] as any[]
 
 onMounted(loadStats)
 </script>
@@ -127,10 +134,10 @@ onMounted(loadStats)
         :delta="revenueDelta"
         delta-label="so với tháng trước"
         icon="payments"
-        icon-bg="rgba(22,163,74,0.1)"
-        icon-color="#16a34a"
+        icon-bg="rgba(var(--green-rgb),0.1)"
+        icon-color="var(--green)"
         :sparkline="revenueValues"
-        spark-color="#16a34a"
+        spark-color="var(--green)"
         :loading="loading"
       />
       <UiStatCard
@@ -139,10 +146,10 @@ onMounted(loadStats)
         :delta="studentDelta"
         delta-label="so với tháng trước"
         icon="group"
-        icon-bg="rgba(25,118,210,0.1)"
-        icon-color="#1976d2"
+        icon-bg="rgba(var(--green-rgb),0.1)"
+        icon-color="var(--green)"
         :sparkline="studentValues"
-        spark-color="#1976d2"
+        spark-color="var(--green)"
         :loading="loading"
       />
       <UiStatCard
@@ -151,8 +158,8 @@ onMounted(loadStats)
         :delta="null"
         :delta-label="`${stats.courses_by_status?.published || 0} đang xuất bản`"
         icon="school"
-        icon-bg="rgba(47,122,69,0.1)"
-        icon-color="#2f7a45"
+        icon-bg="rgba(var(--green-rgb),0.1)"
+        icon-color="var(--green)"
         :loading="loading"
       />
       <UiStatCard
@@ -169,6 +176,11 @@ onMounted(loadStats)
 
     <!-- Charts grid -->
     <div class="grid-12">
+      <!-- Schedule (Full Width for Instructor) -->
+      <div class="span-lg-12">
+        <DashboardSchedule :events="mockEvents" title="Lịch giảng dạy & Công việc" />
+      </div>
+
       <!-- Revenue (8 cols) + Donut (4 cols) -->
       <div class="dashboard-card chart-card span-lg-8">
         <header class="chart-card-head">
@@ -181,7 +193,7 @@ onMounted(loadStats)
         <div v-if="loading" class="h-44 rounded-xl bg-surface-high animate-pulse" />
         <UiAreaChart
           v-else-if="revenuePoints.length"
-          :series="[{ name: 'Doanh thu', values: revenueValues, color: '#16a34a' }]"
+          :series="[{ name: 'Doanh thu', values: revenueValues, color: 'var(--green)' }]"
           :labels="monthLabels"
           :height="200"
           :format-y="formatVnd"
@@ -224,7 +236,7 @@ onMounted(loadStats)
           :values="studentValues"
           :labels="studentPoints.map((p) => p.label)"
           :height="180"
-          color="#1976d2"
+          color="var(--green)"
         />
         <div v-else class="empty-block">Chưa có học viên ghi danh trong 6 tháng qua.</div>
       </div>
@@ -339,14 +351,14 @@ onMounted(loadStats)
   text-decoration: none;
   transition: all 0.15s ease;
 }
-.btn-primary { background: #2f7a45; color: #fff; box-shadow: 0 6px 14px rgba(47, 122, 69, 0.25); }
+.btn-primary { background: var(--green); color: #fff; box-shadow: 0 6px 14px rgba(var(--green-rgb), 0.25); }
 .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
 .btn-ghost {
   background: rgba(17, 17, 17, 0.04);
   color: var(--on-surface, #111);
   border: 1px solid rgba(17, 17, 17, 0.08);
 }
-.btn-ghost:hover { background: rgba(47, 122, 69, 0.08); border-color: rgba(47, 122, 69, 0.3); color: #2f7a45; }
+.btn-ghost:hover { background: rgba(var(--green-rgb), 0.08); border-color: rgba(var(--green-rgb), 0.3); color: var(--green); }
 .btn-primary .material-symbols-outlined,
 .btn-ghost .material-symbols-outlined { font-size: 18px; }
 
@@ -405,13 +417,13 @@ onMounted(loadStats)
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(47, 122, 69, 0.1);
-  color: #2f7a45;
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green);
 }
 .chart-card-link {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #2f7a45;
+  color: var(--green);
   text-decoration: none;
 }
 .chart-card-link:hover { text-decoration: underline; }
@@ -440,15 +452,15 @@ onMounted(loadStats)
   background: rgba(17, 17, 17, 0.02);
   transition: background 0.15s;
 }
-.leaderboard-item:hover { background: rgba(47, 122, 69, 0.06); }
+.leaderboard-item:hover { background: rgba(var(--green-rgb), 0.06); }
 .leaderboard-rank {
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(47, 122, 69, 0.1);
-  color: #2f7a45;
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green);
   font-weight: 800;
   font-size: 0.8rem;
 }
@@ -461,7 +473,7 @@ onMounted(loadStats)
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leaderboard-title:hover { color: #2f7a45; }
+.leaderboard-title:hover { color: var(--green); }
 .leaderboard-value {
   display: inline-flex;
   align-items: center;
@@ -494,13 +506,13 @@ onMounted(loadStats)
   transition: all 0.18s ease;
 }
 .quick-tile:hover {
-  border-color: rgba(47, 122, 69, 0.3);
-  background: rgba(47, 122, 69, 0.06);
+  border-color: rgba(var(--green-rgb), 0.3);
+  background: rgba(var(--green-rgb), 0.06);
   transform: translateY(-2px);
 }
 .quick-tile .material-symbols-outlined {
   font-size: 32px;
-  color: #2f7a45;
+  color: var(--green);
 }
 .quick-tile p {
   margin: 0;

@@ -65,10 +65,10 @@ function typeIconStyle(lesson: any) {
   }
   if (type === 'video') {
     return lesson.video_url || lesson.video_status === 'ready'
-      ? 'background:rgba(47,122,69,0.12);color:var(--green-deep);'
-      : 'background:rgba(47,122,69,0.06);color:var(--green-deep);'
+      ? 'background:rgba(var(--green-rgb),0.12);color:var(--green-deep);'
+      : 'background:rgba(var(--green-rgb),0.06);color:var(--green-deep);'
   }
-  return map[type] || 'background:rgba(47,122,69,0.06);color:var(--green-deep);'
+  return map[type] || 'background:rgba(var(--green-rgb),0.06);color:var(--green-deep);'
 }
 </script>
 
@@ -97,7 +97,7 @@ function typeIconStyle(lesson: any) {
         </strong>
         <span
           v-if="lesson.is_preview"
-          style="font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; padding:2px 6px; border-radius:6px; background:rgba(47,122,69,0.12); color:var(--green-deep); flex-shrink:0;"
+          style="font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; padding:2px 6px; border-radius:6px; background:rgba(var(--green-rgb),0.12); color:var(--green-deep); flex-shrink:0;"
         >
           PREVIEW
         </span>

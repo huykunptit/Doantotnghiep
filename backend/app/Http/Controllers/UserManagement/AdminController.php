@@ -633,8 +633,10 @@ class AdminController extends Controller
         }
 
         $settings = SiteSetting::getAll();
-        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
+        $settings['brand_logo_url'] = !empty($settings['brand_logo']) ? $mediaService->getUrl($settings['brand_logo']) : null;
+        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : $settings['brand_logo_url'];
         $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
+        $settings['auth_page_image_url'] = !empty($settings['auth_page_image']) ? $mediaService->getUrl($settings['auth_page_image']) : null;
 
         return response()->json($settings);
     }
@@ -646,10 +648,27 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
+            'theme_color_primary' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'theme_color_deep'    => ['sometimes', 'nullable', 'string', 'max:32'],
+            'brand_name'       => ['sometimes', 'nullable', 'string', 'max:255'],
+            'brand_mark'       => ['sometimes', 'nullable', 'string', 'max:32'],
+            'brand_logo'       => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'site_title'       => ['sometimes', 'nullable', 'string', 'max:255'],
+            'auth_page_image'  => ['sometimes', 'nullable', 'string', 'max:2048'],
             'site_name'        => ['sometimes', 'nullable', 'string', 'max:255'],
+            'site_tagline'     => ['sometimes', 'nullable', 'string', 'max:255'],
             'site_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'site_logo'        => ['sometimes', 'nullable', 'string', 'max:2048'],
             'site_favicon'     => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'contact_email'    => ['sometimes', 'nullable', 'email', 'max:255'],
+            'contact_phone'    => ['sometimes', 'nullable', 'string', 'max:255'],
+            'contact_address'  => ['sometimes', 'nullable', 'string', 'max:500'],
+            'support_hours'    => ['sometimes', 'nullable', 'string', 'max:255'],
+            'social_facebook'  => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'social_youtube'   => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'social_tiktok'    => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'social_linkedin'  => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'social_zalo'      => ['sometimes', 'nullable', 'string', 'max:2048'],
             'smtp_host'        => ['sometimes', 'nullable', 'string', 'max:255'],
             'smtp_port'        => ['sometimes', 'nullable', 'string', 'max:10'],
             'smtp_username'    => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -657,11 +676,41 @@ class AdminController extends Controller
             'smtp_encryption'  => ['sometimes', 'nullable', 'string', 'in:tls,ssl,none'],
             'smtp_from_address' => ['sometimes', 'nullable', 'email', 'max:255'],
             'smtp_from_name'   => ['sometimes', 'nullable', 'string', 'max:255'],
+            'footer_copyright' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'legal_company_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'legal_tax_code'   => ['sometimes', 'nullable', 'string', 'max:255'],
+            'terms_url'        => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'privacy_url'      => ['sometimes', 'nullable', 'string', 'max:2048'],
+            'default_locale'   => ['sometimes', 'nullable', 'string', 'max:32'],
+            'default_currency' => ['sometimes', 'nullable', 'string', 'max:32'],
+            'timezone'         => ['sometimes', 'nullable', 'string', 'max:64'],
         ]);
+
+        if (array_key_exists('brand_name', $validated) && !array_key_exists('site_name', $validated)) {
+            $validated['site_name'] = $validated['brand_name'];
+        }
+        if (array_key_exists('site_name', $validated) && !array_key_exists('brand_name', $validated)) {
+            $validated['brand_name'] = $validated['site_name'];
+        }
+        if (array_key_exists('brand_logo', $validated) && !array_key_exists('site_logo', $validated)) {
+            $validated['site_logo'] = $validated['brand_logo'];
+        }
+        if (array_key_exists('site_logo', $validated) && !array_key_exists('brand_logo', $validated)) {
+            $validated['brand_logo'] = $validated['site_logo'];
+        }
+        if (array_key_exists('site_title', $validated) && empty($validated['site_title'])) {
+            $validated['site_title'] = $validated['brand_name'] ?? $validated['site_name'] ?? null;
+        }
 
         SiteSetting::setMany($validated);
         $settings = SiteSetting::getAll();
-        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null;
+        $settings['brand_name'] ??= $settings['site_name'] ?? null;
+        $settings['site_name'] ??= $settings['brand_name'] ?? null;
+        $settings['brand_logo'] ??= $settings['site_logo'] ?? null;
+        $settings['site_logo'] ??= $settings['brand_logo'] ?? null;
+        $settings['site_title'] ??= $settings['brand_name'] ?? $settings['site_name'] ?? null;
+        $settings['brand_logo_url'] = !empty($settings['brand_logo']) ? $mediaService->getUrl($settings['brand_logo']) : null;
+        $settings['site_logo_url'] = !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : $settings['brand_logo_url'];
         $settings['site_favicon_url'] = !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null;
 
         return response()->json([
@@ -672,14 +721,51 @@ class AdminController extends Controller
 
     public function publicSiteSettings(MediaService $mediaService): JsonResponse
     {
-        $keys = ['site_name', 'site_description', 'site_logo', 'site_favicon'];
+        $keys = [
+            'theme_color_primary', 'theme_color_deep',
+            'brand_name', 'brand_mark', 'brand_logo', 'site_title', 'auth_page_image',
+            'site_name', 'site_tagline', 'site_description', 'site_logo', 'site_favicon',
+            'contact_email', 'contact_phone', 'contact_address', 'support_hours',
+            'social_facebook', 'social_youtube', 'social_tiktok', 'social_linkedin', 'social_zalo',
+            'footer_copyright', 'legal_company_name', 'legal_tax_code', 'terms_url', 'privacy_url',
+            'default_locale', 'default_currency', 'timezone',
+        ];
         $settings = SiteSetting::whereIn('key', $keys)->pluck('value', 'key')->toArray();
 
+        $brandName = $settings['brand_name'] ?? $settings['site_name'] ?? null;
+        $brandLogo = $settings['brand_logo'] ?? $settings['site_logo'] ?? null;
+        $siteTitle = $settings['site_title'] ?? $brandName;
+
         return response()->json([
-            'site_name' => $settings['site_name'] ?? null,
+            'theme_color_primary' => $settings['theme_color_primary'] ?? '#2f7a45',
+            'theme_color_deep'    => $settings['theme_color_deep'] ?? '#1f5d33',
+            'brand_name' => $brandName,
+            'brand_mark' => $settings['brand_mark'] ?? null,
+            'brand_logo' => !empty($brandLogo) ? $mediaService->getUrl($brandLogo) : null,
+            'site_title' => $siteTitle,
+            'auth_page_image' => !empty($settings['auth_page_image']) ? $mediaService->getUrl($settings['auth_page_image']) : null,
+            'site_name' => $settings['site_name'] ?? $brandName,
+            'site_tagline' => $settings['site_tagline'] ?? null,
             'site_description' => $settings['site_description'] ?? null,
-            'site_logo' => !empty($settings['site_logo']) ? $mediaService->getUrl($settings['site_logo']) : null,
+            'site_logo' => !empty($brandLogo) ? $mediaService->getUrl($brandLogo) : null,
             'site_favicon' => !empty($settings['site_favicon']) ? $mediaService->getUrl($settings['site_favicon']) : null,
+            'contact_email' => $settings['contact_email'] ?? null,
+            'contact_phone' => $settings['contact_phone'] ?? null,
+            'contact_address' => $settings['contact_address'] ?? null,
+            'support_hours' => $settings['support_hours'] ?? null,
+            'social_facebook' => $settings['social_facebook'] ?? null,
+            'social_youtube' => $settings['social_youtube'] ?? null,
+            'social_tiktok' => $settings['social_tiktok'] ?? null,
+            'social_linkedin' => $settings['social_linkedin'] ?? null,
+            'social_zalo' => $settings['social_zalo'] ?? null,
+            'footer_copyright' => $settings['footer_copyright'] ?? null,
+            'legal_company_name' => $settings['legal_company_name'] ?? null,
+            'legal_tax_code' => $settings['legal_tax_code'] ?? null,
+            'terms_url' => $settings['terms_url'] ?? null,
+            'privacy_url' => $settings['privacy_url'] ?? null,
+            'default_locale' => $settings['default_locale'] ?? null,
+            'default_currency' => $settings['default_currency'] ?? null,
+            'timezone' => $settings['timezone'] ?? null,
         ]);
     }
 }

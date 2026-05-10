@@ -9,6 +9,7 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const { siteName, siteLogo } = useSiteSettings()
 
 if (!auth.isReady) auth.initFromStorage()
 if (auth.token && !auth.user) await auth.fetchMe()
@@ -44,6 +45,13 @@ const navGroups = [
     ],
   },
   {
+    label: 'Học vụ',
+    items: [
+      { to: '/instructor/sections', label: 'Lớp học phần & điểm', icon: 'grading' },
+      { to: '/instructor/academic', label: 'Tổ chức và học vụ', icon: 'account_tree' },
+    ],
+  },
+  {
     label: 'Kinh doanh',
     items: [
       { to: '/instructor/students', label: 'Học viên', icon: 'group' },
@@ -68,9 +76,10 @@ async function logout() {
       <!-- Sidebar -->
       <aside class="dashboard-sidebar">
         <div class="sidebar-brand">
-          <div class="brand-line">
-            <span class="brand-mark" />
-            <span class="brand-name">PTIT LMS</span>
+         <div class="brand-line">
+            <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="brand-logo">
+            <span v-else class="brand-mark" />
+           
           </div>
           <div>
             <p class="sidebar-eyebrow">Giảng viên</p>
