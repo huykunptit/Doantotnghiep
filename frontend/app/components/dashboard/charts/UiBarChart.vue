@@ -10,7 +10,7 @@ const props = withDefaults(
     formatValue?: (n: number) => string
   }>(),
   {
-    color: '#2f7a45',
+    color: 'var(--green)',
     height: 200,
     formatValue: (n: number) => n.toLocaleString('vi-VN'),
   },

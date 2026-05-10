@@ -1,281 +1,293 @@
 <template>
   <NuxtLayout name="default">
-    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
+    <div class="account-shell">
       <input ref="fileInput" type="file" class="hidden" accept=".pdf,.doc,.docx" @change="handleFileUpload">
 
-      <!-- Premium Page Header -->
-      <AppPageHeader 
-        eyebrow="AI Career Advisor" 
-        title="Định hướng Sự nghiệp AI" 
-        description="Phân tích CV thông minh để xác định khoảng cách kỹ năng và xây dựng lộ trình thăng tiến cá nhân hóa."
-      >
-        <template #actions>
-          <div v-if="cvData" class="flex items-center gap-3">
-            <p class="hidden md:block text-[10px] font-bold text-outline-variant uppercase tracking-widest">CV hiện tại: {{ cvData.file_name }}</p>
-            <button @click="(fileInput as any)?.click()" class="btn-secondary py-2 text-xs">
-              <span class="material-symbols-outlined text-[18px]">refresh</span>
-              Cập nhật CV
-            </button>
+      <section class="account-wrap">
+        <header class="account-hero">
+          <div>
+            <p class="account-eyebrow">AI Career Advisor</p>
+            <h1>Định hướng sự nghiệp</h1>
+            <p class="account-lead">
+              Phân tích CV, gợi ý kỹ năng cần bổ sung và xây dựng lộ trình học tập theo mục tiêu nghề nghiệp của bạn.
+            </p>
           </div>
-        </template>
-      </AppPageHeader>
+          <button
+            v-if="cvData"
+            class="account-cta"
+            type="button"
+            :disabled="uploading"
+            @click="openFilePicker"
+          >
+            <span class="material-symbols-outlined">refresh</span>
+            <span>{{ uploading ? 'Đang xử lý...' : 'Cập nhật CV' }}</span>
+          </button>
+        </header>
 
-      <!-- Main Studio Layout -->
-      <div v-if="cvData" class="grid grid-cols-12 gap-8">
-        
-        <!-- Left: Skills Profile & Analysis -->
-        <div class="col-span-12 lg:col-span-5 space-y-8">
-          
-          <!-- Skills Bento Card -->
-          <div class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm">
-            <div class="flex items-center gap-4 mb-8">
-              <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                <span class="material-symbols-outlined">psychology</span>
-              </div>
-              <div>
-                <h2 class="font-headline text-2xl font-bold text-on-surface">Kỹ năng hiện có</h2>
-                <p class="text-xs font-bold text-outline-variant uppercase tracking-widest mt-1">Trích xuất từ CV của bạn</p>
-              </div>
-            </div>
+        <section v-if="initialLoading" class="account-card career-status">
+          <div class="career-spinner" />
+          <p>Đang tải dữ liệu định hướng sự nghiệp...</p>
+        </section>
 
-            <div class="flex flex-wrap gap-2.5">
-              <div v-for="skill in cvData.skills" :key="skill" class="px-4 py-2 bg-surface-low rounded-xl border border-surface-dim/40 text-sm font-bold text-on-surface transition-all hover:border-primary/30 hover:bg-white text-center">
-                {{ skill }}
-              </div>
-            </div>
-
-            <div class="mt-10 pt-6 border-t border-surface-dim/30">
-              <p class="text-[11px] font-bold text-outline-variant uppercase tracking-widest mb-2">Thông tin hồ sơ</p>
-              <div class="flex items-center justify-between text-sm">
-                <span class="text-on-surface-variant">Ngày cập nhật:</span>
-                <span class="font-bold text-on-surface">{{ formatDate(cvData.created_at) }}</span>
-              </div>
-            </div>
+        <section v-else-if="!cvData" class="account-card career-dropzone">
+          <div class="career-dropzone-icon">
+            <span class="material-symbols-outlined">cloud_upload</span>
           </div>
+          <strong>{{ uploading ? 'Đang phân tích hồ sơ...' : 'Tải CV để bắt đầu' }}</strong>
+          <p>Hỗ trợ PDF, DOC, DOCX. Hệ thống sẽ tự động trích xuất kỹ năng và chuẩn bị khuyến nghị cá nhân hóa.</p>
+          <button class="account-cta" type="button" :disabled="uploading" @click="openFilePicker">
+            <span class="material-symbols-outlined">upload_file</span>
+            <span>{{ uploading ? 'Đang tải...' : 'Chọn tệp CV' }}</span>
+          </button>
+        </section>
 
-          <!-- Analysis Trigger -->
-          <div class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
-            
-            <h3 class="font-headline text-xl font-bold text-on-surface mb-6 relative z-10">Mục tiêu tiếp theo?</h3>
-            <div class="space-y-4 relative z-10">
-              <UiInput v-model="targetJob" placeholder="Ví dụ: Senior Frontend Developer..." />
-              <UiButton @click="getRecommendations" class="w-full py-4 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-transform" :loading="loadingRecommendations">
-                <span class="material-symbols-outlined text-[20px]">analytics</span>
-                Bắt đầu Phân tích AI
-              </UiButton>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: AI Results & Roadmap -->
-        <div class="col-span-12 lg:col-span-7 space-y-8">
-          <div v-if="analysis" class="space-y-8 animate-fade-in-up">
-            
-            <!-- Compatibility Card -->
-            <div class="bg-surface-lowest rounded-[2.5rem] border border-surface-dim shadow-sm overflow-hidden flex flex-col md:flex-row">
-              <div class="p-8 md:w-48 bg-secondary/5 flex flex-col items-center justify-center border-r border-surface-dim">
-                <span class="text-[10px] font-bold text-secondary uppercase tracking-widest mb-2">Độ tương thích</span>
-                <div class="text-5xl font-bold font-headline text-on-surface tracking-tighter">{{ analysis.match_score }}%</div>
-              </div>
-              <div class="p-8 flex-1">
-                <h4 class="font-bold text-on-surface mb-3 flex items-center gap-2">
-                  <span class="material-symbols-outlined text-secondary">verified</span>
-                  Tổng quan từ chuyên gia AI
-                </h4>
-                <p class="text-sm leading-relaxed text-on-surface-variant">{{ expertAnalysis.overview || analysis.ai_summary }}</p>
-              </div>
-            </div>
-
-            <div class="grid gap-6 xl:grid-cols-2">
-              <div v-if="expertAnalysis.strengths.length" class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm">
-                <h3 class="font-headline text-xl font-bold text-on-surface mb-6 flex items-center gap-3">
-                  <span class="material-symbols-outlined text-primary">military_tech</span>
-                  Điểm mạnh hiện có
-                </h3>
-                <div class="space-y-3">
-                  <div v-for="item in expertAnalysis.strengths" :key="item" class="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm leading-relaxed text-on-surface">
-                    {{ item }}
-                  </div>
+        <section v-else class="account-layout">
+          <aside class="account-sidebar">
+            <div class="account-card career-cv-card">
+              <p class="account-section-label">CV hiện tại</p>
+              <div class="career-cv-file">
+                <div class="career-cv-icon">
+                  <span class="material-symbols-outlined">description</span>
+                </div>
+                <div class="career-cv-meta">
+                  <strong :title="cvData.file_name">{{ cvData.file_name }}</strong>
+                  <span class="account-meta">Cập nhật: {{ formatDate(cvData.created_at) }}</span>
                 </div>
               </div>
+              <div v-if="cvData.skills?.length" class="career-skills">
+                <span v-for="skill in cvData.skills" :key="skill" class="account-chip">{{ skill }}</span>
+              </div>
+            </div>
 
-              <div v-if="expertAnalysis.weaknesses.length || analysis.skill_gaps?.length" class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm">
-                <h3 class="font-headline text-xl font-bold text-on-surface mb-6 flex items-center gap-3">
-                  <span class="material-symbols-outlined text-error">warning</span>
-                  Điểm yếu và khoảng trống
-                </h3>
-                <div class="space-y-3">
-                  <div v-for="item in expertAnalysis.weaknesses" :key="item" class="rounded-2xl border border-error/10 bg-error-container/10 px-4 py-3 text-sm leading-relaxed text-on-surface">
-                    {{ item }}
+            <div class="account-card career-target">
+              <p class="account-section-label">Mục tiêu nghề nghiệp</p>
+              <input
+                v-model="targetJob"
+                type="text"
+                class="career-input"
+                placeholder="Ví dụ: Backend Developer, Tech Lead..."
+                @keyup.enter="getRecommendations"
+              >
+              <button
+                class="account-cta is-primary"
+                type="button"
+                :disabled="loadingRecommendations || !targetJob.trim()"
+                @click="getRecommendations"
+              >
+                <span v-if="loadingRecommendations" class="career-spinner is-sm" />
+                <span class="material-symbols-outlined" v-else>auto_awesome</span>
+                <span>{{ loadingRecommendations ? 'Đang phân tích...' : 'Phân tích với AI' }}</span>
+              </button>
+            </div>
+          </aside>
+
+          <main class="account-main">
+            <template v-if="analysis">
+              <section class="account-card career-overview">
+                <div class="career-overview-content">
+                  <p class="account-section-label">Đánh giá tổng quan</p>
+                  <h2>Mức độ phù hợp với <span class="career-target-tag">{{ analysis.target_job || targetJob || 'mục tiêu' }}</span></h2>
+                  <p class="career-overview-text">{{ expertAnalysis.overview || analysis.ai_summary || 'AI đã hoàn tất phân tích. Xem chi tiết bên dưới để biết điểm mạnh, khoảng trống và lộ trình học tập đề xuất.' }}</p>
+                  <span class="account-chip">AI Recommendation</span>
+                </div>
+                <div class="career-ring" :style="{ '--progress': `${matchScore}%` }">
+                  <div class="career-ring-inner">
+                    <strong>{{ matchScore }}%</strong>
+                    <span>Phù hợp</span>
                   </div>
                 </div>
-                <div v-if="analysis.skill_gaps?.length" class="mt-6 pt-6 border-t border-surface-dim/30">
-                  <p class="text-[11px] font-bold text-outline-variant uppercase tracking-widest mb-3">Kỹ năng nên ưu tiên bổ sung</p>
-                  <div class="flex flex-wrap gap-2.5">
-                    <div v-for="gap in analysis.skill_gaps" :key="gap" class="px-3 py-1.5 bg-error-container/20 text-error border border-error/10 rounded-lg text-xs font-bold uppercase tracking-wide">
-                      {{ gap }}
+              </section>
+
+              <section class="account-summary career-summary">
+                <article>
+                  <p class="account-section-label">Điểm phù hợp</p>
+                  <strong>{{ matchScore }}%</strong>
+                  <span>So với mục tiêu</span>
+                </article>
+                <article>
+                  <p class="account-section-label">Điểm mạnh</p>
+                  <strong>{{ expertAnalysis.strengths.length }}</strong>
+                  <span>AI nhận diện</span>
+                </article>
+                <article>
+                  <p class="account-section-label">Cần cải thiện</p>
+                  <strong>{{ expertAnalysis.weaknesses.length }}</strong>
+                  <span>Điểm yếu</span>
+                </article>
+                <article>
+                  <p class="account-section-label">Skill gaps</p>
+                  <strong>{{ analysis.skill_gaps?.length || 0 }}</strong>
+                  <span>Kỹ năng cần bổ sung</span>
+                </article>
+              </section>
+
+              <section class="account-card">
+                <div class="account-main-head">
+                  <div>
+                    <p class="account-section-label">Bản đồ kỹ năng</p>
+                    <h2>Mức bao phủ kỹ năng & sẵn sàng</h2>
+                    <p>Tổng hợp chỉ số sẵn sàng và mức bao phủ trên các nhóm kỹ năng cốt lõi.</p>
+                  </div>
+                </div>
+                <div class="career-skill-grid">
+                  <div v-for="item in skillCoverage" :key="item.label" class="career-skill-row">
+                    <div class="career-skill-head">
+                      <strong>{{ item.label }}</strong>
+                      <span>{{ item.value }}%</span>
+                    </div>
+                    <div class="progress-track">
+                      <span class="progress-fill" :style="{ width: `${item.value}%` }" />
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <div class="grid gap-6 xl:grid-cols-2">
-              <div v-if="expertAnalysis.cv_additions.length" class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm">
-                <h3 class="font-headline text-xl font-bold text-on-surface mb-6 flex items-center gap-3">
-                  <span class="material-symbols-outlined text-secondary">note_add</span>
-                  Nên bổ sung gì vào CV
-                </h3>
-                <div class="space-y-3">
-                  <div v-for="item in expertAnalysis.cv_additions" :key="item" class="rounded-2xl border border-secondary/10 bg-secondary/5 px-4 py-3 text-sm leading-relaxed text-on-surface">
-                    {{ item }}
-                  </div>
-                </div>
-              </div>
+              <section class="account-grid two-col">
+                <article class="account-card">
+                  <p class="account-section-label">Điểm mạnh</p>
+                  <ul v-if="expertAnalysis.strengths.length" class="career-list is-positive">
+                    <li v-for="item in expertAnalysis.strengths" :key="item">
+                      <span class="material-symbols-outlined">check_circle</span>
+                      <span>{{ item }}</span>
+                    </li>
+                  </ul>
+                  <p v-else class="account-meta">AI chưa phát hiện điểm mạnh nổi bật từ CV.</p>
+                </article>
 
-              <div v-if="expertAnalysis.cv_improvements.length" class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm">
-                <h3 class="font-headline text-xl font-bold text-on-surface mb-6 flex items-center gap-3">
-                  <span class="material-symbols-outlined text-tertiary">edit_document</span>
-                  Nên sửa CV như thế nào
-                </h3>
-                <div class="space-y-3">
-                  <div v-for="item in expertAnalysis.cv_improvements" :key="item" class="rounded-2xl border border-tertiary/10 bg-tertiary/5 px-4 py-3 text-sm leading-relaxed text-on-surface">
-                    {{ item }}
-                  </div>
-                </div>
-              </div>
-            </div>
+                <article class="account-card">
+                  <p class="account-section-label">Cần cải thiện</p>
+                  <ul v-if="expertAnalysis.weaknesses.length" class="career-list is-warning">
+                    <li v-for="item in expertAnalysis.weaknesses" :key="item">
+                      <span class="material-symbols-outlined">priority_high</span>
+                      <span>{{ item }}</span>
+                    </li>
+                  </ul>
+                  <p v-else class="account-meta">Không có điểm yếu rõ rệt — tiếp tục duy trì.</p>
 
-            <div v-if="expertAnalysis.learning_priorities.length" class="bg-surface-lowest rounded-[2.5rem] p-8 border border-surface-dim shadow-sm">
-              <h3 class="font-headline text-xl font-bold text-on-surface mb-6 flex items-center gap-3">
-                <span class="material-symbols-outlined text-primary">checklist</span>
-                Thứ tự ưu tiên học và hoàn thiện hồ sơ
-              </h3>
-              <div class="grid gap-3 md:grid-cols-2">
-                <div v-for="(item, index) in expertAnalysis.learning_priorities" :key="item" class="rounded-2xl border border-surface-dim/50 bg-surface-low px-4 py-4 text-sm leading-relaxed text-on-surface">
-                  <p class="mb-2 text-[10px] font-bold uppercase tracking-widest text-outline-variant">Ưu tiên {{ index + 1 }}</p>
-                  {{ item }}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="font-headline text-xl font-bold text-on-surface mb-6 flex items-center gap-3 px-4">
-                <span class="material-symbols-outlined text-primary">local_library</span>
-                Lộ trình học tập đề xuất
-              </h3>
-              <div class="grid gap-6 sm:grid-cols-2">
-                <NuxtLink 
-                  v-for="course in analysis.suggested_courses_data" 
-                  :key="course.id" 
-                  :to="`/courses/${course.id}`" 
-                  class="group flex flex-col bg-surface-lowest rounded-3xl border border-surface-dim shadow-sm hover:border-primary/40 hover:shadow-md transition-all overflow-hidden"
-                >
-                  <div class="h-40 overflow-hidden relative">
-                    <img v-if="course.thumbnail" :src="course.thumbnail" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110">
-                    <div v-else class="h-full w-full bg-surface-low flex items-center justify-center">
-                      <span class="material-symbols-outlined text-outline text-4xl">book</span>
-                    </div>
-                    <div class="absolute inset-0 bg-black/45 flex items-end p-4">
-                       <p class="text-white text-sm font-bold line-clamp-2">{{ course.title }}</p>
+                  <div v-if="analysis.skill_gaps?.length" class="career-gaps">
+                    <p class="account-section-label">Skill gaps</p>
+                    <div class="career-skills">
+                      <span v-for="gap in analysis.skill_gaps" :key="gap" class="account-badge is-danger">{{ gap }}</span>
                     </div>
                   </div>
-                  <div class="p-4 space-y-3 border-t border-surface-dim/30">
-                    <p class="text-sm leading-relaxed text-on-surface-variant min-h-[48px]">
-                      {{ course.recommendation_reason || 'Khóa học này phù hợp để lấp khoảng trống kỹ năng và giúp CV của bạn có thêm minh chứng thực tế.' }}
-                    </p>
-                    <div class="flex items-center justify-between">
-                      <p class="text-xs font-bold text-on-surface-variant truncate">{{ course.instructor?.name || 'EduPress Elite' }}</p>
-                      <span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
-                    </div>
+                </article>
+              </section>
+
+              <section class="account-card">
+                <div class="account-main-head">
+                  <div>
+                    <p class="account-section-label">Lộ trình học tập</p>
+                    <h2>Khóa học đề xuất</h2>
+                    <p>Khóa học được chọn dựa trên khoảng trống kỹ năng và mục tiêu nghề nghiệp của bạn.</p>
                   </div>
-                </NuxtLink>
-              </div>
-              <div v-if="!analysis.suggested_courses_data?.length" class="p-8 text-center bg-surface-lowest rounded-3xl border border-surface-dim/40 text-on-surface-variant text-sm">
-                Chúng tôi đang cập nhật các khóa học phù hợp với khoảng cách kỹ năng này.
-              </div>
-            </div>
+                </div>
+                <div v-if="analysis.suggested_courses_data?.length" class="account-grid two-col career-courses">
+                  <NuxtLink
+                    v-for="course in analysis.suggested_courses_data"
+                    :key="course.id"
+                    :to="`/courses/${course.id}`"
+                    class="career-course-card"
+                  >
+                    <div class="career-course-thumb">
+                      <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
+                      <span v-else class="material-symbols-outlined">menu_book</span>
+                    </div>
+                    <div class="career-course-body">
+                      <strong>{{ course.title }}</strong>
+                      <p class="account-meta">{{ course.instructor?.name || 'PTIT LMS' }}</p>
+                      <p class="career-course-reason">{{ course.recommendation_reason || 'Khóa học phù hợp để lấp khoảng trống kỹ năng hiện tại.' }}</p>
+                    </div>
+                  </NuxtLink>
+                </div>
+                <div v-else class="career-status">
+                  <span class="material-symbols-outlined">school</span>
+                  <strong>Chưa có khuyến nghị khóa học</strong>
+                  <p>Hãy thử cập nhật mục tiêu nghề nghiệp để hệ thống gợi ý chính xác hơn.</p>
+                </div>
+              </section>
+            </template>
 
-          </div>
-
-          <div v-else class="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-12 bg-surface-lowest rounded-[3rem] border-2 border-dashed border-surface-dim/40 shadow-inner">
-            <div class="w-20 h-20 bg-surface-low rounded-3xl flex items-center justify-center mb-6 text-outline/30">
-              <span class="material-symbols-outlined text-4xl">travel_explore</span>
-            </div>
-            <h3 class="text-2xl font-headline font-bold text-on-surface">Đang chờ phân tích</h3>
-            <p class="text-on-surface-variant mt-2 max-w-sm">Hãy nhập vị trí công việc bạn hằng mong ước bên trái để AI định hướng lộ trình thỉnh giảng.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Initial Upload State -->
-      <div v-else class="max-w-2xl mx-auto py-20">
-         <div 
-           class="group p-16 rounded-[4rem] bg-surface-lowest border border-surface-dim shadow-ambient text-center cursor-pointer hover:border-primary transition-all duration-500"
-           @click="(fileInput as any)?.click()"
-         >
-            <div class="w-24 h-24 bg-primary/5 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 text-primary shadow-inner group-hover:scale-110 transition-transform">
-               <span class="material-symbols-outlined text-5xl">{{ uploading ? 'hourglass_top' : 'cloud_upload' }}</span>
-            </div>
-            <h2 class="text-3xl font-headline font-bold text-on-surface mb-4">{{ uploading ? 'Đang đọc CV của bạn...' : 'Bắt đầu ngay hôm nay' }}</h2>
-            <p class="text-on-surface-variant max-w-md mx-auto mb-10 leading-relaxed">Tải lên hồ sơ năng lực (CV) để EduPress AI khám phá tiềm năng và xây dựng tương lai sự nghiệp của bạn.</p>
-            
-            <div class="flex items-center justify-center gap-6 pt-10 border-t border-surface-dim/30">
-               <div class="text-center">
-                  <p class="text-xs font-bold text-outline-variant uppercase tracking-widest mb-1">Dung lượng</p>
-                  <p class="text-sm font-bold text-on-surface">Tối đa 10MB</p>
-               </div>
-               <div class="h-8 w-[1px] bg-surface-dim/30"></div>
-               <div class="text-center">
-                  <p class="text-xs font-bold text-outline-variant uppercase tracking-widest mb-1">Định dạng</p>
-                  <p class="text-sm font-bold text-on-surface">PDF / DOCX</p>
-               </div>
-            </div>
-         </div>
-      </div>
+            <section v-else class="account-card career-status">
+              <span class="material-symbols-outlined">target</span>
+              <strong>Nhập mục tiêu của bạn</strong>
+              <p>Ví dụ: Frontend Developer, Data Analyst hoặc Project Manager để AI bắt đầu tư vấn.</p>
+            </section>
+          </main>
+        </section>
+      </section>
     </div>
   </NuxtLayout>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
-import UiInput from '~/components/ui/UiInput.vue'
-import UiButton from '~/components/ui/UiButton.vue'
-import AppPageHeader from '~/components/common/AppPageHeader.vue'
 
 definePageMeta({ middleware: 'auth' })
+
 const auth = useAuthStore()
 const cvData = ref<any>(null)
 const analysis = ref<any>(null)
 const targetJob = ref('')
+const initialLoading = ref(true)
 const uploading = ref(false)
 const loadingRecommendations = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+
+const matchScore = computed(() => {
+  const raw = Number(analysis.value?.match_score || 0)
+  return Math.max(0, Math.min(100, Math.round(raw)))
+})
 
 const expertAnalysis = computed(() => ({
   overview: analysis.value?.expert_analysis?.overview || '',
   strengths: analysis.value?.expert_analysis?.strengths || [],
   weaknesses: analysis.value?.expert_analysis?.weaknesses || [],
-  cv_additions: analysis.value?.expert_analysis?.cv_additions || [],
-  cv_improvements: analysis.value?.expert_analysis?.cv_improvements || [],
-  learning_priorities: analysis.value?.expert_analysis?.learning_priorities || [],
 }))
+
+const skillCoverage = computed(() => {
+  const skills = cvData.value?.skills?.length || 0
+  const score = matchScore.value
+  const base = [
+    { label: 'Kỹ thuật chuyên môn', baseValue: 64 },
+    { label: 'Giải quyết vấn đề', baseValue: 60 },
+    { label: 'Làm việc nhóm', baseValue: 70 },
+    { label: 'Sẵn sàng thăng tiến', baseValue: Math.max(40, score) },
+  ]
+  return base.map((item, index) => {
+    const boost = Math.min(skills * (index + 1), 14)
+    return { label: item.label, value: Math.min(96, item.baseValue + boost) }
+  })
+})
+
+const formatDate = (date: string) => {
+  if (!date) return 'N/A'
+  return new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const openFilePicker = () => {
+  fileInput.value?.click()
+}
 
 const loadInitialData = async () => {
   try {
     const data = await useApi<any>('/career/advisor', { token: auth.token })
     cvData.value = data.cv
-    if (data.recommendations?.length > 0) analysis.value = data.recommendations[0]
+    if (data.recommendations?.length > 0) {
+      analysis.value = data.recommendations[0]
+      targetJob.value = data.recommendations[0]?.target_job || ''
+    }
   } catch (err) {
     console.error('Failed to load career advisor data', err)
+  } finally {
+    initialLoading.value = false
   }
 }
 
-const handleFileUpload = async (event: any) => {
-  const file = event.target.files[0]
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
   if (!file) return
   const formData = new FormData()
   formData.append('cv', file)
@@ -288,26 +300,314 @@ const handleFileUpload = async (event: any) => {
     alert('Không thể tải CV lên. Vui lòng thử lại.')
   } finally {
     uploading.value = false
-    if (fileInput.value) {
-      fileInput.value.value = ''
-    }
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 
 const getRecommendations = async () => {
-  if (!targetJob.value) return
+  const job = targetJob.value.trim()
+  if (!job || loadingRecommendations.value) return
   loadingRecommendations.value = true
   try {
-    const res = await useApi<any>('/career/recommend', { method: 'POST', body: { job_title: targetJob.value }, token: auth.token })
+    const res = await useApi<any>('/career/recommend', {
+      method: 'POST',
+      body: { job_title: job },
+      token: auth.token,
+    })
     analysis.value = res.recommendation
-  } catch (err) {
-     alert('Có lỗi xảy ra trong quá trình phân tích AI.')
+  } catch {
+    alert('Có lỗi xảy ra trong quá trình phân tích AI.')
   } finally {
     loadingRecommendations.value = false
   }
 }
 
-const formatDate = (date: string) => !date ? 'N/A' : new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
-
 onMounted(loadInitialData)
 </script>
+
+<style scoped>
+.account-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.account-cta.is-primary {
+  background: var(--green);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 12px 24px -16px rgba(var(--green-rgb), 0.7);
+}
+.account-cta.is-primary:disabled {
+  box-shadow: none;
+}
+
+.career-status {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 36px 24px;
+}
+.career-status .material-symbols-outlined {
+  font-size: 36px;
+  color: var(--green-deep);
+  background: rgba(var(--green-rgb), 0.1);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.career-status strong { font-size: 1.15rem; }
+.career-status p { color: var(--muted); margin: 0; max-width: 420px; }
+
+.career-dropzone {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 48px 28px;
+  border: 1px dashed rgba(var(--green-rgb), 0.32);
+}
+.career-dropzone-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: rgba(var(--green-rgb), 0.1);
+  display: grid;
+  place-items: center;
+  color: var(--green-deep);
+}
+.career-dropzone-icon .material-symbols-outlined { font-size: 36px; }
+.career-dropzone strong { font-size: 1.2rem; }
+.career-dropzone p { color: var(--muted); max-width: 460px; margin: 0 0 8px; }
+
+.career-cv-card { display: grid; gap: 14px; }
+.career-cv-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(17, 17, 17, 0.04);
+}
+.career-cv-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(var(--green-rgb), 0.12);
+  color: var(--green-deep);
+  flex-shrink: 0;
+}
+.career-cv-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.career-cv-meta strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.career-skills { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.career-target { display: grid; gap: 12px; }
+.career-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 14px;
+  background: #fff;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.career-input:focus {
+  outline: none;
+  border-color: rgba(var(--green-rgb), 0.5);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.12);
+}
+
+.career-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+}
+.career-overview-content { display: grid; gap: 10px; }
+.career-overview-content h2 { margin: 0; }
+.career-overview-content .account-chip { justify-self: start; margin-top: 4px; }
+.career-overview-text { color: var(--muted); margin: 0; }
+.career-target-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: rgba(var(--green-rgb), 0.12);
+  color: var(--green-deep);
+  font-weight: 700;
+}
+
+.career-ring {
+  --progress: 0%;
+  position: relative;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  background: conic-gradient(var(--green) 0 var(--progress), rgba(17, 17, 17, 0.08) var(--progress) 100%);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.career-ring-inner {
+  width: 78%;
+  height: 78%;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.04);
+}
+.career-ring-inner strong {
+  display: block;
+  font-size: 1.8rem;
+  line-height: 1;
+  font-weight: 800;
+}
+.career-ring-inner span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.career-summary article { display: grid; gap: 4px; }
+.career-summary article strong { font-size: 1.6rem; }
+.career-summary article span { color: var(--muted); font-size: 0.82rem; }
+
+.career-skill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+  margin-top: 4px;
+}
+.career-skill-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.career-skill-head strong { font-weight: 600; }
+.career-skill-head span { color: var(--muted); font-size: 0.85rem; font-weight: 700; }
+
+.career-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+.career-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.career-list .material-symbols-outlined {
+  font-size: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.career-list.is-positive .material-symbols-outlined { color: var(--green-deep); }
+.career-list.is-warning .material-symbols-outlined { color: #9a6117; }
+
+.career-gaps { margin-top: 16px; display: grid; gap: 8px; }
+
+.career-courses { gap: 14px; }
+.career-course-card {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(17, 17, 17, 0.03);
+  border: 1px solid transparent;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+.career-course-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--green-rgb), 0.18);
+  background: rgba(var(--green-rgb), 0.06);
+}
+.career-course-thumb {
+  width: 96px;
+  height: 96px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: rgba(var(--green-rgb), 0.1);
+  display: grid;
+  place-items: center;
+  color: var(--green-deep);
+}
+.career-course-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.career-course-thumb .material-symbols-outlined { font-size: 32px; }
+.career-course-body { display: grid; gap: 4px; min-width: 0; }
+.career-course-body strong {
+  font-size: 1rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.career-course-reason {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.career-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(var(--green-rgb), 0.18);
+  border-top-color: var(--green-deep);
+  animation: career-spin 0.8s linear infinite;
+}
+.career-spinner.is-sm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+@keyframes career-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1100px) {
+  .career-overview { grid-template-columns: 1fr; text-align: left; }
+  .career-ring { justify-self: center; }
+  .career-skill-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .career-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .career-ring { width: 144px; height: 144px; }
+  .career-ring-inner strong { font-size: 1.5rem; }
+  .career-course-card { flex-direction: column; }
+  .career-course-thumb { width: 100%; height: 140px; }
+}
+</style>

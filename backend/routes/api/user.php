@@ -6,7 +6,14 @@ use App\Http\Controllers\UserManagement\AuthController;
 use App\Http\Controllers\UserManagement\AdminController;
 use App\Http\Controllers\UserManagement\InstructorController;
 use App\Http\Controllers\UserManagement\LessonProgressController;
+use App\Http\Controllers\UserManagement\AcademicManagementController;
+use App\Http\Controllers\UserManagement\AdvisorController;
+use App\Http\Controllers\UserManagement\EnrollmentManagementController;
+use App\Http\Controllers\UserManagement\GradebookController;
+use App\Http\Controllers\UserManagement\InstructorDashboardController;
+use App\Http\Controllers\UserManagement\StudentDashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\CertificateController;
 
 // ─── Auth ───
 Route::prefix('auth')->group(function () {
@@ -14,6 +21,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/resend-verification-email', [AuthController::class, 'resendVerificationEmail']);
+    Route::get('/verify-email/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->middleware('signed')
+        ->name('verification.verify');
     Route::get('/google/url', [AuthController::class, 'googleLoginUrl']);
     Route::get('/google/redirect', [AuthController::class, 'redirectToGoogle']);
     Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback']);
@@ -29,6 +40,9 @@ Route::prefix('auth')->group(function () {
 // Public site settings (no auth)
 Route::get('/site-settings', [AdminController::class, 'publicSiteSettings']);
 
+// Public certificate verification
+Route::get('/certificates/verify/{credentialId}', [CertificateController::class, 'showByCredential']);
+
 // Backward-compatible aliases
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -42,16 +56,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/courses/{course}/progress', [LessonProgressController::class, 'courseProgress']);
     Route::get('/enrollments', [LessonProgressController::class, 'enrollments']);
 
+    // ─── Certificates ───
+    Route::get('/my-certificates', [CertificateController::class, 'myCertificates']);
+
     // ─── Notifications ───
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-    // ─── Instructor ───
+    // ─── Instructor (legacy + dashboard + gradebook) ───
     Route::get('/instructor/stats', [InstructorController::class, 'stats']);
     Route::get('/instructor/courses/{course}/students', [InstructorController::class, 'students']);
     Route::get('/instructor/courses/{course}/revenue', [InstructorController::class, 'revenue']);
+
+    Route::get('/instructor/dashboard', [InstructorDashboardController::class, 'dashboard']);
+    Route::get('/instructor/sections/{classSection}/grades', [GradebookController::class, 'show']);
+    Route::put('/instructor/sections/{classSection}/grades', [GradebookController::class, 'update']);
+    Route::get('/instructor/courses/{course}/grade-components', [GradebookController::class, 'listComponents']);
+    Route::put('/instructor/courses/{course}/grade-components', [GradebookController::class, 'upsertComponents']);
+
+    // ─── Advisor ───
+    Route::get('/advisor/advisees', [AdvisorController::class, 'advisees']);
+    Route::get('/advisor/at-risk', [AdvisorController::class, 'atRisk']);
+
+    // ─── Student-facing /me ───
+    Route::get('/me/dashboard', [StudentDashboardController::class, 'dashboard']);
+    Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    Route::get('/me/recommendations/extensions', [StudentDashboardController::class, 'recommendations']);
 
     // ─── Admin ───
     Route::prefix('admin')->group(function () {
@@ -92,5 +124,26 @@ Route::middleware('auth:sanctum')->group(function () {
         // Site Settings
         Route::get('/settings', [AdminController::class, 'siteSettings']);
         Route::put('/settings', [AdminController::class, 'updateSiteSettings']);
+
+        // Academic Enrollments & Class Sections
+        Route::get('/academic/enrollments', [EnrollmentManagementController::class, 'index']);
+        Route::get('/academic/class-sections', [EnrollmentManagementController::class, 'classSections']);
+        Route::post('/academic/class-sections', [EnrollmentManagementController::class, 'storeClassSection']);
+        Route::put('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'updateClassSection']);
+        Route::delete('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'destroyClassSection']);
+        Route::get('/academic/cohorts/{cohort}/students', [EnrollmentManagementController::class, 'students']);
+        Route::post('/academic/cohorts/{cohort}/enroll-core', [EnrollmentManagementController::class, 'bulkEnrollCore']);
+
+        // Academic Organization & Structure (generic CRUD per resource)
+        Route::get('/academic/{resource}', [AcademicManagementController::class, 'index']);
+        Route::post('/academic/{resource}', [AcademicManagementController::class, 'store']);
+        Route::put('/academic/{resource}/{id}', [AcademicManagementController::class, 'update']);
+        Route::delete('/academic/{resource}/{id}', [AcademicManagementController::class, 'destroy']);
+
+        // Certificates
+        Route::get('/certificates', [CertificateController::class, 'index']);
+        Route::post('/certificates', [CertificateController::class, 'store']);
+        Route::put('/certificates/{template}', [CertificateController::class, 'update']);
+        Route::delete('/certificates/{template}', [CertificateController::class, 'destroy']);
     });
 });

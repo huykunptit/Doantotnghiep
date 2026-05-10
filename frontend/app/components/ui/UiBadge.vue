@@ -7,8 +7,8 @@ withDefaults(defineProps<{
 
 const classes = {
   default: 'bg-surface-high text-on-surface',
-  success: 'bg-secondary/10 text-secondary',
-  warning: 'bg-primary/10 text-primary',
+  success: 'bg-primary/10 text-primary',
+  warning: 'bg-warning/10 text-warning',
   danger: 'bg-error-container text-error',
   info: 'bg-tertiary/10 text-tertiary',
 }

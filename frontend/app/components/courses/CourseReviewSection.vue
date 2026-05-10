@@ -169,5 +169,5 @@ onMounted(() => {
   display: flex; align-items: center; gap: 10px;
   font-size: 1.2rem; font-weight: 800; margin: 0; color: var(--on-surface, #0f172a);
 }
-.cd-card-icon { font-size: 22px; color: var(--primary, #2f7a45); }
+.cd-card-icon { font-size: 22px; color: var(--primary, var(--green)); }
 </style>

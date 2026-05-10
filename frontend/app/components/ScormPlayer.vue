@@ -202,7 +202,7 @@ onBeforeUnmount(() => {
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255,255,255,0.1);
-  border-top-color: #3b82f6;
+  border-top-color: var(--green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

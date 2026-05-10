@@ -36,8 +36,8 @@ const questionTypes = [
 ]
 
 const difficultyLevels = [
-  { value: 1, label: 'Nhận biết', color: '#4caf50' },
-  { value: 2, label: 'Thông hiểu', color: '#2196f3' },
+  { value: 1, label: 'Nhận biết', color: 'var(--green)' },
+  { value: 2, label: 'Thông hiểu', color: 'var(--green)' },
   { value: 3, label: 'Vận dụng', color: '#ff9800' },
   { value: 4, label: 'Vận dụng cao', color: '#f44336' },
   { value: 5, label: 'Sáng tạo', color: '#9c27b0' },

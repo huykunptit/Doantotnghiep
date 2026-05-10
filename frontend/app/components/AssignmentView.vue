@@ -402,8 +402,8 @@ async function submitAssignment() {
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
   border-color: currentColor;
 }
-.assignment-milestone--open   { color: #16a34a; }
-.assignment-milestone--submit { color: #2563eb; }
+.assignment-milestone--open   { color: var(--green); }
+.assignment-milestone--submit { color: var(--green); }
 .assignment-milestone--close  { color: #dc2626; }
 
 .assignment-milestone-icon {
@@ -480,7 +480,7 @@ async function submitAssignment() {
   margin-bottom: 16px;
 }
 .assignment-section-head .material-symbols-outlined {
-  color: #2563eb;
+  color: var(--green);
   font-size: 22px;
 }
 .assignment-section-head h3 {
@@ -529,13 +529,13 @@ async function submitAssignment() {
 }
 .assignment-dropzone:hover,
 .assignment-dropzone.is-dragging {
-  border-color: #2563eb;
+  border-color: var(--green);
   background: #e6efff;
 }
 .assignment-dropzone.has-file {
   border-style: solid;
   background: #fff;
-  border-color: #16a34a;
+  border-color: var(--green);
 }
 
 .assignment-file-input {
@@ -565,7 +565,7 @@ async function submitAssignment() {
   color: #334155;
 }
 .assignment-dropzone-empty .link {
-  color: #2563eb;
+  color: var(--green);
   font-weight: 700;
   text-decoration: underline;
 }
@@ -582,7 +582,7 @@ async function submitAssignment() {
 }
 .assignment-file-icon {
   font-size: 32px;
-  color: #16a34a;
+  color: var(--green);
   background: #dcfce7;
   border-radius: 10px;
   padding: 8px;
@@ -655,8 +655,8 @@ async function submitAssignment() {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .assignment-note textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.15);
 }
 
 .assignment-submit-btn {
@@ -665,7 +665,7 @@ async function submitAssignment() {
   padding: 13px;
   border: none;
   border-radius: 12px;
-  background: #16a34a;
+  background: var(--green);
   color: #fff;
   font-weight: 800;
   font-size: 0.95rem;
@@ -674,7 +674,7 @@ async function submitAssignment() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.3);
+  box-shadow: 0 8px 22px rgba(var(--green-rgb), 0.3);
   transition: filter 0.15s, transform 0.15s;
 }
 .assignment-submit-btn:hover:not(:disabled) {
@@ -710,7 +710,7 @@ async function submitAssignment() {
 }
 .assignment-submitted-head .material-symbols-outlined {
   font-size: 28px;
-  color: #16a34a;
+  color: var(--green);
   font-variation-settings: 'FILL' 1;
 }
 .assignment-submitted-title {
@@ -732,7 +732,7 @@ async function submitAssignment() {
   padding: 8px 14px;
   border-radius: 999px;
   background: #fff;
-  color: #15803d;
+  color: var(--green-deep);
   font-weight: 700;
   font-size: 0.85rem;
   text-decoration: none;
@@ -750,7 +750,7 @@ async function submitAssignment() {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 800;
-  color: #15803d;
+  color: var(--green-deep);
 }
 .assignment-grade-value small {
   font-size: 0.9rem;
@@ -802,7 +802,7 @@ async function submitAssignment() {
   color: #64748b;
 }
 .assignment-locked--soon {
-  background: #eff6ff;
+  background: rgba(var(--green-rgb), 0.05);
   border-color: #bfdbfe;
   color: #1d4ed8;
 }

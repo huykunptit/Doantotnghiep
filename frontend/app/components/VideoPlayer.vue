@@ -299,7 +299,7 @@ const cleanup = () => {
   width: 40px;
   height: 40px;
   border: 4px solid #333;
-  border-top-color: #16a34a;
+  border-top-color: var(--green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -311,7 +311,7 @@ const cleanup = () => {
 .btn-retry {
   margin-top: 16px;
   padding: 10px 24px;
-  background: #16a34a;
+  background: var(--green);
   color: white;
   border: none;
   border-radius: 8px;
@@ -334,7 +334,7 @@ const cleanup = () => {
 }
 
 .btn-retry:hover {
-  background: #15803d;
+  background: var(--green-deep);
 }
 
 .player-container {

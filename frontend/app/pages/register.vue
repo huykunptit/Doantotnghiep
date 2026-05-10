@@ -1,10 +1,19 @@
+<script setup lang="ts">
+import AuthPageShell from '~/components/auth/AuthPageShell.vue'
+import RegisterForm from '~/components/auth/RegisterForm.vue'
+
+definePageMeta({ layout: false })
+</script>
+
 <template>
-  <main class="placeholder-shell">
-    <div class="placeholder-card">
-      <p class="placeholder-eyebrow">Đang làm tiếp</p>
-      <h1>Màn hình đăng ký sẽ được dựng tiếp theo cùng một style.</h1>
-      <p>Phần login đã được đặt làm điểm khởi đầu cho frontend mới. Mục tiếp theo là register, forgot password và Google callback.</p>
-      <NuxtLink to="/login">Quay lại đăng nhập</NuxtLink>
-    </div>
-  </main>
+  <AuthPageShell
+    panel-kicker="Xin chào"
+    panel-title="Đăng ký"
+    panel-description="Điền thông tin để tạo tài khoản mới và bắt đầu sử dụng nền tảng học tập."
+    foot-text="Đã có tài khoản?"
+    foot-link-text="Đăng nhập ngay"
+    foot-link-to="/login"
+  >
+    <RegisterForm />
+  </AuthPageShell>
 </template>

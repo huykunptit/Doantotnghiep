@@ -12,11 +12,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-<<<<<<< HEAD
       title: 'PTIT LMS',
-=======
-      title: 'ERIPT LMS',
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
       meta: [
         {
           name: 'description',

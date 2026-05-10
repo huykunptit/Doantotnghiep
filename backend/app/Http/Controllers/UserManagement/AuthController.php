@@ -5,9 +5,10 @@ namespace App\Http\Controllers\UserManagement;
 use App\Http\Controllers\Controller;
 
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -24,7 +25,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:6'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
 
         $user = User::create([
@@ -33,14 +34,12 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
         $this->assignDefaultRole($user);
-
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $user->sendEmailVerificationNotification();
 
         return response()->json([
-            'message' => 'Register success',
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $this->serializeUser($user),
+            'message' => 'Đăng ký thành công. Vui lòng kiểm tra email để xác nhận tài khoản.',
+            'email' => $user->email,
+            'requires_verification' => true,
         ], 201);
     }
 
@@ -51,12 +50,24 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $user = User::query()->where('email', $credentials['email'])->first();
+        if ($user && !$user->hasVerifiedEmail()) {
+            $user->sendEmailVerificationNotification();
+
+            return response()->json([
+                'message' => 'Email của bạn chưa được xác nhận. Chúng tôi đã gửi lại email xác nhận.',
+                'requires_verification' => true,
+                'email' => $user->email,
+            ], 403);
+        }
+
         if (!Auth::attempt($credentials)) {
             return response()->json([
                 'message' => 'Invalid email or password',
             ], 401);
         }
 
+        /** @var User $user */
         $user = Auth::user();
         $this->assignDefaultRole($user);
         $token = $user->createToken('auth-token')->plainTextToken;
@@ -129,7 +140,10 @@ class AuthController extends Controller
 
     public function redirectToGoogle(): RedirectResponse
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        /** @var \Laravel\Socialite\Two\AbstractProvider $provider */
+        $provider = Socialite::driver('google');
+
+        return $provider->stateless()->redirect();
     }
 
     public function googleLoginUrl(): JsonResponse
@@ -141,8 +155,11 @@ class AuthController extends Controller
         }
 
         try {
+            /** @var \Laravel\Socialite\Two\AbstractProvider $provider */
+            $provider = Socialite::driver('google');
+
             return Response::json([
-                'url' => Socialite::driver('google')->stateless()->redirect()->getTargetUrl(),
+                'url' => $provider->stateless()->redirect()->getTargetUrl(),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
@@ -154,7 +171,9 @@ class AuthController extends Controller
     public function handleGoogleCallback(): JsonResponse
     {
         try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
+            /** @var \Laravel\Socialite\Two\AbstractProvider $provider */
+            $provider = Socialite::driver('google');
+            $googleUser = $provider->stateless()->user();
         } catch (\Throwable) {
             return response()->json([
                 'message' => 'Google authentication failed',
@@ -237,6 +256,48 @@ class AuthController extends Controller
         return response()->json(['message' => __($status)], 422);
     }
 
+    public function resendVerificationEmail(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::query()->where('email', $validated['email'])->first();
+        if (!$user) {
+            return response()->json(['message' => 'Không tìm thấy tài khoản phù hợp.'], 404);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email này đã được xác nhận.']);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json(['message' => 'Đã gửi lại email xác nhận. Vui lòng kiểm tra hộp thư của bạn.']);
+    }
+
+    public function verifyEmail(Request $request, int $id, string $hash): JsonResponse
+    {
+        $user = User::query()->find($id);
+        if (!$user) {
+            return response()->json(['message' => 'Liên kết xác nhận không hợp lệ.'], 404);
+        }
+
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification())) || !$request->hasValidSignature()) {
+            return response()->json(['message' => 'Liên kết xác nhận đã hết hạn hoặc không hợp lệ.'], 403);
+        }
+
+        if (!$user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            event(new Verified($user));
+        }
+
+        return response()->json([
+            'message' => 'Xác nhận email thành công. Bạn có thể đăng nhập ngay bây giờ.',
+            'verified' => true,
+        ]);
+    }
+
     private function assignDefaultRole(User $user): void
     {
         if (!$user->hasAnyRole(['admin', 'instructor', 'student']) && Role::query()->where('name', 'student')->exists()) {
@@ -246,7 +307,7 @@ class AuthController extends Controller
 
     private function serializeUser(User $user): array
     {
-        $user->loadMissing('roles');
+        $user->loadMissing(['roles', 'institution', 'unit', 'program', 'major', 'specialization', 'cohort']);
 
         return [
             'id' => $user->id,
@@ -255,6 +316,28 @@ class AuthController extends Controller
             'avatar' => $user->avatar,
             'role' => $user->roles->pluck('name')->first(),
             'roles' => $user->roles->pluck('name')->values(),
+            'email_verified' => $user->hasVerifiedEmail(),
+            'email_verified_at' => $user->email_verified_at?->toISOString(),
+            'user_type' => $user->user_type,
+            'student_code' => $user->student_code,
+            'staff_code' => $user->staff_code,
+            'phone' => $user->phone,
+            'organization' => [
+                'institution_id' => $user->institution_id,
+                'institution_name' => $user->institution?->name,
+                'unit_id' => $user->unit_id,
+                'unit_name' => $user->unit?->name,
+            ],
+            'academic' => [
+                'program_id' => $user->program_id,
+                'program_name' => $user->program?->name,
+                'major_id' => $user->major_id,
+                'major_name' => $user->major?->name,
+                'specialization_id' => $user->specialization_id,
+                'specialization_name' => $user->specialization?->name,
+                'cohort_id' => $user->cohort_id,
+                'cohort_name' => $user->cohort?->name,
+            ],
         ];
     }
 }

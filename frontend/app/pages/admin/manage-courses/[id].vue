@@ -1080,9 +1080,9 @@ onMounted(() => {
 }
 
 .picker-tab.is-active {
-  background: rgba(47, 122, 69, 0.12);
+  background: rgba(var(--green-rgb), 0.12);
   color: var(--green-deep);
-  border-color: rgba(47, 122, 69, 0.2);
+  border-color: rgba(var(--green-rgb), 0.2);
 }
 
 .content-picker-grid {
@@ -1107,7 +1107,7 @@ onMounted(() => {
 
 .content-picker-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(47, 122, 69, 0.2);
+  border-color: rgba(var(--green-rgb), 0.2);
   box-shadow: 0 18px 40px -28px rgba(17, 17, 17, 0.3);
 }
 
@@ -1126,7 +1126,7 @@ onMounted(() => {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  background: rgba(47, 122, 69, 0.12);
+  background: rgba(var(--green-rgb), 0.12);
   font-size: 1.4rem;
 }
 
@@ -1240,7 +1240,7 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: rgba(47, 122, 69, 0.08);
+  background: rgba(var(--green-rgb), 0.08);
   color: var(--green-deep);
   border-radius: 8px;
 }
@@ -1369,8 +1369,8 @@ onMounted(() => {
   opacity: 0.85;
 }
 
-.assignment-date-card--open   { color: #16a34a; }
-.assignment-date-card--submit { color: #2563eb; }
+.assignment-date-card--open   { color: var(--green); }
+.assignment-date-card--submit { color: var(--green); }
 .assignment-date-card--close  { color: #dc2626; }
 
 .assignment-date-card-head {
@@ -1452,10 +1452,10 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   color: #1d4ed8;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(var(--green-rgb), 0.1);
   font-weight: 600;
 }
-.action-btn.is-preview:hover { background: rgba(59, 130, 246, 0.18); }
+.action-btn.is-preview:hover { background: rgba(var(--green-rgb), 0.18); }
 .action-btn.is-preview .material-symbols-outlined { font-size: 16px; }
 
 .preview-modal {
@@ -1538,7 +1538,7 @@ onMounted(() => {
   gap: 6px;
   padding: 9px 16px;
   border-radius: 999px;
-  background: #16a34a;
+  background: var(--green);
   color: #fff;
   text-decoration: none;
   font-weight: 700;

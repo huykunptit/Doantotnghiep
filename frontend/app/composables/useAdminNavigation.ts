@@ -31,6 +31,16 @@ export function useAdminNavigation() {
       ],
     },
     {
+      label: 'Tổ chức & Học vụ',
+      items: [
+        { label: 'Tổng hợp học vụ', icon: '◩', to: '/admin/academic' },
+        // { label: 'Đơn vị', icon: '◪', to: '/admin/academic/units' },
+        // { label: 'Chương trình', icon: '◫', to: '/admin/academic/programs' },
+        // { label: 'Học kỳ', icon: '◬', to: '/admin/academic/terms' },
+        // { label: 'Khóa/Lớp', icon: '◭', to: '/admin/academic/cohorts' },
+      ],
+    },
+    {
       label: 'Quản lý khóa học',
       items: [
         { label: 'Kiểm duyệt khóa học', icon: '◫', to: '/admin/courses' },
@@ -43,12 +53,31 @@ export function useAdminNavigation() {
       items: [
         { label: 'Ngân hàng câu hỏi', icon: '◬', to: '/admin/question-bank' },
         { label: 'Quiz / Đề thi', icon: '◭', to: '/admin/quiz' },
+        { label: 'Theo dõi kỳ thi', icon: '◈', to: '/admin/reports/exam-tracking' },
       ],
     },
     {
-      label: 'Quản trị hệ thống',
+      label: 'Báo cáo & Thống kê',
+      items: [
+        { label: 'Báo cáo khóa học', icon: '▣', to: '/admin/reports/courses' },
+        { label: 'Báo cáo kỳ thi', icon: '▥', to: '/admin/reports/exams' },
+        { label: 'Tiến độ học tập', icon: '▤', to: '/admin/reports/progress' },
+        { label: 'Lịch sử báo lỗi', icon: '▲', to: '/admin/reports/errors' },
+      ],
+    },
+    {
+      label: 'Tài chính',
       items: [
         { label: 'Đơn hàng', icon: '◒', to: '/admin/orders' },
+        { label: 'Báo cáo thanh toán', icon: '▩', to: '/admin/reports/payments' },
+        { label: 'Yêu cầu rút tiền', icon: '◈', to: '/admin/payouts' },
+      ],
+    },
+    {
+      label: 'Hỗ trợ & Hệ thống',
+      items: [
+        { label: 'Trò chuyện', icon: '◓', to: '/admin/chat' },
+        { label: 'Nhật ký hoạt động', icon: '▥', to: '/admin/reports/activity' },
         { label: 'Cài đặt', icon: '◌', to: '/admin/settings' },
       ],
     },
@@ -56,7 +85,6 @@ export function useAdminNavigation() {
 
   const supportItems: AdminSupportItem[] = [
     { label: 'Thông báo hệ thống', comingSoon: true },
-    { label: 'Nhật ký hoạt động', comingSoon: true },
     { label: 'Trợ giúp kỹ thuật', comingSoon: true },
   ]
 

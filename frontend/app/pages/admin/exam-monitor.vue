@@ -12,10 +12,7 @@ const examId = computed(() => route.query.exam as string | undefined)
 const loading = ref(true)
 const monitorData = ref<any>(null)
 const error = ref('')
-<<<<<<< HEAD
 const success = ref('')
-=======
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 const pollInterval = ref<any>(null)
 
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
@@ -23,7 +20,6 @@ const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
 const statusLabel: Record<string, string> = { in_progress: '🟢 Đang thi', paused: '🟡 Tạm dừng', submitted: '✅ Đã nộp', force_stopped: '🔴 Bị dừng' }
 const statusBg: Record<string, string> = { in_progress: '#e8f5e9', paused: '#fff8e1', submitted: '#e3f2fd', force_stopped: '#fce4ec' }
 
-<<<<<<< HEAD
 type ActionType = 'pause' | 'resume' | 'force-stop' | 'extend' | 'warn'
 interface ActiveAction { type: ActionType; attempt: any }
 
@@ -65,27 +61,23 @@ function closeAction() {
 function flashSuccess(msg: string) {
   success.value = msg
   setTimeout(() => { if (success.value === msg) success.value = '' }, 4000)
-=======
+}
+
 function formatTime(seconds: number | null) {
   if (!seconds || seconds <= 0) return '00:00'
   const m = Math.floor(seconds / 60); const s = seconds % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 }
 
 async function fetchMonitor() {
   if (!examId.value) return
   try {
     monitorData.value = await useApi(`/exams/${examId.value}/live-monitor`, { headers: authHeaders() })
-<<<<<<< HEAD
     if (loading.value) loading.value = false
-=======
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
   } catch (e: any) { error.value = e?.data?.message || 'Không thể tải dữ liệu giám sát.' }
   finally { loading.value = false }
 }
 
-<<<<<<< HEAD
 async function confirmAction() {
   if (!activeAction.value) return
   const { type, attempt } = activeAction.value
@@ -136,41 +128,6 @@ async function confirmAction() {
   }
 }
 
-function formatTime(seconds: number | null) {
-  if (!seconds || seconds <= 0) return '00:00'
-  const m = Math.floor(seconds / 60); const s = seconds % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-=======
-async function pauseAttempt(attemptId: number) {
-  try {
-    await useApi(`/attempts/${attemptId}/pause`, { method: 'POST', headers: authHeaders() })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
-}
-async function resumeAttempt(attemptId: number) {
-  try {
-    await useApi(`/attempts/${attemptId}/resume`, { method: 'POST', headers: authHeaders() })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
-}
-async function forceStopAttempt(attemptId: number) {
-  const reason = prompt('Nhập lý do dừng bài thi:')
-  if (!reason) return
-  try {
-    await useApi(`/attempts/${attemptId}/force-stop`, { method: 'POST', headers: authHeaders(), body: { reason } })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
-}
-async function extendTime(attemptId: number) {
-  const minutes = prompt('Số phút gia hạn thêm:')
-  if (!minutes || isNaN(Number(minutes))) return
-  try {
-    await useApi(`/attempts/${attemptId}/extend-time`, { method: 'POST', headers: authHeaders(), body: { minutes: Number(minutes) } })
-    await fetchMonitor()
-  } catch (e: any) { error.value = e?.data?.message || 'Lỗi' }
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
-}
-
 onMounted(async () => {
   await fetchMonitor()
   pollInterval.value = setInterval(fetchMonitor, 10000) // Poll every 10s
@@ -179,11 +136,7 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
 </script>
 
 <template>
-<<<<<<< HEAD
   <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý thi', 'Giám sát kỳ thi']" title="Giám sát kỳ thi trực tiếp" description="Theo dõi thí sinh đang thi, tạm dừng / cho tiếp tục / dừng / gia hạn / gửi cảnh báo trong trường hợp vi phạm.">
-=======
-  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý thi', 'Giám sát kỳ thi']" title="Giám sát kỳ thi trực tiếp" description="Theo dõi thí sinh đang thi, tạm dừng / cho tiếp tục / dừng bài thi trong trường hợp vi phạm.">
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
 
     <div v-if="!examId" class="dashboard-card crud-panel">
       <div class="crud-empty" style="padding: 3rem;">Vui lòng chọn kỳ thi từ trang <NuxtLink to="/admin/quiz" style="color: var(--primary);">Quản lý quiz / đề thi</NuxtLink>.</div>
@@ -196,16 +149,16 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
           <div style="font-size: 2rem; font-weight: 800;">{{ monitorData.summary?.total || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Tổng thí sinh</div>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #4caf50;">
-          <div style="font-size: 2rem; font-weight: 800; color: #4caf50;">{{ monitorData.summary?.in_progress || 0 }}</div>
+        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid var(--green);">
+          <div style="font-size: 2rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.in_progress || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Đang thi</div>
         </div>
         <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #ff9800;">
           <div style="font-size: 2rem; font-weight: 800; color: #ff9800;">{{ monitorData.summary?.paused || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Tạm dừng</div>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #2196f3;">
-          <div style="font-size: 2rem; font-weight: 800; color: #2196f3;">{{ monitorData.summary?.submitted || 0 }}</div>
+        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid var(--green);">
+          <div style="font-size: 2rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.submitted || 0 }}</div>
           <div style="font-size: 0.8rem; color: #666;">Đã nộp</div>
         </div>
         <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #f44336;">
@@ -223,12 +176,8 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
           </div>
           <button class="crud-primary-btn" type="button" @click="fetchMonitor">↻ Làm mới</button>
         </div>
-<<<<<<< HEAD
         <div v-if="error && !activeAction" class="crud-alert is-error">{{ error }}</div>
         <div v-if="success" class="crud-alert is-success">{{ success }}</div>
-=======
-        <div v-if="error" class="crud-alert is-error">{{ error }}</div>
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
         <div v-if="loading" class="crud-empty" style="padding: 2rem;">Đang tải...</div>
         <div v-else class="crud-table-wrap">
           <table class="crud-table">
@@ -249,23 +198,16 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
                 </td>
                 <td>
                   <span v-if="a.violations_count > 0" style="color: #f44336; font-weight: 700;">⚠ {{ a.violations_count }}</span>
-                  <span v-else style="color: #4caf50;">0</span>
+                  <span v-else style="color: var(--green);">0</span>
                 </td>
                 <td style="font-size: 0.75rem;">{{ a.auto_saved_at ? new Date(a.auto_saved_at).toLocaleTimeString('vi') : '—' }}</td>
                 <td>
                   <div class="crud-actions" style="flex-wrap: wrap;">
-<<<<<<< HEAD
                     <button v-if="a.status === 'in_progress'" class="action-btn is-edit" type="button" title="Tạm dừng" @click="openAction('pause', a)">⏸ Dừng</button>
                     <button v-if="a.status === 'paused'" class="action-btn is-view" type="button" title="Cho tiếp tục" @click="openAction('resume', a)">▶ Tiếp</button>
                     <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn is-delete" type="button" title="Dừng hẳn (vi phạm)" @click="openAction('force-stop', a)">⛔ Dừng hẳn</button>
-                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gia hạn thời gian" style="color: #2196f3;" @click="openAction('extend', a)">⏱ Gia hạn</button>
+                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gia hạn thời gian" style="color: var(--green);" @click="openAction('extend', a)">⏱ Gia hạn</button>
                     <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" title="Gửi cảnh báo tới màn hình thí sinh" style="color: #d97706;" @click="openAction('warn', a)">⚠ Cảnh báo</button>
-=======
-                    <button v-if="a.status === 'in_progress'" class="action-btn is-edit" type="button" @click="pauseAttempt(a.id)" title="Tạm dừng">⏸ Dừng</button>
-                    <button v-if="a.status === 'paused'" class="action-btn is-view" type="button" @click="resumeAttempt(a.id)" title="Cho tiếp tục">▶ Tiếp</button>
-                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn is-delete" type="button" @click="forceStopAttempt(a.id)" title="Dừng hẳn (vi phạm)">⛔ Dừng hẳn</button>
-                    <button v-if="a.status === 'in_progress' || a.status === 'paused'" class="action-btn" type="button" @click="extendTime(a.id)" title="Gia hạn thời gian" style="color: #2196f3;">⏱ Gia hạn</button>
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f
                   </div>
                   <div v-if="a.force_stop_reason" style="font-size: 0.75rem; color: #f44336; margin-top: 4px;">Lý do: {{ a.force_stop_reason }}</div>
                 </td>
@@ -275,7 +217,6 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
         </div>
       </section>
     </template>
-<<<<<<< HEAD
 
     <Teleport to="body">
       <div v-if="activeAction" class="proctor-overlay" @click.self="closeAction">
@@ -414,8 +355,8 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
 .proctor-field select:focus,
 .proctor-field textarea:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.15);
 }
 .proctor-quick-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
 .proctor-quick-btn {
@@ -428,9 +369,5 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
   font-weight: 700;
   color: #334155;
 }
-.proctor-quick-btn:hover { border-color: #1976d2; color: #1558b0; background: #e8f1ff; }
+.proctor-quick-btn:hover { border-color: var(--green); color: #1558b0; background: rgba(var(--green-rgb), 0.05); }
 </style>
-=======
-  </AdminWorkspaceShell>
-</template>
->>>>>>> 7d009d95f0b42efa5409595ad1a720a5e547586f

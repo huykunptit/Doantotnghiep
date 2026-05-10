@@ -59,7 +59,7 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
 .sc-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary, #6366f1);
+  border-color: var(--primary, var(--green));
 }
 
 .sc-thumbnail-wrap {
@@ -98,7 +98,7 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
 }
 .sc-badge .material-symbols-outlined { font-size: 14px; }
 .sc-badge-progress { background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); }
-.sc-badge-completed { background: rgba(22, 163, 74, 0.9); backdrop-filter: blur(4px); }
+.sc-badge-completed { background: rgba(var(--green-rgb), 0.9); backdrop-filter: blur(4px); }
 
 .sc-content {
   padding: 1.25rem;
@@ -112,7 +112,7 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--primary, #6366f1);
+  color: var(--primary, var(--green));
   margin-bottom: 0.5rem;
 }
 
@@ -148,7 +148,7 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
   font-weight: 800;
   color: var(--on-surface, #0f172a);
 }
-.text-success { color: #16a34a !important; }
+.text-success { color: var(--green) !important; }
 
 .sc-progress-bar-bg {
   width: 100%;
@@ -159,11 +159,11 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
 }
 .sc-progress-bar {
   height: 100%;
-  background: var(--primary, #2f7a45);
+  background: var(--primary, var(--green));
   border-radius: 99px;
   transition: width 0.5s ease-out;
 }
-.bg-success { background: #22c55e !important; }
+.bg-success { background: var(--green) !important; }
 
 .sc-actions {
   display: flex;
@@ -183,10 +183,10 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
 }
 .sc-btn-primary {
   background: var(--surface-low, #f1f5f9);
-  color: var(--primary, #6366f1);
+  color: var(--primary, var(--green));
 }
 .sc-btn-primary:hover {
-  background: var(--primary, #6366f1);
+  background: var(--primary, var(--green));
   color: #fff;
 }
 .sc-btn-outline {

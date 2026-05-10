@@ -8,8 +8,10 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
+use App\Models\UserCertificate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class LessonProgressController extends Controller
 {
@@ -47,6 +49,25 @@ class LessonProgressController extends Controller
                 'last_watched_at'  => now(),
             ]
         );
+
+        if ($completed && $course->certificate_template_id) {
+            $totalLessons = $course->lessons()->count();
+            $completedCount = LessonProgress::where('user_id', $user->id)
+                ->whereIn('lesson_id', $course->lessons()->pluck('id'))
+                ->where('completed', true)
+                ->count();
+
+            if ($completedCount >= $totalLessons) {
+                UserCertificate::firstOrCreate([
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                ], [
+                    'certificate_template_id' => $course->certificate_template_id,
+                    'credential_id' => 'CERT-' . strtoupper(Str::random(10)),
+                    'issued_at' => now(),
+                ]);
+            }
+        }
 
         return response()->json(['message' => 'Progress saved', 'progress' => $progress]);
     }

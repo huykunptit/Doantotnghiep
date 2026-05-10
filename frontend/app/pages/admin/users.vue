@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import { useAdminUpload } from '~/composables/useAdminUpload'
+import MediaUpload from '~/components/common/MediaUpload.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -34,7 +34,6 @@ interface PaginatedUsers {
 
 const user = useAuthUserCookie()
 const token = useAuthTokenCookie()
-const { uploadImage } = useAdminUpload()
 
 if (!user.value || !token.value) {
   await navigateTo('/login', { replace: true })
@@ -58,13 +57,40 @@ const successMessage = ref('')
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalUsers = ref(0)
+const activeDropdown = ref<number | null>(null)
+const selectedIds = ref<number[]>([])
+
+const isAllSelected = computed(() => {
+  return users.value.length > 0 && users.value.every(u => selectedIds.value.includes(u.id))
+})
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = users.value.map(u => u.id)
+  }
+}
+
+function toggleDropdown(id: number) {
+  activeDropdown.value = activeDropdown.value === id ? null : id
+}
+
+function closeDropdown() {
+  activeDropdown.value = null
+}
+
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement
+  if (!target.closest('.crud-actions-dropdown')) {
+    closeDropdown()
+  }
+}
 
 const modalMode = ref<'create' | 'edit' | 'view'>('create')
 const modalOpen = ref(false)
 const deleteModalOpen = ref(false)
 const selectedUser = ref<AdminUser | null>(null)
-const avatarFile = ref<File | null>(null)
-const uploadingAvatar = ref(false)
 
 const form = reactive({
   name: '',
@@ -162,6 +188,7 @@ function openViewModal(item: AdminUser) {
   form.avatar = item.avatar || ''
   form.role = resolveRole(item)
   modalOpen.value = true
+  closeDropdown()
 }
 
 function openEditModal(item: AdminUser) {
@@ -173,27 +200,20 @@ function openEditModal(item: AdminUser) {
   form.avatar = item.avatar || ''
   form.role = resolveRole(item)
   modalOpen.value = true
+  closeDropdown()
 }
 
 function closeModal() {
   modalOpen.value = false
   selectedUser.value = null
-  avatarFile.value = null
 }
 
-async function uploadAvatar() {
-  if (!avatarFile.value) return
+function onAvatarUploaded() {
+  successMessage.value = 'Đã tải ảnh đại diện lên.'
+}
 
-  uploadingAvatar.value = true
-  try {
-    const uploaded = await uploadImage(avatarFile.value, 'users', form.avatar || null)
-    form.avatar = uploaded.url
-    successMessage.value = 'Đã tải ảnh đại diện lên.'
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải ảnh đại diện.'
-  } finally {
-    uploadingAvatar.value = false
-  }
+function onAvatarError(message: string) {
+  errorMessage.value = message
 }
 
 async function saveUser() {
@@ -252,6 +272,7 @@ async function deleteUser(item?: AdminUser) {
   if (item) {
     selectedUser.value = item
     deleteModalOpen.value = true
+    closeDropdown()
     return
   }
 
@@ -279,6 +300,11 @@ async function deleteUser(item?: AdminUser) {
 
 onMounted(() => {
   fetchUsers()
+  window.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -317,29 +343,32 @@ onMounted(() => {
 
       <div class="crud-meta">
         <p>{{ totalUsers }} người dùng</p>
-        <p>Chuẩn thiết kế được thống nhất trong `frontend/docs/CRUD_DESIGN_GUIDELINES.md`</p>
       </div>
 
       <div class="crud-table-wrap">
         <table class="crud-table">
           <thead>
             <tr>
-              <th>Profile</th>
+              <th style="width: 40px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th>
+              <th style="width: 60px">STT</th>
+              <th>Nguoi dung</th>
               <th>Vai tro</th>
               <th>Email</th>
               <th>Ngay tao</th>
               <th>Cap nhat</th>
-              <th>Actions</th>
+              <th style="text-align: right">Thao tac</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" class="crud-empty">Đang tải dữ liệu người dùng...</td>
+              <td colspan="8" class="crud-empty">Đang tải dữ liệu người dùng...</td>
             </tr>
             <tr v-else-if="users.length === 0">
-              <td colspan="6" class="crud-empty">Chưa có người dùng nào phù hợp bộ lọc.</td>
+              <td colspan="8" class="crud-empty">Chưa có người dùng nào phù hợp bộ lọc.</td>
             </tr>
-            <tr v-for="item in users" :key="item.id">
+            <tr v-for="(item, index) in users" :key="item.id">
+              <td><input type="checkbox" :value="item.id"></td>
+              <td>{{ (currentPage - 1) * 8 + index + 1 }}</td>
               <td>
                 <div class="crud-profile">
                   <div v-if="item.avatar" class="crud-avatar">
@@ -362,18 +391,24 @@ onMounted(() => {
               <td>{{ item.email }}</td>
               <td>{{ formatDate(item.created_at) }}</td>
               <td>{{ formatDate(item.updated_at) }}</td>
-              <td>
-                <div class="crud-actions">
-                  <button class="action-btn is-view" type="button" @click="openViewModal(item)">Xem</button>
-                  <button class="action-btn is-edit" type="button" @click="openEditModal(item)">Sửa</button>
-                  <button
-                    class="action-btn is-delete"
-                    type="button"
-                    :disabled="deletingId === item.id"
-                    @click="deleteUser(item)"
-                  >
-                    {{ deletingId === item.id ? 'Đang xóa' : 'Xóa' }}
+              <td style="text-align: right">
+                <div class="crud-actions-dropdown">
+                  <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(item.id)">
+                    <span class="material-symbols-outlined">more_vert</span>
                   </button>
+                  <div v-if="activeDropdown === item.id" class="dropdown-menu">
+                    <button class="dropdown-item" type="button" @click="openViewModal(item)">Xem chi tiết</button>
+                    <button class="dropdown-item" type="button" @click="openEditModal(item)">Chỉnh sửa</button>
+                    <div class="dropdown-divider"></div>
+                    <button
+                      class="dropdown-item is-danger"
+                      type="button"
+                      :disabled="deletingId === item.id"
+                      @click="deleteUser(item)"
+                    >
+                      {{ deletingId === item.id ? 'Đang xóa...' : 'Xóa người dùng' }}
+                    </button>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -435,19 +470,17 @@ onMounted(() => {
 
             <div class="crud-field crud-field-full">
               <span>Ảnh đại diện</span>
-              <div class="crud-image-preview">
-                <img v-if="form.avatar" :src="form.avatar" alt="Avatar preview">
-                <div v-else class="crud-image-fallback">{{ form.name ? avatarInitials(form.name) : 'AV' }}</div>
-                <div>
-                  <input :disabled="modalMode === 'view'" type="file" accept="image/*" @change="avatarFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                  <div v-if="modalMode !== 'view'" class="crud-inline-actions crud-modal-foot">
-                    <button class="crud-secondary-btn" type="button" :disabled="uploadingAvatar || !avatarFile" @click="uploadAvatar">
-                      {{ uploadingAvatar ? 'Đang tải...' : 'Tải ảnh lên' }}
-                    </button>
-                  </div>
-                  <p>Backend hiện lưu đường dẫn ảnh. Giao diện sẽ render trực tiếp ảnh từ đường dẫn này.</p>
-                </div>
-              </div>
+              <MediaUpload
+                v-model="form.avatar"
+                folder="users"
+                variant="avatar"
+                label="Ảnh đại diện"
+                hint="JPG, PNG, WEBP — tối đa 5MB. Tự động tải lên khi chọn tệp."
+                :placeholder-initial="form.name ? avatarInitials(form.name) : 'AV'"
+                :disabled="modalMode === 'view'"
+                @uploaded="onAvatarUploaded"
+                @error="onAvatarError"
+              />
             </div>
 
             <label class="crud-field crud-field-full">
@@ -489,3 +522,74 @@ onMounted(() => {
     />
   </AdminWorkspaceShell>
 </template>
+
+<style scoped>
+.crud-actions-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.action-toggle-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: background-color 0.2s;
+}
+
+.action-toggle-btn:hover {
+  background-color: rgba(17, 17, 17, 0.05);
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 50;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-item {
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text);
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(var(--green-rgb), 0.08);
+  color: var(--green);
+}
+
+.dropdown-item.is-danger {
+  color: var(--danger);
+}
+
+.dropdown-item.is-danger:hover {
+  background-color: var(--danger-soft);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: rgba(17, 17, 17, 0.1);
+  margin: 4px 0;
+}
+</style>

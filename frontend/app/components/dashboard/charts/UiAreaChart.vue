@@ -38,7 +38,7 @@ const xStep = computed(() => innerW.value / Math.max(props.labels.length - 1, 1)
 
 const seriesPaths = computed(() => {
   return props.series.map((s, sIdx) => {
-    const color = s.color || ['#2f7a45', '#1976d2', '#d97706'][sIdx] || '#2f7a45'
+    const color = s.color || ['var(--green)', 'var(--green)', '#d97706'][sIdx] || 'var(--green)'
     const pts = s.values.map((v, i) => {
       const x = PAD.left + i * xStep.value
       const y = PAD.top + innerH.value - (v / yMax.value) * innerH.value
@@ -48,7 +48,10 @@ const seriesPaths = computed(() => {
       .map((p, i) => (i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`))
       .join(' ')
     const areaPath = `${linePath} L${PAD.left + innerW.value},${PAD.top + innerH.value} L${PAD.left},${PAD.top + innerH.value} Z`
-    return { name: s.name, color, pts, linePath, areaPath, gradId: `area-fill-${sIdx}-${color.replace('#', '')}` }
+    // Sanitize color into a safe id; `var(--green)` etc. would otherwise
+    // break the `url(#...)` reference and the area falls back to black.
+    const safeColor = color.replace(/[^a-zA-Z0-9_-]/g, '')
+    return { name: s.name, color, pts, linePath, areaPath, gradId: `area-fill-${sIdx}-${safeColor}` }
   })
 })
 

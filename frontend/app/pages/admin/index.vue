@@ -7,6 +7,7 @@ import UiStatCard from '~/components/dashboard/charts/UiStatCard.vue'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
+import DashboardSchedule from '~/components/dashboard/DashboardSchedule.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -64,7 +65,7 @@ const userDelta = computed(() => computeDelta(userValues.value))
 const courseStatusSegments = computed(() => {
   const map = stats.value.courses_by_status ?? {}
   const colorMap: Record<string, { label: string; color: string }> = {
-    published: { label: 'Đã xuất bản', color: '#16a34a' },
+    published: { label: 'Đã xuất bản', color: 'var(--green)' },
     pending_review: { label: 'Chờ duyệt', color: '#d97706' },
     draft: { label: 'Bản nháp', color: '#64748b' },
     rejected: { label: 'Bị từ chối', color: '#dc2626' },
@@ -74,7 +75,7 @@ const courseStatusSegments = computed(() => {
     .map(([key, value]) => ({
       label: colorMap[key]?.label || key,
       value: Number(value),
-      color: colorMap[key]?.color || '#2f7a45',
+      color: colorMap[key]?.color || 'var(--green)',
     }))
     .filter((s) => s.value > 0)
 })
@@ -99,6 +100,12 @@ const loadStats = async () => {
   }
 }
 
+const mockEvents = [
+  { id: 1, title: 'Bảo trì hệ thống định kỳ', time: '01:00', date: 'Chủ nhật', type: 'deadline', course: 'Toàn hệ thống' },
+  { id: 2, title: 'Họp ban quản trị', time: '10:00', date: 'Thứ 2', type: 'meeting', location: 'Phòng họp A' },
+  { id: 3, title: 'Kiểm tra bảo mật', time: '15:00', date: 'Thứ 4', type: 'exam', course: 'Cơ sở hạ tầng' },
+] as any[]
+
 onMounted(loadStats)
 </script>
 
@@ -122,10 +129,10 @@ onMounted(loadStats)
           :delta="revenueDelta"
           delta-label="so với tháng trước"
           icon="payments"
-          icon-bg="rgba(22,163,74,0.1)"
-          icon-color="#16a34a"
+          icon-bg="rgba(var(--green-rgb),0.1)"
+          icon-color="var(--green)"
           :sparkline="revenueValues"
-          spark-color="#16a34a"
+          spark-color="var(--green)"
           :loading="loading"
         />
         <UiStatCard
@@ -134,10 +141,10 @@ onMounted(loadStats)
           :delta="userDelta"
           delta-label="so với tháng trước"
           icon="group"
-          icon-bg="rgba(25,118,210,0.1)"
-          icon-color="#1976d2"
+          icon-bg="rgba(var(--green-rgb),0.1)"
+          icon-color="var(--green)"
           :sparkline="userValues"
-          spark-color="#1976d2"
+          spark-color="var(--green)"
           :loading="loading"
         />
         <UiStatCard
@@ -146,8 +153,8 @@ onMounted(loadStats)
           :delta-label="`${stats.courses_by_status?.published || 0} đang xuất bản`"
           :delta="null"
           icon="school"
-          icon-bg="rgba(47,122,69,0.1)"
-          icon-color="#2f7a45"
+          icon-bg="rgba(var(--green-rgb),0.1)"
+          icon-color="var(--green)"
           :loading="loading"
         />
         <UiStatCard
@@ -162,28 +169,13 @@ onMounted(loadStats)
         />
       </div>
 
-      <!-- Main charts grid: revenue (8 cols) + donut (4 cols) -->
+      <!-- Schedule (7 cols) + course status donut (5 cols) -->
       <div class="grid-12">
-        <div class="dashboard-card chart-card span-lg-8">
-          <header class="chart-card-head">
-            <div>
-              <p class="chart-card-kicker">Doanh thu</p>
-              <h3 class="chart-card-title">Xu hướng 6 tháng gần nhất</h3>
-            </div>
-            <span class="chart-card-tag">VND</span>
-          </header>
-          <div v-if="loading" class="h-44 rounded-xl bg-surface-high animate-pulse" />
-          <UiAreaChart
-            v-else-if="revenuePoints.length"
-            :series="[{ name: 'Doanh thu', values: revenueValues, color: '#16a34a' }]"
-            :labels="monthLabels"
-            :height="200"
-            :format-y="formatVnd"
-          />
-          <div v-else class="empty-block">Chưa có dữ liệu doanh thu trong 6 tháng qua.</div>
+        <div class="span-lg-7">
+          <DashboardSchedule :events="mockEvents" title="Lịch trình hệ thống" />
         </div>
 
-        <div class="dashboard-card chart-card span-lg-4">
+        <div class="dashboard-card chart-card span-lg-5">
           <header class="chart-card-head">
             <div>
               <p class="chart-card-kicker">Khóa học</p>
@@ -203,8 +195,27 @@ onMounted(loadStats)
           <div v-else class="empty-block">Chưa có khóa học nào.</div>
         </div>
 
-        <!-- New users + Top courses -->
-        <div class="dashboard-card chart-card span-lg-5">
+        <!-- Revenue (8 cols) + new users (4 cols) -->
+        <div class="dashboard-card chart-card span-lg-8">
+          <header class="chart-card-head">
+            <div>
+              <p class="chart-card-kicker">Doanh thu</p>
+              <h3 class="chart-card-title">Xu hướng 6 tháng gần nhất</h3>
+            </div>
+            <span class="chart-card-tag">VND</span>
+          </header>
+          <div v-if="loading" class="h-44 rounded-xl bg-surface-high animate-pulse" />
+          <UiAreaChart
+            v-else-if="revenuePoints.length"
+            :series="[{ name: 'Doanh thu', values: revenueValues, color: 'var(--green)' }]"
+            :labels="monthLabels"
+            :height="200"
+            :format-y="formatVnd"
+          />
+          <div v-else class="empty-block">Chưa có dữ liệu doanh thu trong 6 tháng qua.</div>
+        </div>
+
+        <div class="dashboard-card chart-card span-lg-4">
           <header class="chart-card-head">
             <div>
               <p class="chart-card-kicker">Người dùng mới</p>
@@ -218,12 +229,13 @@ onMounted(loadStats)
             :values="userValues"
             :labels="userPoints.map((p) => p.label)"
             :height="180"
-            color="#1976d2"
+            color="var(--green)"
           />
           <div v-else class="empty-block">Chưa có người dùng mới trong 6 tháng qua.</div>
         </div>
 
-        <div class="dashboard-card chart-card span-lg-7">
+        <!-- Top courses (full width) -->
+        <div class="dashboard-card chart-card span-lg-12">
           <header class="chart-card-head">
             <div>
               <p class="chart-card-kicker">Top khóa học</p>
@@ -262,14 +274,14 @@ onMounted(loadStats)
           </div>
           <div v-else class="engagement-grid">
             <div class="engagement-tile">
-              <span class="material-symbols-outlined engagement-icon" style="color:#16a34a">grade</span>
+              <span class="material-symbols-outlined engagement-icon" style="color:var(--green)">grade</span>
               <div>
                 <p class="engagement-value">{{ Math.round((engagement.avg_quiz_score || 0) * 10) / 10 }}</p>
                 <p class="engagement-label">Điểm quiz trung bình</p>
               </div>
             </div>
             <div class="engagement-tile">
-              <span class="material-symbols-outlined engagement-icon" style="color:#1976d2">task_alt</span>
+              <span class="material-symbols-outlined engagement-icon" style="color:var(--green)">task_alt</span>
               <div>
                 <p class="engagement-value">{{ (engagement.total_completions || 0).toLocaleString('vi-VN') }}</p>
                 <p class="engagement-label">Bài học đã hoàn thành</p>
@@ -347,13 +359,13 @@ onMounted(loadStats)
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(47, 122, 69, 0.1);
-  color: #2f7a45;
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green);
 }
 .chart-card-link {
   font-size: 0.78rem;
   font-weight: 700;
-  color: #2f7a45;
+  color: var(--green);
   text-decoration: none;
 }
 .chart-card-link:hover { text-decoration: underline; }
@@ -382,15 +394,15 @@ onMounted(loadStats)
   background: rgba(17, 17, 17, 0.02);
   transition: background 0.15s;
 }
-.leaderboard-item:hover { background: rgba(47, 122, 69, 0.06); }
+.leaderboard-item:hover { background: rgba(var(--green-rgb), 0.06); }
 .leaderboard-rank {
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(47, 122, 69, 0.1);
-  color: #2f7a45;
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green);
   font-weight: 800;
   font-size: 0.8rem;
 }
@@ -403,7 +415,7 @@ onMounted(loadStats)
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.leaderboard-title:hover { color: #2f7a45; }
+.leaderboard-title:hover { color: var(--green); }
 .leaderboard-value {
   display: inline-flex;
   align-items: center;

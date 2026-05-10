@@ -61,6 +61,12 @@ class OrderController extends Controller
             return response()->json(['message' => 'Course is not available'], 422);
         }
 
+        if ($course->course_mode === 'core') {
+            return response()->json([
+                'message' => 'Core curriculum courses cannot be purchased. Enrollment is handled by academic affairs.',
+            ], 422);
+        }
+
         // Check already enrolled
         $alreadyEnrolled = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
@@ -117,6 +123,7 @@ class OrderController extends Controller
                 'message' => 'Reusing pending order',
                 'order' => $pendingOrder->fresh(['course:id,title,thumbnail,price']),
                 'payment_url' => $paymentLink['checkout_url'] ?? null,
+                'payment_data' => $paymentLink['raw'] ?? null,
             ]);
         }
 

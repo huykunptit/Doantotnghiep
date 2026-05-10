@@ -642,7 +642,7 @@ await fetchCourses()
                 </div>
                 <div :class="['diff-footer', { error: totalPercent !== 100 }]">
                   <span>Tổng cộng</span>
-                  <span :style="{ color: totalPercent === 100 ? 'var(--success, #4caf50)' : '#e53e3e', fontWeight: 700 }">
+                  <span :style="{ color: totalPercent === 100 ? 'var(--success, var(--green))' : '#e53e3e', fontWeight: 700 }">
                     {{ totalPercent }}%
                     <span v-if="totalPercent !== 100" style="font-size:0.78rem;font-weight:400;"> (cần bằng 100%)</span>
                   </span>
@@ -797,7 +797,7 @@ await fetchCourses()
   cursor: default;
   transition: background 0.15s;
 }
-.sidebar-step.active { background: color-mix(in srgb, var(--primary, #1976d2) 8%, transparent); }
+.sidebar-step.active { background: color-mix(in srgb, var(--primary, var(--green)) 8%, transparent); }
 .sidebar-step-num {
   width: 26px; height: 26px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -805,15 +805,15 @@ await fetchCourses()
   background: var(--border-color, #e0e0e0); color: var(--text-secondary, #666);
 }
 .sidebar-step.active .sidebar-step-num {
-  background: var(--primary, #1976d2); color: #fff;
+  background: var(--primary, var(--green)); color: #fff;
 }
 .sidebar-step.done .sidebar-step-num {
-  background: var(--primary, #1976d2); color: #fff; font-size: 0.7rem;
+  background: var(--primary, var(--green)); color: #fff; font-size: 0.7rem;
 }
 .sidebar-step-label {
   font-size: 0.85rem; font-weight: 500; color: var(--text-secondary, #666);
 }
-.sidebar-step.active .sidebar-step-label { color: var(--primary, #1976d2); font-weight: 700; }
+.sidebar-step.active .sidebar-step-label { color: var(--primary, var(--green)); font-weight: 700; }
 .sidebar-step.done .sidebar-step-label { color: var(--text-primary, #333); }
 
 /* ── Step content card ── */
@@ -838,10 +838,10 @@ await fetchCourses()
   padding: 1.1rem 1rem; border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 10px; cursor: pointer; transition: all 0.15s;
 }
-.type-card:hover { border-color: var(--primary, #1976d2); }
+.type-card:hover { border-color: var(--primary, var(--green)); }
 .type-card.selected {
-  border-color: var(--primary, #1976d2);
-  background: color-mix(in srgb, var(--primary, #1976d2) 7%, transparent);
+  border-color: var(--primary, var(--green));
+  background: color-mix(in srgb, var(--primary, var(--green)) 7%, transparent);
 }
 .type-card-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
 .type-card-name { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.2rem; }
@@ -862,7 +862,7 @@ await fetchCourses()
   color: var(--text-secondary, #666); transition: all 0.15s; white-space: nowrap;
 }
 .mode-tab:not(:last-child) { border-right: 1px solid var(--border-color, #e0e0e0); }
-.mode-tab.active { background: var(--primary, #1976d2); color: #fff; }
+.mode-tab.active { background: var(--primary, var(--green)); color: #fff; }
 .mode-tab:not(.active):hover { background: var(--surface-hover, #f5f5f5); }
 .mode-hint { font-size: 0.82rem; color: var(--text-secondary, #666); margin: 0; }
 
@@ -873,10 +873,10 @@ await fetchCourses()
   padding: 0.8rem; border: 1.5px solid var(--border-color, #e0e0e0);
   border-radius: 8px; cursor: pointer; transition: all 0.15s;
 }
-.bank-card:hover { border-color: var(--primary, #1976d2); }
+.bank-card:hover { border-color: var(--primary, var(--green)); }
 .bank-card.selected {
-  border-color: var(--primary, #1976d2);
-  background: color-mix(in srgb, var(--primary, #1976d2) 6%, transparent);
+  border-color: var(--primary, var(--green));
+  background: color-mix(in srgb, var(--primary, var(--green)) 6%, transparent);
 }
 .bank-card-name { font-weight: 600; font-size: 0.85rem; }
 .bank-card-course { font-size: 0.75rem; color: var(--text-secondary, #666); }
@@ -927,7 +927,7 @@ await fetchCourses()
 }
 .manual-count {
   font-size: 0.85rem; font-weight: 600;
-  color: var(--primary, #1976d2);
+  color: var(--primary, var(--green));
 }
 .question-checklist {
   border: 1px solid var(--border-color, #e0e0e0);
@@ -948,7 +948,7 @@ await fetchCourses()
   transition: background 0.1s;
 }
 .q-row:hover { background: var(--surface-hover, #f5f5f5); }
-.q-row.selected { background: color-mix(in srgb, var(--primary, #1976d2) 8%, transparent); }
+.q-row.selected { background: color-mix(in srgb, var(--primary, var(--green)) 8%, transparent); }
 .q-text { flex: 1; }
 .q-diff-badge {
   font-size: 0.72rem; padding: 0.15rem 0.45rem;
@@ -971,7 +971,7 @@ await fetchCourses()
 .import-title { font-size: 0.84rem; font-weight: 600; color: var(--text-primary, #222); }
 .import-input { display: none; }
 .import-note { font-size: 0.82rem; color: var(--text-secondary, #666); margin: 0 0 0.75rem; }
-.enroll-count { font-size: 0.85rem; font-weight: 600; color: var(--primary, #1976d2); }
+.enroll-count { font-size: 0.85rem; font-weight: 600; color: var(--primary, var(--green)); }
 .user-checklist {
   border: 1px solid var(--border-color, #e0e0e0);
   border-radius: 10px; overflow: hidden;
@@ -985,7 +985,7 @@ await fetchCourses()
 }
 .user-row:first-child { border-top: none; }
 .user-row:hover { background: var(--surface-hover, #f5f5f5); }
-.user-row.selected { background: color-mix(in srgb, var(--primary, #1976d2) 8%, transparent); }
+.user-row.selected { background: color-mix(in srgb, var(--primary, var(--green)) 8%, transparent); }
 .user-info { display: flex; flex-direction: column; gap: 0.1rem; }
 .user-name { font-size: 0.85rem; font-weight: 600; }
 .user-email { font-size: 0.75rem; color: var(--text-secondary, #666); }

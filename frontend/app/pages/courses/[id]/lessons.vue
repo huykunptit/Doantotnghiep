@@ -229,7 +229,7 @@ h1 { font-size: 24px; font-weight: 700; color: #111827; }
 .has-video { color: #059669; font-weight: 600; }
 .no-video { color: #d97706; }
 .lesson-actions { display: flex; gap: 8px; flex-shrink: 0; }
-.upload-btn { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.upload-btn { background: rgba(var(--green-rgb), 0.05); color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-edit-sm { background: #f9fafb; border: 1px solid #d1d5db; color: #374151; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-delete { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; display: flex; align-items: center; justify-content: center; }

@@ -201,8 +201,8 @@ onUnmounted(() => {
 }
 
 .select-search:focus {
-  border-color: var(--green-deep, #1f5d33);
-  box-shadow: 0 0 0 3px rgba(47, 122, 69, 0.1);
+  border-color: var(--green-deep, var(--green-deep));
+  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.1);
 }
 
 .select-options-wrap {
@@ -257,12 +257,12 @@ onUnmounted(() => {
 }
 
 .select-option:hover {
-  background: rgba(47, 122, 69, 0.06);
+  background: rgba(var(--green-rgb), 0.06);
 }
 
 .select-option.is-selected {
-  background: rgba(47, 122, 69, 0.1);
-  color: var(--green-deep, #1f5d33);
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--green-deep, var(--green-deep));
   font-weight: 600;
 }
 

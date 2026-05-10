@@ -7,6 +7,7 @@ import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { siteLogo, siteName, siteTagline } = useSiteSettings()
 
 const showMenu = ref(false)
 const showMobileMenu = ref(false)
@@ -34,10 +35,11 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   <header class="cd-header">
     <div class="cd-header-inner">
       <NuxtLink to="/" class="cd-brand">
-        <div class="cd-brand-icon">P</div>
+        <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="cd-brand-logo">
+        <div v-else class="cd-brand-icon" />
         <div class="cd-brand-text">
-          <p class="cd-brand-title">PTIT Learning</p>
-          <p class="cd-brand-slogan">Học trực tuyến • Công nghệ • Kết nối</p>
+          <p class="cd-brand-title">{{ siteName }}</p>
+          <p class="cd-brand-slogan">{{ siteTagline || 'Học, học nữa, học mãi' }}</p>
         </div>
       </NuxtLink>
 
@@ -118,7 +120,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
     <div v-if="showMobileMenu" class="cd-mobile-menu">
       <div class="cd-mobile-header">
-        <p class="cd-mobile-title">PTIT Learning Platform</p>
+        <p class="cd-mobile-title">{{ siteName }}</p>
         <p class="cd-mobile-desc">Truy cập nhanh khóa học, lộ trình nghề nghiệp và tài khoản của bạn trên mọi thiết bị.</p>
       </div>
       <nav class="cd-mobile-nav">
@@ -152,7 +154,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   z-index: 50;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(47, 122, 69, 0.1);
+  border-bottom: 1px solid rgba(var(--green-rgb), 0.1);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
@@ -188,12 +190,21 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   justify-content: center;
   width: 48px; height: 48px;
   border-radius: 16px;
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   font-size: 1.25rem;
   font-weight: 900;
   flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(47, 122, 69, 0.2);
+  box-shadow: 0 8px 20px rgba(var(--green-rgb), 0.2);
+}
+
+.cd-brand-logo {
+  max-width: 100%;
+  height: 48px;
+  border-radius: 16px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(var(--green-rgb), 0.2);
 }
 
 .cd-brand-text { min-width: 0; }
@@ -225,7 +236,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   gap: 8px;
   padding: 4px;
   background: rgba(248, 250, 252, 0.8);
-  border: 1px solid rgba(47, 122, 69, 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
   border-radius: 999px;
 }
 @media (min-width: 768px) {
@@ -242,11 +253,11 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   transition: all 0.2s;
 }
 .cd-nav-link:hover {
-  background: rgba(47, 122, 69, 0.1);
-  color: var(--primary, #2f7a45);
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--primary, var(--green));
 }
 .cd-nav-link.is-active {
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -264,12 +275,12 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .cd-btn-primary {
   padding: 10px 20px;
   border-radius: 999px;
-  background: #2f7a45;
+  background: var(--green);
   color: #fff;
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(47, 122, 69, 0.2);
+  box-shadow: 0 4px 12px rgba(var(--green-rgb), 0.2);
   transition: opacity 0.2s;
 }
 .cd-btn-primary:hover { opacity: 0.9; }
@@ -284,13 +295,13 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   gap: 12px;
   padding: 6px 8px;
   border-radius: 999px;
-  border: 1px solid rgba(47, 122, 69, 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
   background: var(--surface, #f8fafc);
   cursor: pointer;
   transition: all 0.2s;
 }
 .cd-user-btn:hover {
-  border-color: rgba(47, 122, 69, 0.3);
+  border-color: rgba(var(--green-rgb), 0.3);
   background: var(--surface-high, #e2e8f0);
 }
 
@@ -298,8 +309,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   width: 40px; height: 40px;
   border-radius: 50%;
   overflow: hidden;
-  background: rgba(47, 122, 69, 0.1);
-  color: var(--primary, #2f7a45);
+  background: rgba(var(--green-rgb), 0.1);
+  color: var(--primary, var(--green));
   font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
@@ -321,7 +332,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   position: absolute; right: 0; top: calc(100% + 8px);
   width: 288px;
   background: #fff;
-  border: 1px solid rgba(47, 122, 69, 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
   border-radius: 24px;
   padding: 12px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.12);
@@ -329,7 +340,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .cd-dropdown-header {
   padding: 12px 16px;
   border-radius: 16px;
-  background: rgba(47, 122, 69, 0.1);
+  background: rgba(var(--green-rgb), 0.1);
   margin-bottom: 12px;
 }
 .cd-dropdown-name { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--on-surface, #0f172a); }
@@ -349,8 +360,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .cd-dropdown-item:hover { background: var(--surface, #f8fafc); color: var(--on-surface, #0f172a); }
 .cd-dropdown-item .material-symbols-outlined { font-size: 20px; }
 
-.cd-dropdown-item--primary { color: var(--primary, #2f7a45); }
-.cd-dropdown-item--primary:hover { background: rgba(47, 122, 69, 0.1); color: var(--primary, #2f7a45); }
+.cd-dropdown-item--primary { color: var(--primary, var(--green)); }
+.cd-dropdown-item--primary:hover { background: rgba(var(--green-rgb), 0.1); color: var(--primary, var(--green)); }
 .cd-dropdown-item--danger { color: #d71920; }
 .cd-dropdown-item--danger:hover { background: rgba(215, 25, 32, 0.1); color: #d71920; }
 .cd-dropdown-item--error { color: #ef4444; }
@@ -361,7 +372,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   display: flex; align-items: center; justify-content: center;
   width: 44px; height: 44px;
   border-radius: 50%;
-  border: 1px solid rgba(47, 122, 69, 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
   background: var(--surface, #f8fafc);
   color: var(--on-surface, #0f172a);
   cursor: pointer;
@@ -371,14 +382,14 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 .cd-mobile-menu {
   padding: 16px;
   background: #fff;
-  border-top: 1px solid rgba(47, 122, 69, 0.1);
+  border-top: 1px solid rgba(var(--green-rgb), 0.1);
 }
 @media (min-width: 768px) { .cd-mobile-menu { display: none; } }
 
 .cd-mobile-header {
   padding: 16px; margin-bottom: 16px;
   border-radius: 24px;
-  background: rgba(47, 122, 69, 0.1);
+  background: rgba(var(--green-rgb), 0.1);
 }
 .cd-mobile-title { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--on-surface, #0f172a); }
 .cd-mobile-desc { margin: 4px 0 0; font-size: 0.75rem; line-height: 1.5; color: var(--on-surface-variant, #475569); }
@@ -392,10 +403,10 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
   text-decoration: none; border: none; background: transparent; cursor: pointer; text-align: left;
   transition: all 0.2s;
 }
-.cd-mobile-link:hover { background: var(--surface, #f8fafc); color: var(--primary, #2f7a45); }
-.cd-mobile-link--bordered { border: 1px solid rgba(47, 122, 69, 0.1); }
+.cd-mobile-link:hover { background: var(--surface, #f8fafc); color: var(--primary, var(--green)); }
+.cd-mobile-link--bordered { border: 1px solid rgba(var(--green-rgb), 0.1); }
 .cd-mobile-link--primary {
-  background: #2f7a45;
+  background: var(--green);
   color: #fff; text-align: center;
 }
 .cd-mobile-link--primary:hover { opacity: 0.9; color: #fff; }

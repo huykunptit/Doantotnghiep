@@ -1,4 +1,6 @@
 <script setup lang="ts">
+const { siteName, siteLogo } = useSiteSettings()
+
 interface SummaryStat {
   label: string
   value: string
@@ -88,8 +90,9 @@ async function handleLogout() {
       <aside class="dashboard-sidebar">
         <div class="sidebar-brand">
           <div class="brand-line">
-            <span class="brand-mark" />
-            <span class="brand-name">PTIT LMS</span>
+            <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="brand-logo">
+            <span v-else class="brand-mark" />
+            
           </div>
           <div>
             <p class="sidebar-eyebrow">{{ roleLabel }}</p>

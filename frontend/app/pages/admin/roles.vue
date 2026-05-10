@@ -313,14 +313,14 @@ onMounted(loadData)
   background: var(--surface-dim, #ced2cc);
 }
 .permission-toggle.is-checked {
-  background: #2f7a45;
+  background: var(--green);
 }
 .permission-toggle.is-locked {
-  background: rgba(47, 122, 69, 0.4);
+  background: rgba(var(--green-rgb), 0.4);
   cursor: not-allowed;
 }
 .permission-toggle:focus-visible {
-  outline: 2px solid #2f7a45;
+  outline: 2px solid var(--green);
   outline-offset: 2px;
 }
 .permission-toggle-thumb {

@@ -8,6 +8,7 @@ export interface Course {
   price: number
   status: 'draft' | 'published' | 'closed'
   thumbnail?: string | null
+  certificate_template_id?: number | null
   category?: { id: number; name: string; slug?: string } | string | null
   lessons_count?: number
   enrollments_count?: number

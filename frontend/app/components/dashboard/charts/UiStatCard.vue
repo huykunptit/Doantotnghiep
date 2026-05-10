@@ -18,10 +18,10 @@ withDefaults(
     delta: null,
     deltaLabel: 'so với kỳ trước',
     icon: '',
-    iconBg: 'rgba(47,122,69,0.1)',
-    iconColor: '#2f7a45',
+    iconBg: 'rgba(var(--green-rgb),0.1)',
+    iconColor: 'var(--green)',
     sparkline: () => [],
-    sparkColor: '#2f7a45',
+    sparkColor: 'var(--green)',
     loading: false,
   },
 )
@@ -86,7 +86,7 @@ withDefaults(
 .stat-card-pro:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 30px -16px rgba(17, 17, 17, 0.16);
-  border-color: rgba(47, 122, 69, 0.3);
+  border-color: rgba(var(--green-rgb), 0.3);
 }
 
 .stat-card-skeleton { display: flex; flex-direction: column; }
@@ -140,7 +140,7 @@ withDefaults(
   color: var(--on-surface-variant);
 }
 .stat-delta .material-symbols-outlined { font-size: 14px; }
-.stat-delta.is-up { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+.stat-delta.is-up { background: rgba(var(--green-rgb), 0.1); color: var(--green); }
 .stat-delta.is-down { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
 .stat-delta-label { color: var(--on-surface-variant); }
 </style>
