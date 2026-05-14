@@ -48,7 +48,6 @@ const navGroups = [
     label: 'Học vụ',
     items: [
       { to: '/instructor/sections', label: 'Lớp học phần & điểm', icon: 'grading' },
-      { to: '/instructor/academic', label: 'Tổ chức và học vụ', icon: 'account_tree' },
     ],
   },
   {

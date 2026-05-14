@@ -2,15 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
+use App\Http\Controllers\UserManagement\AcademicManagementController;
+use App\Http\Controllers\UserManagement\AdminClassSectionController;
+use App\Http\Controllers\UserManagement\AdvisorController;
 use App\Http\Controllers\UserManagement\AuthController;
 use App\Http\Controllers\UserManagement\AdminController;
-use App\Http\Controllers\UserManagement\InstructorController;
-use App\Http\Controllers\UserManagement\LessonProgressController;
-use App\Http\Controllers\UserManagement\AcademicManagementController;
-use App\Http\Controllers\UserManagement\AdvisorController;
+use App\Http\Controllers\UserManagement\CurriculumBuilderController;
 use App\Http\Controllers\UserManagement\EnrollmentManagementController;
 use App\Http\Controllers\UserManagement\GradebookController;
+use App\Http\Controllers\UserManagement\InstructorController;
 use App\Http\Controllers\UserManagement\InstructorDashboardController;
+use App\Http\Controllers\UserManagement\LessonProgressController;
 use App\Http\Controllers\UserManagement\StudentDashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CertificateController;
@@ -96,6 +98,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Users
         Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/students', [AdminController::class, 'listStudents']);
+        Route::get('/instructors', [AdminController::class, 'listInstructors']);
         Route::post('/users', [AdminController::class, 'storeUser']);
         Route::put('/users/{user}', [AdminController::class, 'updateUser']);
         Route::put('/users/{user}/role', [AdminController::class, 'updateUserRole']);
@@ -133,6 +137,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'destroyClassSection']);
         Route::get('/academic/cohorts/{cohort}/students', [EnrollmentManagementController::class, 'students']);
         Route::post('/academic/cohorts/{cohort}/enroll-core', [EnrollmentManagementController::class, 'bulkEnrollCore']);
+
+        Route::get('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'index']);
+        Route::post('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'attach']);
+        Route::delete('/academic/admin-classes/{adminClass}/sections/{section}', [AdminClassSectionController::class, 'detach']);
+
+        Route::get('/academic/curricula/{curriculum}/courses', [CurriculumBuilderController::class, 'index']);
+        Route::post('/academic/curricula/{curriculum}/courses', [CurriculumBuilderController::class, 'bulkUpsert']);
+        Route::delete('/academic/curricula/{curriculum}/courses/{curriculumCourse}', [CurriculumBuilderController::class, 'destroy']);
 
         // Academic Organization & Structure (generic CRUD per resource)
         Route::get('/academic/{resource}', [AcademicManagementController::class, 'index']);

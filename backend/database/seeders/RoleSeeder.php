@@ -34,8 +34,14 @@ class RoleSeeder extends Seeder
             Permission::firstOrCreate(['name' => $perm, 'guard_name' => $guard]);
         }
 
+        // Migrate role cũ academic_affairs -> academic_manager (idempotent)
+        $legacy = Role::query()->where('name', 'academic_affairs')->where('guard_name', $guard)->first();
+        if ($legacy) {
+            $legacy->update(['name' => 'academic_manager']);
+        }
+
         $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => $guard]);
-        $academicAffairs = Role::firstOrCreate(['name' => 'academic_affairs', 'guard_name' => $guard]);
+        $academicManager = Role::firstOrCreate(['name' => 'academic_manager', 'guard_name' => $guard]);
         $instructor = Role::firstOrCreate(['name' => 'instructor', 'guard_name' => $guard]);
         $advisor = Role::firstOrCreate(['name' => 'advisor', 'guard_name' => $guard]);
         $finance = Role::firstOrCreate(['name' => 'finance', 'guard_name' => $guard]);
@@ -43,7 +49,7 @@ class RoleSeeder extends Seeder
 
         $admin->syncPermissions(Permission::query()->where('guard_name', $guard)->get());
 
-        $academicAffairs->syncPermissions([
+        $academicManager->syncPermissions([
             'view_dashboard',
             'manage_academic',
             'manage_enrollments',

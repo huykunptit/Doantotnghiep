@@ -33,11 +33,7 @@ export function useAdminNavigation() {
     {
       label: 'Tổ chức & Học vụ',
       items: [
-        { label: 'Tổng hợp học vụ', icon: '◩', to: '/admin/academic' },
-        // { label: 'Đơn vị', icon: '◪', to: '/admin/academic/units' },
-        // { label: 'Chương trình', icon: '◫', to: '/admin/academic/programs' },
-        // { label: 'Học kỳ', icon: '◬', to: '/admin/academic/terms' },
-        // { label: 'Khóa/Lớp', icon: '◭', to: '/admin/academic/cohorts' },
+        { label: 'Tổ chức & Học vụ', icon: '◪', to: '/admin/academic' },
       ],
     },
     {

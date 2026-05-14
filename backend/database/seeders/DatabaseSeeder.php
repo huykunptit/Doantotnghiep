@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CourseContentSeeder::class,
             QuestionBankSeeder::class,
+            TrainingProgramSeeder::class,
             AcademicSeeder::class,
         ]);
 
@@ -130,9 +131,9 @@ class DatabaseSeeder extends Seeder
             return ['core' => collect(), 'extension' => collect()];
         }
 
-        $itProgram = Program::query()->where('code', 'CNTT_CQ')->first();
+        $itProgram = Program::query()->where('code', 'CNTT')->first();
         $itCurriculum = $itProgram
-            ? Curriculum::query()->where('program_id', $itProgram->id)->where('code', 'CTDT-KTPM-2024')->first()
+            ? Curriculum::query()->where('program_id', $itProgram->id)->where('code', 'CTDT-CNTT')->first()
             : null;
 
         $thumbnails = [

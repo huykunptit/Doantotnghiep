@@ -178,7 +178,7 @@ class GradebookController extends Controller
     {
         if (!$user) return false;
         if ($user->hasRole('admin')) return true;
-        if ($user->hasAnyRole(['instructor', 'academic_affairs'])) {
+        if ($user->hasAnyRole(['instructor', 'academic_manager'])) {
             // Instructor can grade only sections they teach.
             if ($user->hasRole('instructor') && $classSection->lecturer_id !== $user->id) {
                 return false;
