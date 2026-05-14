@@ -11,6 +11,7 @@ use App\Models\Review;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Services\MediaService;
+use App\Support\Enums\StudyStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -150,17 +151,44 @@ class AdminController extends Controller
             return $forbidden;
         }
 
-        $query = User::with('roles');
+        $query = User::with([
+            'roles',
+            'administrativeClass:id,name,code',
+            'cohort:id,name,code',
+            'program:id,name,code',
+            'major:id,name,code',
+            'unit:id,name,code',
+        ]);
 
         if ($request->filled('role')) {
-            $query->role($request->role);
+            $query->role($request->string('role')->toString());
         }
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%');
+        $search = trim((string) ($request->query('q') ?: $request->query('search', '')));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('student_code', 'like', "%{$search}%")
+                    ->orWhere('staff_code', 'like', "%{$search}%");
             });
+        }
+
+        foreach (['unit_id', 'program_id', 'major_id', 'cohort_id', 'administrative_class_id', 'advisor_id'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, (int) $request->integer($field));
+            }
+        }
+
+        if ($request->filled('study_status')) {
+            $status = $request->string('study_status')->toString();
+            if (in_array($status, StudyStatus::all(), true)) {
+                $query->where('study_status', $status);
+            }
+        }
+
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->string('gender')->toString());
         }
 
         $users = $query->orderByDesc('created_at')
@@ -168,6 +196,21 @@ class AdminController extends Controller
 
         return response()->json($users);
     }
+
+    public function listStudents(Request $request): JsonResponse
+    {
+        $request->merge(['role' => 'student']);
+
+        return $this->users($request);
+    }
+
+    public function listInstructors(Request $request): JsonResponse
+    {
+        $request->merge(['role' => 'instructor']);
+
+        return $this->users($request);
+    }
+
 
     public function updateUserRole(Request $request, User $user): JsonResponse
     {
@@ -205,7 +248,25 @@ class AdminController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'avatar' => ['nullable', 'string', 'max:2048'],
-            'role' => ['required', 'string', 'in:admin,instructor,student'],
+            'role' => ['required', 'string', 'in:admin,instructor,student,academic_manager'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'institution_id' => ['nullable', 'exists:institutions,id'],
+            'unit_id' => ['nullable', 'exists:units,id'],
+            'program_id' => ['nullable', 'exists:programs,id'],
+            'major_id' => ['nullable', 'exists:majors,id'],
+            'cohort_id' => ['nullable', 'exists:cohorts,id'],
+            'administrative_class_id' => ['nullable', 'exists:administrative_classes,id'],
+            'advisor_id' => ['nullable', 'exists:users,id'],
+            'student_code' => ['nullable', 'string', 'max:50'],
+            'staff_code' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'id_card_number' => ['nullable', 'string', 'max:20', 'unique:users,id_card_number'],
+            'gender' => ['nullable', 'in:male,female,other'],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'nationality' => ['nullable', 'string', 'max:64'],
+            'hometown' => ['nullable', 'string', 'max:255'],
+            'permanent_address' => ['nullable', 'string', 'max:255'],
+            'study_status' => ['nullable', 'in:' . implode(',', StudyStatus::all())],
         ]);
 
         $user = User::create([
@@ -236,7 +297,24 @@ class AdminController extends Controller
             'password' => ['nullable', 'string', 'min:6'],
             'avatar' => ['nullable', 'string', 'max:2048'],
             'bio' => ['nullable', 'string', 'max:1000'],
-            'role' => ['sometimes', 'required', 'string', 'in:admin,instructor,student'],
+            'role' => ['sometimes', 'required', 'string', 'in:admin,instructor,student,academic_manager'],
+            'institution_id' => ['nullable', 'exists:institutions,id'],
+            'unit_id' => ['nullable', 'exists:units,id'],
+            'program_id' => ['nullable', 'exists:programs,id'],
+            'major_id' => ['nullable', 'exists:majors,id'],
+            'cohort_id' => ['nullable', 'exists:cohorts,id'],
+            'administrative_class_id' => ['nullable', 'exists:administrative_classes,id'],
+            'advisor_id' => ['nullable', 'exists:users,id'],
+            'student_code' => ['nullable', 'string', 'max:50'],
+            'staff_code' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'id_card_number' => ['nullable', 'string', 'max:20', 'unique:users,id_card_number,' . $user->id],
+            'gender' => ['nullable', 'in:male,female,other'],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'nationality' => ['nullable', 'string', 'max:64'],
+            'hometown' => ['nullable', 'string', 'max:255'],
+            'permanent_address' => ['nullable', 'string', 'max:255'],
+            'study_status' => ['nullable', 'in:' . implode(',', StudyStatus::all())],
         ]);
 
         if (

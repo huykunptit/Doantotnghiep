@@ -1,0 +1,1035 @@
+{
+  "nganh": [
+    {
+      "id": "CNTT",
+      "ten": "Công nghệ thông tin",
+      "chuyen_nganh": [
+        {
+          "id": "MMT",
+          "ten": "Mạng máy tính và truyền thông dữ liệu",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác - Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn công nghệ số và ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn tin học và lập trình", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 1", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Đại số", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 2", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Vật lý ứng dụng", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Toán rời rạc 1", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Ngôn ngữ lập trình C++", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Xác suất thống kê", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Điện tử số", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Toán rời rạc 2", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Cấu trúc dữ liệu và giải thuật", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Lập trình với Python", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kiến trúc máy tính", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Hệ điều hành", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Lý thuyết thông tin", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Lập trình hướng đối tượng", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Cơ sở dữ liệu", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nhập môn trí tuệ nhân tạo", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mạng máy tính", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nhập môn công nghệ phần mềm", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận NCKH", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Lập trình web", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phân tích và thiết kế hệ thống thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "An toàn bảo mật hệ thống thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Xử lý ảnh", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thực tập cơ sở", "tin_chi": 4, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Quản lý dự án phần mềm", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Cơ sở dữ liệu phân tán", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Thiết kế mạng máy tính", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "IoT và ứng dụng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 1", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Kiến trúc và thuật toán song song", "Nhập môn khoa học dữ liệu", "Các hệ thống phân tán", "Hệ cơ sở dữ liệu đa phương tiện", "Mạng viễn thông thế hệ mới", "Điện toán đám mây", "Hệ thống dữ liệu lớn", "Học máy", "Công nghệ và hạ tầng số"]
+                },
+                {
+                  "ten": "Học phần tự chọn 2", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Kiến trúc và thuật toán song song", "Nhập môn khoa học dữ liệu", "Các hệ thống phân tán", "Hệ cơ sở dữ liệu đa phương tiện", "Mạng viễn thông thế hệ mới", "Điện toán đám mây", "Hệ thống dữ liệu lớn", "Học máy", "Công nghệ và hạ tầng số"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Lập trình mạng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản lý mạng máy tính", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "An ninh mạng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 3", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Kiến trúc và thuật toán song song", "Nhập môn khoa học dữ liệu", "Các hệ thống phân tán", "Hệ cơ sở dữ liệu đa phương tiện", "Mạng viễn thông thế hệ mới", "Điện toán đám mây", "Hệ thống dữ liệu lớn", "Học máy", "Công nghệ và hạ tầng số"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 9,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 6, "loai": "thuc_tap" },
+                { "ten": "Đồ án tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "HTTT",
+          "ten": "Hệ thống thông tin",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác - Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn công nghệ số và ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn tin học và lập trình", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 1", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Đại số", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 2", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Vật lý ứng dụng", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Toán rời rạc 1", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Ngôn ngữ lập trình C++", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Xác suất thống kê", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Điện tử số", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Toán rời rạc 2", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Cấu trúc dữ liệu và giải thuật", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Lập trình với Python", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kiến trúc máy tính", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Hệ điều hành", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Lý thuyết thông tin", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Lập trình hướng đối tượng", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Cơ sở dữ liệu", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nhập môn trí tuệ nhân tạo", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mạng máy tính", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nhập môn công nghệ phần mềm", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận NCKH", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Lập trình web", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phân tích và thiết kế hệ thống thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "An toàn bảo mật hệ thống thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Xử lý ảnh", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thực tập cơ sở", "tin_chi": 4, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Cơ sở dữ liệu phân tán", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "IoT và ứng dụng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Kho dữ liệu và khai phá dữ liệu", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Triển khai và vận hành hệ thống", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 1", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Phát triển hệ thống thông tin quản lý", "Các hệ thống dựa trên tri thức", "Hệ trợ giúp quyết định", "Quản trị nghiệp vụ thông minh", "Hệ cơ sở dữ liệu đa phương tiện", "Hệ thống dữ liệu lớn", "Quản lý dự án phần mềm", "Điện toán đám mây", "Trí tuệ nhân tạo trong HTTT", "Tương tác người máy", "Blockchain trong HTTT", "HTTT doanh nghiệp", "HTTT địa lý", "Nhập môn tin sinh", "Công nghệ và hạ tầng số"]
+                },
+                {
+                  "ten": "Học phần tự chọn 2", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Phát triển hệ thống thông tin quản lý", "Các hệ thống dựa trên tri thức", "Hệ trợ giúp quyết định", "Quản trị nghiệp vụ thông minh", "Hệ cơ sở dữ liệu đa phương tiện", "Hệ thống dữ liệu lớn", "Quản lý dự án phần mềm", "Điện toán đám mây", "Trí tuệ nhân tạo trong HTTT", "Tương tác người máy", "Blockchain trong HTTT", "HTTT doanh nghiệp", "HTTT địa lý", "Nhập môn tin sinh", "Công nghệ và hạ tầng số"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Phân tích và trực quan hóa dữ liệu", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phát triển hệ thống thương mại điện tử", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Các hệ thống phân tán", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 3", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Phát triển hệ thống thông tin quản lý", "Các hệ thống dựa trên tri thức", "Hệ trợ giúp quyết định", "Quản trị nghiệp vụ thông minh", "Hệ cơ sở dữ liệu đa phương tiện", "Hệ thống dữ liệu lớn", "Quản lý dự án phần mềm", "Điện toán đám mây", "Trí tuệ nhân tạo trong HTTT", "Tương tác người máy", "Blockchain trong HTTT", "HTTT doanh nghiệp", "HTTT địa lý", "Nhập môn tin sinh", "Công nghệ và hạ tầng số"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 9,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 6, "loai": "thuc_tap" },
+                { "ten": "Đồ án tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "CNPM",
+          "ten": "Công nghệ phần mềm",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác - Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn công nghệ số và ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn tin học và lập trình", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 1", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Đại số", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 2", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Vật lý ứng dụng", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Toán rời rạc 1", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Ngôn ngữ lập trình C++", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Xác suất thống kê", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Điện tử số", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Toán rời rạc 2", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Cấu trúc dữ liệu và giải thuật", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Lập trình với Python", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kiến trúc máy tính", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Hệ điều hành", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Lý thuyết thông tin", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Lập trình hướng đối tượng", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Cơ sở dữ liệu", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nhập môn trí tuệ nhân tạo", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mạng máy tính", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nhập môn công nghệ phần mềm", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận NCKH", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Lập trình web", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phân tích và thiết kế hệ thống thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "An toàn bảo mật hệ thống thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Xử lý ảnh", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thực tập cơ sở", "tin_chi": 4, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Quản lý dự án phần mềm", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Kiến trúc và thiết kế phần mềm", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phân tích yêu cầu phần mềm", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phát triển các hệ thống thông minh", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 1", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Cơ sở dữ liệu phân tán", "Phát triển phần mềm hướng dịch vụ", "IoT và ứng dụng", "Xây dựng các hệ thống nhúng", "Phát triển phần mềm hướng Agent", "Các hệ thống phân tán", "Tương tác người máy", "Cấu trúc dữ liệu và giải thuật nâng cao trên Java", "Xây dựng phần mềm an toàn", "Lập trình mạng", "Hệ thống dữ liệu lớn", "Học máy", "Mã hóa thông tin", "Điện toán đám mây", "An ninh mạng", "Phân tích và trực quan hóa dữ liệu"]
+                },
+                {
+                  "ten": "Học phần tự chọn 2", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Cơ sở dữ liệu phân tán", "Phát triển phần mềm hướng dịch vụ", "IoT và ứng dụng", "Xây dựng các hệ thống nhúng", "Phát triển phần mềm hướng Agent", "Các hệ thống phân tán", "Tương tác người máy", "Cấu trúc dữ liệu và giải thuật nâng cao trên Java", "Xây dựng phần mềm an toàn", "Lập trình mạng", "Hệ thống dữ liệu lớn", "Học máy", "Mã hóa thông tin", "Điện toán đám mây", "An ninh mạng", "Phân tích và trực quan hóa dữ liệu"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Đảm bảo chất lượng phần mềm", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Phát triển ứng dụng cho các thiết bị di động", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Dự án (Project)", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 3", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Cơ sở dữ liệu phân tán", "Phát triển phần mềm hướng dịch vụ", "IoT và ứng dụng", "Xây dựng các hệ thống nhúng", "Phát triển phần mềm hướng Agent", "Các hệ thống phân tán", "Tương tác người máy", "Cấu trúc dữ liệu và giải thuật nâng cao trên Java", "Xây dựng phần mềm an toàn", "Lập trình mạng", "Hệ thống dữ liệu lớn", "Học máy", "Mã hóa thông tin", "Điện toán đám mây", "An ninh mạng", "Phân tích và trực quan hóa dữ liệu"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 9,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 6, "loai": "thuc_tap" },
+                { "ten": "Đồ án tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "QTKD",
+      "ten": "Quản trị kinh doanh",
+      "chuyen_nganh": [
+        {
+          "id": "QTDN",
+          "ten": "Quản trị doanh nghiệp",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác-Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn công nghệ số và ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Toán cao cấp cho kinh tế", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác-Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Lý thuyết xác suất và thống kê", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Tin học cơ sở 3", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Tâm lý quản lý", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Quản trị học", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kinh tế vi mô 1", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Toán kinh tế", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Kinh tế vĩ mô 1", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nguyên lý cơ bản về logistics và quản lý chuỗi cung ứng", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thống kê doanh nghiệp", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Kế toán cho kinh doanh", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Marketing căn bản", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Hệ thống thông tin quản lý", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Thương mại điện tử căn bản", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Kinh doanh quốc tế", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kinh tế lượng", "tin_chi": 3, "loai": "co_so_nganh" },
+                {
+                  "ten": "Học phần tự chọn 1", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                },
+                {
+                  "ten": "Học phần tự chọn 2", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                },
+                {
+                  "ten": "Học phần tự chọn 3", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Quản trị tài chính doanh nghiệp", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Luật kinh doanh", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Quản trị chiến lược", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Phân tích kinh doanh", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản trị vận hành", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản trị nhân lực", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Marketing số", "tin_chi": 3, "loai": "chuyen_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận nghiên cứu khoa học", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Quản trị doanh nghiệp", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Khởi sự kinh doanh", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản trị rủi ro và khủng hoảng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Chuyên đề Quản trị doanh nghiệp", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 4", "tin_chi": 2, "loai": "chuyen_nganh",
+                  "tu_chon": ["Lãnh đạo và quản lý sự thay đổi", "Quản trị bán hàng và phân phối sản phẩm", "Lãnh đạo và quản lý hiệu suất doanh nghiệp", "Nghiệp vụ hải quan", "Quản trị đa văn hóa", "Vận tải đa phương thức", "Chính phủ điện tử", "Thanh toán điện tử"]
+                },
+                {
+                  "ten": "Học phần tự chọn 5", "tin_chi": 2, "loai": "chuyen_nganh",
+                  "tu_chon": ["Lãnh đạo và quản lý sự thay đổi", "Quản trị bán hàng và phân phối sản phẩm", "Lãnh đạo và quản lý hiệu suất doanh nghiệp", "Nghiệp vụ hải quan", "Quản trị đa văn hóa", "Vận tải đa phương thức", "Chính phủ điện tử", "Thanh toán điện tử"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 4, "loai": "thuc_tap" },
+                { "ten": "Khóa luận tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "KDQT",
+          "ten": "Kinh doanh quốc tế",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác-Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn công nghệ số và ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Toán cao cấp cho kinh tế", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác-Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Lý thuyết xác suất và thống kê", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Tin học cơ sở 3", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Tâm lý quản lý", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Quản trị học", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kinh tế vi mô 1", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Toán kinh tế", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Kinh tế vĩ mô 1", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nguyên lý cơ bản về logistics và quản lý chuỗi cung ứng", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thống kê doanh nghiệp", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Kế toán cho kinh doanh", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Marketing căn bản", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Hệ thống thông tin quản lý", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Thương mại điện tử căn bản", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Kinh doanh quốc tế", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kinh tế lượng", "tin_chi": 3, "loai": "co_so_nganh" },
+                {
+                  "ten": "Học phần tự chọn 1", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                },
+                {
+                  "ten": "Học phần tự chọn 2", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                },
+                {
+                  "ten": "Học phần tự chọn 3", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Quản trị tài chính doanh nghiệp", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Luật kinh doanh", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Quản trị chiến lược", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Logistics và quản lý chuỗi cung ứng toàn cầu", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Thanh toán quốc tế và tài chính thương mại", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Marketing quốc tế", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản trị công ty đa quốc gia", "tin_chi": 3, "loai": "chuyen_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận nghiên cứu khoa học", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Nghiệp vụ kinh doanh xuất nhập khẩu", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Giao nhận, vận tải và bảo hiểm hàng hóa", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản trị rủi ro và khủng hoảng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Chuyên đề Kinh doanh quốc tế", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 4", "tin_chi": 2, "loai": "chuyen_nganh",
+                  "tu_chon": ["Lãnh đạo và quản lý sự thay đổi", "Quản trị bán hàng và phân phối sản phẩm", "Lãnh đạo và quản lý hiệu suất doanh nghiệp", "Nghiệp vụ hải quan", "Quản trị đa văn hóa", "Vận tải đa phương thức", "Chính phủ điện tử", "Thanh toán điện tử"]
+                },
+                {
+                  "ten": "Học phần tự chọn 5", "tin_chi": 2, "loai": "chuyen_nganh",
+                  "tu_chon": ["Lãnh đạo và quản lý sự thay đổi", "Quản trị bán hàng và phân phối sản phẩm", "Lãnh đạo và quản lý hiệu suất doanh nghiệp", "Nghiệp vụ hải quan", "Quản trị đa văn hóa", "Vận tải đa phương thức", "Chính phủ điện tử", "Thanh toán điện tử"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 4, "loai": "thuc_tap" },
+                { "ten": "Khóa luận tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "KDS",
+          "ten": "Kinh doanh số",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác-Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn công nghệ số và ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Toán cao cấp cho kinh tế", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác-Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Lý thuyết xác suất và thống kê", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Tin học cơ sở 3", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Tâm lý quản lý", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Quản trị học", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kinh tế vi mô 1", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Toán kinh tế", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Kinh tế vĩ mô 1", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Nguyên lý cơ bản về logistics và quản lý chuỗi cung ứng", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thống kê doanh nghiệp", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Kế toán cho kinh doanh", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Marketing căn bản", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Hệ thống thông tin quản lý", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Thương mại điện tử căn bản", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Kinh doanh quốc tế", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kinh tế lượng", "tin_chi": 3, "loai": "co_so_nganh" },
+                {
+                  "ten": "Học phần tự chọn 1", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                },
+                {
+                  "ten": "Học phần tự chọn 2", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                },
+                {
+                  "ten": "Học phần tự chọn 3", "tin_chi": 3, "loai": "co_so_nganh",
+                  "tu_chon": ["Quản trị dự án", "Giao tiếp và đàm phán trong kinh doanh", "Trí tuệ nhân tạo", "Thiết kế và quản trị cơ sở dữ liệu", "Kinh doanh dịch vụ", "Quản trị công nghệ và đổi mới sáng tạo", "Hành vi tổ chức", "Kế toán quản trị", "Văn hóa kinh doanh và trách nhiệm xã hội của doanh nghiệp"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Quản trị tài chính doanh nghiệp", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Luật kinh doanh", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Quản trị chiến lược", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Marketing số", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Kinh doanh số", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Ứng dụng trí tuệ nhân tạo trong kinh doanh", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "An toàn hệ thống thông tin cho kinh doanh", "tin_chi": 3, "loai": "chuyen_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận nghiên cứu khoa học", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Chuyên đề Kinh doanh số", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản lý và phát triển thương hiệu trong môi trường số", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Khởi nghiệp đổi mới sáng tạo", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Quản trị rủi ro và khủng hoảng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Học phần tự chọn 4", "tin_chi": 2, "loai": "chuyen_nganh",
+                  "tu_chon": ["Lãnh đạo và quản lý sự thay đổi", "Quản trị bán hàng và phân phối sản phẩm", "Lãnh đạo và quản lý hiệu suất doanh nghiệp", "Nghiệp vụ hải quan", "Quản trị đa văn hóa", "Vận tải đa phương thức", "Chính phủ điện tử", "Thanh toán điện tử"]
+                },
+                {
+                  "ten": "Học phần tự chọn 5", "tin_chi": 2, "loai": "chuyen_nganh",
+                  "tu_chon": ["Lãnh đạo và quản lý sự thay đổi", "Quản trị bán hàng và phân phối sản phẩm", "Lãnh đạo và quản lý hiệu suất doanh nghiệp", "Nghiệp vụ hải quan", "Quản trị đa văn hóa", "Vận tải đa phương thức", "Chính phủ điện tử", "Thanh toán điện tử"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 4, "loai": "thuc_tap" },
+                { "ten": "Khóa luận tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "KTDTVT",
+      "ten": "Kỹ thuật Điện tử Viễn thông",
+      "chuyen_nganh": [
+        {
+          "id": "MDI",
+          "ten": "Mạng và dịch vụ Internet",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác-Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn Công nghệ số và Ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 1", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Đại số", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác-Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Tin học cơ sở 2", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 2", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Vật lý 1 và thí nghiệm", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Xác suất thống kê", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Vật lý 2 và thí nghiệm", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Lý thuyết mạch", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Linh kiện và mạch điện tử", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Tín hiệu và hệ thống", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Điện tử số", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Lý thuyết truyền tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật siêu cao tần", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Toán rời rạc", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kiến trúc máy tính", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật lập trình", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật vi xử lý", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Truyền sóng và anten", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Hệ điều hành", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Công nghệ phần mềm", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Cấu trúc dữ liệu và giải thuật", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật mạng truyền thông", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật thông tin quang", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật thông tin vô tuyến", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mô phỏng hệ thống truyền thông", "tin_chi": 2, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận nghiên cứu khoa học", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Cơ sở dữ liệu", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mạng truyền thông quang", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thông tin di động", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "An toàn mạng thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Internet và các giao thức", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thực tập cơ sở", "tin_chi": 2, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Điện toán đám mây", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Lập trình hướng đối tượng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Lập trình hướng đối tượng", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Tự chọn 1", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["SDN & NFV", "Công nghệ vô tuyến thế hệ mới", "Hệ thống nhúng IoT", "Học máy và ứng dụng", "Công nghệ mạng truyền thông tiên tiến", "Quản trị mạng"]
+                },
+                {
+                  "ten": "Tự chọn 2", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["SDN & NFV", "Công nghệ vô tuyến thế hệ mới", "Hệ thống nhúng IoT", "Học máy và ứng dụng", "Công nghệ mạng truyền thông tiên tiến", "Quản trị mạng"]
+                },
+                {
+                  "ten": "Tự chọn 3", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Mạng truyền thông vô tuyến", "Kiến trúc và giao thức IoT", "Mạng cảm biến không dây", "Tự động hoá mạng", "Lưu trữ và phân tích dữ liệu"]
+                },
+                {
+                  "ten": "Tự chọn 4", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Mạng truyền thông vô tuyến", "Kiến trúc và giao thức IoT", "Mạng cảm biến không dây", "Tự động hoá mạng", "Lưu trữ và phân tích dữ liệu"]
+                },
+                {
+                  "ten": "Tự chọn 5", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Thiết kế và hiệu năng mạng", "Công nghệ truyền thông dữ liệu", "Phát triển ứng dụng truyền thông"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 9,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 6, "loai": "thuc_tap" },
+                { "ten": "Đồ án tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "TTVTDĐ",
+          "ten": "Thông tin vô tuyến và di động",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác-Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn Công nghệ số và Ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 1", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Đại số", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác-Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Tin học cơ sở 2", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 2", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Vật lý 1 và thí nghiệm", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Xác suất thống kê", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Vật lý 2 và thí nghiệm", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Lý thuyết mạch", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Linh kiện và mạch điện tử", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Tín hiệu và hệ thống", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Điện tử số", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Lý thuyết truyền tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật siêu cao tần", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Toán rời rạc", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kiến trúc máy tính", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật lập trình", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật vi xử lý", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Truyền sóng và anten", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Hệ điều hành", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Công nghệ phần mềm", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Cấu trúc dữ liệu và giải thuật", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật mạng truyền thông", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật thông tin quang", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật thông tin vô tuyến", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mô phỏng hệ thống truyền thông", "tin_chi": 2, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận nghiên cứu khoa học", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Cơ sở dữ liệu", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mạng truyền thông quang", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thông tin di động", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "An toàn mạng thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Internet và các giao thức", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thực tập cơ sở", "tin_chi": 2, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Thông tin vệ tinh", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Kỹ thuật thu phát vô tuyến", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Tự chọn 1", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["SDN & NFV", "Điện toán đám mây", "Hệ thống và mạng thông tin vô tuyến tiên tiến", "Hệ thống nhúng IoT", "Các giải pháp và hệ thống IoT tiên tiến", "Công nghệ Vô tuyến thế hệ mới"]
+                },
+                {
+                  "ten": "Tự chọn 2", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["SDN & NFV", "Điện toán đám mây", "Hệ thống và mạng thông tin vô tuyến tiên tiến", "Hệ thống nhúng IoT", "Các giải pháp và hệ thống IoT tiên tiến", "Công nghệ Vô tuyến thế hệ mới"]
+                },
+                {
+                  "ten": "Tự chọn 3", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Mạng cảm biến không dây", "Lập trình hướng đối tượng", "Lưu trữ và phân tích dữ liệu", "Kiến trúc và giao thức IoT", "Mạng truyền thông vô tuyến"]
+                },
+                {
+                  "ten": "Tự chọn 4", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Mạng cảm biến không dây", "Lập trình hướng đối tượng", "Lưu trữ và phân tích dữ liệu", "Kiến trúc và giao thức IoT", "Mạng truyền thông vô tuyến"]
+                },
+                {
+                  "ten": "Tự chọn 5", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Quy hoạch và tối ưu mạng di động", "Phát triển ứng dụng truyền thông", "An ninh mạng thông tin vô tuyến"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 9,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 6, "loai": "thuc_tap" },
+                { "ten": "Đồ án tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "IOT",
+          "ten": "Hệ thống IoT",
+          "hoc_ky": [
+            {
+              "hoc_ky": 1,
+              "mon_hoc": [
+                { "ten": "Triết học Mác-Lênin", "tin_chi": 3, "loai": "bat_buoc_chung" },
+                { "ten": "Nhập môn Công nghệ số và Ứng dụng AI", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 1", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Đại số", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 2,
+              "mon_hoc": [
+                { "ten": "Kinh tế chính trị Mác-Lênin", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 1)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Tin học cơ sở 2", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Giải tích 2", "tin_chi": 3, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Vật lý 1 và thí nghiệm", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Xác suất thống kê", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 3,
+              "mon_hoc": [
+                { "ten": "Chủ nghĩa xã hội khoa học", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 2)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Vật lý 2 và thí nghiệm", "tin_chi": 4, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Lý thuyết mạch", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Linh kiện và mạch điện tử", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Tín hiệu và hệ thống", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 4,
+              "mon_hoc": [
+                { "ten": "Tư tưởng Hồ Chí Minh", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3)", "tin_chi": 4, "loai": "bat_buoc_chung" },
+                { "ten": "Pháp luật và sở hữu trí tuệ", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Điện tử số", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Lý thuyết truyền tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật siêu cao tần", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 5,
+              "mon_hoc": [
+                { "ten": "Lịch sử Đảng cộng sản Việt Nam", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Tiếng Anh (Course 3 Plus)", "tin_chi": 2, "loai": "bat_buoc_chung" },
+                { "ten": "Toán rời rạc", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kiến trúc máy tính", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật lập trình", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật vi xử lý", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Truyền sóng và anten", "tin_chi": 3, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 6,
+              "mon_hoc": [
+                { "ten": "Hệ điều hành", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Công nghệ phần mềm", "tin_chi": 2, "loai": "co_so_nganh" },
+                { "ten": "Cấu trúc dữ liệu và giải thuật", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật mạng truyền thông", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật thông tin quang", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Kỹ thuật thông tin vô tuyến", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mô phỏng hệ thống truyền thông", "tin_chi": 2, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 7,
+              "mon_hoc": [
+                { "ten": "Phương pháp luận nghiên cứu khoa học", "tin_chi": 2, "loai": "bat_buoc_chung_nhom_nganh" },
+                { "ten": "Cơ sở dữ liệu", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Mạng truyền thông quang", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thông tin di động", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "An toàn mạng thông tin", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Internet và các giao thức", "tin_chi": 3, "loai": "co_so_nganh" },
+                { "ten": "Thực tập cơ sở", "tin_chi": 2, "loai": "co_so_nganh" }
+              ]
+            },
+            {
+              "hoc_ky": 8,
+              "mon_hoc": [
+                { "ten": "Hệ thống nhúng IoT", "tin_chi": 3, "loai": "chuyen_nganh" },
+                { "ten": "Kiến trúc và giao thức IoT", "tin_chi": 3, "loai": "chuyen_nganh" },
+                {
+                  "ten": "Tự chọn 1", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["SDN & NFV", "Điện toán đám mây", "Học máy và ứng dụng", "Công nghệ Vô tuyến thế hệ mới", "Các giải pháp và hệ thống IoT tiên tiến", "Phát triển hệ thống và ứng dụng IoT"]
+                },
+                {
+                  "ten": "Tự chọn 2", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["SDN & NFV", "Điện toán đám mây", "Học máy và ứng dụng", "Công nghệ Vô tuyến thế hệ mới", "Các giải pháp và hệ thống IoT tiên tiến", "Phát triển hệ thống và ứng dụng IoT"]
+                },
+                {
+                  "ten": "Tự chọn 3", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Trí tuệ nhân tạo trong viễn thông", "Lập trình hướng đối tượng", "Mạng cảm biến không dây", "Mạng truyền thông vô tuyến", "Lưu trữ và phân tích dữ liệu"]
+                },
+                {
+                  "ten": "Tự chọn 4", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Trí tuệ nhân tạo trong viễn thông", "Lập trình hướng đối tượng", "Mạng cảm biến không dây", "Mạng truyền thông vô tuyến", "Lưu trữ và phân tích dữ liệu"]
+                },
+                {
+                  "ten": "Tự chọn 5", "tin_chi": 3, "loai": "chuyen_nganh",
+                  "tu_chon": ["Hệ thống cảm biến", "Phát triển ứng dụng truyền thông", "Thiết kế và hiệu năng mạng"]
+                }
+              ]
+            },
+            {
+              "hoc_ky": 9,
+              "mon_hoc": [
+                { "ten": "Thực tập tốt nghiệp", "tin_chi": 6, "loai": "thuc_tap" },
+                { "ten": "Đồ án tốt nghiệp", "tin_chi": 6, "loai": "luan_van" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mo_ta_loai": {
+    "bat_buoc_chung": "Bắt buộc chung",
+    "bo_tro_nganh": "Bổ trợ ngành",
+    "chuyen_nganh": "Chuyên ngành",
+    "giao_duc_chuyen_nghiep": "Giáo dục chuyên nghiệp",
+    "bat_buoc_chung_nhom_nganh": "Bắt buộc chung nhóm ngành",
+    "co_so_nganh": "Cơ sở ngành",
+    "thuc_tap": "Thực tập",
+    "luan_van": "Luận văn tốt nghiệp"
+  }
+}

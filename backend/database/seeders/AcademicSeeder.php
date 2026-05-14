@@ -46,9 +46,13 @@ class AcademicSeeder extends Seeder
             return;
         }
 
+        // Chỉ tạo class_section mẫu cho core courses có category_id (4 courses gốc trong DatabaseSeeder.seedCourses).
+        // Courses từ TrainingProgramSeeder (CTĐT) không có category_id và sẽ được tạo class_section
+        // thông qua UI/quy trình mở lớp tín chỉ theo kỳ thực tế.
         $coreCourses = Course::query()
             ->where('course_mode', 'core')
             ->where('status', 'published')
+            ->whereNotNull('category_id')
             ->get();
 
         if ($coreCourses->isEmpty()) {
@@ -231,7 +235,7 @@ class AcademicSeeder extends Seeder
 
     private function seedLearningOutcomes($coreCourses): void
     {
-        $itProgram = Program::query()->where('code', 'CNTT_CQ')->first();
+        $itProgram = Program::query()->where('code', 'CNTT')->first();
         if ($itProgram) {
             $plos = [
                 ['code' => 'PLO1', 'description' => 'Hiểu nguyên lý cơ bản của ngành CNTT.', 'level' => 'knowledge'],

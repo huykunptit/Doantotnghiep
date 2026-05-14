@@ -61,13 +61,37 @@ return new class extends Migration
                 });
             }
 
-            DB::table('quizzes')
-                ->leftJoin('lessons', 'lessons.id', '=', 'quizzes.lesson_id')
-                ->whereNull('quizzes.course_id')
-                ->update([
-                    'quizzes.course_id' => DB::raw('lessons.course_id'),
-                    'quizzes.scope' => 'lesson',
-                ]);
+            if (
+                Schema::hasTable('lessons')
+                && Schema::hasColumn('lessons', 'course_id')
+            ) {
+                $driver = Schema::getConnection()->getDriverName();
+
+                if ($driver === 'sqlite') {
+                    $quizRows = DB::table('quizzes')
+                        ->select('quizzes.id', 'lessons.course_id as lesson_course_id')
+                        ->leftJoin('lessons', 'lessons.id', '=', 'quizzes.lesson_id')
+                        ->whereNull('quizzes.course_id')
+                        ->get();
+
+                    foreach ($quizRows as $quizRow) {
+                        DB::table('quizzes')
+                            ->where('id', $quizRow->id)
+                            ->update([
+                                'course_id' => $quizRow->lesson_course_id,
+                                'scope' => 'lesson',
+                            ]);
+                    }
+                } else {
+                    DB::table('quizzes')
+                        ->leftJoin('lessons', 'lessons.id', '=', 'quizzes.lesson_id')
+                        ->whereNull('quizzes.course_id')
+                        ->update([
+                            'quizzes.course_id' => DB::raw('lessons.course_id'),
+                            'quizzes.scope' => 'lesson',
+                        ]);
+                }
+            }
 
             $driver = Schema::getConnection()->getDriverName();
             if (Schema::hasColumn('quizzes', 'lesson_id')) {
@@ -75,7 +99,7 @@ return new class extends Migration
                     if ($driver === 'mysql') {
                         DB::statement('ALTER TABLE quizzes MODIFY lesson_id BIGINT UNSIGNED NULL');
                     }
-                } catch (\Throwable $e) {
+                } catch (\Throwable) {
                     // Keep migration resilient on environments where the column is already nullable
                     // or where the database engine does not allow this statement.
                 }

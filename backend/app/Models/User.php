@@ -30,11 +30,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'major_id',
         'specialization_id',
         'cohort_id',
+        'administrative_class_id',
         'advisor_id',
         'user_type',
         'student_code',
         'staff_code',
         'phone',
+        'id_card_number',
+        'gender',
+        'date_of_birth',
+        'nationality',
+        'hometown',
+        'permanent_address',
+        'study_status',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -44,6 +52,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'date_of_birth' => 'date',
         ];
     }
 
@@ -132,6 +141,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function cohort()
     {
         return $this->belongsTo(Cohort::class);
+    }
+
+    public function administrativeClass()
+    {
+        return $this->belongsTo(AdministrativeClass::class);
+    }
+
+    public function advisedAdministrativeClasses(): HasMany
+    {
+        return $this->hasMany(AdministrativeClass::class, 'advisor_id');
     }
 
     public function advisor()

@@ -3,19 +3,32 @@
 namespace Database\Seeders;
 
 use App\Models\AcademicYear;
+use App\Models\AdministrativeClass;
 use App\Models\Cohort;
+use App\Models\Curriculum;
 use App\Models\Institution;
 use App\Models\Major;
 use App\Models\Position;
 use App\Models\Program;
 use App\Models\ProgramType;
-use App\Models\Specialization;
 use App\Models\Term;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\UserAssignment;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
+/**
+ * Seed cấu trúc tổ chức + học vụ theo schema mới:
+ *  - Khoa: CNTT1, QTKD1, Viễn thông 1, Cơ bản 1, Thuê ngoài
+ *  - 3 chương trình: CNTT, QTKD, ĐTVT (đều chính quy, 8 kỳ)
+ *  - Mỗi chương trình có 1 curriculum + cohort D22/D23/D24/D25
+ *  - Lớp hành chính: D22CN01, D22CN02, D22QTKD01, D22DTVT01...
+ *  - Cập nhật profile SV/GV với CCCD, quê quán, etc.
+ *
+ * Lưu ý: users gốc (admin/instructor/student) được tạo trong DatabaseSeeder
+ * BEFORE seeder này chạy — seeder này chỉ cập nhật profile + gán LHC.
+ */
 class OrgAcademicSeeder extends Seeder
 {
     public function run(): void
@@ -25,15 +38,16 @@ class OrgAcademicSeeder extends Seeder
             ['name' => 'Học viện Công nghệ Bưu chính Viễn thông', 'institution_type' => 'university', 'is_active' => true]
         );
 
-        $units = $this->seedUnits($institution->id);
+        $units = $this->seedFaculties($institution->id);
         $positions = $this->seedPositions();
         $programContext = $this->seedPrograms($institution->id, $units);
         $terms = $this->seedAcademicCalendar($institution->id);
+        $adminClasses = $this->seedAdministrativeClasses($institution->id, $units, $programContext);
 
-        $this->seedUserProfilesAndAssignments($institution->id, $units, $positions, $programContext, $terms);
+        $this->seedUserProfilesAndAssignments($institution->id, $units, $positions, $programContext, $adminClasses, $terms);
     }
 
-    private function seedUnits(int $institutionId): array
+    private function seedFaculties(int $institutionId): array
     {
         $board = Unit::query()->updateOrCreate(
             ['institution_id' => $institutionId, 'code' => 'BGH'],
@@ -45,27 +59,26 @@ class OrgAcademicSeeder extends Seeder
             ['name' => 'Phòng Đào tạo', 'unit_type' => 'office', 'parent_id' => $board->id, 'level' => 2, 'is_active' => true]
         );
 
-        $itFaculty = Unit::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'code' => 'CNTT'],
-            ['name' => 'Khoa Công nghệ thông tin', 'unit_type' => 'faculty', 'parent_id' => $board->id, 'level' => 2, 'is_active' => true]
-        );
+        $faculties = [
+            'cntt1' => ['code' => 'CNTT1', 'name' => 'Khoa Công nghệ thông tin 1'],
+            'qtkd1' => ['code' => 'QTKD1', 'name' => 'Khoa Quản trị kinh doanh 1'],
+            'vt1' => ['code' => 'VT1', 'name' => 'Khoa Viễn thông 1'],
+            'cb1' => ['code' => 'CB1', 'name' => 'Khoa Cơ bản 1'],
+            'external' => ['code' => 'THUENGOAI', 'name' => 'Khoa Thuê ngoài'],
+        ];
 
-        $bizFaculty = Unit::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'code' => 'QTKD'],
-            ['name' => 'Khoa Quản trị kinh doanh', 'unit_type' => 'faculty', 'parent_id' => $board->id, 'level' => 2, 'is_active' => true]
-        );
+        $created = [];
+        foreach ($faculties as $key => $row) {
+            $created[$key] = Unit::query()->updateOrCreate(
+                ['institution_id' => $institutionId, 'code' => $row['code']],
+                ['name' => $row['name'], 'unit_type' => 'faculty', 'parent_id' => $board->id, 'level' => 2, 'is_active' => true]
+            );
+        }
 
-        $seDept = Unit::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'code' => 'BMSE'],
-            ['name' => 'Bộ môn Kỹ thuật phần mềm', 'unit_type' => 'department', 'parent_id' => $itFaculty->id, 'level' => 3, 'is_active' => true]
-        );
-
-        $dsDept = Unit::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'code' => 'BMDS'],
-            ['name' => 'Bộ môn Khoa học dữ liệu', 'unit_type' => 'department', 'parent_id' => $itFaculty->id, 'level' => 3, 'is_active' => true]
-        );
-
-        return compact('board', 'academicOffice', 'itFaculty', 'bizFaculty', 'seDept', 'dsDept');
+        return array_merge([
+            'board' => $board,
+            'academicOffice' => $academicOffice,
+        ], $created);
     }
 
     private function seedPositions(): array
@@ -78,6 +91,10 @@ class OrgAcademicSeeder extends Seeder
             ['code' => 'FACULTY_ADMIN'],
             ['name' => 'Quản lý khoa', 'scope_level' => 'unit', 'description' => 'Quản lý học vụ cấp khoa', 'is_active' => true]
         );
+        $academicManager = Position::query()->updateOrCreate(
+            ['code' => 'ACADEMIC_MANAGER'],
+            ['name' => 'Quản lý học tập', 'scope_level' => 'institution', 'description' => 'Phụ trách CTĐT, lớp hành chính, lớp tín chỉ', 'is_active' => true]
+        );
         $lecturer = Position::query()->updateOrCreate(
             ['code' => 'LECTURER'],
             ['name' => 'Giảng viên', 'scope_level' => 'unit', 'description' => 'Giảng dạy và theo dõi lớp học phần', 'is_active' => true]
@@ -87,88 +104,116 @@ class OrgAcademicSeeder extends Seeder
             ['name' => 'Sinh viên', 'scope_level' => 'cohort', 'description' => 'Sinh viên thuộc chương trình đào tạo', 'is_active' => true]
         );
 
-        return compact('admin', 'facultyAdmin', 'lecturer', 'student');
+        return compact('admin', 'facultyAdmin', 'academicManager', 'lecturer', 'student');
     }
 
     private function seedPrograms(int $institutionId, array $units): array
     {
-        $formal = ProgramType::query()->updateOrCreate(['code' => 'CHINH_QUY'], ['name' => 'Chính quy', 'is_active' => true]);
-        $partTime = ProgramType::query()->updateOrCreate(['code' => 'VLVH'], ['name' => 'Vừa làm vừa học', 'is_active' => true]);
-        $enterprise = ProgramType::query()->updateOrCreate(['code' => 'LKDN'], ['name' => 'Liên kết doanh nghiệp', 'is_active' => true]);
-
-        $itProgram = Program::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'code' => 'CNTT_CQ'],
-            [
-                'unit_id' => $units['itFaculty']->id,
-                'program_type_id' => $formal->id,
-                'name' => 'Công nghệ thông tin - Chính quy',
-                'duration_months' => 48,
-                'is_active' => true,
-            ]
+        $formal = ProgramType::query()->updateOrCreate(
+            ['code' => 'CHINH_QUY'],
+            ['name' => 'Chính quy', 'is_active' => true]
         );
 
-        $baProgram = Program::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'code' => 'QTKD_VLVH'],
-            [
-                'unit_id' => $units['bizFaculty']->id,
-                'program_type_id' => $partTime->id,
-                'name' => 'Quản trị kinh doanh - Vừa làm vừa học',
-                'duration_months' => 48,
-                'is_active' => true,
-            ]
-        );
+        // 3 chương trình + 9 chuyên ngành (khớp chuong_trinh_hoc.json)
+        // Lưu ý: program code DTVT là alias của KTDTVT trong JSON
+        $programDefs = [
+            'cntt' => [
+                'code' => 'CNTT',
+                'name' => 'Công nghệ thông tin',
+                'unit' => $units['cntt1'],
+                'majors' => [
+                    'MMT' => 'Mạng máy tính và truyền thông dữ liệu',
+                    'HTTT' => 'Hệ thống thông tin',
+                    'CNPM' => 'Công nghệ phần mềm',
+                ],
+            ],
+            'qtkd' => [
+                'code' => 'QTKD',
+                'name' => 'Quản trị kinh doanh',
+                'unit' => $units['qtkd1'],
+                'majors' => [
+                    'QTDN' => 'Quản trị doanh nghiệp',
+                    'KDQT' => 'Kinh doanh quốc tế',
+                    'KDS' => 'Kinh doanh số',
+                ],
+            ],
+            'dtvt' => [
+                'code' => 'DTVT',
+                'name' => 'Kỹ thuật Điện tử Viễn thông',
+                'unit' => $units['vt1'],
+                'majors' => [
+                    'MDI' => 'Mạng và dịch vụ Internet',
+                    'TTVTDD' => 'Thông tin vô tuyến và di động',
+                    'IOT' => 'Hệ thống IoT',
+                ],
+            ],
+        ];
 
-        $seMajor = Major::query()->updateOrCreate(
-            ['program_id' => $itProgram->id, 'code' => 'KTPM'],
-            ['unit_id' => $units['seDept']->id, 'name' => 'Kỹ thuật phần mềm', 'is_active' => true]
-        );
-        $dsMajor = Major::query()->updateOrCreate(
-            ['program_id' => $itProgram->id, 'code' => 'KHDT'],
-            ['unit_id' => $units['dsDept']->id, 'name' => 'Khoa học dữ liệu', 'is_active' => true]
-        );
+        $programs = [];
+        $majorsByProg = [];   // [$progKey][$majorCode] => Major
+        $curriculaByMajor = []; // [$majorCode] => Curriculum
 
-        $webSpec = Specialization::query()->updateOrCreate(
-            ['major_id' => $seMajor->id, 'code' => 'WEB'],
-            ['name' => 'Phát triển ứng dụng Web', 'is_active' => true]
-        );
-        $aiSpec = Specialization::query()->updateOrCreate(
-            ['major_id' => $dsMajor->id, 'code' => 'AIAPP'],
-            ['name' => 'Ứng dụng AI', 'is_active' => true]
-        );
+        foreach ($programDefs as $progKey => $def) {
+            $program = Program::query()->updateOrCreate(
+                ['institution_id' => $institutionId, 'code' => $def['code']],
+                [
+                    'unit_id' => $def['unit']->id,
+                    'program_type_id' => $formal->id,
+                    'name' => $def['name'],
+                    'duration_months' => 48,
+                    'is_active' => true,
+                ]
+            );
+            $programs[$progKey] = $program;
 
-        $seCurriculum = \App\Models\Curriculum::query()->updateOrCreate(
-            ['program_id' => $itProgram->id, 'code' => 'CTDT-KTPM-2024'],
-            ['major_id' => $seMajor->id, 'specialization_id' => $webSpec->id, 'name' => 'Chương trình KTPM 2024', 'effective_from' => '2024-08-01', 'is_active' => true]
-        );
-        $dsCurriculum = \App\Models\Curriculum::query()->updateOrCreate(
-            ['program_id' => $itProgram->id, 'code' => 'CTDT-KHDT-2024'],
-            ['major_id' => $dsMajor->id, 'specialization_id' => $aiSpec->id, 'name' => 'Chương trình KHDT 2024', 'effective_from' => '2024-08-01', 'is_active' => true]
-        );
+            foreach ($def['majors'] as $majorCode => $majorName) {
+                $major = Major::query()->updateOrCreate(
+                    ['program_id' => $program->id, 'code' => $majorCode],
+                    ['unit_id' => $def['unit']->id, 'name' => $majorName, 'is_active' => true]
+                );
+                $majorsByProg[$progKey][$majorCode] = $major;
 
-        $k18Se = Cohort::query()->updateOrCreate(
-            ['program_id' => $itProgram->id, 'code' => 'D22KTPM-A'],
-            ['institution_id' => $institutionId, 'major_id' => $seMajor->id, 'name' => 'D22 Kỹ thuật phần mềm A', 'start_year' => 2022, 'end_year' => 2026, 'status' => 'active']
-        );
-        $k18Ds = Cohort::query()->updateOrCreate(
-            ['program_id' => $itProgram->id, 'code' => 'D22KHDT-A'],
-            ['institution_id' => $institutionId, 'major_id' => $dsMajor->id, 'name' => 'D22 Khoa học dữ liệu A', 'start_year' => 2022, 'end_year' => 2026, 'status' => 'active']
-        );
+                // Mỗi chuyên ngành có 1 curriculum riêng (CTĐT 2024)
+                $curriculum = Curriculum::query()->updateOrCreate(
+                    ['program_id' => $program->id, 'code' => 'CTDT-' . $majorCode],
+                    [
+                        'major_id' => $major->id,
+                        'name' => 'CTĐT ' . $majorName . ' - 2024',
+                        'effective_from' => '2024-08-01',
+                        'is_active' => true,
+                    ]
+                );
+                $curriculaByMajor[$majorCode] = $curriculum;
+            }
+        }
 
-        return compact(
-            'formal',
-            'partTime',
-            'enterprise',
-            'itProgram',
-            'baProgram',
-            'seMajor',
-            'dsMajor',
-            'webSpec',
-            'aiSpec',
-            'seCurriculum',
-            'dsCurriculum',
-            'k18Se',
-            'k18Ds'
-        );
+        // Cohorts: mỗi program có khóa D22, D23, D24, D25 (cohort theo program, không theo chuyên ngành)
+        $cohorts = [];
+        foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
+            foreach ([2022, 2023, 2024, 2025] as $year) {
+                $shortYear = substr((string) $year, 2);
+                $code = 'D' . $shortYear . strtoupper($progKey);
+                $cohort = Cohort::query()->updateOrCreate(
+                    ['program_id' => $programs[$progKey]->id, 'code' => $code],
+                    [
+                        'institution_id' => $institutionId,
+                        'major_id' => null, // cohort gom chung cả 3 chuyên ngành của program
+                        'name' => 'Khóa D' . $shortYear . ' - ' . $programs[$progKey]->name,
+                        'start_year' => $year,
+                        'end_year' => $year + 4,
+                        'status' => 'active',
+                    ]
+                );
+                $cohorts[$progKey][$year] = $cohort;
+            }
+        }
+
+        return array_merge($programs, [
+            'majors' => $majorsByProg,
+            'curricula' => $curriculaByMajor,
+            'cohorts' => $cohorts,
+            'formal' => $formal,
+        ]);
     }
 
     private function seedAcademicCalendar(int $institutionId): array
@@ -206,13 +251,68 @@ class OrgAcademicSeeder extends Seeder
         return compact('year', 'term1', 'term2');
     }
 
+    /**
+     * LHC mẫu: với mỗi cohort, tạo 2 lớp (vd D22CN01, D22CN02).
+     * Lớp hành chính gom SV của cả 3 chuyên ngành cùng program — major_id = null.
+     */
+    private function seedAdministrativeClasses(int $institutionId, array $units, array $programContext): array
+    {
+        $progToFaculty = [
+            'cntt' => $units['cntt1'],
+            'qtkd' => $units['qtkd1'],
+            'dtvt' => $units['vt1'],
+        ];
+        $progShortCode = [
+            'cntt' => 'CN',
+            'qtkd' => 'QTKD',
+            'dtvt' => 'DTVT',
+        ];
+
+        $result = [];
+        foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
+            $program = $programContext[$progKey];
+            $faculty = $progToFaculty[$progKey];
+
+            foreach ([2022, 2023, 2024, 2025] as $startYear) {
+                $cohort = $programContext['cohorts'][$progKey][$startYear];
+                $shortYear = substr((string) $startYear, 2);
+                $perCohort = 2; // 2 lớp/khóa cho dữ liệu mẫu
+
+                for ($i = 1; $i <= $perCohort; $i++) {
+                    $code = sprintf('D%s%s%02d', $shortYear, $progShortCode[$progKey], $i);
+                    $admin = AdministrativeClass::query()->updateOrCreate(
+                        ['institution_id' => $institutionId, 'code' => $code],
+                        [
+                            'unit_id' => $faculty->id,
+                            'program_id' => $program->id,
+                            'major_id' => null, // LHC chứa multi-chuyên ngành
+                            'cohort_id' => $cohort->id,
+                            'advisor_id' => null,
+                            'name' => 'Lớp ' . $code,
+                            'expected_graduation_year' => $startYear + 4,
+                            'capacity' => 40,
+                            'status' => 'active',
+                            'description' => "Lớp hành chính demo {$code}.",
+                        ]
+                    );
+                    $result[$progKey][$startYear][] = $admin;
+                }
+            }
+        }
+
+        return $result;
+    }
+
     private function seedUserProfilesAndAssignments(
         int $institutionId,
         array $units,
         array $positions,
         array $programContext,
+        array $adminClasses,
         array $terms
     ): void {
+        $this->seedAcademicManagers($institutionId, $units, $positions);
+
         $admin = User::query()->where('email', 'admin@lms.com')->first();
         if ($admin) {
             $admin->update([
@@ -221,54 +321,119 @@ class OrgAcademicSeeder extends Seeder
                 'user_type' => 'admin',
                 'staff_code' => 'ADM001',
                 'phone' => '0900000001',
+                'gender' => 'male',
+                'date_of_birth' => '1985-01-01',
+                'nationality' => 'Việt Nam',
+                'hometown' => 'Hà Nội',
+                'permanent_address' => 'Hà Đông, Hà Nội',
+                'study_status' => 'dang_cong_tac',
+                'id_card_number' => '001085000001',
             ]);
             $this->upsertAssignment($admin->id, $units['board']->id, $positions['admin']->id, true);
         }
 
+        $hometowns = ['Hà Nội', 'TP. Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Nghệ An', 'Thanh Hóa', 'Nam Định', 'Bắc Ninh'];
+        $facultyKeys = ['cntt1', 'qtkd1', 'vt1', 'cb1', 'external'];
+
+        // Giảng viên: phân bổ tuần tự vào 5 khoa
         $instructors = User::query()->where('email', 'like', 'instructor%@lms.com')->orderBy('id')->get();
-        $instructors->each(function (User $user, int $index) use ($institutionId, $units, $positions) {
-            $unit = $index % 2 === 0 ? $units['seDept'] : $units['dsDept'];
+        $instructors->each(function (User $user, int $index) use ($institutionId, $units, $positions, $facultyKeys, $hometowns) {
+            $facultyKey = $facultyKeys[$index % count($facultyKeys)];
+            $unit = $units[$facultyKey];
             $staffCode = 'GV' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+
             $user->update([
                 'institution_id' => $institutionId,
                 'unit_id' => $unit->id,
                 'user_type' => 'instructor',
                 'staff_code' => $staffCode,
                 'phone' => '0910000' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
+                'gender' => $index % 2 === 0 ? 'male' : 'female',
+                'date_of_birth' => sprintf('19%02d-%02d-%02d', 80 + ($index % 10), ($index % 12) + 1, ($index % 28) + 1),
+                'nationality' => 'Việt Nam',
+                'hometown' => $hometowns[$index % count($hometowns)],
+                'permanent_address' => 'Số ' . ($index + 1) . ' đường Cầu Giấy, Hà Nội',
+                'id_card_number' => '00' . str_pad((string) (90000000 + $index), 10, '0', STR_PAD_LEFT),
+                'study_status' => 'dang_cong_tac',
             ]);
+
+            $user->syncRoles(['instructor']);
             $this->upsertAssignment($user->id, $unit->id, $positions['lecturer']->id, true);
-            // First half are also advisors (cố vấn học tập).
+
+            // Nửa đầu cũng kiêm cố vấn
             if ($index < (int) ceil($user->newQuery()->where('email', 'like', 'instructor%@lms.com')->count() / 2)) {
                 $user->assignRole('advisor');
             }
         });
 
+        // Gán advisor cho LHC: lấy giảng viên cùng khoa nếu có
+        $this->assignAdvisorsToAdminClasses($adminClasses, $instructors, $units);
+
         $advisorPool = $instructors->take((int) ceil($instructors->count() / 2))->values();
 
-        User::query()->where('email', 'like', 'student%@lms.com')->get()->each(function (User $user, int $index) use ($institutionId, $units, $positions, $programContext, $advisorPool) {
-            $isSe = $index % 2 === 0;
-            $major = $isSe ? $programContext['seMajor'] : $programContext['dsMajor'];
-            $specialization = $isSe ? $programContext['webSpec'] : $programContext['aiSpec'];
-            $cohort = $isSe ? $programContext['k18Se'] : $programContext['k18Ds'];
-            $studentCode = 'B22DCCN' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+        // Sinh viên: phân bổ vào LHC theo round-robin trong cohort thuộc CNTT (giữ tương thích seeder cũ),
+        // mở rộng dần để có dữ liệu mẫu cho cả 3 chương trình.
+        $allAdminClasses = collect();
+        foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
+            foreach ([2022, 2023, 2024, 2025] as $startYear) {
+                foreach (($adminClasses[$progKey][$startYear] ?? []) as $class) {
+                    $allAdminClasses->push(['prog' => $progKey, 'year' => $startYear, 'class' => $class]);
+                }
+            }
+        }
+
+        // Round-robin chuyên ngành cho student trong từng program
+        $progMajorRotation = [
+            'cntt' => array_values($programContext['majors']['cntt']),
+            'qtkd' => array_values($programContext['majors']['qtkd']),
+            'dtvt' => array_values($programContext['majors']['dtvt']),
+        ];
+        $progMajorCounter = ['cntt' => 0, 'qtkd' => 0, 'dtvt' => 0];
+
+        User::query()->where('email', 'like', 'student%@lms.com')->orderBy('id')->get()->each(function (User $user, int $index) use ($institutionId, $units, $positions, $programContext, $allAdminClasses, $advisorPool, $hometowns, $progMajorRotation, &$progMajorCounter) {
+            $entry = $allAdminClasses[$index % $allAdminClasses->count()];
+            $progKey = $entry['prog'];
+            $startYear = $entry['year'];
+            $adminClass = $entry['class'];
+            $program = $programContext[$progKey];
+            $majorList = $progMajorRotation[$progKey];
+            $major = $majorList[$progMajorCounter[$progKey]++ % count($majorList)];
+            $cohort = $programContext['cohorts'][$progKey][$startYear];
+
+            $shortYear = substr((string) $startYear, 2);
+            $codePrefix = match ($progKey) {
+                'cntt' => 'B' . $shortYear . 'DCCN',
+                'qtkd' => 'B' . $shortYear . 'DCQT',
+                'dtvt' => 'B' . $shortYear . 'DCDT',
+                default => 'B' . $shortYear . 'DC',
+            };
+            $studentCode = $codePrefix . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
             $advisor = $advisorPool->isEmpty() ? null : $advisorPool[$index % $advisorPool->count()];
 
             $user->update([
                 'institution_id' => $institutionId,
-                'unit_id' => $major->unit_id ?: $units['itFaculty']->id,
-                'program_id' => $programContext['itProgram']->id,
+                'unit_id' => $adminClass->unit_id,
+                'program_id' => $program->id,
                 'major_id' => $major->id,
-                'specialization_id' => $specialization->id,
+                'specialization_id' => null,
                 'cohort_id' => $cohort->id,
+                'administrative_class_id' => $adminClass->id,
                 'advisor_id' => $advisor?->id,
                 'user_type' => 'student',
                 'student_code' => $studentCode,
                 'phone' => '0980000' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
+                'gender' => $index % 2 === 0 ? 'male' : 'female',
+                'date_of_birth' => sprintf('%04d-%02d-%02d', $startYear - 18, ($index % 12) + 1, ($index % 28) + 1),
+                'nationality' => 'Việt Nam',
+                'hometown' => $hometowns[$index % count($hometowns)],
+                'permanent_address' => 'Số ' . ($index + 10) . ' đường Nguyễn Trãi, Hà Nội',
+                'id_card_number' => '00' . str_pad((string) (100000000 + $index), 10, '0', STR_PAD_LEFT),
+                'study_status' => 'dang_hoc',
             ]);
-            $this->upsertAssignment($user->id, $major->unit_id ?: $units['itFaculty']->id, $positions['student']->id, true);
+            $this->upsertAssignment($user->id, $adminClass->unit_id, $positions['student']->id, true);
         });
 
-        // align seeded enrollments to current term/cohort
+        // Align seeded enrollments vào current term + cohort
         \App\Models\Enrollment::query()
             ->with('user')
             ->get()
@@ -276,13 +441,72 @@ class OrgAcademicSeeder extends Seeder
                 if (!$enrollment->user) {
                     return;
                 }
-
                 $enrollment->update([
                     'term_id' => $terms['term1']->id,
                     'cohort_id' => $enrollment->user->cohort_id,
                     'enrollment_source' => $enrollment->order_id ? 'marketplace' : 'academic',
                 ]);
             });
+    }
+
+    /**
+     * Tạo 2 user role academic_manager (quản lý học tập).
+     */
+    private function seedAcademicManagers(int $institutionId, array $units, array $positions): void
+    {
+        $managers = [
+            ['email' => 'academic1@lms.com', 'name' => 'Quản lý học tập 1', 'staff_code' => 'QLHT001'],
+            ['email' => 'academic2@lms.com', 'name' => 'Quản lý học tập 2', 'staff_code' => 'QLHT002'],
+        ];
+
+        foreach ($managers as $idx => $row) {
+            $user = User::query()->updateOrCreate(
+                ['email' => $row['email']],
+                [
+                    'name' => $row['name'],
+                    'password' => Hash::make('password'),
+                    'email_verified_at' => now(),
+                    'avatar' => 'https://i.pravatar.cc/300?img=' . (30 + $idx),
+                    'institution_id' => $institutionId,
+                    'unit_id' => $units['academicOffice']->id,
+                    'user_type' => 'academic_manager',
+                    'staff_code' => $row['staff_code'],
+                    'phone' => '0920000' . str_pad((string) ($idx + 1), 3, '0', STR_PAD_LEFT),
+                    'gender' => $idx % 2 === 0 ? 'female' : 'male',
+                    'date_of_birth' => '1988-0' . ($idx + 5) . '-12',
+                    'nationality' => 'Việt Nam',
+                    'hometown' => 'Hà Nội',
+                    'permanent_address' => 'Khu Trung Hòa, Cầu Giấy, Hà Nội',
+                    'id_card_number' => '001088' . str_pad((string) ($idx + 1), 6, '0', STR_PAD_LEFT),
+                    'study_status' => 'dang_cong_tac',
+                ]
+            );
+            $user->syncRoles(['academic_manager']);
+            $this->upsertAssignment($user->id, $units['academicOffice']->id, $positions['academicManager']->id, true);
+        }
+    }
+
+    private function assignAdvisorsToAdminClasses(array $adminClasses, $instructors, array $units): void
+    {
+        if ($instructors->isEmpty()) {
+            return;
+        }
+
+        $byUnit = $instructors->groupBy('unit_id');
+        $flatClasses = [];
+        foreach ($adminClasses as $progKey => $byYear) {
+            foreach ($byYear as $year => $classes) {
+                foreach ($classes as $c) {
+                    $flatClasses[] = $c;
+                }
+            }
+        }
+
+        foreach ($flatClasses as $i => $class) {
+            $candidates = $byUnit->get($class->unit_id, collect());
+            $advisor = $candidates->isEmpty() ? $instructors[$i % $instructors->count()] : $candidates[$i % $candidates->count()];
+            $class->update(['advisor_id' => $advisor->id]);
+        }
     }
 
     private function upsertAssignment(int $userId, int $unitId, int $positionId, bool $isPrimary): void

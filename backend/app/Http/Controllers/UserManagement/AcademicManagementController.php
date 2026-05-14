@@ -4,9 +4,11 @@ namespace App\Http\Controllers\UserManagement;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\AdministrativeClass;
 use App\Models\Cohort;
 use App\Models\CourseLearningOutcome;
 use App\Models\Curriculum;
+use App\Models\CurriculumCourse;
 use App\Models\Institution;
 use App\Models\Major;
 use App\Models\Program;
@@ -31,7 +33,9 @@ class AcademicManagementController extends Controller
         'programs' => Program::class,
         'majors' => Major::class,
         'curricula' => Curriculum::class,
+        'curriculum-courses' => CurriculumCourse::class,
         'cohorts' => Cohort::class,
+        'administrative-classes' => AdministrativeClass::class,
         'plos' => ProgramLearningOutcome::class,
         'clos' => CourseLearningOutcome::class,
         'skills' => Skill::class,
@@ -45,14 +49,64 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $query = $modelClass::query()->latest('id');
         $query = $this->applyScope($query, $resource, $user->id, $user->hasRole('admin'));
+        $query = $this->applyEagerLoad($query, $resource);
+        $query = $this->applyFilters($query, $resource, $request);
 
         return response()->json($query->paginate((int) $request->integer('per_page', 20)));
+    }
+
+    /**
+     * Eager-load relations để list view có đủ dữ liệu hiển thị (tránh N+1).
+     */
+    private function applyEagerLoad($query, string $resource)
+    {
+        return match ($resource) {
+            'curricula' => $query
+                ->with(['program:id,code,name', 'major:id,code,name'])
+                ->withCount('curriculumCourses'),
+            'administrative-classes' => $query->with([
+                'program:id,code,name',
+                'unit:id,code,name',
+                'cohort:id,code,name,start_year',
+                'advisor:id,name,email,staff_code',
+            ])->withCount('students'),
+            'cohorts' => $query->with(['program:id,code,name', 'major:id,code,name']),
+            'majors' => $query->with(['program:id,code,name']),
+            'programs' => $query->with(['unit:id,code,name', 'programType:id,code,name']),
+            default => $query,
+        };
+    }
+
+    private function applyFilters($query, string $resource, Request $request)
+    {
+        if ($resource === 'curricula') {
+            if ($pid = $request->integer('program_id')) {
+                $query->where('program_id', $pid);
+            }
+            if ($mid = $request->integer('major_id')) {
+                $query->where('major_id', $mid);
+            }
+        }
+        if ($resource === 'administrative-classes') {
+            foreach (['program_id', 'unit_id', 'cohort_id', 'major_id', 'advisor_id'] as $k) {
+                if ($v = $request->integer($k)) {
+                    $query->where($k, $v);
+                }
+            }
+            if ($s = $request->string('status')->toString()) {
+                $query->where('status', $s);
+            }
+            if ($q = $request->string('q')->toString()) {
+                $query->where(fn ($w) => $w->where('code', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%"));
+            }
+        }
+        return $query;
     }
 
     public function store(Request $request, string $resource): JsonResponse
@@ -63,7 +117,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -82,7 +136,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -107,7 +161,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -145,10 +199,12 @@ class AcademicManagementController extends Controller
         }
 
         return match ($resource) {
-            'units' => $query->whereIn('id', $activeUnitIds)->orWhereIn('parent_id', $activeUnitIds),
-            'programs', 'majors' => $query->whereIn('unit_id', $activeUnitIds),
-            'curricula' => $query->whereHas('major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
-            'cohorts' => $query->whereHas('major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
+            'units' => $query->where(function (Builder $q) use ($activeUnitIds) {
+                $q->whereIn('id', $activeUnitIds)->orWhereIn('parent_id', $activeUnitIds);
+            }),
+            'programs', 'majors', 'administrative-classes' => $query->whereIn('unit_id', $activeUnitIds),
+            'curricula', 'cohorts' => $query->whereHas('major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
+            'curriculum-courses' => $query->whereHas('curriculum.major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
             'institutions' => $query->whereIn('id', function ($sub) use ($activeUnitIds) {
                 $sub->select('institution_id')->from('units')->whereIn('id', $activeUnitIds);
             }),
@@ -236,6 +292,15 @@ class AcademicManagementController extends Controller
                 'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
                 'is_active' => ['sometimes', 'boolean'],
             ],
+            'curriculum-courses' => [
+                'curriculum_id' => [$required, 'exists:curricula,id'],
+                'course_id' => [$required, 'exists:courses,id'],
+                'term_number' => [$required, 'integer', 'min:1', 'max:12'],
+                'is_required' => ['sometimes', 'boolean'],
+                'credits' => ['nullable', 'integer', 'min:0'],
+                'position' => ['nullable', 'integer', 'min:0'],
+                'notes' => ['nullable', 'string'],
+            ],
             'cohorts' => [
                 'institution_id' => [$required, 'exists:institutions,id'],
                 'program_id' => [$required, 'exists:programs,id'],
@@ -245,6 +310,20 @@ class AcademicManagementController extends Controller
                 'start_year' => [$required, 'integer', 'min:2000'],
                 'end_year' => ['nullable', 'integer', 'gte:start_year'],
                 'status' => ['sometimes', 'string', 'max:50'],
+            ],
+            'administrative-classes' => [
+                'institution_id' => [$required, 'exists:institutions,id'],
+                'unit_id' => [$required, 'exists:units,id'],
+                'program_id' => [$required, 'exists:programs,id'],
+                'major_id' => ['nullable', 'exists:majors,id'],
+                'cohort_id' => [$required, 'exists:cohorts,id'],
+                'advisor_id' => ['nullable', 'exists:users,id'],
+                'code' => [$required, 'string', 'max:100'],
+                'name' => [$required, 'string', 'max:255'],
+                'expected_graduation_year' => ['nullable', 'integer', 'min:2000'],
+                'capacity' => ['nullable', 'integer', 'min:1'],
+                'status' => ['sometimes', 'string', 'max:50'],
+                'description' => ['nullable', 'string'],
             ],
             'plos' => [
                 'program_id' => [$required, 'exists:programs,id'],

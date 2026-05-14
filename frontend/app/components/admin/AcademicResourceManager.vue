@@ -667,26 +667,60 @@ onMounted(async () => {
 
 <template>
   <div class="academic-manager">
+    <section class="dashboard-card academic-hero">
+      <div class="academic-hero-copy">
+        <p class="section-kicker">Workspace học vụ</p>
+        <h2>{{ currentOption.label }}</h2>
+        <p class="academic-hero-desc">{{ currentOption.description }}</p>
+        <div class="academic-hero-chips">
+          <span class="academic-hero-chip">
+            <span class="material-symbols-outlined">dataset</span>
+            {{ totalRows }} bản ghi
+          </span>
+          <span class="academic-hero-chip">
+            <span class="material-symbols-outlined">verified</span>
+            {{ activeCount }} đang hoạt động
+          </span>
+          <span class="academic-hero-chip">
+            <span class="material-symbols-outlined">update</span>
+            {{ formatRelative(lastUpdatedAt) }}
+          </span>
+        </div>
+      </div>
+      <div class="academic-hero-panel">
+        <div class="academic-hero-icon">
+          <span class="material-symbols-outlined">{{ currentOption.icon }}</span>
+        </div>
+        <div>
+          <strong>{{ currentOption.label }}</strong>
+          <p>Quản lý theo module, hỗ trợ lọc, sửa, tạo mới và thao tác nhanh.</p>
+        </div>
+      </div>
+    </section>
+
     <section v-if="allowResourceSwitch" class="dashboard-card academic-tabs-card">
       <div class="academic-tabs-head">
         <div>
-          <p class="section-kicker">Loại bản ghi</p>
-          <h3>Chọn nhóm dữ liệu để quản lý</h3>
+          <p class="section-kicker">Danh mục</p>
+          <h3>Chọn nhóm dữ liệu</h3>
         </div>
-        <span class="academic-tabs-meta">{{ resourceOptions.length }} nhóm có sẵn</span>
+        <span class="academic-tabs-meta">{{ resourceOptions.length }} nhóm</span>
       </div>
-      <div class="academic-tabs">
+      <div class="academic-tabs" role="tablist" aria-label="Academic resource switcher">
         <button
-          v-for="opt in resourceOptions"
-          :key="opt.key"
+          v-for="option in resourceOptions"
+          :key="option.key"
           type="button"
-          :class="['academic-tab', { 'is-active': currentResource === opt.key }]"
-          @click="currentResource = opt.key"
+          class="academic-tab"
+          :class="{ 'is-active': option.key === currentResource }"
+          role="tab"
+          :aria-selected="option.key === currentResource"
+          @click="currentResource = option.key"
         >
-          <span class="material-symbols-outlined">{{ opt.icon }}</span>
+          <span class="material-symbols-outlined">{{ option.icon }}</span>
           <span class="academic-tab-text">
-            <strong>{{ opt.label }}</strong>
-            <span>{{ opt.description }}</span>
+            <strong>{{ option.label }}</strong>
+            <span>{{ option.description }}</span>
           </span>
         </button>
       </div>
@@ -1087,6 +1121,65 @@ onMounted(async () => {
   gap: 18px;
 }
 
+.academic-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(var(--green-rgb), 0.12), rgba(255, 255, 255, 0.96));
+  border: 1px solid rgba(var(--green-rgb), 0.12);
+}
+.academic-hero-copy h2 {
+  margin: 4px 0 0;
+  font-size: 1.8rem;
+  letter-spacing: -0.04em;
+}
+.academic-hero-desc {
+  margin: 10px 0 0;
+  color: var(--muted);
+  max-width: 720px;
+}
+.academic-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.academic-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(var(--green-rgb), 0.12);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green-deep);
+}
+.academic-hero-chip .material-symbols-outlined { font-size: 16px; }
+.academic-hero-panel {
+  min-width: 240px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(var(--green-rgb), 0.12);
+}
+.academic-hero-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(var(--green-rgb), 0.12);
+  color: var(--green-deep);
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+}
+.academic-hero-icon .material-symbols-outlined { font-size: 26px; }
+.academic-hero-panel strong { display: block; font-size: 1rem; }
+.academic-hero-panel p { margin: 4px 0 0; color: var(--muted); font-size: 0.84rem; }
+
 .academic-tabs-card { display: grid; gap: 14px; }
 .academic-tabs-head {
   display: flex;
@@ -1105,9 +1198,11 @@ onMounted(async () => {
 }
 
 .academic-tabs {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  display: flex;
   gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
 }
 .academic-tab {
   display: flex;
@@ -1120,6 +1215,10 @@ onMounted(async () => {
   text-align: left;
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  flex: 0 0 auto;
+  min-width: 260px;
+  max-width: 340px;
+  scroll-snap-align: start;
 }
 .academic-tab:hover {
   transform: translateY(-1px);
@@ -1487,7 +1586,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 600px) {
-  .academic-tabs { grid-template-columns: 1fr; }
+  .academic-tab { min-width: 220px; }
   .academic-stats { flex-direction: column; }
   .academic-stats article { width: 100%; }
 }
