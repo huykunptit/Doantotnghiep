@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import {
+  Compass, Briefcase, GraduationCap, ShieldCheck, Sparkles,
+  ArrowRight, BookOpen, User, PlayCircle, Users, UserPlus, Map,
+  TrendingUp, Award, MessageCircle, CheckCircle,
+} from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'default',
@@ -45,14 +50,8 @@ const categories = computed(() => (categoriesData.value ?? []).slice(0, 8))
 
 const stats = computed(() => {
   const totalCourses = featuredCourses.value.length
-  const totalStudents = featuredCourses.value.reduce(
-    (sum, c) => sum + (c.enrollments_count || 0),
-    0,
-  )
-  const totalLessons = featuredCourses.value.reduce(
-    (sum, c) => sum + (c.lessons_count || 0),
-    0,
-  )
+  const totalStudents = featuredCourses.value.reduce((sum, c) => sum + (c.enrollments_count || 0), 0)
+  const totalLessons = featuredCourses.value.reduce((sum, c) => sum + (c.lessons_count || 0), 0)
   return { totalCourses, totalStudents, totalLessons }
 })
 
@@ -65,27 +64,27 @@ const formatPrice = (price?: number) => {
   }).format(price)
 }
 
-const SITE_URL = 'https://learn.ptit.edu.vn'
-const SITE_NAME = 'PTIT Learning'
+const SITE_URL = 'https://sylva.edu.vn'
+const SITE_NAME = 'Sylva LMS'
 const SITE_DESCRIPTION =
-  'Nền tảng học tập trực tuyến của Học viện Công nghệ Bưu chính Viễn thông — khoá học công nghệ, ngân hàng câu hỏi, kỳ thi giám sát và trợ lý AI tích hợp cho sinh viên và giảng viên PTIT.'
+  'Sylva LMS — Nền tảng học tập trực tuyến thích nghi thế hệ mới, được thiết kế tinh tế, hỗ trợ thi giám sát tự động và tích hợp trợ lý AI theo ngữ cảnh.'
 
 useSeoMeta({
-  title: 'PTIT Learning — Học trực tuyến cho sinh viên & giảng viên PTIT',
+  title: 'Sylva LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
   description: SITE_DESCRIPTION,
   ogType: 'website',
-  ogTitle: 'PTIT Learning — Nền tảng học tập trực tuyến PTIT',
+  ogTitle: 'Sylva LMS — Nền tảng học tập thích nghi',
   ogDescription: SITE_DESCRIPTION,
   ogUrl: SITE_URL,
   ogSiteName: SITE_NAME,
   ogLocale: 'vi_VN',
   ogImage: `${SITE_URL}/og-cover.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: 'PTIT Learning — Nền tảng học tập trực tuyến PTIT',
+  twitterTitle: 'Sylva LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
   twitterDescription: SITE_DESCRIPTION,
   twitterImage: `${SITE_URL}/og-cover.png`,
   robots: 'index,follow,max-image-preview:large',
-  themeColor: 'var(--green)',
+  themeColor: '#1D9E75',
 })
 
 const courseListJsonLd = computed(() => ({
@@ -109,13 +108,8 @@ useHead({
         '@context': 'https://schema.org',
         '@type': 'EducationalOrganization',
         name: SITE_NAME,
-        alternateName: 'Học viện Công nghệ Bưu chính Viễn thông',
         url: SITE_URL,
         logo: `${SITE_URL}/logo.png`,
-        sameAs: [
-          'https://www.facebook.com/HocvienPTIT',
-          'https://ptit.edu.vn',
-        ],
         description: SITE_DESCRIPTION,
       }),
     },
@@ -133,116 +127,133 @@ useHead({
         },
       }),
     },
-    {
-      type: 'application/ld+json',
-      innerHTML: JSON.stringify(courseListJsonLd.value),
-    },
+    { type: 'application/ld+json', innerHTML: JSON.stringify(courseListJsonLd.value) },
   ],
 })
 
 const features = [
   {
-    icon: 'school',
-    title: 'Khoá học do giảng viên PTIT biên soạn',
-    desc: 'Nội dung được kiểm duyệt theo chuẩn học thuật của Học viện, cập nhật theo chương trình mới nhất.',
+    icon: GraduationCap,
+    title: 'Học tập thích nghi linh hoạt',
+    desc: 'Hệ thống gợi ý bài giảng theo tiến trình riêng của từng người học, mềm dẻo thích nghi như cành liễu trước gió.',
+    color: 'green',
   },
   {
-    icon: 'verified',
-    title: 'Kỳ thi giám sát trực tiếp',
-    desc: 'Hệ thống live proctoring chuẩn Moodle, ghi nhận vi phạm tự động, can thiệp realtime khi cần.',
+    icon: ShieldCheck,
+    title: 'Đánh giá & phát triển bền vững',
+    desc: 'Theo dõi tiến trình tích lũy kiến thức sâu sắc qua thời gian, đảm bảo phát triển kỹ năng thực tế bền vững.',
+    color: 'blue',
   },
   {
-    icon: 'auto_awesome',
-    title: 'Trợ lý AI theo ngữ cảnh',
-    desc: 'Chatbot hiểu nội dung khoá học bạn đang xem — giải thích bài, gợi ý lộ trình nghề nghiệp.',
+    icon: Sparkles,
+    title: 'Trợ lý AI đồng hành thân thiện',
+    desc: 'Trợ lý AI am hiểu sâu tài liệu học tập của bạn, giải đáp thắc mắc và gợi ý lộ trình nghề nghiệp cá nhân hóa.',
+    color: 'accent',
   },
 ]
 
 const steps = [
-  { num: '01', title: 'Đăng ký tài khoản', desc: 'Tạo tài khoản bằng email PTIT hoặc đăng nhập Google.' },
-  { num: '02', title: 'Chọn khoá học', desc: 'Duyệt theo danh mục, lộ trình nghề nghiệp hoặc tìm kiếm theo từ khoá.' },
-  { num: '03', title: 'Học và thi', desc: 'Xem video, làm quiz, tham gia kỳ thi và nhận chứng chỉ khi hoàn thành.' },
+  { num: '01', icon: UserPlus, title: 'Đăng ký mục tiêu', desc: 'Chọn lộ trình học tập và định hướng kỹ năng bạn mong muốn tích lũy.' },
+  { num: '02', icon: BookOpen, title: 'Tự do trải nghiệm', desc: 'Học qua video bài giảng, quiz tương tác, trao đổi cùng AI chatbot 24/7.' },
+  { num: '03', icon: Award, title: 'Đạt chuẩn năng lực', desc: 'Đạt các cột mốc kiểm tra để nhận chứng chỉ số và khẳng định năng lực bền vững.' },
 ]
 
 const googleMapsApiKey = (config.public.googleMapsApiKey as string | undefined) || ''
-const mapQuery = encodeURIComponent('Học viện Công nghệ Bưu chính viễn thông')
+const mapQuery = encodeURIComponent('Hà Nội, Việt Nam')
 const googleMapEmbedUrl = computed(() => {
   if (googleMapsApiKey) {
     return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${mapQuery}`
   }
-
-  return `https://www.google.com/maps?q=${mapQuery}&z=16&output=embed`
+  return `https://www.google.com/maps?q=${mapQuery}&z=13&output=embed`
 })
 </script>
 
 <template>
   <div class="home">
-    <!-- Hero -->
+
+    <!-- ── Hero ─────────────────────────────── -->
     <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg" aria-hidden="true">
+        <div class="hero-orb hero-orb-1" />
+        <div class="hero-orb hero-orb-2" />
+      </div>
       <div class="hero-inner">
-        <p class="hero-kicker">Học viện Công nghệ Bưu chính Viễn thông</p>
+        <p class="hero-kicker">
+          <CheckCircle :size="14" :stroke-width="2" />
+          Phát triển bền vững · Học tập thích nghi · Trợ lý AI đồng hành
+        </p>
         <h1 id="hero-title" class="hero-title">
-          Học trực tuyến với <span class="hero-accent">PTIT Learning</span>
+          Học tập thích nghi<br>
+          cùng <span class="hero-accent">Sylva LMS</span>
         </h1>
         <p class="hero-lead">
-          Nền tảng học tập tập trung dành cho sinh viên và giảng viên PTIT — khoá học công nghệ,
-          kỳ thi giám sát trực tiếp, ngân hàng câu hỏi và trợ lý AI tích hợp.
+          Hệ thống quản lý học tập thông minh thế hệ mới — thích nghi linh hoạt,
+          đánh giá trực quan và trợ lý AI đồng hành suốt tiến trình của bạn.
         </p>
         <div class="hero-actions">
-          <NuxtLink to="/courses" class="btn-hero-primary">
-            <span class="material-symbols-outlined">explore</span>
+          <NuxtLink to="/courses" class="btn-primary">
+            <Compass :size="18" :stroke-width="1.75" />
             Khám phá khoá học
           </NuxtLink>
-          <NuxtLink to="/career" class="btn-hero-ghost">
-            <span class="material-symbols-outlined">work</span>
+          <NuxtLink to="/career" class="btn-ghost">
+            <Briefcase :size="18" :stroke-width="1.75" />
             Lộ trình nghề nghiệp
           </NuxtLink>
         </div>
+      </div>
 
-        <ul class="hero-trust">
-          <li>
-            <strong>{{ stats.totalCourses || '50' }}+</strong>
-            <span>Khoá học</span>
-          </li>
-          <li>
-            <strong>{{ stats.totalStudents.toLocaleString('vi-VN') || '2.000' }}+</strong>
-            <span>Lượt ghi danh</span>
-          </li>
-          <li>
-            <strong>{{ stats.totalLessons || '500' }}+</strong>
-            <span>Bài học</span>
-          </li>
-          <li>
-            <strong>{{ categories.length }}</strong>
-            <span>Lĩnh vực</span>
-          </li>
-        </ul>
+      <!-- Stats bar -->
+      <div class="hero-stats" role="list" aria-label="Thống kê nền tảng">
+        <div class="hero-stat" role="listitem">
+          <strong>{{ stats.totalCourses || '50' }}+</strong>
+          <span>Khoá học</span>
+        </div>
+        <div class="hero-stat-divider" aria-hidden="true" />
+        <div class="hero-stat" role="listitem">
+          <strong>{{ stats.totalStudents.toLocaleString('vi-VN') || '2.000' }}+</strong>
+          <span>Lượt ghi danh</span>
+        </div>
+        <div class="hero-stat-divider" aria-hidden="true" />
+        <div class="hero-stat" role="listitem">
+          <strong>{{ stats.totalLessons || '500' }}+</strong>
+          <span>Bài học</span>
+        </div>
+        <div class="hero-stat-divider" aria-hidden="true" />
+        <div class="hero-stat" role="listitem">
+          <strong>{{ categories.length }}</strong>
+          <span>Lĩnh vực</span>
+        </div>
       </div>
     </section>
 
-    <!-- Features -->
-    <section class="features" aria-labelledby="features-title">
-      <header class="section-head">
-        <p class="section-kicker">Vì sao chọn PTIT Learning</p>
-        <h2 id="features-title">Một nền tảng — đủ công cụ học, dạy và đánh giá</h2>
+    <!-- ── Features ─────────────────────────── -->
+    <section class="section features" aria-labelledby="features-title">
+      <header class="section-head center">
+        <p class="section-kicker">Vì sao chọn Sylva LMS</p>
+        <h2 id="features-title">Một nền tảng — trọn vẹn trải nghiệm</h2>
+        <p class="section-sub">Từ bài giảng linh hoạt đến chứng chỉ số, Sylva đồng hành mọi bước tiến trình của người học.</p>
       </header>
       <div class="features-grid">
-        <article v-for="f in features" :key="f.title" class="feature-card">
-          <span class="feature-icon material-symbols-outlined">{{ f.icon }}</span>
+        <article v-for="f in features" :key="f.title" class="feature-card" :class="`feature-card--${f.color}`">
+          <div class="feature-icon-wrap">
+            <component :is="f.icon" :size="24" :stroke-width="1.75" />
+          </div>
           <h3>{{ f.title }}</h3>
           <p>{{ f.desc }}</p>
         </article>
       </div>
     </section>
 
-    <!-- Categories -->
-    <section v-if="categories.length" class="categories" aria-labelledby="categories-title">
+    <!-- ── Categories ───────────────────────── -->
+    <section v-if="categories.length" class="section categories" aria-labelledby="categories-title">
       <header class="section-head">
         <div>
-          <p class="section-kicker">Danh mục</p>
+          <p class="section-kicker">Danh mục học tập</p>
           <h2 id="categories-title">Khám phá theo lĩnh vực</h2>
         </div>
-        <NuxtLink to="/courses" class="section-link">Xem tất cả →</NuxtLink>
+        <NuxtLink to="/courses" class="section-link">
+          Xem tất cả <ArrowRight :size="15" :stroke-width="2" />
+        </NuxtLink>
       </header>
       <div class="categories-grid">
         <NuxtLink
@@ -251,22 +262,29 @@ const googleMapEmbedUrl = computed(() => {
           :to="`/courses?category=${cat.slug || cat.id}`"
           class="category-card"
         >
-          <h3>{{ cat.name }}</h3>
-          <p v-if="cat.courses_count">{{ cat.courses_count }} khoá học</p>
-          <span class="material-symbols-outlined">arrow_forward</span>
+          <div class="category-body">
+            <h3>{{ cat.name }}</h3>
+            <p v-if="cat.courses_count">{{ cat.courses_count }} khoá học</p>
+          </div>
+          <div class="category-arrow">
+            <ArrowRight :size="16" :stroke-width="2" />
+          </div>
         </NuxtLink>
       </div>
     </section>
 
-    <!-- Featured courses -->
-    <section v-if="featuredCourses.length" class="courses" aria-labelledby="courses-title">
+    <!-- ── Featured Courses ─────────────────── -->
+    <section v-if="featuredCourses.length" class="section courses" aria-labelledby="courses-title">
       <header class="section-head">
         <div>
           <p class="section-kicker">Khoá học nổi bật</p>
           <h2 id="courses-title">Bắt đầu học ngay hôm nay</h2>
         </div>
-        <NuxtLink to="/courses" class="section-link">Tất cả khoá học →</NuxtLink>
+        <NuxtLink to="/courses" class="section-link">
+          Tất cả khoá học <ArrowRight :size="15" :stroke-width="2" />
+        </NuxtLink>
       </header>
+
       <div class="courses-grid">
         <article
           v-for="course in featuredCourses.slice(0, 8)"
@@ -275,7 +293,7 @@ const googleMapEmbedUrl = computed(() => {
           itemscope
           itemtype="https://schema.org/Course"
         >
-          <NuxtLink :to="`/courses/${course.id}`" class="course-thumb-link">
+          <NuxtLink :to="`/courses/${course.id}`" class="course-thumb-link" :aria-label="course.title">
             <img
               v-if="course.thumbnail"
               :src="course.thumbnail"
@@ -286,46 +304,53 @@ const googleMapEmbedUrl = computed(() => {
               height="180"
               itemprop="image"
             />
-            <div v-else class="course-thumb course-thumb-placeholder">
-              <span class="material-symbols-outlined">menu_book</span>
+            <div v-else class="course-thumb course-thumb-placeholder" aria-hidden="true">
+              <BookOpen :size="32" :stroke-width="1.5" />
             </div>
           </NuxtLink>
+
           <div class="course-body">
             <p v-if="course.category" class="course-category">{{ course.category.name }}</p>
             <h3 class="course-title">
-              <NuxtLink :to="`/courses/${course.id}`" itemprop="name">
-                {{ course.title }}
-              </NuxtLink>
+              <NuxtLink :to="`/courses/${course.id}`" itemprop="name">{{ course.title }}</NuxtLink>
             </h3>
             <meta itemprop="description" :content="course.description || course.title" />
+
             <p v-if="course.instructor" class="course-instructor" itemprop="provider" itemscope itemtype="https://schema.org/Person">
-              <span class="material-symbols-outlined">person</span>
+              <User :size="13" :stroke-width="1.75" />
               <span itemprop="name">{{ course.instructor.name }}</span>
             </p>
+
             <footer class="course-foot">
               <span class="course-meta">
-                <span class="material-symbols-outlined">play_circle</span>
+                <PlayCircle :size="13" :stroke-width="1.75" />
                 {{ course.lessons_count || 0 }} bài
               </span>
               <span class="course-meta">
-                <span class="material-symbols-outlined">group</span>
-                {{ course.enrollments_count || 0 }}
+                <Users :size="13" :stroke-width="1.75" />
+                {{ (course.enrollments_count || 0).toLocaleString('vi-VN') }}
               </span>
-              <strong class="course-price">{{ formatPrice(course.price) }}</strong>
+              <strong class="course-price" :class="{ 'is-free': !course.price || course.price === 0 }">
+                {{ formatPrice(course.price) }}
+              </strong>
             </footer>
           </div>
         </article>
       </div>
     </section>
 
-    <!-- How it works -->
-    <section class="steps" aria-labelledby="steps-title">
-      <header class="section-head">
+    <!-- ── How it works ─────────────────────── -->
+    <section class="section steps" aria-labelledby="steps-title">
+      <header class="section-head center">
         <p class="section-kicker">Bắt đầu thế nào</p>
-        <h2 id="steps-title">3 bước để bắt đầu học</h2>
+        <h2 id="steps-title">3 bước để phát triển năng lực</h2>
       </header>
       <ol class="steps-list">
-        <li v-for="step in steps" :key="step.num" class="step-item">
+        <li v-for="(step, idx) in steps" :key="step.num" class="step-item">
+          <div class="step-connector" v-if="idx < steps.length - 1" aria-hidden="true" />
+          <div class="step-icon-wrap">
+            <component :is="step.icon" :size="22" :stroke-width="1.75" />
+          </div>
           <span class="step-num">{{ step.num }}</span>
           <h3>{{ step.title }}</h3>
           <p>{{ step.desc }}</p>
@@ -333,43 +358,44 @@ const googleMapEmbedUrl = computed(() => {
       </ol>
     </section>
 
-    <!-- Final CTA -->
+    <!-- ── CTA band ──────────────────────────── -->
     <section class="cta" aria-labelledby="cta-title">
       <div class="cta-inner">
-        <h2 id="cta-title">Sẵn sàng bắt đầu hành trình học tập?</h2>
-        <p>Tham gia cùng hàng nghìn sinh viên và giảng viên PTIT đang dùng PTIT Learning mỗi ngày.</p>
+        <div class="cta-copy">
+          <p class="section-kicker light">Bắt đầu ngay hôm nay</p>
+          <h2 id="cta-title">Sẵn sàng cho hành trình<br>học tập bền vững?</h2>
+          <p>Tham gia cùng hàng nghìn học viên đang phát triển bản thân trên Sylva LMS mỗi ngày.</p>
+        </div>
         <div class="cta-actions">
-          <NuxtLink to="/register" class="btn-hero-primary">
-            <span class="material-symbols-outlined">person_add</span>
+          <NuxtLink to="/register" class="btn-cta-primary">
+            <UserPlus :size="18" :stroke-width="1.75" />
             Tạo tài khoản miễn phí
           </NuxtLink>
-          <NuxtLink to="/courses" class="btn-hero-ghost">
+          <NuxtLink to="/courses" class="btn-cta-ghost">
             Xem khoá học
           </NuxtLink>
         </div>
       </div>
     </section>
 
-    <section class="map" aria-labelledby="map-title">
+    <!-- ── Map ──────────────────────────────── -->
+    <section class="section map" aria-labelledby="map-title">
       <div class="map-inner">
         <div class="map-copy">
-          <p class="section-kicker">Bản đồ</p>
-          <h2 id="map-title">Tìm đường đến PTIT</h2>
-          <p>
-            Xem nhanh vị trí Học viện Công nghệ Bưu chính Viễn thông trên Google Maps.
-            Bạn có thể phóng to, thu nhỏ hoặc mở trực tiếp trong Google Maps để chỉ đường.
-          </p>
-          <div class="cta-actions">
+          <p class="section-kicker">Liên hệ</p>
+          <h2 id="map-title">Tìm đường đến văn phòng Sylva</h2>
+          <p>Xem nhanh vị trí hỗ trợ kỹ thuật và vận hành hệ thống Sylva LMS trên bản đồ Google Maps.</p>
+          <div class="map-actions">
             <a
-              class="btn-hero-primary"
+              class="btn-primary"
               :href="`https://www.google.com/maps/search/?api=1&query=${mapQuery}`"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span class="material-symbols-outlined">map</span>
+              <Map :size="18" :stroke-width="1.75" />
               Mở Google Maps
             </a>
-            <NuxtLink to="/register" class="btn-hero-ghost">
+            <NuxtLink to="/register" class="btn-secondary">
               Tạo tài khoản miễn phí
             </NuxtLink>
           </div>
@@ -379,7 +405,7 @@ const googleMapEmbedUrl = computed(() => {
           <iframe
             class="map-frame"
             :src="googleMapEmbedUrl"
-            title="Bản đồ PTIT trên Google Maps"
+            title="Bản đồ Sylva LMS trên Google Maps"
             loading="lazy"
             referrerpolicy="no-referrer-when-downgrade"
             allowfullscreen
@@ -387,489 +413,798 @@ const googleMapEmbedUrl = computed(() => {
         </div>
       </div>
     </section>
+
   </div>
 </template>
 
 <style scoped>
+/* ── Reset & wrapper ── */
 .home {
+  --section-gap: 96px;
   display: flex;
   flex-direction: column;
-  gap: 80px;
-  padding-bottom: 80px;
 }
 
-/* ── Hero ────────────────────────── */
-.hero {
-  position: relative;
-  padding: 80px 24px 60px;
-  background: var(--green);
-  color: #fff;
-  overflow: hidden;
-}
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 40%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.05), transparent 50%);
-  pointer-events: none;
-}
-.hero-inner {
-  position: relative;
-  max-width: 960px;
+/* ── Common section base ── */
+.section {
+  max-width: 1280px;
   margin: 0 auto;
-  text-align: center;
-}
-.hero-kicker {
-  margin: 0 0 16px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: rgba(255, 255, 255, 0.8);
-}
-.hero-title {
-  margin: 0;
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.1;
-}
-.hero-accent {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0 12px;
-  border-radius: 12px;
-  display: inline-block;
-}
-.hero-lead {
-  margin: 24px auto 32px;
-  max-width: 640px;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.85);
-}
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-}
-.btn-hero-primary,
-.btn-hero-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 24px;
-  border-radius: 999px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-.btn-hero-primary {
-  background: #fff;
-  color: var(--green);
-}
-.btn-hero-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
-}
-.btn-hero-ghost {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-.btn-hero-ghost:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-.btn-hero-primary .material-symbols-outlined,
-.btn-hero-ghost .material-symbols-outlined {
-  font-size: 20px;
-}
-
-.hero-trust {
-  list-style: none;
-  margin: 56px auto 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 24px;
-  max-width: 760px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  padding-top: 32px;
-}
-.hero-trust li {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.hero-trust strong {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-.hero-trust span {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-/* ── Section common ────────────────────────── */
-section {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
+  padding: var(--section-gap) 24px;
   width: 100%;
 }
-section.hero { max-width: none; padding-left: 24px; padding-right: 24px; }
-section.cta { max-width: none; }
 
+/* ── Section header ── */
 .section-head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
+
+.section-head.center {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .section-kicker {
-  margin: 0 0 8px;
-  font-size: 0.74rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: var(--on-surface-variant, #5f675f);
+  color: var(--green);
 }
+
+.section-kicker.light {
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.2em;
+}
+
 .section-head h2 {
   margin: 0;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--on-surface, #111);
-}
-.section-link {
-  font-size: 0.86rem;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
   font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.section-sub {
+  margin: 12px 0 0;
+  max-width: 52ch;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
   color: var(--green);
   text-decoration: none;
+  white-space: nowrap;
+  transition: gap 150ms;
 }
-.section-link:hover { text-decoration: underline; }
 
-/* ── Features ────────────────────────── */
+.section-link:hover {
+  gap: 8px;
+}
+
+/* ── Shared buttons ── */
+.btn-primary, .btn-secondary, .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 24px;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 200ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), background 150ms, box-shadow 150ms;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(29, 158, 117, 0.25);
+}
+
+.btn-primary:hover {
+  background: var(--green-deep);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(29, 158, 117, 0.3);
+}
+
+.btn-secondary {
+  background: var(--green-soft);
+  color: var(--green-deep);
+  border: 1px solid rgba(29, 158, 117, 0.2);
+}
+
+.btn-secondary:hover {
+  background: rgba(29, 158, 117, 0.15);
+  transform: translateY(-2px);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+/* ── Hero ── */
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--green-deep) 0%, #0F6E56 40%, #1D9E75 100%);
+  color: #fff;
+  padding: 120px 24px 0;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hero-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  right: -100px;
+}
+
+.hero-orb-2 {
+  width: 400px;
+  height: 400px;
+  bottom: 60px;
+  left: -120px;
+}
+
+.hero-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 800px;
+  width: 100%;
+}
+
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 24px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-title {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: #fff;
+}
+
+.hero-accent {
+  color: #9FE1CB;
+}
+
+.hero-lead {
+  margin: 24px 0 40px;
+  max-width: 56ch;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 80px;
+}
+
+/* Stats bar */
+.hero-stats {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  width: 100%;
+  max-width: 760px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px 16px 0 0;
+  padding: 24px 32px;
+  backdrop-filter: blur(8px);
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 100px;
+  padding: 8px 16px;
+}
+
+.hero-stat strong {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #9FE1CB;
+  line-height: 1;
+}
+
+.hero-stat span {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-stat-divider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+/* ── Features ── */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-}
-.feature-card {
-  padding: 28px 26px;
-  background: #fff;
-  border: 1px solid rgba(17, 17, 17, 0.06);
-  border-radius: 18px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.feature-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 32px -16px rgba(17, 17, 17, 0.16);
-}
-.feature-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: rgba(var(--green-rgb), 0.1);
-  color: var(--green);
-  font-size: 28px;
-  margin-bottom: 18px;
-}
-.feature-card h3 {
-  margin: 0 0 8px;
-  font-size: 1.08rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--on-surface, #111);
-}
-.feature-card p {
-  margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.65;
-  color: var(--on-surface-variant, #5f675f);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
 }
 
-/* ── Categories ────────────────────────── */
+.feature-card {
+  padding: 32px 28px;
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms, border-color 200ms;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(31, 49, 43, 0.08);
+}
+
+.feature-card--green { border-top: 3px solid var(--green); }
+.feature-card--blue  { border-top: 3px solid var(--secondary); }
+.feature-card--accent { border-top: 3px solid var(--accent); }
+
+.feature-card--green:hover { border-color: var(--green); }
+.feature-card--blue:hover  { border-color: var(--secondary); }
+.feature-card--accent:hover { border-color: var(--accent); }
+
+.feature-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: var(--green-soft);
+  color: var(--green);
+  margin-bottom: 20px;
+}
+
+.feature-card--blue .feature-icon-wrap {
+  background: var(--secondary-soft);
+  color: var(--secondary);
+}
+
+.feature-card--accent .feature-icon-wrap {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.feature-card h3 {
+  margin: 0 0 10px;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.feature-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ── Categories ── */
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
 }
+
 .category-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
-  background: #fff;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  border-radius: 14px;
+  padding: 18px 20px;
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   text-decoration: none;
-  color: var(--on-surface, #111);
-  transition: all 0.18s ease;
-}
-.category-card:hover {
-  border-color: rgba(var(--green-rgb), 0.4);
-  background: rgba(var(--green-rgb), 0.04);
-  transform: translateY(-2px);
-}
-.category-card h3 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-.category-card p {
-  margin: 2px 0 0;
-  font-size: 0.78rem;
-  color: var(--on-surface-variant);
-}
-.category-card .material-symbols-outlined {
-  font-size: 18px;
-  color: var(--green);
-  flex-shrink: 0;
+  color: var(--text);
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* ── Courses ────────────────────────── */
+.category-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(29, 158, 117, 0.3);
+  background: var(--green-soft);
+  box-shadow: 0 8px 24px rgba(29, 158, 117, 0.1);
+}
+
+.category-body h3 {
+  margin: 0 0 4px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.category-body p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.category-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: rgba(29, 158, 117, 0.08);
+  color: var(--green);
+  flex-shrink: 0;
+  transition: background 150ms, transform 150ms;
+}
+
+.category-card:hover .category-arrow {
+  background: var(--green);
+  color: #fff;
+  transform: translateX(2px);
+}
+
+/* ── Courses ── */
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
 }
+
 .course-card {
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid rgba(17, 17, 17, 0.06);
-  border-radius: 18px;
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms, border-color 200ms;
 }
+
 .course-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 32px -16px rgba(17, 17, 17, 0.18);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(31, 49, 43, 0.1);
+  border-color: rgba(29, 158, 117, 0.2);
 }
-.course-thumb-link { display: block; }
+
+.course-thumb-link {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
 .course-thumb {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 100%;
   object-fit: cover;
-  background: rgba(var(--green-rgb), 0.08);
+  transition: transform 350ms ease;
+  display: block;
 }
-.course-thumb-placeholder {
-  display: grid;
-  place-items: center;
-  color: rgba(var(--green-rgb), 0.5);
-}
-.course-thumb-placeholder .material-symbols-outlined { font-size: 48px; }
 
-.course-body { display: flex; flex-direction: column; gap: 8px; padding: 16px 18px 18px; flex: 1; }
+.course-card:hover .course-thumb {
+  transform: scale(1.04);
+}
+
+.course-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-soft);
+  color: var(--green);
+  width: 100%; height: 100%;
+}
+
+.course-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  flex: 1;
+}
+
 .course-category {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--green);
 }
-.course-title { margin: 0; font-size: 0.98rem; font-weight: 700; line-height: 1.4; }
-.course-title a {
-  color: var(--on-surface, #111);
-  text-decoration: none;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.course-title a:hover { color: var(--green); }
-.course-instructor {
+
+.course-title {
   margin: 0;
-  font-size: 0.82rem;
-  color: var(--on-surface-variant);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  flex: 1;
 }
-.course-instructor .material-symbols-outlined { font-size: 14px; }
+
+.course-title a {
+  color: var(--text);
+  text-decoration: none;
+  transition: color 150ms;
+}
+
+.course-title a:hover {
+  color: var(--green);
+}
+
+.course-instructor {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
 .course-foot {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgba(17, 17, 17, 0.06);
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
+
 .course-meta {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 0.78rem;
-  color: var(--on-surface-variant);
-}
-.course-meta .material-symbols-outlined { font-size: 14px; }
-.course-price {
-  margin-left: auto;
-  font-size: 0.92rem;
-  font-weight: 800;
-  color: var(--green);
-  font-variant-numeric: tabular-nums;
+  color: var(--muted);
 }
 
-/* ── Steps ────────────────────────── */
+.course-price {
+  margin-left: auto;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.course-price.is-free {
+  color: var(--green);
+}
+
+/* ── Steps ── */
 .steps-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px;
-}
-.step-item {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 32px;
   position: relative;
-  padding: 28px 26px 24px;
-  background: #fff;
-  border: 1px solid rgba(17, 17, 17, 0.06);
-  border-radius: 18px;
-}
-.step-num {
-  display: inline-block;
-  font-size: 1.6rem;
-  font-weight: 900;
-  letter-spacing: -0.03em;
-  color: rgba(var(--green-rgb), 0.4);
-  margin-bottom: 8px;
-  font-variant-numeric: tabular-nums;
-}
-.step-item h3 {
-  margin: 0 0 8px;
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--on-surface);
-}
-.step-item p {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--on-surface-variant);
 }
 
-/* ── CTA ────────────────────────── */
-.cta {
-  padding: 0 24px;
-}
-.cta-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 56px 32px;
-  background: var(--green);
-  color: #fff;
-  border-radius: 28px;
-  text-align: center;
-}
-.cta-inner h2 {
-  margin: 0 0 12px;
-  font-size: clamp(1.4rem, 3vw, 1.9rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-.cta-inner p {
-  margin: 0 auto 24px;
-  max-width: 560px;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.85);
-}
-.cta-actions {
+.step-item {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 12px;
 }
 
-/* ── Map ────────────────────────── */
-.map {
-  padding: 0 24px;
+.step-connector {
+  display: none;
 }
-.map-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
-  gap: 24px;
-  align-items: stretch;
+
+@media (min-width: 768px) {
+  .step-connector {
+    display: block;
+    position: absolute;
+    top: 28px;
+    left: calc(50% + 32px);
+    right: calc(-50% + 32px);
+    height: 1px;
+    border-top: 2px dashed rgba(29, 158, 117, 0.25);
+  }
+
+  .step-item:last-child .step-connector {
+    display: none;
+  }
 }
-.map-copy {
+
+.step-icon-wrap {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 32px;
-  border-radius: 28px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%);
-  border: 1px solid rgba(var(--green-rgb), 0.12);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: var(--green-soft);
+  color: var(--green);
+  border: 2px solid rgba(29, 158, 117, 0.2);
+  flex-shrink: 0;
 }
+
+.step-num {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--green);
+  text-transform: uppercase;
+}
+
+.step-item h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.step-item p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--muted);
+  max-width: 22ch;
+}
+
+/* ── CTA band ── */
+.cta {
+  background: linear-gradient(135deg, var(--green-deep) 0%, #0F6E56 100%);
+  padding: 80px 24px;
+  margin: 80px 0;
+}
+
+.cta-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.cta-copy h2 {
+  margin: 10px 0 12px;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: #fff;
+  line-height: 1.15;
+}
+
+.cta-copy p {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 44ch;
+  line-height: 1.65;
+}
+
+.cta-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.btn-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 28px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--green-deep);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 200ms, box-shadow 200ms;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-cta-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+
+.btn-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 150ms;
+}
+
+.btn-cta-ghost:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Map ── */
+.map { padding-bottom: var(--section-gap); }
+
+.map-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
 .map-copy h2 {
-  margin: 0;
-  font-size: clamp(1.35rem, 3vw, 1.9rem);
-  font-weight: 800;
+  margin: 0 0 16px;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 700;
   letter-spacing: -0.03em;
-  color: var(--on-surface, #0f172a);
+  color: var(--text);
 }
+
 .map-copy p {
-  margin: 0;
-  font-size: 0.95rem;
+  margin: 0 0 24px;
+  font-size: 0.9375rem;
   line-height: 1.7;
-  color: var(--on-surface-variant, #475569);
+  color: var(--muted);
 }
+
+.map-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .map-frame-wrap {
-  min-height: 420px;
+  border-radius: 16px;
   overflow: hidden;
-  border-radius: 28px;
-  border: 1px solid rgba(var(--green-rgb), 0.12);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-  background: #e2e8f0;
+  border: 1px solid var(--line);
+  aspect-ratio: 4 / 3;
 }
+
 .map-frame {
   width: 100%;
   height: 100%;
-  min-height: 420px;
-  border: 0;
+  border: none;
   display: block;
 }
 
+/* ── Responsive ── */
 @media (max-width: 900px) {
   .map-inner {
     grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .cta-inner {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
-@media (max-width: 600px) {
-  .home { gap: 56px; }
-  .hero { padding: 56px 20px 40px; }
-  .section-head { flex-direction: column; align-items: flex-start; }
-  .map,
+@media (max-width: 640px) {
+  .hero {
+    padding: 100px 16px 0;
+  }
+  .section {
+    padding: 64px 16px;
+  }
+  .hero-stats {
+    padding: 20px 16px;
+    gap: 0;
+  }
+  .hero-stat-divider {
+    display: none;
+  }
+  .hero-stat {
+    flex: 1 0 50%;
+    padding: 12px;
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 48px;
+  }
+  .btn-primary, .btn-ghost, .btn-secondary {
+    justify-content: center;
+  }
   .cta {
-    padding: 0 20px;
+    margin: 40px 0;
+    padding: 60px 16px;
   }
-  .map-copy,
-  .cta-inner {
-    padding: 28px 20px;
-  }
-  .map-frame-wrap,
-  .map-frame {
-    min-height: 320px;
-  }
+}
+
+/* ── Dark mode overrides ── */
+[data-theme="dark"] .feature-card,
+[data-theme="dark"] .course-card,
+[data-theme="dark"] .category-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .feature-card:hover,
+[data-theme="dark"] .course-card:hover,
+[data-theme="dark"] .category-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .map-frame-wrap {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 </style>

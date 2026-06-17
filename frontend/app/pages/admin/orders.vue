@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { Download, MoreVertical } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useAuthUserCookie } from '~/composables/useAuthSession'
+import { useExport } from '~/composables/useExport'
 
 definePageMeta({
   layout: 'admin',
@@ -53,6 +55,36 @@ const selectedOrder = ref<OrderItem | null>(null)
 const errorMessage = ref('')
 const selectedIds = ref<number[]>([])
 const activeDropdown = ref<number | null>(null)
+
+const { exportToCSV } = useExport()
+
+function exportData() {
+  const cols = [
+    { key: 'id', label: 'ID Đơn hàng' },
+    { key: 'user_name', label: 'Học viên', format: (_: any, row: OrderItem) => row.user?.name || '--' },
+    { key: 'user_email', label: 'Email', format: (_: any, row: OrderItem) => row.user?.email || '--' },
+    { key: 'course_title', label: 'Khóa học', format: (_: any, row: OrderItem) => row.course?.title || '--' },
+    { key: 'amount', label: 'Số tiền (VND)', format: (val: any) => String(val || 0) },
+    { key: 'status', label: 'Trạng thái' },
+    { key: 'payment_method', label: 'Phương thức', format: (val: any) => String(val || '--') },
+    { key: 'created_at', label: 'Thời gian', format: (val: any) => formatDate(val) }
+  ]
+  exportToCSV(orders.value, cols, 'danh_sach_don_hang')
+}
+
+const visiblePages = computed(() => {
+  const range: number[] = []
+  const maxVisible = 5
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(lastPage.value, start + maxVisible - 1)
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  for (let i = start; i <= end; i++) {
+    if (i >= 1) range.push(i)
+  }
+  return range
+})
 
 const isAllSelected = computed(() => {
   return orders.value.length > 0 && orders.value.every(o => selectedIds.value.includes(o.id))
@@ -193,6 +225,13 @@ onMounted(fetchOrders)
             Tìm kiếm
           </button>
         </form>
+
+        <div class="crud-toolbar-right">
+          <button class="crud-export-btn" type="button" @click="exportData">
+            <Download :size="20" :stroke-width="1.75" />
+            Xuất Excel
+          </button>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="crud-alert is-error">
@@ -267,7 +306,7 @@ onMounted(fetchOrders)
               <td>
                 <div class="crud-actions-dropdown" style="text-align: right">
                   <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(order.id)">
-                    <span class="material-symbols-outlined">more_vert</span>
+                    <MoreVertical :size="20" :stroke-width="1.75" />
                   </button>
                   <div v-if="activeDropdown === order.id" class="dropdown-menu">
                     <button class="dropdown-item" type="button" @click="openDetail(order)">
@@ -282,22 +321,24 @@ onMounted(fetchOrders)
       </div>
 
       <div class="crud-pagination">
-        <p>Trang {{ currentPage }} / {{ lastPage }}</p>
+        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalOrders }} đơn hàng)</p>
         <div class="crud-pagination-actions">
-          <button
-            class="crud-secondary-btn"
-            type="button"
-            :disabled="currentPage <= 1"
-            @click="fetchOrders(currentPage - 1)"
-          >
+          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchOrders(currentPage - 1)">
             Trước
           </button>
-          <button
-            class="crud-secondary-btn"
-            type="button"
-            :disabled="currentPage >= lastPage"
-            @click="fetchOrders(currentPage + 1)"
-          >
+          <div class="pagination-numbers">
+            <button
+              v-for="p in visiblePages"
+              :key="p"
+              class="pagination-num-btn"
+              :class="{ 'is-active': p === currentPage }"
+              type="button"
+              @click="fetchOrders(p)"
+            >
+              {{ p }}
+            </button>
+          </div>
+          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchOrders(currentPage + 1)">
             Sau
           </button>
         </div>

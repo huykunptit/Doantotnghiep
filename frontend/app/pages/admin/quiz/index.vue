@@ -4,6 +4,7 @@ import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 import SearchableCourseSelect from '~/components/dashboard/SearchableCourseSelect.vue'
+import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học để quản lý quiz / đề thi...' })
 
@@ -90,6 +91,21 @@ function onTabChange(tab: 'course' | 'standalone') {
 
 function onCourseChange() { fetchExams() }
 
+const { exportToCSV } = useExport()
+
+function exportData() {
+  const cols = [
+    { key: 'id', label: 'ID Đề thi' },
+    { key: 'title', label: 'Tên đề thi' },
+    { key: 'duration', label: 'Thời lượng (phút)', format: (val: any) => String(val || 0) },
+    { key: 'pass_score', label: 'Điểm đạt (%)', format: (val: any) => String(val || 0) },
+    { key: 'max_attempts', label: 'Số lần thi tối đa', format: (val: any) => String(val || 1) },
+    { key: 'exam_enrollments_count', label: 'Học viên tham gia', format: (val: any) => String(val || 0) },
+    { key: 'status', label: 'Trạng thái', format: (val: any) => STATUS_MAP[val] || val }
+  ]
+  exportToCSV(currentExams.value, cols, `danh_sach_de_thi_${activeTab.value}`)
+}
+
 function goCreate() {
   navigateTo(`/admin/quiz/create?type=${activeTab.value === 'standalone' ? 'standalone' : 'course_final'}`)
 }
@@ -130,12 +146,18 @@ onMounted(async () => {
 
     <!-- Exam list -->
     <section class="dashboard-card crud-panel">
-      <div class="list-header">
+      <div class="crud-toolbar">
         <div>
           <p class="section-kicker">{{ activeTab === 'standalone' ? 'Kỳ thi độc lập' : 'Đề thi khóa học' }}</p>
           <h3>{{ activeTab === 'standalone' ? 'Danh sách kỳ thi' : (selectedCourse?.title || 'Chưa chọn khóa học') }}</h3>
         </div>
-        <button class="crud-primary-btn" type="button" @click="goCreate">+ Thêm đề thi mới</button>
+        <div class="crud-toolbar-right">
+          <button class="crud-export-btn" type="button" @click="exportData">
+            <span class="material-symbols-outlined">download</span>
+            Xuất Excel
+          </button>
+          <button class="crud-primary-btn" type="button" @click="goCreate">+ Thêm đề thi mới</button>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>

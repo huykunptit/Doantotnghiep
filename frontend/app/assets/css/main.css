@@ -1,19 +1,23 @@
 :root {
   color-scheme: light;
-  --bg: #f6f8f3;
-  --surface: rgba(255, 255, 255, 0.88);
-  --surface-strong: #ffffff;
-  --text: #111111;
-  --muted: #5f675f;
-  --line: rgba(17, 17, 17, 0.1);
-  --line-strong: rgba(17, 17, 17, 0.16);
-  --green: #2f7a45;
-  --primary-rgb: 47, 122, 69;
-  --green-deep: #1f5d33;
-  --green-soft: rgba(47, 122, 69, 0.11);
-  --danger: #ae3d37;
-  --danger-soft: rgba(174, 61, 55, 0.1);
-  --shadow: 0 24px 60px -30px rgba(17, 17, 17, 0.18);
+  --bg: #F8FAF9;
+  --surface: rgba(240, 244, 242, 0.88);
+  --surface-strong: #FFFFFF;
+  --text: #1F312B;
+  --muted: #4A6059;
+  --line: #DDE5E1;
+  --line-strong: rgba(31, 49, 43, 0.16);
+  --green: #1D9E75;
+  --primary-rgb: 29, 158, 117;
+  --green-deep: #085041;
+  --green-soft: #E1F5EE;
+  --danger: #E24B4A;
+  --danger-soft: rgba(226, 75, 74, 0.1);
+  --accent: #D85A30;
+  --accent-soft: #FAECE7;
+  --secondary: #378ADD;
+  --secondary-soft: #E6F1FB;
+  --shadow: 0 24px 60px -30px rgba(31, 49, 43, 0.12);
   accent-color: var(--green);
 }
 
@@ -31,8 +35,14 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Manrope', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--bg);
+  color: var(--text);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600;
   color: var(--text);
 }
 
@@ -2358,4 +2368,319 @@ input {
 .crud-modal-wide {
   max-height: 90vh;
   overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════
+   DARK MODE — [data-theme="dark"]
+   ═══════════════════════════════════════════ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Base surfaces */
+  --bg: #0A1A14;
+  --surface: #0F2219;
+  --surface-strong: #142D1F;
+  --text: #E8F5F0;
+  --muted: #9FCFBB;
+
+  /* Borders */
+  --line: #1E4030;
+  --line-strong: rgba(30, 64, 48, 0.6);
+
+  /* Brand colors */
+  --green: #5DCAA5;
+  --green-deep: #9FE1CB;
+  --green-soft: rgba(93, 202, 165, 0.1);
+  --green-rgb: 93, 202, 165;
+  --primary-rgb: 93, 202, 165;
+
+  --accent: #F0997B;
+  --accent-soft: rgba(240, 153, 123, 0.1);
+
+  --secondary: #378ADD;
+  --secondary-soft: rgba(55, 138, 221, 0.1);
+
+  /* Danger */
+  --danger: #E24B4A;
+  --danger-soft: rgba(226, 75, 74, 0.12);
+
+  /* Shadow */
+  --shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.5);
+}
+
+/* Dashboard cards in dark */
+[data-theme="dark"] .dashboard-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar */
+[data-theme="dark"] .admin-sidebar,
+[data-theme="dark"] .instructor-sidebar {
+  background: #111613;
+  border-right-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Topbar */
+[data-theme="dark"] .dashboard-topbar {
+  background: rgba(15, 17, 16, 0.9);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Inputs / selects */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Topbar buttons */
+[data-theme="dark"] .tb-icon-btn,
+[data-theme="dark"] .tb-user-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dropdowns */
+[data-theme="dark"] .tb-dropdown {
+  background: rgba(26, 30, 27, 0.97);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Tables */
+[data-theme="dark"] .crud-table th {
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .crud-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Buttons */
+[data-theme="dark"] .crud-secondary-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+[data-theme="dark"] .crud-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Mini cards */
+[data-theme="dark"] .mini-card.tone-green {
+  background: rgba(61, 168, 90, 0.1);
+  border-left-color: #3da85a;
+}
+[data-theme="dark"] .mini-card.tone-blue {
+  background: rgba(59, 130, 246, 0.1);
+}
+[data-theme="dark"] .mini-card.tone-amber {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* Public header */
+[data-theme="dark"] .cd-header {
+  background: rgba(15, 17, 16, 0.92);
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+[data-theme="dark"] .cd-dark-btn {
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.6);
+}
+[data-theme="dark"] .cd-user-btn,
+[data-theme="dark"] .cd-dropdown {
+  background: rgba(26, 30, 27, 0.97);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Auth forms */
+[data-theme="dark"] .auth-stage {
+  background: #1a1e1b;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .primary-button {
+  background: var(--green);
+  color: #fff;
+}
+[data-theme="dark"] .google-button {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* --- Datatable Premium Styling additions --- */
+.crud-toolbar {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .crud-toolbar {
+  background: rgba(10, 26, 20, 0.45);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.crud-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.crud-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border-radius: 16px;
+  padding: 0 20px;
+  border: 1px solid rgba(var(--green-rgb), 0.5);
+  background: rgba(var(--green-rgb), 0.06);
+  color: var(--green);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.95rem;
+}
+
+.crud-export-btn:hover {
+  background: var(--green);
+  color: #fff !important;
+  border-color: var(--green);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--green-rgb), 0.15);
+}
+
+.crud-export-btn:active {
+  transform: translateY(0);
+}
+
+/* Custom premium numeric pagination buttons style */
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pagination-num-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: white;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 180ms ease;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+[data-theme="dark"] .pagination-num-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.pagination-num-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(var(--green-rgb), 0.08);
+  transform: translateY(-1px);
+}
+
+.pagination-num-btn.is-active {
+  background: var(--green) !important;
+  border-color: var(--green) !important;
+  color: white !important;
+  box-shadow: 0 4px 10px rgba(var(--green-rgb), 0.2);
+}
+
+.pagination-num-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Premium Datatable look overrides */
+.crud-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+[data-theme="dark"] .crud-table {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.crud-table th {
+  background: rgba(var(--green-rgb), 0.05);
+  color: var(--green-deep);
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid rgba(var(--green-rgb), 0.15);
+  padding: 16px 20px;
+}
+
+[data-theme="dark"] .crud-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--green);
+  border-bottom-color: rgba(var(--green-rgb), 0.2);
+}
+
+.crud-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.06);
+}
+
+[data-theme="dark"] .crud-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+.crud-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.crud-table tbody tr {
+  transition: all 180ms ease;
+}
+
+.crud-table tbody tr:hover {
+  background: rgba(var(--green-rgb), 0.03) !important;
+}
+
+[data-theme="dark"] .crud-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+.crud-panel {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(20px);
+  padding: 24px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="dark"] .crud-panel {
+  background: rgba(10, 26, 20, 0.25);
+  border-color: rgba(255, 255, 255, 0.05);
 }

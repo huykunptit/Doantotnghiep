@@ -30,7 +30,7 @@ export interface PublicSiteSettings {
   timezone: string | null
 }
 
-const FALLBACK_NAME = 'PTIT LMS'
+const FALLBACK_NAME = 'Sylva LMS'
 
 export function useSiteSettingsState() {
   return useState<PublicSiteSettings | null>('site-settings', () => null)
@@ -48,8 +48,8 @@ export function useSiteSettings() {
   const siteFavicon = computed(() => settings.value?.site_favicon || null)
   const siteTagline = computed(() => settings.value?.site_tagline || null)
   const authPageImage = computed(() => settings.value?.auth_page_image || null)
-  const themeColorPrimary = computed(() => settings.value?.theme_color_primary || '#2f7a45')
-  const themeColorDeep = computed(() => settings.value?.theme_color_deep || '#1f5d33')
+  const themeColorPrimary = computed(() => settings.value?.theme_color_primary || '#1D9E75')
+  const themeColorDeep = computed(() => settings.value?.theme_color_deep || '#085041')
 
   async function refreshSettings() {
     try {

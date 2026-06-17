@@ -1,126 +1,317 @@
-<template>
-  <NuxtLayout name="admin">
-    <div class="space-y-8 pb-12">
-      <div class="flex flex-col gap-4 border-b border-surface-dim/30 pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-outline">Instructor Payouts</p>
-          <h2 class="mt-1 text-3xl font-bold font-headline tracking-tight text-on-surface">Tạm tính chi trả giảng viên</h2>
-          <p class="mt-2 text-sm text-on-surface-variant">Tổng hợp từ đơn hàng đã thanh toán, dùng để kiểm tra trước khi đối soát thật.</p>
-        </div>
-        <UiButton variant="secondary" @click="exportPayouts">Xuất CSV</UiButton>
-      </div>
-
-      <div class="grid gap-6 md:grid-cols-3">
-        <UiCard>
-          <p class="text-xs font-bold uppercase tracking-widest text-outline">Giảng viên có doanh thu</p>
-          <p class="mt-3 text-4xl font-headline font-bold text-on-surface">{{ payoutRows.length }}</p>
-        </UiCard>
-        <UiCard>
-          <p class="text-xs font-bold uppercase tracking-widest text-outline">Doanh thu gộp</p>
-          <p class="mt-3 text-4xl font-headline font-bold text-on-surface">{{ formatCurrency(totalRevenue) }}</p>
-        </UiCard>
-        <UiCard>
-          <p class="text-xs font-bold uppercase tracking-widest text-outline">Tạm tính payout 70%</p>
-          <p class="mt-3 text-4xl font-headline font-bold text-on-surface">{{ formatCurrency(totalPayout) }}</p>
-        </UiCard>
-      </div>
-
-      <UiCard>
-        <div v-if="loading" class="grid gap-4 md:grid-cols-2">
-          <div v-for="item in 4" :key="item" class="h-28 rounded-2xl bg-surface-high animate-pulse" />
-        </div>
-
-        <div v-else-if="payoutRows.length === 0">
-          <UiEmptyState title="Chưa có dữ liệu payout" description="Cần có đơn hàng paid/completed để tính tạm chi trả cho giảng viên." />
-        </div>
-
-        <div v-else class="space-y-4">
-          <div
-            v-for="row in payoutRows"
-            :key="row.instructor_id"
-            class="flex flex-col gap-4 rounded-2xl border border-surface-dim bg-surface-low p-5 md:flex-row md:items-center md:justify-between"
-          >
-            <div class="min-w-0">
-              <p class="text-base font-semibold text-on-surface">{{ row.instructor_name }}</p>
-              <p class="mt-1 text-sm text-on-surface-variant">{{ row.course_titles.join(', ') }}</p>
-            </div>
-            <div class="grid gap-2 text-sm md:text-right">
-              <p class="text-on-surface-variant">Doanh thu: <strong class="text-on-surface">{{ formatCurrency(row.revenue) }}</strong></p>
-              <p class="text-on-surface-variant">Payout 70%: <strong class="text-primary">{{ formatCurrency(row.payout) }}</strong></p>
-            </div>
-          </div>
-        </div>
-      </UiCard>
-    </div>
-  </NuxtLayout>
-</template>
-
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '~/stores/auth'
-import { useExport } from '~/composables/useExport'
+import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
-definePageMeta({ layout: false, middleware: ['auth', 'admin'] })
+definePageMeta({ layout: 'admin' })
 
-const auth = useAuthStore()
+const token = useAuthTokenCookie()
+const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+
 const loading = ref(true)
-const payoutRows = ref<Array<{ instructor_id: number; instructor_name: string; revenue: number; payout: number; course_titles: string[] }>>([])
-const { exportToCSV } = useExport()
+const error = ref('')
+const rawOrders = ref<any[]>([])
+const rawCourses = ref<any[]>([])
+const search = ref('')
+const periodFilter = ref<'all' | 'this_month' | 'last_month' | 'this_year'>('all')
+const markedPaid = ref<Set<number>>(new Set())
 
-const totalRevenue = computed(() => payoutRows.value.reduce((sum, row) => sum + row.revenue, 0))
-const totalPayout = computed(() => payoutRows.value.reduce((sum, row) => sum + row.payout, 0))
-const formatCurrency = (value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0)
-
-const exportPayouts = () => {
-  exportToCSV(
-    payoutRows.value,
-    [
-      { key: 'instructor_id', label: 'Instructor ID' },
-      { key: 'instructor_name', label: 'Giảng viên' },
-      { key: 'revenue', label: 'Doanh thu' },
-      { key: 'payout', label: 'Payout 70%' },
-      { key: 'course_titles', label: 'Khóa học', format: (value) => Array.isArray(value) ? value.join('; ') : String(value || '') },
-    ],
-    'admin_payouts',
-  )
+async function fetchData() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [coursesRes, ordersRes] = await Promise.all([
+      useApi<any>('/admin/courses?per_page=200', { headers: authHeaders() }),
+      useApi<any>('/admin/orders?per_page=500', { headers: authHeaders() }),
+    ])
+    rawCourses.value = coursesRes.data || []
+    rawOrders.value = ordersRes.data || []
+  }
+  catch (e: any) {
+    error.value = e?.data?.message || 'Không thể tải dữ liệu.'
+  }
+  finally {
+    loading.value = false }
 }
 
-onMounted(async () => {
-  try {
-    const [coursesResponse, ordersResponse] = await Promise.all([
-      $fetch<any>('/api/admin/courses?per_page=100', { headers: { Authorization: `Bearer ${auth.token}` } }).catch(() => ({ data: [] })),
-      $fetch<any>('/api/admin/orders?per_page=200', { headers: { Authorization: `Bearer ${auth.token}` } }).catch(() => ({ data: [] })),
-    ])
-
-    const courseMap = new Map((coursesResponse.data || []).map((course: any) => [course.id, course]))
-    const aggregates = new Map<number, { instructor_id: number; instructor_name: string; revenue: number; payout: number; course_titles: Set<string> }>()
-
-    for (const order of ordersResponse.data || []) {
-      if (!['paid', 'completed'].includes(order.status)) continue
-
-      const course = courseMap.get(order.course_id)
-      const instructorId = Number(course?.instructor?.id || course?.user_id || 0)
-      if (!instructorId) continue
-
-      const existing = aggregates.get(instructorId) || {
-        instructor_id: instructorId,
-        instructor_name: course?.instructor?.name || 'Giảng viên',
-        revenue: 0,
-        payout: 0,
-        course_titles: new Set<string>(),
-      }
-
-      existing.revenue += Number(order.amount || 0)
-      existing.payout += Math.round(Number(order.amount || 0) * 0.7)
-      if (course?.title) existing.course_titles.add(course.title)
-      aggregates.set(instructorId, existing)
-    }
-
-    payoutRows.value = Array.from(aggregates.values())
-      .map((row) => ({ ...row, course_titles: Array.from(row.course_titles) }))
-      .sort((a, b) => b.revenue - a.revenue)
-  } finally {
-    loading.value = false
+const filteredOrders = computed(() => {
+  let orders = rawOrders.value.filter(o => ['paid', 'completed'].includes(o.status))
+  const now = new Date()
+  if (periodFilter.value === 'this_month') {
+    orders = orders.filter((o) => {
+      const d = new Date(o.created_at)
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    })
   }
+  else if (periodFilter.value === 'last_month') {
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    orders = orders.filter((o) => {
+      const d = new Date(o.created_at)
+      return d.getFullYear() === lm.getFullYear() && d.getMonth() === lm.getMonth()
+    })
+  }
+  else if (periodFilter.value === 'this_year') {
+    orders = orders.filter(o => new Date(o.created_at).getFullYear() === now.getFullYear())
+  }
+  return orders
 })
+
+const courseMap = computed(() =>
+  new Map(rawCourses.value.map(c => [c.id, c]))
+)
+
+interface PayoutRow {
+  instructorId: number
+  instructorName: string
+  email: string
+  revenue: number
+  payout: number
+  orderCount: number
+  courseTitles: string[]
+}
+
+const payoutRows = computed<PayoutRow[]>(() => {
+  const agg = new Map<number, PayoutRow>()
+  for (const order of filteredOrders.value) {
+    const course = courseMap.value.get(order.course_id)
+    const instructorId = Number(course?.instructor?.id || course?.user_id || 0)
+    if (!instructorId) continue
+    const existing = agg.get(instructorId) || {
+      instructorId,
+      instructorName: course?.instructor?.name || 'Giảng viên',
+      email: course?.instructor?.email || '',
+      revenue: 0,
+      payout: 0,
+      orderCount: 0,
+      courseTitles: [],
+    }
+    existing.revenue += Number(order.amount || 0)
+    existing.payout = Math.round(existing.revenue * 0.7)
+    existing.orderCount++
+    if (course?.title && !existing.courseTitles.includes(course.title)) {
+      existing.courseTitles.push(course.title)
+    }
+    agg.set(instructorId, existing)
+  }
+  let rows = Array.from(agg.values()).sort((a, b) => b.revenue - a.revenue)
+  if (search.value.trim()) {
+    const q = search.value.toLowerCase()
+    rows = rows.filter(r =>
+      r.instructorName.toLowerCase().includes(q) || r.email.toLowerCase().includes(q)
+    )
+  }
+  return rows
+})
+
+const totalRevenue = computed(() => payoutRows.value.reduce((s, r) => s + r.revenue, 0))
+const totalPayout = computed(() => payoutRows.value.reduce((s, r) => s + r.payout, 0))
+const paidCount = computed(() => payoutRows.value.filter(r => markedPaid.value.has(r.instructorId)).length)
+
+function togglePaid(id: number) {
+  const s = new Set(markedPaid.value)
+  s.has(id) ? s.delete(id) : s.add(id)
+  markedPaid.value = s
+}
+
+function markAllAsPaid() {
+  markedPaid.value = new Set(payoutRows.value.map(r => r.instructorId))
+}
+
+function formatMoney(v: number) {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0)
+}
+
+function exportCSV() {
+  const rows = payoutRows.value.map(r => [
+    r.instructorId,
+    r.instructorName,
+    r.email,
+    r.orderCount,
+    r.revenue,
+    r.payout,
+    markedPaid.value.has(r.instructorId) ? 'Đã chi trả' : 'Chưa chi trả',
+    r.courseTitles.join('; '),
+  ])
+  const header = ['ID', 'Giảng viên', 'Email', 'Đơn hàng', 'Doanh thu', 'Payout (70%)', 'Trạng thái', 'Khoá học']
+  const csv = [header, ...rows].map(r => r.join(',')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `payout_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+onMounted(fetchData)
 </script>
+
+<template>
+  <AdminWorkspaceShell
+    title="Chi trả giảng viên (Payouts)"
+    description="Tổng hợp doanh thu từ đơn hàng đã thanh toán. Payout mặc định 70% doanh thu. Đánh dấu để theo dõi trạng thái chi trả."
+    :breadcrumb="['Trang chủ', 'Tài chính', 'Chi trả giảng viên']"
+  >
+    <div v-if="loading" class="dashboard-card crud-empty">Đang tính toán dữ liệu payout...</div>
+    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+
+    <template v-else>
+      <!-- KPI Cards -->
+      <section class="dashboard-grid" style="margin-bottom: 24px;">
+        <article class="dashboard-card mini-card tone-green">
+          <p class="mini-title">Giảng viên có doanh thu</p>
+          <div class="mini-head">
+            <strong>{{ payoutRows.length }}</strong>
+            <span>Người</span>
+          </div>
+        </article>
+        <article class="dashboard-card mini-card tone-blue">
+          <p class="mini-title">Tổng doanh thu lọc</p>
+          <div class="mini-head">
+            <strong>{{ formatMoney(totalRevenue) }}</strong>
+            <span>Đã thanh toán</span>
+          </div>
+        </article>
+        <article class="dashboard-card mini-card">
+          <p class="mini-title">Tổng payout (70%)</p>
+          <div class="mini-head">
+            <strong>{{ formatMoney(totalPayout) }}</strong>
+            <span>Cần chi trả</span>
+          </div>
+        </article>
+        <article class="dashboard-card mini-card tone-amber">
+          <p class="mini-title">Đã đánh dấu chi trả</p>
+          <div class="mini-head">
+            <strong>{{ paidCount }} / {{ payoutRows.length }}</strong>
+            <span>Giảng viên</span>
+          </div>
+        </article>
+      </section>
+
+      <!-- Filter & toolbar -->
+      <section class="dashboard-card crud-panel">
+        <div class="crud-toolbar">
+          <div class="crud-toolbar-main">
+            <input
+              v-model="search"
+              class="crud-search"
+              type="text"
+              placeholder="Tìm tên hoặc email giảng viên..."
+            >
+            <select v-model="periodFilter" class="crud-select">
+              <option value="all">Tất cả thời gian</option>
+              <option value="this_month">Tháng này</option>
+              <option value="last_month">Tháng trước</option>
+              <option value="this_year">Năm nay</option>
+            </select>
+          </div>
+          <div class="crud-toolbar-right">
+            <button class="crud-secondary-btn" type="button" @click="markAllAsPaid">
+              Đánh dấu tất cả đã trả
+            </button>
+            <button class="crud-export-btn" type="button" @click="exportCSV">
+              <span class="material-symbols-outlined">download</span>
+              Xuất Excel
+            </button>
+          </div>
+        </div>
+
+        <div v-if="payoutRows.length === 0" class="crud-empty">
+          Không có dữ liệu payout cho kỳ được chọn.
+        </div>
+
+        <div v-else class="crud-table-wrap">
+          <table class="crud-table">
+            <thead>
+              <tr>
+                <th>Giảng viên</th>
+                <th>Khoá học</th>
+                <th>Đơn hàng</th>
+                <th>Doanh thu</th>
+                <th>Payout (70%)</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="row in payoutRows"
+                :key="row.instructorId"
+                :class="{ 'row-paid': markedPaid.has(row.instructorId) }"
+              >
+                <td>
+                  <div class="crud-profile">
+                    <div class="crud-avatar crud-avatar-fallback">
+                      {{ row.instructorName.slice(0, 2).toUpperCase() }}
+                    </div>
+                    <div>
+                      <strong>{{ row.instructorName }}</strong>
+                      <p>{{ row.email || 'Không có email' }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="max-width: 22ch;">
+                    <p
+                      v-for="(title, i) in row.courseTitles.slice(0, 2)"
+                      :key="i"
+                      style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0;"
+                    >
+                      {{ title }}
+                    </p>
+                    <p
+                      v-if="row.courseTitles.length > 2"
+                      style="font-size: 0.75rem; color: var(--muted); margin: 0;"
+                    >
+                      +{{ row.courseTitles.length - 2 }} khoá khác
+                    </p>
+                  </div>
+                </td>
+                <td>
+                  <strong>{{ row.orderCount }}</strong>
+                </td>
+                <td>
+                  <strong>{{ formatMoney(row.revenue) }}</strong>
+                </td>
+                <td>
+                  <strong style="color: var(--green-deep);">{{ formatMoney(row.payout) }}</strong>
+                </td>
+                <td>
+                  <span
+                    class="crud-badge"
+                    :class="markedPaid.has(row.instructorId) ? 'role-instructor' : 'role-student'"
+                  >
+                    {{ markedPaid.has(row.instructorId) ? 'Đã chi trả' : 'Chưa chi trả' }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="action-btn"
+                    :class="markedPaid.has(row.instructorId) ? 'is-view' : 'is-edit'"
+                    @click="togglePaid(row.instructorId)"
+                  >
+                    {{ markedPaid.has(row.instructorId) ? 'Hoàn tác' : 'Đánh dấu đã trả' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Note -->
+        <div style="margin-top: 16px; padding: 12px 16px; background: rgba(var(--green-rgb), 0.04); border-radius: 12px; font-size: 0.8rem; color: var(--muted); line-height: 1.6;">
+          <strong style="color: var(--text);">Lưu ý:</strong>
+          Trạng thái "Đã chi trả" chỉ được lưu trên trình duyệt trong phiên hiện tại. Để lưu trạng thái vĩnh viễn cần tích hợp API payout vào backend.
+          Tỉ lệ payout mặc định: <strong>70%</strong> doanh thu (có thể điều chỉnh trong Cài đặt hệ thống).
+        </div>
+      </section>
+    </template>
+  </AdminWorkspaceShell>
+</template>
+
+<style scoped>
+.row-paid { opacity: 0.6; }
+.row-paid td { text-decoration: line-through; text-decoration-color: rgba(17,17,17,0.2); }
+.row-paid td strong, .row-paid td .crud-profile strong { text-decoration: none; }
+.row-paid td:last-child { text-decoration: none; }
+</style>

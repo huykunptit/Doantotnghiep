@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { LayoutDashboard } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -225,10 +226,10 @@ const activeTab = ref<TabId>('context')
 const isBootstrapping = ref(true)
 
 const tabItems = [
-  { id: 'context' as const, label: '1. Bối cảnh', icon: 'timeline' },
-  { id: 'curriculum' as const, label: '2. CTĐT theo kỳ', icon: 'view_list' },
-  { id: 'admin-classes' as const, label: '3. Lớp hành chính', icon: 'account_tree' },
-  { id: 'class-sections' as const, label: '4. Lớp tín chỉ', icon: 'class' },
+  { id: 'context' as const, label: '1. Bối cảnh', icon: 'trending-up' },
+  { id: 'curriculum' as const, label: '2. CTĐT theo kỳ', icon: 'list' },
+  { id: 'admin-classes' as const, label: '3. Lớp hành chính', icon: 'git-branch' },
+  { id: 'class-sections' as const, label: '4. Lớp tín chỉ', icon: 'book-open' },
 ] as const satisfies ReadonlyArray<{ id: TabId; label: string; icon: string }>
 
 async function fetchList<T>(resource: string, params: Record<string, string | number | boolean | undefined> = {}) {
@@ -556,7 +557,7 @@ onMounted(bootstrap)
           </p>
         </div>
         <span class="academic-v2-chip">
-          <span class="material-symbols-outlined">dashboard</span>
+          <LayoutDashboard :size="16" :stroke-width="1.75" />
           Quy trình 4 bước
         </span>
       </div>
@@ -594,7 +595,7 @@ onMounted(bootstrap)
           :aria-selected="activeTab === t.id"
           @click="activeTab = t.id"
         >
-          <span class="material-symbols-outlined">{{ t.icon }}</span>
+          <SylvaIcon :name="t.icon" :size="18" />
           <span>{{ t.label }}</span>
         </button>
       </div>
@@ -898,7 +899,7 @@ onMounted(bootstrap)
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
   background: rgba(var(--green-rgb), 0.08);
 }
-.academic-v2-tab-btn .material-symbols-outlined { font-size: 18px; color: var(--green-deep); }
+.academic-v2-tab-btn svg { font-size: 18px; color: var(--green-deep); }
 .academic-v2-hero {
   position: relative;
   overflow: hidden;
@@ -927,7 +928,7 @@ onMounted(bootstrap)
   font-size: 0.8rem;
   white-space: nowrap;
 }
-.academic-v2-chip .material-symbols-outlined { font-size: 16px; }
+.academic-v2-chip svg { font-size: 16px; }
 .academic-v2-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { FolderX, ArrowRight } from 'lucide-vue-next'
 import { useCourseStore } from '~/stores/course'
 
 const courseStore = useCourseStore()
 const categories = ref<any[]>([])
 const loading = ref(true)
 
-const categoryIcons: Record<string, string> = { 
-  code: 'terminal', 
-  paintbrush: 'architecture', 
-  briefcase: 'monitoring', 
-  globe: 'public', 
-  camera: 'photo_camera', 
-  music: 'music_note',
-  default: 'auto_graph'
+const categoryIcons: Record<string, string> = {
+  code: 'terminal',
+  paintbrush: 'square-pen',
+  briefcase: 'bar-chart-2',
+  globe: 'globe',
+  camera: 'camera',
+  music: 'music',
+  default: 'trending-up'
 }
 
 onMounted(async () => {
@@ -50,7 +51,7 @@ const categoriesWithCounts = computed(() =>
       </div>
       
       <div v-else-if="categories.length === 0" class="mt-16 text-center py-24 bg-surface-lowest rounded-[2.5rem] border border-surface-dim shadow-sm">
-        <span class="material-symbols-outlined text-6xl text-outline mb-4">folder_off</span>
+        <FolderX :size="60" :stroke-width="1.75" class="text-outline mb-4 mx-auto" />
         <p class="text-xl font-headline font-bold text-on-surface">Chưa có danh mục nào</p>
         <p class="text-on-surface-variant mt-2">Dữ liệu đang được đội ngũ EduPress cập nhật.</p>
       </div>
@@ -65,12 +66,12 @@ const categoriesWithCounts = computed(() =>
           <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <NuxtLink :to="`/categories/${cat.id}`" class="group block max-w-2xl">
               <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500 shadow-sm">
-                <span class="material-symbols-outlined text-3xl">{{ categoryIcons[cat.icon] || categoryIcons.default }}</span>
+                <SylvaIcon :name="categoryIcons[cat.icon] || categoryIcons.default" :size="30" />
               </div>
               <h3 class="text-2xl font-headline font-bold mb-3 text-on-surface group-hover:text-primary transition-colors">{{ cat.name }}</h3>
               <p class="text-on-surface-variant text-sm font-medium flex items-center gap-2">
                 {{ cat.total_courses || 0 }} khóa học trong toàn nhánh
-                <span class="material-symbols-outlined text-xs group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <ArrowRight :size="16" :stroke-width="1.75" class="group-hover:translate-x-1 transition-transform" />
               </p>
             </NuxtLink>
 

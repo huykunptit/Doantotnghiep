@@ -448,7 +448,7 @@ onMounted(fetchSettings)
             </select>
           </label>
           <label class="crud-field"><span>Email gửi đi</span><input v-model="form.smtp_from_address" type="email" placeholder="noreply@example.com"></label>
-          <label class="crud-field"><span>Tên người gửi</span><input v-model="form.smtp_from_name" type="text" placeholder="ERIPT LMS"></label>
+          <label class="crud-field"><span>Tên người gửi</span><input v-model="form.smtp_from_name" type="text" placeholder="Sylva LMS"></label>
 
           <div class="crud-field crud-field-full settings-test-block">
             <span>Gửi email kiểm tra</span>
@@ -466,7 +466,7 @@ onMounted(fetchSettings)
         <div v-show="activeTab === 'legal'" class="crud-form-grid">
           <label class="crud-field crud-field-full">
             <span>Dòng bản quyền (footer)</span>
-            <input v-model="form.footer_copyright" type="text" placeholder="© 2026 ERIPT LMS. All rights reserved.">
+            <input v-model="form.footer_copyright" type="text" placeholder="© 2026 Sylva LMS. All rights reserved.">
           </label>
           <label class="crud-field">
             <span>Tên doanh nghiệp</span>

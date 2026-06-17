@@ -62,8 +62,8 @@ export default {
         },
       },
       fontFamily: {
-        headline: ['Manrope', 'sans-serif'],
-        body: ['Manrope', 'sans-serif'],
+        headline: ['Outfit', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
       },
       boxShadow: {
         ambient: '0 8px 32px -8px rgba(17, 17, 17, 0.12)',

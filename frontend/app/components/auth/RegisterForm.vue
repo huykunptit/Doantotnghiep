@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, EyeOff, Loader } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
@@ -11,7 +12,7 @@ const loading = ref(false)
 const googleLoading = ref(false)
 const error = ref('')
 const passwordVisible = ref(false)
-const confirmPasswordVisible = ref(false)
+const confirmVisible = ref(false)
 
 async function handleRegister() {
   error.value = ''
@@ -38,7 +39,6 @@ async function handleRegister() {
 async function handleGoogleLogin() {
   error.value = ''
   googleLoading.value = true
-
   try {
     const googleUrl = await auth.getGoogleLoginUrl()
     await navigateTo(googleUrl, { external: true })
@@ -50,70 +50,202 @@ async function handleGoogleLogin() {
 </script>
 
 <template>
-  <div class="w-full animate-fade-in-up">
-    <header class="mb-8">
-      <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">Đăng ký</p>
-      <h2 class="mt-3 font-headline text-3xl font-bold tracking-[-0.03em] text-on-surface sm:text-[2.2rem]">Tạo tài khoản mới</h2>
-      <p class="mt-3 max-w-md text-sm leading-7 text-on-surface-variant sm:text-base">
-        Bắt đầu hành trình học tập của bạn với một tài khoản duy nhất cho tất cả khóa học.
-      </p>
-    </header>
-
-    <div v-if="error" class="mb-6 rounded-2xl border border-error/20 bg-error-container px-4 py-3 text-sm text-error">
+  <div class="rf">
+    <!-- Error -->
+    <div v-if="error" class="rf-alert rf-alert--error" role="alert">
       {{ error }}
     </div>
 
-    <div class="mb-6">
-      <button type="button" :disabled="googleLoading" @click="handleGoogleLogin" class="flex w-full items-center justify-center gap-3 rounded-2xl border border-outline-variant/30 bg-surface-lowest px-4 py-3 text-sm font-semibold text-on-surface shadow-sm transition-all hover:-translate-y-0.5 hover:border-outline/40 hover:bg-surface-low disabled:opacity-70">
-        <svg class="h-5 w-5" viewBox="0 0 24 24"><path fill="currentColor" d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"/></svg>
-        <span>{{ googleLoading ? 'Đang chuyển hướng với Google...' : 'Đăng ký nhanh với Google' }}</span>
-      </button>
+    <!-- Google SSO -->
+    <button type="button" :disabled="googleLoading" class="rf-google-btn" @click="handleGoogleLogin">
+      <svg class="rf-google-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M23.745 12.27c0-.79-.07-1.54-.19-2.27h-11.3v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/>
+        <path fill="#34A853" d="M12.255 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96h-3.98v3.09C3.515 21.3 7.615 24 12.255 24z"/>
+        <path fill="#FBBC05" d="M5.525 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62h-3.98a11.86 11.86 0 0 0 0 10.76l3.98-3.09z"/>
+        <path fill="#EA4335" d="M12.255 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C18.205 1.19 15.495 0 12.255 0c-4.64 0-8.74 2.7-10.71 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z"/>
+      </svg>
+      <span>{{ googleLoading ? 'Đang chuyển hướng...' : 'Đăng ký nhanh với Google' }}</span>
+    </button>
+
+    <!-- Divider -->
+    <div class="rf-divider" role="separator">
+      <span>Hoặc tạo tài khoản bằng email</span>
     </div>
 
-    <div class="relative mb-6 flex items-center justify-center">
-      <div class="w-full border-t border-outline-variant/30"></div>
-      <span class="absolute bg-surface-lowest px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-outline">Hoặc tạo tài khoản bằng email</span>
-    </div>
-
-    <form class="space-y-5" @submit.prevent="handleRegister">
-      <div class="space-y-2">
-        <label class="text-sm font-semibold text-on-surface-variant" for="name">Họ và tên</label>
-        <input v-model="form.name" class="w-full rounded-2xl border border-outline-variant/30 bg-surface-low px-4 py-3 text-on-surface outline-none transition-all placeholder:text-outline/70 focus:border-primary/40 focus:bg-surface-lowest focus:ring-4 focus:ring-primary/10" id="name" name="name" placeholder="Nguyễn Văn A" type="text" required />
+    <!-- Form -->
+    <form class="rf-form" novalidate @submit.prevent="handleRegister">
+      <!-- Name -->
+      <div class="rf-field">
+        <label class="rf-label" for="rf-name">Họ và tên</label>
+        <input
+          id="rf-name"
+          v-model="form.name"
+          class="rf-input"
+          type="text"
+          name="name"
+          placeholder="Nguyễn Văn A"
+          autocomplete="name"
+          required
+        >
       </div>
 
-      <div class="space-y-2">
-        <label class="text-sm font-semibold text-on-surface-variant" for="email">Email</label>
-        <input v-model="form.email" class="w-full rounded-2xl border border-outline-variant/30 bg-surface-low px-4 py-3 text-on-surface outline-none transition-all placeholder:text-outline/70 focus:border-primary/40 focus:bg-surface-lowest focus:ring-4 focus:ring-primary/10" id="email" name="email" placeholder="ban@ptit.edu.vn" type="email" required />
+      <!-- Email -->
+      <div class="rf-field">
+        <label class="rf-label" for="rf-email">Email</label>
+        <input
+          id="rf-email"
+          v-model="form.email"
+          class="rf-input"
+          type="email"
+          name="email"
+          placeholder="hocvien@sylva.edu.vn"
+          autocomplete="email"
+          required
+        >
       </div>
 
-      <div class="space-y-2">
-        <label class="text-sm font-semibold text-on-surface-variant" for="password">Mật khẩu</label>
-        <div class="relative">
-          <input v-model="form.password" :type="passwordVisible ? 'text' : 'password'" class="w-full rounded-2xl border border-outline-variant/30 bg-surface-low px-4 py-3 pr-12 text-on-surface outline-none transition-all placeholder:text-outline/70 focus:border-primary/40 focus:bg-surface-lowest focus:ring-4 focus:ring-primary/10" id="password" name="password" placeholder="Tối thiểu 6 ký tự" required />
-          <button @click="passwordVisible = !passwordVisible" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline transition-colors hover:text-on-surface">
-            <span class="material-symbols-outlined text-xl">{{ passwordVisible ? 'visibility_off' : 'visibility' }}</span>
+      <!-- Password -->
+      <div class="rf-field">
+        <label class="rf-label" for="rf-password">Mật khẩu</label>
+        <div class="rf-password-wrap">
+          <input
+            id="rf-password"
+            v-model="form.password"
+            class="rf-input rf-input--padded"
+            :type="passwordVisible ? 'text' : 'password'"
+            name="password"
+            placeholder="Tối thiểu 6 ký tự"
+            autocomplete="new-password"
+            required
+          >
+          <button type="button" class="rf-eye-btn" :aria-label="passwordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" @click="passwordVisible = !passwordVisible">
+            <EyeOff v-if="passwordVisible" :size="17" :stroke-width="1.75" />
+            <Eye v-else :size="17" :stroke-width="1.75" />
           </button>
         </div>
       </div>
 
-      <div class="space-y-2">
-        <label class="text-sm font-semibold text-on-surface-variant" for="password_confirmation">Xác nhận mật khẩu</label>
-        <div class="relative">
-          <input v-model="form.password_confirmation" :type="confirmPasswordVisible ? 'text' : 'password'" class="w-full rounded-2xl border border-outline-variant/30 bg-surface-low px-4 py-3 pr-12 text-on-surface outline-none transition-all placeholder:text-outline/70 focus:border-primary/40 focus:bg-surface-lowest focus:ring-4 focus:ring-primary/10" id="password_confirmation" name="password_confirmation" placeholder="Nhập lại mật khẩu" required />
-          <button @click="confirmPasswordVisible = !confirmPasswordVisible" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline transition-colors hover:text-on-surface">
-            <span class="material-symbols-outlined text-xl">{{ confirmPasswordVisible ? 'visibility_off' : 'visibility' }}</span>
+      <!-- Confirm -->
+      <div class="rf-field">
+        <label class="rf-label" for="rf-confirm">Xác nhận mật khẩu</label>
+        <div class="rf-password-wrap">
+          <input
+            id="rf-confirm"
+            v-model="form.password_confirmation"
+            class="rf-input rf-input--padded"
+            :type="confirmVisible ? 'text' : 'password'"
+            name="password_confirmation"
+            placeholder="Nhập lại mật khẩu"
+            autocomplete="new-password"
+            required
+          >
+          <button type="button" class="rf-eye-btn" :aria-label="confirmVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" @click="confirmVisible = !confirmVisible">
+            <EyeOff v-if="confirmVisible" :size="17" :stroke-width="1.75" />
+            <Eye v-else :size="17" :stroke-width="1.75" />
           </button>
         </div>
       </div>
 
-      <p class="rounded-2xl bg-surface-low px-4 py-3 text-sm leading-6 text-on-surface-variant">
-        Bằng việc tạo tài khoản, bạn có thể đăng nhập vào hệ thống học tập, quản lý khóa học và theo dõi tiến độ học.
+      <!-- Notice -->
+      <p class="rf-notice">
+        Bằng việc tạo tài khoản, bạn đồng ý sử dụng hệ thống học tập, quản lý khóa học và theo dõi tiến độ của mình.
       </p>
 
-      <button type="submit" :disabled="loading" class="primary-button mt-2 flex w-full items-center justify-center gap-2 rounded-2xl cta-gradient px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 disabled:opacity-70">
-        <span v-if="loading" class="material-symbols-outlined animate-spin">progress_activity</span>
+      <!-- Submit -->
+      <button type="submit" :disabled="loading" class="rf-submit">
+        <Loader v-if="loading" :size="16" :stroke-width="2" class="rf-spinner" />
         <span>{{ loading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản' }}</span>
       </button>
     </form>
   </div>
 </template>
+
+<style scoped>
+.rf { display: flex; flex-direction: column; gap: 16px; }
+
+.rf-alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.rf-alert--error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid rgba(226, 75, 74, 0.2);
+}
+
+.rf-google-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; height: 44px; border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong, #fff);
+  color: var(--text); font-size: 0.875rem; font-weight: 600;
+  cursor: pointer; transition: background 150ms, transform 150ms;
+}
+.rf-google-btn:hover { background: var(--surface); transform: translateY(-1px); }
+.rf-google-btn:disabled { opacity: 0.65; cursor: wait; }
+.rf-google-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+.rf-divider {
+  position: relative; display: flex; align-items: center;
+  justify-content: center; color: var(--muted);
+}
+.rf-divider::before {
+  content: ''; position: absolute; inset: 50% 0 auto;
+  border-top: 1px solid var(--line);
+}
+.rf-divider span {
+  position: relative; padding: 0 12px;
+  background: var(--surface-strong, #fff);
+  font-size: 0.72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.12em;
+}
+
+.rf-form { display: flex; flex-direction: column; gap: 13px; }
+.rf-field { display: flex; flex-direction: column; gap: 6px; }
+.rf-label { font-size: 0.875rem; font-weight: 600; color: var(--text); }
+
+.rf-input {
+  width: 100%; height: 44px; padding: 0 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-strong, #fff); color: var(--text);
+  font: inherit; font-size: 0.9rem; outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.rf-input::placeholder { color: var(--muted); }
+.rf-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.rf-input--padded { padding-right: 48px; }
+
+.rf-password-wrap { position: relative; }
+.rf-eye-btn {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; border-radius: 6px;
+  transition: color 150ms, background 150ms;
+}
+.rf-eye-btn:hover { color: var(--text); background: rgba(var(--primary-rgb), 0.06); }
+
+.rf-notice {
+  margin: 0; padding: 10px 14px; border-radius: 8px;
+  background: var(--surface); font-size: 0.8125rem;
+  line-height: 1.6; color: var(--muted);
+}
+
+.rf-submit {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 46px; border-radius: 8px; border: none;
+  background: var(--green); color: #fff; font: inherit;
+  font-size: 0.9375rem; font-weight: 700; cursor: pointer;
+  transition: background 150ms, transform 150ms, box-shadow 150ms;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
+}
+.rf-submit:hover { background: var(--green-deep); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.25); }
+.rf-submit:disabled { opacity: 0.65; cursor: wait; transform: none; }
+
+.rf-spinner { animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>

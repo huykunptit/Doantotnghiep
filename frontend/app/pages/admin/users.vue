@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { Download, MoreVertical } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
+import { useExport } from '~/composables/useExport'
 
 definePageMeta({
   layout: 'admin',
@@ -59,6 +61,34 @@ const lastPage = ref(1)
 const totalUsers = ref(0)
 const activeDropdown = ref<number | null>(null)
 const selectedIds = ref<number[]>([])
+
+const { exportToCSV } = useExport()
+
+function exportData() {
+  const cols = [
+    { key: 'id', label: 'ID' },
+    { key: 'name', label: 'Họ và tên' },
+    { key: 'email', label: 'Email' },
+    { key: 'role', label: 'Vai trò', format: (_: any, row: AdminUser) => resolveRole(row) },
+    { key: 'created_at', label: 'Ngày tạo', format: (val: any) => formatDate(val) },
+    { key: 'updated_at', label: 'Cập nhật', format: (val: any) => formatDate(val) }
+  ]
+  exportToCSV(users.value, cols, 'danh_sach_nguoi_dung')
+}
+
+const visiblePages = computed(() => {
+  const range: number[] = []
+  const maxVisible = 5
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(lastPage.value, start + maxVisible - 1)
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  for (let i = start; i <= end; i++) {
+    if (i >= 1) range.push(i)
+  }
+  return range
+})
 
 const isAllSelected = computed(() => {
   return users.value.length > 0 && users.value.every(u => selectedIds.value.includes(u.id))
@@ -335,7 +365,13 @@ onUnmounted(() => {
           <button class="crud-secondary-btn" type="button" @click="fetchUsers(currentPage)">Làm mới</button>
         </form>
 
-        <button class="crud-primary-btn" type="button" @click="openCreateModal">Thêm người dùng</button>
+        <div class="crud-toolbar-right">
+          <button class="crud-export-btn" type="button" @click="exportData">
+            <Download :size="20" :stroke-width="1.75" />
+            Xuất Excel
+          </button>
+          <button class="crud-primary-btn" type="button" @click="openCreateModal">Thêm người dùng</button>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
@@ -394,7 +430,7 @@ onUnmounted(() => {
               <td style="text-align: right">
                 <div class="crud-actions-dropdown">
                   <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(item.id)">
-                    <span class="material-symbols-outlined">more_vert</span>
+                    <MoreVertical :size="20" :stroke-width="1.75" />
                   </button>
                   <div v-if="activeDropdown === item.id" class="dropdown-menu">
                     <button class="dropdown-item" type="button" @click="openViewModal(item)">Xem chi tiết</button>
@@ -417,12 +453,24 @@ onUnmounted(() => {
       </div>
 
       <div class="crud-pagination">
-        <p>Trang {{ currentPage }} / {{ lastPage }}</p>
+        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalUsers }} người dùng)</p>
         <div class="crud-pagination-actions">
-          <button class="crud-secondary-btn" type="button" :disabled="currentPage <= 1" @click="fetchUsers(currentPage - 1)">
+          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchUsers(currentPage - 1)">
             Trước
           </button>
-          <button class="crud-secondary-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchUsers(currentPage + 1)">
+          <div class="pagination-numbers">
+            <button
+              v-for="p in visiblePages"
+              :key="p"
+              class="pagination-num-btn"
+              :class="{ 'is-active': p === currentPage }"
+              type="button"
+              @click="fetchUsers(p)"
+            >
+              {{ p }}
+            </button>
+          </div>
+          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchUsers(currentPage + 1)">
             Sau
           </button>
         </div>

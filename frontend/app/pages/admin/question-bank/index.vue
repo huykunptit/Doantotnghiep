@@ -4,6 +4,7 @@ import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import RichTextContent from '~/components/dashboard/RichTextContent.vue'
 import SearchableCourseSelect from '~/components/dashboard/SearchableCourseSelect.vue'
+import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học để quản lý ngân hàng câu hỏi...' })
 interface CourseItem { id: number; title: string; thumbnail?: string | null; category?: { name: string } | null }
@@ -96,6 +97,19 @@ function viewBank(bank: BankItem) {
   navigateTo(`/admin/question-bank/${bank.id}?courseId=${selectedCourseId.value}`)
 }
 
+const { exportToCSV } = useExport()
+
+function exportData() {
+  const cols = [
+    { key: 'id', label: 'ID Ngân hàng' },
+    { key: 'name', label: 'Tên ngân hàng câu hỏi' },
+    { key: 'description', label: 'Mô tả', format: (val: any) => String(val || '--') },
+    { key: 'questions_count', label: 'Số câu hỏi', format: (val: any) => String(val || 0) },
+    { key: 'groups_count', label: 'Số nhóm', format: (val: any) => String(val || 0) }
+  ]
+  exportToCSV(banks.value, cols, `ngan_hang_cau_hoi_khoa_${selectedCourseId.value || 'temp'}`)
+}
+
 function onCourseChange() {
   fetchBanks()
 }
@@ -128,7 +142,13 @@ onMounted(fetchCourses)
           <p class="section-kicker">Ngân hàng câu hỏi</p>
           <h3>{{ selectedCourse?.title || 'Chưa chọn khóa học' }}</h3>
         </div>
-        <button class="crud-primary-btn" type="button" @click="createOpen = true">+ Thêm mới</button>
+        <div class="crud-toolbar-right">
+          <button class="crud-export-btn" type="button" @click="exportData">
+            <span class="material-symbols-outlined">download</span>
+            Xuất Excel
+          </button>
+          <button class="crud-primary-btn" type="button" @click="createOpen = true">+ Thêm mới</button>
+        </div>
       </div>
       <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
       <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>

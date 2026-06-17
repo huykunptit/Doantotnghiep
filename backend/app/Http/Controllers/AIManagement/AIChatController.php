@@ -40,20 +40,28 @@ class AIChatController extends Controller
             ]);
 
             $elapsed = (int) ((microtime(true) - $startTime) * 1000);
+            $responseData = $response->json();
+            $tokensUsed = $response->successful()
+                ? (int) ($responseData['tokens_used']['total'] ?? 0)
+                : 0;
 
             AiRequestLog::create([
                 'user_id' => $request->user()->id,
                 'endpoint' => '/chat',
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
-                'tokens_used' => mb_strlen($request->message) + mb_strlen($response->body()),
+                'tokens_used' => $tokensUsed,
                 'response_time_ms' => $elapsed,
                 'status' => $response->successful() ? 'success' : 'error',
                 'error_message' => $response->successful() ? null : 'HTTP ' . $response->status(),
             ]);
 
+            if ($tokensUsed > 0) {
+                $aiSettings->increment('tokens_used', $tokensUsed);
+            }
+
             if ($response->successful()) {
-                return response()->json($response->json());
+                return response()->json($responseData);
             }
 
             return response()->json([

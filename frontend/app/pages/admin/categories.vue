@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import { useAuthUserCookie } from '~/composables/useAuthSession'
+import { useExport } from '~/composables/useExport'
 
 definePageMeta({
   layout: 'admin',
@@ -226,6 +227,20 @@ async function deleteCategory(item?: CategoryItem) {
   }
 }
 
+const { exportToCSV } = useExport()
+
+function exportData() {
+  const cols = [
+    { key: 'id', label: 'ID Danh mục' },
+    { key: 'name', label: 'Tên danh mục' },
+    { key: 'parentLabel', label: 'Cha', format: (_: any, row: TreeCategoryItem) => row.parentLabel || 'Danh mục gốc' },
+    { key: 'icon', label: 'Icon', format: (val: any) => String(val || '--') },
+    { key: 'courses_count', label: 'Số khóa học', format: (val: any) => String(val || 0) },
+    { key: 'sort_order', label: 'Thứ tự', format: (val: any) => String(val || 0) }
+  ]
+  exportToCSV(treeCategories.value, cols, 'danh_sach_danh_muc')
+}
+
 onMounted(fetchCategories)
 </script>
 
@@ -267,9 +282,15 @@ onMounted(fetchCategories)
           <p class="section-kicker">Danh mục khóa học</p>
           <h3>Danh sách danh mục hiện tại</h3>
         </div>
-        <button class="crud-primary-btn" type="button" @click="openCreateModal">
-          Tạo danh mục
-        </button>
+        <div class="crud-toolbar-right">
+          <button class="crud-export-btn" type="button" @click="exportData">
+            <span class="material-symbols-outlined">download</span>
+            Xuất Excel
+          </button>
+          <button class="crud-primary-btn" type="button" @click="openCreateModal">
+            Tạo danh mục
+          </button>
+        </div>
       </div>
 
       <div v-if="errorMessage" class="crud-alert is-error">

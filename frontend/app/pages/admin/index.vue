@@ -100,13 +100,42 @@ const loadStats = async () => {
   }
 }
 
-const mockEvents = [
-  { id: 1, title: 'Bảo trì hệ thống định kỳ', time: '01:00', date: 'Chủ nhật', type: 'deadline', course: 'Toàn hệ thống' },
-  { id: 2, title: 'Họp ban quản trị', time: '10:00', date: 'Thứ 2', type: 'meeting', location: 'Phòng họp A' },
-  { id: 3, title: 'Kiểm tra bảo mật', time: '15:00', date: 'Thứ 4', type: 'exam', course: 'Cơ sở hạ tầng' },
-] as any[]
+const upcomingExams = ref<any[]>([])
 
-onMounted(loadStats)
+const scheduleEvents = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return upcomingExams.value
+    .filter(e => e.scheduled_start && new Date(e.scheduled_start) >= today)
+    .slice(0, 5)
+    .map((e) => {
+      const start = new Date(e.scheduled_start)
+      const d = new Date(start); d.setHours(0, 0, 0, 0)
+      const label = d.getTime() === today.getTime() ? 'Hôm nay' : d.getTime() === tomorrow.getTime() ? 'Ngày mai' : start.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' })
+      return {
+        id: e.id,
+        title: e.title,
+        time: start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        date: label,
+        type: 'exam',
+        course: e.course?.title || 'Kỳ thi độc lập',
+        location: 'Trực tuyến',
+      }
+    })
+})
+
+onMounted(async () => {
+  await loadStats()
+  try {
+    const res = await useApi<any>('/exams/standalone?per_page=20&status=published', {
+      headers: { Authorization: `Bearer ${auth.token}` },
+    })
+    upcomingExams.value = Array.isArray(res) ? res : (res?.data || [])
+  }
+  catch {}
+})
 </script>
 
 <template>
@@ -172,7 +201,7 @@ onMounted(loadStats)
       <!-- Schedule (7 cols) + course status donut (5 cols) -->
       <div class="grid-12">
         <div class="span-lg-7">
-          <DashboardSchedule :events="mockEvents" title="Lịch trình hệ thống" />
+          <DashboardSchedule :events="scheduleEvents" title="Kỳ thi sắp diễn ra" />
         </div>
 
         <div class="dashboard-card chart-card span-lg-5">
@@ -324,42 +353,44 @@ onMounted(loadStats)
 }
 
 .chart-card {
-  background: var(--surface-lowest, #fff);
-  border: 1px solid var(--surface-dim, #e5e7eb);
-  border-radius: 18px;
-  padding: 18px 20px;
+  background: var(--surface-lowest);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 24px;
   min-width: 0;
+  box-shadow: 0 8px 30px rgba(31, 49, 43, 0.03);
 }
 .chart-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 .chart-card-kicker {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--on-surface-variant, #5f675f);
+  color: var(--muted);
 }
 .chart-card-title {
+  font-family: 'Outfit', sans-serif;
   margin: 4px 0 0;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--on-surface, #111);
+  color: var(--text);
 }
 .chart-card-tag {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(var(--green-rgb), 0.1);
+  background: var(--green-soft);
   color: var(--green);
 }
 .chart-card-link {
@@ -374,42 +405,46 @@ onMounted(loadStats)
   display: grid;
   place-items: center;
   min-height: 180px;
-  border: 1px dashed rgba(17, 17, 17, 0.12);
-  border-radius: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
   font-size: 0.86rem;
-  color: var(--on-surface-variant);
+  color: var(--muted);
   text-align: center;
   padding: 24px;
+  background: var(--bg);
 }
 
 /* Leaderboard */
-.leaderboard { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.leaderboard { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .leaderboard-item {
   display: grid;
   grid-template-columns: 28px 1fr auto;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(17, 17, 17, 0.02);
-  transition: background 0.15s;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  transition: background 0.2s, transform 0.2s;
 }
-.leaderboard-item:hover { background: rgba(var(--green-rgb), 0.06); }
+.leaderboard-item:hover { 
+  background: var(--green-soft); 
+  transform: translateX(2px);
+}
 .leaderboard-rank {
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(var(--green-rgb), 0.1);
+  background: var(--green-soft);
   color: var(--green);
   font-weight: 800;
   font-size: 0.8rem;
 }
 .leaderboard-title {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: var(--on-surface);
+  color: var(--text);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
@@ -422,7 +457,7 @@ onMounted(loadStats)
   gap: 4px;
   font-size: 0.84rem;
   font-weight: 700;
-  color: var(--on-surface-variant);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .leaderboard-value .material-symbols-outlined { font-size: 16px; }
@@ -437,22 +472,23 @@ onMounted(loadStats)
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: rgba(17, 17, 17, 0.02);
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
-.engagement-icon { font-size: 32px; }
+.engagement-icon { font-size: 34px; }
 .engagement-value {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--on-surface);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .engagement-label {
   margin: 2px 0 0;
-  font-size: 0.78rem;
-  color: var(--on-surface-variant);
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 </style>

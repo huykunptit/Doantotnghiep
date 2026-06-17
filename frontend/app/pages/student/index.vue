@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { BookOpen, Clock, CircleCheckBig } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 import CourseProgressCard from '~/components/student/CourseProgressCard.vue'
@@ -19,17 +20,21 @@ onMounted(async () => {
     router.push('/login?redirect=/student')
     return
   }
-  
+
+  const headers = { Authorization: `Bearer ${auth.token}` }
   try {
-    const res = await useApi<any[]>('/user/enrollments', {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    })
-    enrollments.value = res || []
-  } catch (e) {
-    console.error('Failed to fetch enrollments:', e)
-  } finally {
-    loading.value = false
+    const [enrollRes, examRes] = await Promise.allSettled([
+      useApi<any[]>('/user/enrollments', { headers }),
+      useApi<any>('/exams/standalone?per_page=20&status=published', { headers }),
+    ])
+    if (enrollRes.status === 'fulfilled') enrollments.value = enrollRes.value || []
+    if (examRes.status === 'fulfilled') {
+      const d = examRes.value
+      upcomingExams.value = Array.isArray(d) ? d : (d?.data || [])
+    }
   }
+  catch (e) { console.error('Failed to fetch student data', e) }
+  finally { loading.value = false }
 })
 
 const filteredCourses = computed(() => {
@@ -42,11 +47,37 @@ const totalCourses = computed(() => enrollments.value.length)
 const completedCourses = computed(() => enrollments.value.filter(e => e.progress >= 100).length)
 const inProgressCourses = computed(() => totalCourses.value - completedCourses.value)
 
-const mockEvents = [
-  { id: 1, title: 'Học nhóm Nuxt.js', time: '08:30', date: 'Hôm nay', type: 'lesson', course: 'Nuxt.js Masterclass', location: 'Phòng học 302' },
-  { id: 2, title: 'Kiểm tra giữa kỳ', time: '14:00', date: 'Hôm nay', type: 'exam', course: 'Cơ sở dữ liệu', location: 'Trực tuyến' },
-  { id: 3, title: 'Hạn chót nộp đồ án', time: '23:59', date: 'Ngày mai', type: 'deadline', course: 'Lập trình Web' },
-] as any[]
+const upcomingExams = ref<any[]>([])
+
+const scheduleEvents = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  return upcomingExams.value
+    .filter((exam) => {
+      const start = exam.scheduled_start ? new Date(exam.scheduled_start) : null
+      return start && start >= today
+    })
+    .slice(0, 5)
+    .map((exam) => {
+      const start = new Date(exam.scheduled_start)
+      const examDate = new Date(start)
+      examDate.setHours(0, 0, 0, 0)
+      const isToday = examDate.getTime() === today.getTime()
+      const isTomorrow = examDate.getTime() === tomorrow.getTime()
+      return {
+        id: exam.id,
+        title: exam.title,
+        time: start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        date: isToday ? 'Hôm nay' : isTomorrow ? 'Ngày mai' : start.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' }),
+        type: 'exam',
+        course: exam.course?.title || '',
+        location: 'Trực tuyến',
+      }
+    })
+})
 </script>
 
 <template>
@@ -59,21 +90,21 @@ const mockEvents = [
         
         <div class="sp-stats-row">
           <div class="sp-stat-card">
-            <span class="material-symbols-outlined">school</span>
+            <BookOpen :size="34" :stroke-width="1.5" style="color: #9FE1CB; opacity: 0.95;" />
             <div>
               <div class="sp-stat-value">{{ totalCourses }}</div>
               <div class="sp-stat-label">Khóa học đã đăng ký</div>
             </div>
           </div>
           <div class="sp-stat-card">
-            <span class="material-symbols-outlined" style="color: var(--green)">pending_actions</span>
+            <Clock :size="34" :stroke-width="1.5" style="color: #9FE1CB; opacity: 0.95;" />
             <div>
               <div class="sp-stat-value">{{ inProgressCourses }}</div>
               <div class="sp-stat-label">Đang học</div>
             </div>
           </div>
           <div class="sp-stat-card">
-            <span class="material-symbols-outlined" style="color: var(--green)">verified</span>
+            <CircleCheckBig :size="34" :stroke-width="1.5" style="color: #9FE1CB; opacity: 0.95;" />
             <div>
               <div class="sp-stat-value">{{ completedCourses }}</div>
               <div class="sp-stat-label">Đã hoàn thành</div>
@@ -87,7 +118,7 @@ const mockEvents = [
     <main class="sp-main">
       <div class="sp-container">
         <!-- Learning Schedule -->
-        <DashboardSchedule :events="mockEvents" title="Lịch học của tôi" style="margin-bottom: 2.5rem;" />
+        <DashboardSchedule :events="scheduleEvents" title="Kỳ thi sắp tới" style="margin-bottom: 2.5rem;" />
 
         <div class="sp-header">
           <h2 class="sp-section-title">Khóa học của tôi</h2>
@@ -106,7 +137,7 @@ const mockEvents = [
 
         <!-- Empty State -->
         <div v-else-if="filteredCourses.length === 0" class="sp-empty">
-          <div class="sp-empty-icon"><span class="material-symbols-outlined">menu_book</span></div>
+          <div class="sp-empty-icon"><BookOpen :size="40" :stroke-width="1.25" /></div>
           <h3>Không tìm thấy khóa học nào</h3>
           <p v-if="filter === 'all'">Bạn chưa đăng ký khóa học nào. Hãy khám phá các khóa học thú vị nhé!</p>
           <p v-else>Không có khóa học nào khớp với bộ lọc của bạn.</p>
@@ -130,20 +161,27 @@ const mockEvents = [
 <style scoped>
 .student-portal {
   min-height: calc(100vh - 80px);
-  background: var(--surface, #f8fafc);
+  background: var(--bg);
   display: flex;
   flex-direction: column;
 }
 
 /* ── Hero Section ── */
 .sp-hero {
-  background: var(--green);
+  background: linear-gradient(135deg, #04342C 0%, #1D9E75 60%, #185FA5 100%);
   color: #fff;
-  padding: 3rem 1.5rem;
+  padding: 4rem 1.5rem;
   position: relative;
   overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-.sp-hero::before { content: none; }
+.sp-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(93, 202, 165, 0.15), transparent 50%);
+  pointer-events: none;
+}
 .sp-hero-inner {
   max-width: 1200px;
   margin: 0 auto;
@@ -151,52 +189,58 @@ const mockEvents = [
   z-index: 1;
 }
 .sp-hero-title {
-  font-size: 2rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.25rem;
   font-weight: 800;
   margin: 0 0 0.5rem;
   line-height: 1.2;
 }
 .sp-hero-subtitle {
-  font-size: 1rem;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 2rem;
+  font-size: 1.05rem;
+  color: rgba(240, 250, 245, 0.85);
+  margin-bottom: 2.5rem;
 }
 
 /* ── Stats ── */
 .sp-stats-row {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
 }
 .sp-stat-card {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 16px;
-  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 1.5rem 1.75rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
   min-width: 220px;
   flex: 1;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s, border-color 0.2s;
 }
-.sp-stat-card .material-symbols-outlined {
-  font-size: 32px;
-  color: #fff;
-  opacity: 0.9;
+.sp-stat-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.sp-stat-card svg {
+  flex-shrink: 0;
 }
 .sp-stat-value {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 800;
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  color: #ffffff;
 }
 .sp-stat-label {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 /* ── Main Content ── */
@@ -217,36 +261,38 @@ const mockEvents = [
   gap: 1rem;
 }
 .sp-section-title {
-  font-size: 1.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
   font-weight: 800;
-  color: var(--on-surface, #0f172a);
+  color: var(--text);
   margin: 0;
 }
 .sp-filters {
   display: flex;
-  background: var(--surface-low, #f1f5f9);
+  background: var(--surface);
+  border: 1px solid var(--line);
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 14px;
   gap: 4px;
 }
 .sp-filter-btn {
-  padding: 8px 16px;
+  padding: 8px 18px;
   border: none;
   background: transparent;
-  color: var(--on-surface-variant, #475569);
+  color: var(--muted);
   font-size: 0.85rem;
   font-weight: 700;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
 }
 .sp-filter-btn:hover {
-  color: var(--on-surface, #0f172a);
+  color: var(--text);
 }
 .sp-filter-btn.active {
-  background: var(--surface-lowest, #fff);
-  color: var(--primary, var(--green));
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  background: var(--surface-strong);
+  color: var(--green);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 /* ── Grid ── */
@@ -263,14 +309,14 @@ const mockEvents = [
   align-items: center;
   justify-content: center;
   padding: 4rem 0;
-  color: var(--outline, #64748b);
+  color: var(--muted);
   font-weight: 600;
   gap: 1rem;
 }
 .sp-spinner {
   width: 40px; height: 40px;
-  border: 3px solid var(--surface-dim, #e5e7eb);
-  border-top-color: var(--primary, var(--green));
+  border: 3px solid var(--line);
+  border-top-color: var(--green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -282,38 +328,45 @@ const mockEvents = [
   align-items: center;
   justify-content: center;
   padding: 5rem 2rem;
-  background: var(--surface-lowest, #fff);
-  border: 1px dashed var(--surface-dim, #cbd5e1);
-  border-radius: 24px;
+  background: var(--surface-strong);
+  border: 1px dashed var(--line);
+  border-radius: 28px;
   text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 }
 .sp-empty-icon {
   width: 80px; height: 80px;
-  background: var(--surface-low, #f1f5f9);
+  background: var(--bg);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   margin-bottom: 1.5rem;
-  color: var(--outline, #94a3b8);
+  color: var(--green);
 }
-.sp-empty-icon .material-symbols-outlined { font-size: 40px; }
+.sp-empty-icon svg { display: block; }
 .sp-empty h3 {
-  font-size: 1.25rem; font-weight: 800; color: var(--on-surface); margin: 0 0 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.35rem; font-weight: 800; color: var(--text); margin: 0 0 0.5rem;
 }
 .sp-empty p {
-  color: var(--on-surface-variant); font-size: 0.95rem; margin: 0; max-width: 400px;
+  color: var(--muted); font-size: 0.95rem; margin: 0; max-width: 400px;
+  line-height: 1.6;
 }
 .sp-btn-primary {
   display: inline-block;
-  padding: 12px 24px;
-  background: var(--primary, var(--green));
+  padding: 12px 26px;
+  background: var(--green);
   color: #fff;
   border-radius: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, transform 0.2s;
   margin-top: 1.5rem;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
 }
-.sp-btn-primary:hover { opacity: 0.9; }
+.sp-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

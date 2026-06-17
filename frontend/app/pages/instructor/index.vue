@@ -89,13 +89,42 @@ const loadStats = async () => {
   }
 }
 
-const mockEvents = [
-  { id: 1, title: 'Buổi giải đáp thắc mắc', time: '09:00', date: 'Hôm nay', type: 'meeting', course: 'Vue.js Advanced', location: 'Zoom Meet' },
-  { id: 2, title: 'Duyệt bài tập lớn', time: '13:30', date: 'Hôm nay', type: 'lesson', course: 'Laravel Backend', location: 'Văn phòng' },
-  { id: 3, title: 'Cập nhật tài liệu chương 4', time: '17:00', date: 'Ngày mai', type: 'deadline', course: 'UI/UX Design' },
-] as any[]
+const upcomingExams = ref<any[]>([])
 
-onMounted(loadStats)
+const scheduleEvents = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  return upcomingExams.value
+    .filter(e => e.scheduled_start && new Date(e.scheduled_start) >= today)
+    .slice(0, 5)
+    .map((e) => {
+      const start = new Date(e.scheduled_start)
+      const d = new Date(start); d.setHours(0, 0, 0, 0)
+      const label = d.getTime() === today.getTime() ? 'Hôm nay' : d.getTime() === tomorrow.getTime() ? 'Ngày mai' : start.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short' })
+      return {
+        id: e.id,
+        title: e.title,
+        time: start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        date: label,
+        type: 'exam',
+        course: e.course?.title || 'Kỳ thi độc lập',
+        location: 'Trực tuyến',
+      }
+    })
+})
+
+onMounted(async () => {
+  await loadStats()
+  try {
+    const res = await useApi<any>('/instructor/exams?per_page=20&status=published', {
+      headers: { Authorization: `Bearer ${auth.token}` },
+    })
+    upcomingExams.value = Array.isArray(res) ? res : (res?.data || [])
+  }
+  catch {}
+})
 </script>
 
 <template>
@@ -178,7 +207,7 @@ onMounted(loadStats)
     <div class="grid-12">
       <!-- Schedule (Full Width for Instructor) -->
       <div class="span-lg-12">
-        <DashboardSchedule :events="mockEvents" title="Lịch giảng dạy & Công việc" />
+        <DashboardSchedule :events="scheduleEvents" title="Kỳ thi sắp diễn ra" />
       </div>
 
       <!-- Revenue (8 cols) + Donut (4 cols) -->
@@ -311,9 +340,9 @@ onMounted(loadStats)
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 26px;
-  background: var(--surface-lowest, #fff);
-  border: 1px solid var(--surface-dim, #e5e7eb);
+  padding: 32px 36px;
+  background: var(--surface-lowest);
+  border: 1px solid var(--line);
   border-radius: 24px;
 }
 .header-kicker {
@@ -322,20 +351,22 @@ onMounted(loadStats)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  color: var(--on-surface-variant, #5f675f);
+  color: var(--muted);
 }
 .header-title {
+  font-family: 'Outfit', sans-serif;
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--on-surface, #111);
+  color: var(--text);
 }
 .header-desc {
   margin: 8px 0 0;
-  font-size: 0.9rem;
-  color: var(--on-surface-variant, #5f675f);
+  font-size: 0.92rem;
+  color: var(--muted);
   max-width: 480px;
+  line-height: 1.6;
 }
 .header-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
@@ -343,24 +374,36 @@ onMounted(loadStats)
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 40px;
-  padding: 0 16px;
+  height: 44px;
+  padding: 0 20px;
   border-radius: 12px;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 700;
   text-decoration: none;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.btn-primary { background: var(--green); color: #fff; box-shadow: 0 6px 14px rgba(var(--green-rgb), 0.25); }
-.btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.btn-primary { 
+  background: var(--green); 
+  color: #fff; 
+  box-shadow: 0 6px 14px rgba(var(--primary-rgb), 0.25); 
+}
+.btn-primary:hover { 
+  transform: translateY(-2px); 
+  box-shadow: 0 10px 20px rgba(var(--primary-rgb), 0.35);
+}
 .btn-ghost {
-  background: rgba(17, 17, 17, 0.04);
-  color: var(--on-surface, #111);
-  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
 }
-.btn-ghost:hover { background: rgba(var(--green-rgb), 0.08); border-color: rgba(var(--green-rgb), 0.3); color: var(--green); }
+.btn-ghost:hover { 
+  background: var(--green-soft); 
+  border-color: var(--green); 
+  color: var(--green); 
+  transform: translateY(-1px);
+}
 .btn-primary .material-symbols-outlined,
-.btn-ghost .material-symbols-outlined { font-size: 18px; }
+.btn-ghost .material-symbols-outlined { font-size: 20px; }
 
 .kpi-grid {
   display: grid;
@@ -382,42 +425,44 @@ onMounted(loadStats)
 }
 
 .chart-card {
-  background: var(--surface-lowest, #fff);
-  border: 1px solid var(--surface-dim, #e5e7eb);
-  border-radius: 18px;
-  padding: 18px 20px;
+  background: var(--surface-lowest);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 24px;
   min-width: 0;
+  box-shadow: 0 8px 30px rgba(31, 49, 43, 0.03);
 }
 .chart-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 .chart-card-kicker {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--on-surface-variant, #5f675f);
+  color: var(--muted);
 }
 .chart-card-title {
+  font-family: 'Outfit', sans-serif;
   margin: 4px 0 0;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--on-surface, #111);
+  color: var(--text);
 }
 .chart-card-tag {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(var(--green-rgb), 0.1);
+  background: var(--green-soft);
   color: var(--green);
 }
 .chart-card-link {
@@ -432,42 +477,46 @@ onMounted(loadStats)
   display: grid;
   place-items: center;
   min-height: 180px;
-  border: 1px dashed rgba(17, 17, 17, 0.12);
-  border-radius: 16px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
   font-size: 0.86rem;
-  color: var(--on-surface-variant);
+  color: var(--muted);
   text-align: center;
   padding: 24px;
+  background: var(--bg);
 }
 
 /* Leaderboard */
-.leaderboard { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.leaderboard { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .leaderboard-item {
   display: grid;
   grid-template-columns: 28px 1fr auto;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgba(17, 17, 17, 0.02);
-  transition: background 0.15s;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--bg);
+  transition: background 0.2s, transform 0.2s;
 }
-.leaderboard-item:hover { background: rgba(var(--green-rgb), 0.06); }
+.leaderboard-item:hover { 
+  background: var(--green-soft); 
+  transform: translateX(2px);
+}
 .leaderboard-rank {
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: rgba(var(--green-rgb), 0.1);
+  background: var(--green-soft);
   color: var(--green);
   font-weight: 800;
   font-size: 0.8rem;
 }
 .leaderboard-title {
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: var(--on-surface);
+  color: var(--text);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
@@ -480,7 +529,7 @@ onMounted(loadStats)
   gap: 4px;
   font-size: 0.84rem;
   font-weight: 700;
-  color: var(--on-surface-variant);
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .leaderboard-value .material-symbols-outlined { font-size: 16px; }
@@ -488,7 +537,7 @@ onMounted(loadStats)
 /* Quick grid */
 .quick-grid {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 .quick-tile {
@@ -497,26 +546,27 @@ onMounted(loadStats)
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 18px 12px;
-  border-radius: 16px;
-  background: rgba(17, 17, 17, 0.02);
-  border: 1px solid transparent;
+  padding: 20px 14px;
+  border-radius: 18px;
+  background: var(--bg);
+  border: 1px solid var(--line);
   text-decoration: none;
-  color: var(--on-surface);
-  transition: all 0.18s ease;
+  color: var(--text);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .quick-tile:hover {
-  border-color: rgba(var(--green-rgb), 0.3);
-  background: rgba(var(--green-rgb), 0.06);
-  transform: translateY(-2px);
+  border-color: var(--green);
+  background: var(--green-soft);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(31, 49, 43, 0.04);
 }
 .quick-tile .material-symbols-outlined {
-  font-size: 32px;
+  font-size: 34px;
   color: var(--green);
 }
 .quick-tile p {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 </style>

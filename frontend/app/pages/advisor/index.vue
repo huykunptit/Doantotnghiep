@@ -61,8 +61,8 @@ onMounted(load)
 <template>
   <main class="container mx-auto max-w-6xl space-y-6 p-6">
     <header class="space-y-1">
-      <p class="text-sm font-semibold text-on-surface-variant">Cố vấn học tập</p>
-      <h1 class="text-2xl font-bold">Sinh viên tôi phụ trách</h1>
+      <p class="text-sm font-semibold text-muted">Cố vấn học tập</p>
+      <h1 class="font-headline text-3xl font-extrabold tracking-[-0.03em] text-text">Sinh viên tôi phụ trách</h1>
       <p v-if="data?.current_term" class="text-sm text-muted">
         Kỳ hiện hành: <strong>{{ data.current_term.name }}</strong>
       </p>
@@ -143,32 +143,60 @@ onMounted(load)
 </template>
 
 <style scoped>
-.stat-card { padding: 18px 20px; }
-.stat-label { color: var(--muted); font-size: 0.85rem; margin: 0; }
-.stat-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
-.stat-risk .stat-value { color: #b91c1c; }
+.stat-card { 
+  padding: 24px; 
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(31, 49, 43, 0.04);
+}
+.stat-label { 
+  color: var(--muted); 
+  font-size: 0.85rem; 
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 8px; 
+}
+.stat-value { 
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.85rem; 
+  font-weight: 800; 
+  letter-spacing: -0.02em; 
+  color: var(--text);
+}
+.stat-risk .stat-value { color: var(--danger); }
 
 .advisor-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.advisor-toggle input {
+  accent-color: var(--green);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .chip-ok, .chip-risk {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 700;
 }
-.chip-ok { background: rgba(var(--green-rgb), 0.12); color: var(--green-deep); }
-.chip-risk { background: rgba(220, 38, 38, 0.12); color: #b91c1c; }
+.chip-ok { background: var(--green-soft); color: var(--green); }
+.chip-risk { background: var(--danger-soft); color: var(--danger); }
 
-.final-pass { color: var(--green-deep); }
-.final-fail { color: #b91c1c; }
+.final-pass { color: var(--green); font-weight: 700; }
+.final-fail { color: var(--danger); font-weight: 700; }
 
 .text-center { text-align: center; }
 .text-muted { color: var(--muted); }

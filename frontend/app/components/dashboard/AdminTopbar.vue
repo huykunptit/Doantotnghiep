@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import {
+  Menu, Search, Bell, BellOff, Sun, Moon, ChevronDown,
+  Settings, LayoutDashboard, LogOut, Loader,
+  GraduationCap, ReceiptText, CircleCheckBig, XCircle, Star, Info,
+} from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
+import { useDarkMode } from '~/composables/useDarkMode'
 
 const emit = defineEmits<{ toggleSidebar: [] }>()
 
@@ -14,9 +20,8 @@ defineProps<{
 }>()
 
 const auth = useAuthStore()
-const { siteName, siteLogo } = useSiteSettings()
+const { isDark, toggle: toggleDark, init: initDark } = useDarkMode()
 
-/* ── Notifications ── */
 const notifOpen = ref(false)
 const notifLoading = ref(false)
 const notifications = ref<any[]>([])
@@ -57,13 +62,17 @@ async function markAllRead() {
   } catch {}
 }
 
-function notifIcon(type: string) {
-  const map: Record<string, string> = {
-    enrollment: 'school', order: 'receipt_long',
-    course_approved: 'check_circle', course_rejected: 'cancel',
-    review: 'star', system: 'info',
-  }
-  return map[type] || 'notifications'
+const notifIconMap: Record<string, any> = {
+  enrollment: GraduationCap,
+  order: ReceiptText,
+  course_approved: CircleCheckBig,
+  course_rejected: XCircle,
+  review: Star,
+  system: Info,
+}
+
+function notifIconComponent(type: string) {
+  return notifIconMap[type] || Bell
 }
 
 function relativeTime(date: string) {
@@ -75,7 +84,6 @@ function relativeTime(date: string) {
   return new Date(date).toLocaleDateString('vi-VN')
 }
 
-/* ── User menu ── */
 const userOpen = ref(false)
 
 function closeAll() {
@@ -87,7 +95,6 @@ function handleKey(e: KeyboardEvent) {
   if (e.key === 'Escape') closeAll()
 }
 
-/* ── Logout ── */
 async function handleLogout() {
   closeAll()
   const token = useAuthTokenCookie()
@@ -104,52 +111,51 @@ async function handleLogout() {
 
 onMounted(() => {
   fetchUnreadCount()
+  initDark()
   document.addEventListener('keydown', handleKey)
-  if (import.meta.client) {
-    setInterval(fetchUnreadCount, 60000)
-  }
+  if (import.meta.client) setInterval(fetchUnreadCount, 60000)
 })
 
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKey)
-})
+onUnmounted(() => document.removeEventListener('keydown', handleKey))
 </script>
 
 <template>
-  <header class="dashboard-topbar tb">
-    <!-- Left: toggle + breadcrumb -->
+  <header class="tb">
+    <!-- Left: sidebar toggle -->
     <div class="tb-left">
-      <button type="button" class="tb-toggle" aria-label="Mở sidebar" @click="emit('toggleSidebar')">
-        <span class="material-symbols-outlined">menu</span>
+      <button type="button" class="tb-icon-btn" aria-label="Mở sidebar" @click="emit('toggleSidebar')">
+        <Menu :size="20" :stroke-width="1.75" />
       </button>
-
-      <!-- <div class="tb-brand-pill">
-        <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="tb-brand-logo">
-        <span v-else class="tb-brand-dot" />
-        <span class="tb-brand-text">{{ siteName }}</span>
-      </div> -->
     </div>
 
     <!-- Center: search -->
-    <div class="tb-search">
-      <span class="material-symbols-outlined tb-search-icon">search</span>
-      <input type="text" :placeholder="searchPlaceholder" class="tb-search-input">
+    <label class="tb-search">
+      <Search :size="16" :stroke-width="1.75" class="tb-search-icon" />
+      <input type="search" :placeholder="searchPlaceholder" class="tb-search-input" aria-label="Tìm kiếm">
       <kbd class="tb-search-kbd">⌘K</kbd>
-    </div>
+    </label>
 
-    <!-- Right: actions + user -->
+    <!-- Right: actions -->
     <div class="tb-right">
+
+      <!-- Dark mode -->
+      <button type="button" class="tb-icon-btn" :title="isDark ? 'Sáng' : 'Tối'" @click="toggleDark">
+        <Sun v-if="isDark" :size="18" :stroke-width="1.75" />
+        <Moon v-else :size="18" :stroke-width="1.75" />
+      </button>
 
       <!-- Notifications -->
       <div class="tb-popover-wrap">
-        <button type="button" class="tb-icon-btn" @click="openNotif">
-          <span class="material-symbols-outlined">notifications</span>
-          <span v-if="unreadCount > 0" class="tb-badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+        <button type="button" class="tb-icon-btn" aria-label="Thông báo" @click="openNotif">
+          <Bell :size="18" :stroke-width="1.75" />
+          <span v-if="unreadCount > 0" class="tb-badge" aria-label="`${unreadCount} chưa đọc`">
+            {{ unreadCount > 9 ? '9+' : unreadCount }}
+          </span>
         </button>
 
         <Transition name="pop">
           <div v-if="notifOpen" class="tb-dropdown tb-notif-panel" @click.stop>
-            <div class="tb-notif-head">
+            <div class="tb-panel-head">
               <span class="tb-panel-title">Thông báo</span>
               <button v-if="unreadCount > 0" type="button" class="tb-mark-read" @click="markAllRead">
                 Đánh dấu đã đọc
@@ -158,10 +164,10 @@ onUnmounted(() => {
 
             <div class="tb-notif-body">
               <div v-if="notifLoading" class="tb-notif-empty">
-                <span class="material-symbols-outlined tb-spin">progress_activity</span>
+                <Loader :size="24" :stroke-width="1.75" class="tb-spin" />
               </div>
               <div v-else-if="notifications.length === 0" class="tb-notif-empty">
-                <span class="material-symbols-outlined">notifications_off</span>
+                <BellOff :size="28" :stroke-width="1.5" />
                 <p>Chưa có thông báo nào</p>
               </div>
               <template v-else>
@@ -174,14 +180,14 @@ onUnmounted(() => {
                   @click="notifOpen = false"
                 >
                   <div class="tb-notif-icon" :class="{ 'is-unread': !n.read_at }">
-                    <span class="material-symbols-outlined">{{ notifIcon(n.type) }}</span>
+                    <component :is="notifIconComponent(n.type)" :size="15" :stroke-width="1.75" />
                   </div>
                   <div class="tb-notif-content">
                     <p class="tb-notif-title">{{ n.title }}</p>
                     <p class="tb-notif-msg">{{ n.message }}</p>
                     <p class="tb-notif-time">{{ relativeTime(n.created_at) }}</p>
                   </div>
-                  <span v-if="!n.read_at" class="tb-unread-dot" />
+                  <span v-if="!n.read_at" class="tb-unread-dot" aria-hidden="true" />
                 </NuxtLink>
               </template>
             </div>
@@ -200,12 +206,12 @@ onUnmounted(() => {
             <strong class="tb-user-name">{{ userName }}</strong>
             <span class="tb-user-role">{{ userRole }}</span>
           </div>
-          <span class="material-symbols-outlined tb-chevron" :class="{ 'is-open': userOpen }">expand_more</span>
+          <ChevronDown :size="14" :stroke-width="2" class="tb-chevron" :class="{ 'is-open': userOpen }" />
         </button>
 
         <Transition name="pop">
           <div v-if="userOpen" class="tb-dropdown tb-user-panel" @click.stop>
-            <div class="tb-user-panel-head">
+            <div class="tb-user-head">
               <div class="tb-avatar tb-avatar--lg">
                 <img v-if="userAvatar" :src="userAvatar" :alt="userName" class="tb-avatar-img">
                 <span v-else>{{ userName.slice(0, 2).toUpperCase() }}</span>
@@ -216,18 +222,20 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <div class="tb-divider" />
+
             <div class="tb-menu-items">
               <NuxtLink :to="settingsPath || '/admin/settings'" class="tb-menu-item" @click="userOpen = false">
-                <span class="material-symbols-outlined">manage_accounts</span>
+                <Settings :size="15" :stroke-width="1.75" />
                 Tài khoản & cài đặt
               </NuxtLink>
               <NuxtLink :to="dashboardPath || '/admin'" class="tb-menu-item" @click="userOpen = false">
-                <span class="material-symbols-outlined">dashboard</span>
+                <LayoutDashboard :size="15" :stroke-width="1.75" />
                 Bảng điều khiển
               </NuxtLink>
-              <div class="tb-menu-divider" />
+              <div class="tb-divider" />
               <button type="button" class="tb-menu-item tb-menu-item--danger" @click="handleLogout">
-                <span class="material-symbols-outlined">logout</span>
+                <LogOut :size="15" :stroke-width="1.75" />
                 Đăng xuất
               </button>
             </div>
@@ -236,119 +244,85 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Click outside overlay -->
     <div v-if="notifOpen || userOpen" class="tb-backdrop" @click="closeAll" />
   </header>
 </template>
 
 <style scoped>
-/* ── Base ── */
+/* ── Shell ── */
 .tb {
   position: relative;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 80px;
-  padding: 14px 22px;
-}
-
-/* ── Left ── */
-.tb-left {
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 12px;
+  height: 64px;
+  padding: 0 20px;
+  background: var(--surface-strong, #fff);
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 
-.tb-toggle {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  background: transparent;
-  color: var(--muted, #5f675f);
-  cursor: pointer;
-  transition: background 150ms ease;
+[data-theme="dark"] .tb {
+  background: rgba(15, 34, 25, 0.95);
+  border-bottom-color: var(--line);
 }
-.tb-toggle:hover { background: rgba(var(--green-rgb), 0.06); }
-.tb-toggle .material-symbols-outlined { font-size: 22px; }
 
-.tb-brand-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(17, 17, 17, 0.07);
-}
-.tb-brand-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--green);
-  box-shadow: 0 0 0 4px rgba(var(--green-rgb), 0.12);
-}
-.tb-brand-logo {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  border-radius: 6px;
-}
-.tb-brand-text {
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: rgba(17, 17, 17, 0.65);
-}
+/* ── Left ── */
+.tb-left { flex-shrink: 0; }
 
 /* ── Search ── */
 .tb-search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
-  max-width: 480px;
-  min-height: 50px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(17, 17, 17, 0.09);
-  background: rgba(17, 17, 17, 0.03);
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  max-width: 440px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface, rgba(240, 244, 242, 0.5));
+  transition: border-color 150ms, box-shadow 150ms;
+  cursor: text;
 }
+
 .tb-search:focus-within {
-  border-color: rgba(var(--green-rgb), 0.4);
-  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.08);
-  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(var(--primary-rgb), 0.4);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.08);
+  background: var(--surface-strong, #fff);
 }
-.tb-search-icon { font-size: 19px; color: var(--muted, #5f675f); flex-shrink: 0; }
+
+.tb-search-icon {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
 .tb-search-input {
   flex: 1;
   border: none;
   background: transparent;
   outline: none;
   font: inherit;
-  font-size: 0.9rem;
-  color: var(--text, #111111);
+  font-size: 0.875rem;
+  color: var(--text);
+  min-width: 0;
 }
-.tb-search-input::placeholder { color: var(--muted, #5f675f); }
+
+.tb-search-input::placeholder { color: var(--muted); }
+
 .tb-search-kbd {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 7px;
-  border: 1px solid rgba(17, 17, 17, 0.12);
-  background: rgba(255, 255, 255, 0.8);
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong, #fff);
   font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--muted, #5f675f);
+  font-weight: 600;
+  color: var(--muted);
   font-family: inherit;
 }
 
@@ -356,144 +330,172 @@ onUnmounted(() => {
 .tb-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
   margin-left: auto;
 }
 
-/* Icon buttons */
+/* ── Icon button ── */
 .tb-icon-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--muted, #5f675f);
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+  transition: background 150ms, color 150ms;
 }
-.tb-icon-btn:hover { background: rgba(var(--green-rgb), 0.08); color: var(--green-deep, var(--green-deep)); transform: translateY(-1px); }
-.tb-icon-btn .material-symbols-outlined { font-size: 20px; }
+
+.tb-icon-btn:hover {
+  background: rgba(var(--primary-rgb), 0.06);
+  color: var(--green);
+}
 
 .tb-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 18px;
-  height: 18px;
+  top: -5px; right: -5px;
+  min-width: 17px; height: 17px;
   border-radius: 999px;
-  background: #ae3d37;
+  background: var(--danger);
   color: #fff;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 4px;
-  border: 2px solid #fff;
+  padding: 0 3px;
+  border: 2px solid var(--surface-strong, #fff);
 }
 
-/* User chip */
+/* ── User chip ── */
 .tb-user-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px 6px 6px;
+  gap: 8px;
+  height: 40px;
+  padding: 4px 10px 4px 4px;
   border-radius: 999px;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  background: transparent;
   cursor: pointer;
-  transition: background 150ms ease, transform 150ms ease;
+  transition: background 150ms;
 }
-.tb-user-chip:hover { background: rgba(var(--green-rgb), 0.06); transform: translateY(-1px); }
+
+.tb-user-chip:hover {
+  background: rgba(var(--primary-rgb), 0.04);
+}
 
 .tb-avatar {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: var(--green);
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--green-soft);
+  color: var(--green-deep);
+  font-weight: 700;
+  font-size: 0.75rem;
   flex-shrink: 0;
   overflow: hidden;
 }
+
 .tb-avatar--lg {
-  width: 46px;
-  height: 46px;
-  border-radius: 16px;
-  font-size: 1rem;
+  width: 42px; height: 42px;
+  font-size: 0.875rem;
 }
+
 .tb-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 
-.tb-user-info { display: flex; flex-direction: column; gap: 1px; }
-.tb-user-name { font-size: 0.85rem; font-weight: 700; color: var(--text, #111111); margin: 0; }
-.tb-user-role { font-size: 0.72rem; color: var(--muted, #5f675f); }
+.tb-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.tb-user-name { margin: 0; font-size: 0.8125rem; font-weight: 600; color: var(--text); }
+.tb-user-role { font-size: 0.68rem; color: var(--muted); }
 
 .tb-chevron {
-  font-size: 18px;
-  color: var(--muted, #5f675f);
-  transition: transform 200ms ease;
+  color: var(--muted);
+  transition: transform 180ms ease;
+  flex-shrink: 0;
 }
+
 .tb-chevron.is-open { transform: rotate(180deg); }
 
-/* ── Popover shared ── */
+/* ── Backdrop ── */
+.tb-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+}
+
+/* ── Dropdown shared ── */
 .tb-popover-wrap { position: relative; }
 
 .tb-dropdown {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   right: 0;
-  z-index: 100;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 22px;
-  box-shadow: 0 24px 60px -20px rgba(17, 17, 17, 0.2);
+  z-index: 200;
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(31, 49, 43, 0.12);
   overflow: hidden;
 }
 
-.tb-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
+[data-theme="dark"] .tb-dropdown {
+  background: #142D1F;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Notification panel ── */
-.tb-notif-panel { width: 360px; }
-
-.tb-notif-head {
+.tb-panel-head, .tb-user-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 14px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
 }
+
+.tb-user-head {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
 .tb-panel-title {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: var(--text, #111111);
-}
-.tb-mark-read {
-  font-size: 0.78rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  color: var(--green-deep, var(--green-deep));
+  color: var(--text);
+}
+
+.tb-mark-read {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--green);
   background: transparent;
   border: none;
   cursor: pointer;
   padding: 0;
-  transition: opacity 150ms;
 }
-.tb-mark-read:hover { opacity: 0.7; }
 
-.tb-notif-body { max-height: 340px; overflow-y: auto; }
+.tb-mark-read:hover { opacity: 0.75; }
+
+.tb-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 12px;
+}
+
+/* ── Notifications ── */
+.tb-notif-panel { width: 340px; }
+.tb-notif-body { max-height: 320px; overflow-y: auto; }
 
 .tb-notif-empty {
   display: flex;
@@ -501,140 +503,134 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 32px 20px;
-  color: var(--muted, #5f675f);
-  font-size: 0.85rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
 }
-.tb-notif-empty .material-symbols-outlined { font-size: 36px; color: rgba(17,17,17,0.2); }
-.tb-spin { animation: tb-spin 1s linear infinite; }
-@keyframes tb-spin { to { transform: rotate(360deg); } }
+
+.tb-spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .tb-notif-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 13px 18px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.05);
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(var(--primary-rgb), 0.04);
   text-decoration: none;
   color: inherit;
-  transition: background 150ms ease;
+  transition: background 150ms;
 }
-.tb-notif-item:hover { background: rgba(var(--green-rgb), 0.04); }
-.tb-notif-item.is-unread { background: rgba(var(--green-rgb), 0.03); }
+
+.tb-notif-item:hover { background: rgba(var(--primary-rgb), 0.04); }
+.tb-notif-item.is-unread { background: rgba(var(--primary-rgb), 0.03); }
 .tb-notif-item:last-child { border-bottom: none; }
 
 .tb-notif-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: rgba(17, 17, 17, 0.06);
-  color: var(--muted, #5f675f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: rgba(var(--primary-rgb), 0.06);
+  color: var(--muted);
   flex-shrink: 0;
 }
+
 .tb-notif-icon.is-unread {
-  background: rgba(var(--green-rgb), 0.1);
-  color: var(--green-deep, var(--green-deep));
+  background: var(--green-soft);
+  color: var(--green);
 }
-.tb-notif-icon .material-symbols-outlined { font-size: 16px; }
 
 .tb-notif-content { flex: 1; min-width: 0; }
+
 .tb-notif-title {
   margin: 0;
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--text, #111111);
-  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
 .tb-notif-msg {
   margin: 3px 0 0;
-  font-size: 0.78rem;
-  color: var(--muted, #5f675f);
+  font-size: 0.75rem;
+  color: var(--muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.5;
 }
-.tb-notif-time { margin: 4px 0 0; font-size: 0.7rem; color: rgba(17,17,17,0.35); }
+
+.tb-notif-time { margin: 4px 0 0; font-size: 0.68rem; color: var(--muted); opacity: 0.7; }
 
 .tb-unread-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--green-deep, var(--green-deep));
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
   flex-shrink: 0;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 /* ── User panel ── */
-.tb-user-panel { width: 240px; }
+.tb-user-panel { width: 220px; }
 
-.tb-user-panel-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 18px 14px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.07);
-}
-.tb-panel-name { margin: 0; font-size: 0.88rem; font-weight: 800; color: var(--text, #111111); }
-.tb-panel-role { margin: 2px 0 0; font-size: 0.72rem; color: var(--muted, #5f675f); }
+.tb-panel-name { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--text); }
+.tb-panel-role { margin: 2px 0 0; font-size: 0.7rem; color: var(--muted); }
 
-.tb-menu-items { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.tb-menu-items { padding: 6px; display: flex; flex-direction: column; gap: 1px; }
 
 .tb-menu-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 42px;
-  padding: 0 12px;
-  border-radius: 12px;
+  gap: 9px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
   border: none;
   background: transparent;
-  color: var(--muted, #5f675f);
-  font-size: 0.86rem;
-  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.8375rem;
+  font-weight: 500;
   font-family: inherit;
   text-decoration: none;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition: background 150ms, color 150ms;
   text-align: left;
   width: 100%;
 }
+
 .tb-menu-item:hover {
-  background: rgba(var(--green-rgb), 0.07);
-  color: var(--text, #111111);
+  background: rgba(var(--primary-rgb), 0.06);
+  color: var(--text);
 }
-.tb-menu-item .material-symbols-outlined { font-size: 18px; }
 
 .tb-menu-item--danger:hover {
-  background: rgba(174, 61, 55, 0.08);
-  color: #ae3d37;
-}
-
-.tb-menu-divider {
-  height: 1px;
-  background: rgba(17, 17, 17, 0.07);
-  margin: 4px 0;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 /* ── Transition ── */
-.pop-enter-active, .pop-leave-active { transition: opacity 160ms ease, transform 160ms ease; }
-.pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(6px) scale(0.97); }
+.pop-enter-active, .pop-leave-active {
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.pop-enter-from, .pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+}
 
 /* ── Responsive ── */
 @media (max-width: 1080px) {
-  .tb-toggle { display: flex; }
-  .tb-brand-pill { display: none; }
   .tb-search { max-width: none; }
 }
 
 @media (max-width: 640px) {
-  .tb { padding: 12px 16px; gap: 10px; }
+  .tb { padding: 0 14px; gap: 8px; }
   .tb-user-info { display: none; }
   .tb-search-kbd { display: none; }
-  .tb-notif-panel { width: calc(100vw - 32px); right: -8px; }
+  .tb-notif-panel { width: calc(100vw - 28px); right: -6px; }
 }
 </style>

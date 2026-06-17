@@ -14,7 +14,7 @@ services:
       MYSQL_USER: lms_user
       MYSQL_PASSWORD: lms_password
     ports:
-      - "3306:3306"
+      - "3308:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
@@ -111,10 +111,12 @@ services:
       MINIO_SECRET: minioadmin123
       MINIO_BUCKET: lms-videos
       MINIO_REGION: us-east-1
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     command: >
       sh -c "
+      [ -f .env ] || cp .env.example .env &&
+      php artisan key:generate --force &&
       composer install --no-interaction --prefer-dist --optimize-autoloader &&
       php artisan config:clear &&
       php artisan migrate --force &&
@@ -142,8 +144,45 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
+    expose:
+      - "3000"
+    networks:
+      - lms_network
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: lms_n8n
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678
+      DB_TYPE: sqlite
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: admin123
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - lms_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: lms_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8083:80"
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - lms_network
 
@@ -182,3 +221,4 @@ volumes:
   redis_data:
   mongo_data:
   minio_data:
+  n8n_data:

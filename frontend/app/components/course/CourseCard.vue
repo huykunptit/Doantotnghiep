@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { GraduationCap, Star, ArrowRight } from 'lucide-vue-next'
 
 const props = defineProps<{ course: any }>()
 
@@ -21,10 +22,11 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
 
 <template>
   <NuxtLink :to="courseLink" class="course-card">
+    <!-- Thumbnail -->
     <div class="card-thumb">
       <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title" class="thumb-img">
       <div v-else class="thumb-fallback">
-        <span class="material-symbols-outlined">school</span>
+        <GraduationCap :size="40" :stroke-width="1.25" />
       </div>
       <div class="thumb-overlay" />
 
@@ -39,13 +41,14 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
       </div>
     </div>
 
+    <!-- Body -->
     <div class="card-body">
       <h3 class="card-title">{{ course.title }}</h3>
       <p class="card-excerpt">{{ excerpt }}</p>
 
       <div class="card-meta">
         <span class="meta-rating">
-          <span class="material-symbols-outlined star-icon">star</span>
+          <Star :size="14" :stroke-width="0" fill="#d4a017" />
           {{ rating > 0 ? rating.toFixed(1) : 'Mới' }}
         </span>
         <span v-if="reviewCount > 0" class="meta-item">{{ reviewCount }} đánh giá</span>
@@ -59,7 +62,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
         </div>
         <span class="card-cta">
           Xem khóa học
-          <span class="material-symbols-outlined cta-arrow">arrow_forward</span>
+          <ArrowRight :size="14" :stroke-width="2.5" class="cta-arrow" />
         </span>
       </div>
     </div>
@@ -68,212 +71,113 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
 
 <style scoped>
 .course-card {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border-radius: 24px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  background: rgba(255, 255, 255, 0.9);
-  overflow: hidden;
-  text-decoration: none;
-  color: inherit;
+  display: flex; flex-direction: column; height: 100%;
+  border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface-strong, #fff);
+  overflow: hidden; text-decoration: none; color: inherit;
   transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
 }
 .course-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 48px -18px rgba(17, 17, 17, 0.2);
-  border-color: rgba(var(--green-rgb), 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -16px rgba(31, 49, 43, 0.15);
+  border-color: rgba(var(--primary-rgb), 0.25);
 }
 
-/* Thumbnail */
+/* ── Thumbnail ── */
 .card-thumb {
-  position: relative;
-  height: 188px;
-  overflow: hidden;
-  background: rgba(var(--green-rgb), 0.08);
-  flex-shrink: 0;
+  position: relative; height: 180px; overflow: hidden;
+  background: var(--green-soft); flex-shrink: 0;
 }
 .thumb-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100%; height: 100%; object-fit: cover;
   transition: transform 400ms ease;
 }
 .course-card:hover .thumb-img { transform: scale(1.05); }
 
 .thumb-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  background: rgba(var(--green-rgb),0.08);
-}
-.thumb-fallback .material-symbols-outlined {
-  font-size: 48px;
-  color: rgba(var(--green-rgb), 0.4);
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  color: var(--green); opacity: 0.4;
 }
 
 .thumb-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(17,17,17,0.32);
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(10, 26, 20, 0.55) 0%, transparent 60%);
 }
 
 .thumb-badges {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  position: absolute; top: 10px; left: 10px;
+  display: flex; flex-wrap: wrap; gap: 5px;
 }
 .badge {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px;
+  border-radius: 999px; font-size: 0.675rem; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
 }
-.badge--free {
-  background: rgba(var(--green-rgb), 0.9);
-  color: #fff;
-}
-.badge--cat {
-  background: rgba(255, 255, 255, 0.88);
-  color: #111111;
-}
+.badge--free { background: var(--green); color: #fff; }
+.badge--cat { background: rgba(255,255,255,0.88); color: #111; }
 
 .thumb-footer {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  position: absolute; bottom: 10px; left: 10px; right: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
 .instructor-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.88);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.88);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .lesson-pill {
-  flex-shrink: 0;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: #111111;
-  white-space: nowrap;
+  flex-shrink: 0; height: 22px; padding: 0 9px; border-radius: 999px;
+  background: rgba(255,255,255,0.9); font-size: 0.675rem; font-weight: 700; color: #111;
 }
 
-/* Body */
+/* ── Body ── */
 .card-body {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  padding: 18px;
+  display: flex; flex-direction: column; flex: 1; padding: 16px;
 }
-
 .card-title {
-  margin: 0 0 8px;
-  font-size: 1rem;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-  color: #111111;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  transition: color 180ms ease;
+  margin: 0 0 7px; font-size: 0.9375rem; font-weight: 700;
+  line-height: 1.35; letter-spacing: -0.02em; color: var(--text);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  transition: color 150ms;
 }
-.course-card:hover .card-title { color: var(--green-deep, var(--green-deep)); }
+.course-card:hover .card-title { color: var(--green-deep); }
 
 .card-excerpt {
-  margin: 0 0 12px;
-  font-size: 0.82rem;
-  line-height: 1.65;
-  color: var(--muted, #5f675f);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 0 0 11px; font-size: 0.8rem; line-height: 1.6;
+  color: var(--muted);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 .card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--muted, #5f675f);
-  margin-bottom: 14px;
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 7px; font-size: 0.78rem; color: var(--muted); margin-bottom: 12px;
 }
 .meta-rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-weight: 700;
-  color: #111111;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-weight: 700; color: var(--text);
 }
-.star-icon {
-  font-size: 16px;
-  color: #d4a017;
-  font-variation-settings: 'FILL' 1;
-}
-.meta-item { font-size: 0.78rem; }
+.meta-item { font-size: 0.76rem; }
 
-/* Footer */
+/* ── Footer ── */
 .card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 14px;
-  border-top: 1px solid rgba(17, 17, 17, 0.07);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
 }
 .price-label {
-  margin: 0;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--muted, #5f675f);
+  margin: 0; font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
 }
 .price-value {
-  margin: 3px 0 0;
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--green-deep, var(--green-deep));
+  margin: 2px 0 0; font-size: 1.05rem; font-weight: 800;
+  letter-spacing: -0.03em; color: var(--green-deep);
 }
-
 .card-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--green-deep, var(--green-deep));
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.78rem; font-weight: 700;
+  color: var(--green-deep); white-space: nowrap;
 }
-.cta-arrow {
-  font-size: 16px;
-  transition: transform 180ms ease;
-}
+.cta-arrow { transition: transform 150ms ease; }
 .course-card:hover .cta-arrow { transform: translateX(3px); }
+
+[data-theme="dark"] .course-card { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 </style>

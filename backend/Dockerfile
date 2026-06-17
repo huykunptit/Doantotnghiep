@@ -35,6 +35,9 @@ FROM base AS development
 # Copy app files
 COPY . .
 
+# Create .env from example so artisan can bootstrap during composer install
+RUN cp .env.example .env
+
 # Install PHP dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
@@ -53,6 +56,8 @@ CMD sh -c "php artisan config:clear && \
 FROM base AS production
 
 COPY . .
+
+RUN cp .env.example .env
 
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && php artisan config:cache \

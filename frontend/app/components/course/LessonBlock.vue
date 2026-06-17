@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { LESSON_TYPE_LABELS } from '~/constants/lesson-types'
+import { ChevronUp, ChevronDown, Clock, RefreshCw, CircleCheckBig, Pencil, CloudUpload, FileQuestion, Trash2 } from 'lucide-vue-next'
 
 const props = defineProps<{
   lesson: any
@@ -27,15 +28,15 @@ function formatDuration(seconds: number) {
 function lessonIcon(lesson: any) {
   const type = lesson.type || 'video'
   const map: Record<string, string> = {
-    video: lesson.video_url || lesson.video_status === 'ready' ? 'movie' : 'video_library',
-    document: 'description',
-    assignment: 'assignment',
-    virtual_class: 'video_camera_front',
-    scorm: 'subscriptions',
-    h5p: 'extension',
-    quiz: 'quiz',
+    video: lesson.video_url || lesson.video_status === 'ready' ? 'play-circle' : 'video',
+    document: 'file-text',
+    assignment: 'clipboard-list',
+    virtual_class: 'video',
+    scorm: 'layers',
+    h5p: 'puzzle',
+    quiz: 'file-question',
   }
-  return map[type] || 'article'
+  return map[type] || 'file'
 }
 
 function lessonChip(lesson: any) {
@@ -77,16 +78,16 @@ function typeIconStyle(lesson: any) {
     <!-- Order buttons -->
     <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0;">
       <button class="curriculum-order-btn" :disabled="isFirst" @click="emit('moveUp', lesson)">
-        <span class="material-symbols-outlined" style="font-size:14px;">expand_less</span>
+        <ChevronUp :size="14" :stroke-width="1.75" />
       </button>
       <button class="curriculum-order-btn" :disabled="isLast" @click="emit('moveDown', lesson)">
-        <span class="material-symbols-outlined" style="font-size:14px;">expand_more</span>
+        <ChevronDown :size="14" :stroke-width="1.75" />
       </button>
     </div>
 
     <!-- Type icon -->
     <div class="curriculum-type-icon" :style="typeIconStyle(lesson)">
-      <span class="material-symbols-outlined" style="font-size:20px;">{{ lessonIcon(lesson) }}</span>
+      <SylvaIcon :name="lessonIcon(lesson)" :size="20" />
     </div>
 
     <!-- Info -->
@@ -108,21 +109,21 @@ function typeIconStyle(lesson: any) {
       <p style="margin:0 0 4px; font-size:0.77rem; color:var(--muted);">{{ lessonSummary(lesson) }}</p>
       <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); display:flex; align-items:center; gap:3px;">
-          <span class="material-symbols-outlined" style="font-size:13px;">schedule</span>
+          <Clock :size="13" :stroke-width="1.75" />
           {{ formatDuration(lesson.duration) }}
         </span>
         <span
           v-if="lesson.video_status === 'processing'"
           style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#b45309; display:flex; align-items:center; gap:3px;"
         >
-          <span class="material-symbols-outlined" style="font-size:13px;">sync</span>
+          <RefreshCw :size="13" :stroke-width="1.75" />
           Đang xử lý
         </span>
         <span
           v-else-if="lesson.video_status === 'ready' || lesson.video_url"
           style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--green-deep); display:flex; align-items:center; gap:3px;"
         >
-          <span class="material-symbols-outlined" style="font-size:13px;">check_circle</span>
+          <CircleCheckBig :size="13" :stroke-width="1.75" />
           Sẵn sàng
         </span>
       </div>
@@ -131,7 +132,7 @@ function typeIconStyle(lesson: any) {
     <!-- Actions -->
     <div class="crud-actions" style="flex-shrink:0; margin-left:auto;">
       <button class="action-btn is-edit" type="button" @click="emit('edit', lesson)">
-        <span class="material-symbols-outlined" style="font-size:15px; margin-right:3px;">edit</span>
+        <Pencil :size="15" :stroke-width="1.75" style="margin-right:3px;" />
         Sửa
       </button>
       <button
@@ -140,7 +141,7 @@ function typeIconStyle(lesson: any) {
         type="button"
         @click="emit('uploadVideo', lesson)"
       >
-        <span class="material-symbols-outlined" style="font-size:15px; margin-right:3px;">cloud_upload</span>
+        <CloudUpload :size="15" :stroke-width="1.75" style="margin-right:3px;" />
         Video
       </button>
       <NuxtLink
@@ -149,10 +150,10 @@ function typeIconStyle(lesson: any) {
         title="Quản lý Quiz"
         style="display:inline-flex; align-items:center;"
       >
-        <span class="material-symbols-outlined" style="font-size:15px;">quiz</span>
+        <FileQuestion :size="15" :stroke-width="1.75" />
       </NuxtLink>
       <button class="action-btn is-delete" type="button" @click="emit('delete', lesson)">
-        <span class="material-symbols-outlined" style="font-size:15px;">delete</span>
+        <Trash2 :size="15" :stroke-width="1.75" />
       </button>
     </div>
   </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { CircleAlert, CircleCheckBig, Award } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 
 definePageMeta({ layout: 'default' })
@@ -30,7 +31,7 @@ onMounted(verifyCertificate)
     <div v-if="loading" class="flex justify-center py-20"><div class="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div></div>
     
     <div v-else-if="error" class="text-center py-20">
-      <span class="material-symbols-outlined text-6xl text-rose-500">error</span>
+      <CircleAlert :size="60" :stroke-width="1.75" class="text-rose-500" />
       <h2 class="mt-4 text-2xl font-bold text-slate-800">Không tìm thấy chứng chỉ</h2>
       <p class="mt-2 text-slate-600">Chứng chỉ với mã {{ credentialId }} không tồn tại hoặc không hợp lệ.</p>
     </div>
@@ -41,7 +42,7 @@ onMounted(verifyCertificate)
           <h1 class="text-xl font-bold">Xác minh chứng chỉ</h1>
           <p class="text-primary-100 mt-1">Chứng nhận tính xác thực của chứng chỉ.</p>
         </div>
-        <span class="material-symbols-outlined text-4xl opacity-80">verified</span>
+        <CircleCheckBig :size="40" :stroke-width="1.75" class="opacity-80" />
       </div>
 
       <div class="p-8">
@@ -52,7 +53,7 @@ onMounted(verifyCertificate)
           <!-- Content Overlay (Simple) -->
           <div class="absolute inset-0 flex flex-col items-center justify-center p-12 text-center" style="color: #111;">
             <div v-if="!certificate.certificate_template?.background_image_url" class="mb-8">
-              <span class="material-symbols-outlined text-6xl text-primary">workspace_premium</span>
+              <Award :size="60" :stroke-width="1.75" class="text-primary" />
             </div>
             <h2 class="font-serif text-3xl font-bold text-primary mb-2">CHỨNG NHẬN HOÀN THÀNH</h2>
             <p class="text-lg opacity-80">Cấp cho học viên</p>

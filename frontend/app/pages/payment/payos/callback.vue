@@ -1,20 +1,6 @@
-<template>
-  <section class="mx-auto flex min-h-[60vh] max-w-3xl items-center px-4 py-10 sm:px-6 lg:px-8">
-    <UiCard class="w-full">
-      <div class="space-y-4 text-center">
-        <div class="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-surface-dim border-t-primary" />
-        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-primary">PayOS</p>
-        <h1 class="text-2xl font-bold text-on-surface">Đang xử lý thanh toán</h1>
-        <p class="text-sm leading-6 text-on-surface-variant">Vui lòng chờ trong giây lát, hệ thống đang đồng bộ kết quả giao dịch từ PayOS.</p>
-      </div>
-    </UiCard>
-  </section>
-</template>
-
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useApi } from '~/composables/useApi'
+import { CreditCard } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,7 +20,8 @@ onMounted(async () => {
         message: ok ? 'Thanh toán PayOS thành công.' : (result?.message || 'Thanh toán chưa hoàn tất.'),
       },
     })
-  } catch (e: any) {
+  }
+  catch (e: any) {
     await router.replace({
       path: '/payment/result',
       query: {
@@ -47,3 +34,61 @@ onMounted(async () => {
 })
 </script>
 
+<template>
+  <div class="payos-shell">
+    <div class="payos-card">
+      <div class="payos-logo">
+        <CreditCard :size="36" :stroke-width="1.75" style="color: var(--green);" />
+      </div>
+      <div class="payos-spinner" />
+      <h1>Đang xử lý thanh toán</h1>
+      <p>Vui lòng chờ trong giây lát, hệ thống đang đồng bộ kết quả giao dịch từ <strong>PayOS</strong>.</p>
+      <p class="payos-note">Đừng tắt trình duyệt hoặc nhấn nút Quay lại.</p>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.payos-shell {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.payos-card {
+  background: #fff;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.payos-logo {
+  width: 64px; height: 64px;
+  background: rgba(22,163,74,0.08);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.payos-spinner {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(22,163,74,0.15);
+  border-top-color: var(--green, #16a34a);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
+p { font-size: 0.875rem; color: var(--muted, #6b7280); margin: 0; line-height: 1.6; }
+.payos-note { font-size: 0.78rem; color: rgba(17,17,17,0.35); }
+</style>

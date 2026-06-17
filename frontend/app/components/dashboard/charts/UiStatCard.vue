@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TrendingUp, TrendingDown, Minus } from 'lucide-vue-next'
 import UiSparkline from './UiSparkline.vue'
 
 withDefaults(
@@ -18,7 +19,7 @@ withDefaults(
     delta: null,
     deltaLabel: 'so với kỳ trước',
     icon: '',
-    iconBg: 'rgba(var(--green-rgb),0.1)',
+    iconBg: 'rgba(var(--primary-rgb),0.1)',
     iconColor: 'var(--green)',
     sparkline: () => [],
     sparkColor: 'var(--green)',
@@ -28,29 +29,29 @@ withDefaults(
 </script>
 
 <template>
-  <article class="stat-card-pro">
-    <div v-if="loading" class="stat-card-skeleton">
-      <div class="h-3 w-24 rounded bg-surface-high animate-pulse" />
-      <div class="h-9 w-32 rounded bg-surface-high animate-pulse mt-3" />
-      <div class="h-9 w-full rounded bg-surface-high animate-pulse mt-4" />
+  <article class="stat-card">
+    <div v-if="loading" class="stat-skeleton">
+      <div class="skel skel--sm" />
+      <div class="skel skel--lg" />
+      <div class="skel skel--full" />
     </div>
 
     <template v-else>
-      <header class="stat-card-head">
+      <header class="stat-head">
         <div>
-          <p class="stat-card-label">{{ label }}</p>
-          <p class="stat-card-value">{{ value }}</p>
+          <p class="stat-label">{{ label }}</p>
+          <p class="stat-value">{{ value }}</p>
         </div>
-        <div v-if="icon" class="stat-card-icon" :style="{ background: iconBg, color: iconColor }">
-          <span class="material-symbols-outlined">{{ icon }}</span>
+        <div v-if="icon" class="stat-icon" :style="{ background: iconBg, color: iconColor }">
+          <SylvaIcon :name="icon" :size="20" :stroke-width="1.75" />
         </div>
       </header>
 
-      <div v-if="sparkline?.length" class="stat-card-spark">
+      <div v-if="sparkline?.length" class="stat-spark">
         <UiSparkline :values="sparkline" :color="sparkColor" :height="40" />
       </div>
 
-      <footer v-if="delta !== null || deltaLabel" class="stat-card-foot">
+      <footer v-if="delta !== null || deltaLabel" class="stat-foot">
         <span
           v-if="delta !== null"
           class="stat-delta"
@@ -60,9 +61,9 @@ withDefaults(
             'is-flat': delta === 0,
           }"
         >
-          <span class="material-symbols-outlined">
-            {{ delta > 0 ? 'trending_up' : delta < 0 ? 'trending_down' : 'trending_flat' }}
-          </span>
+          <TrendingUp v-if="delta > 0" :size="13" :stroke-width="2" />
+          <TrendingDown v-else-if="delta < 0" :size="13" :stroke-width="2" />
+          <Minus v-else :size="13" :stroke-width="2" />
           {{ delta > 0 ? '+' : '' }}{{ delta }}%
         </span>
         <span class="stat-delta-label">{{ deltaLabel }}</span>
@@ -72,75 +73,62 @@ withDefaults(
 </template>
 
 <style scoped>
-.stat-card-pro {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.stat-card {
+  position: relative; display: flex; flex-direction: column; gap: 12px;
   padding: 20px 22px;
-  background: var(--surface-lowest, #fff);
-  border: 1px solid var(--surface-dim, #e5e7eb);
-  border-radius: 20px;
+  background: var(--surface-strong, #fff); border: 1px solid var(--line);
+  border-radius: 12px;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
-.stat-card-pro:hover {
+.stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -16px rgba(17, 17, 17, 0.16);
-  border-color: rgba(var(--green-rgb), 0.3);
+  box-shadow: 0 10px 28px -14px rgba(31, 49, 43, 0.14);
+  border-color: rgba(var(--primary-rgb), 0.25);
 }
 
-.stat-card-skeleton { display: flex; flex-direction: column; }
-
-.stat-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.stat-card-label {
-  margin: 0 0 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--on-surface-variant, #5f675f);
+/* ── Skeleton ── */
+.stat-skeleton { display: flex; flex-direction: column; gap: 8px; }
+.skel {
+  border-radius: 6px; background: var(--surface);
+  animation: pulse 1.4s ease infinite;
 }
-.stat-card-value {
-  margin: 0;
-  font-size: 1.7rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--on-surface, #111);
-  font-variant-numeric: tabular-nums;
-}
-.stat-card-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-.stat-card-icon .material-symbols-outlined { font-size: 22px; }
+.skel--sm { height: 12px; width: 90px; }
+.skel--lg { height: 32px; width: 120px; margin-top: 4px; }
+.skel--full { height: 40px; width: 100%; margin-top: 4px; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
-.stat-card-spark { margin: 0 -4px; }
+/* ── Head ── */
+.stat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.stat-label {
+  margin: 0 0 5px; font-size: 0.72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+}
+.stat-value {
+  margin: 0; font-size: 1.7rem; font-weight: 800;
+  letter-spacing: -0.03em; color: var(--text); font-variant-numeric: tabular-nums;
+}
+.stat-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+}
 
-.stat-card-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.78rem;
-  color: var(--on-surface-variant, #5f675f);
-  margin-top: 2px;
+/* ── Spark ── */
+.stat-spark { margin: 0 -4px; }
+
+/* ── Foot ── */
+.stat-foot {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.78rem; color: var(--muted); margin-top: 2px;
 }
 .stat-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  background: rgba(17, 17, 17, 0.05);
-  color: var(--on-surface-variant);
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 0.74rem; font-weight: 700;
+  background: var(--surface); color: var(--muted);
 }
-.stat-delta .material-symbols-outlined { font-size: 14px; }
-.stat-delta.is-up { background: rgba(var(--green-rgb), 0.1); color: var(--green); }
-.stat-delta.is-down { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
-.stat-delta-label { color: var(--on-surface-variant); }
+.stat-delta.is-up { background: var(--green-soft); color: var(--green-deep); }
+.stat-delta.is-down { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
+.stat-delta-label { color: var(--muted); }
+
+[data-theme="dark"] .stat-card { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 </style>

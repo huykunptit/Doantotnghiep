@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học...' })
 interface CategoryItem { id: number; name: string; }
@@ -92,6 +93,35 @@ async function deleteCourse() {
   }
 }
 
+const { exportToCSV } = useExport()
+
+function exportData() {
+  const cols = [
+    { key: 'id', label: 'ID Khóa học' },
+    { key: 'title', label: 'Tiêu đề' },
+    { key: 'category', label: 'Danh mục', format: (_: any, row: AdminCourse) => row.category?.name || '--' },
+    { key: 'instructor', label: 'Giảng viên', format: (_: any, row: AdminCourse) => row.instructor?.name || '--' },
+    { key: 'status', label: 'Trạng thái', format: (val: any) => statusLabel(val) },
+    { key: 'lessons_count', label: 'Số bài học', format: (val: any) => String(val || 0) },
+    { key: 'enrollments_count', label: 'Số học viên', format: (val: any) => String(val || 0) }
+  ]
+  exportToCSV(courses.value, cols, 'danh_sach_quan_ly_khoa_hoc')
+}
+
+const visiblePages = computed(() => {
+  const range: number[] = []
+  const maxVisible = 5
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(lastPage.value, start + maxVisible - 1)
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  for (let i = start; i <= end; i++) {
+    if (i >= 1) range.push(i)
+  }
+  return range
+})
+
 onMounted(() => {
   fetchCategories()
   fetchCourses()
@@ -109,7 +139,13 @@ onMounted(() => {
           </select>
           <button class="crud-secondary-btn" type="submit">Tìm kiếm</button>
         </form>
-        <button class="crud-primary-btn" type="button" @click="openCreateModal">Tạo khóa học</button>
+        <div class="crud-toolbar-right">
+          <button class="crud-export-btn" type="button" @click="exportData">
+            <span class="material-symbols-outlined">download</span>
+            Xuất Excel
+          </button>
+          <button class="crud-primary-btn" type="button" @click="openCreateModal">Tạo khóa học</button>
+        </div>
       </div>
       
       <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
@@ -158,10 +194,26 @@ onMounted(() => {
         </table>
       </div>
       <div class="crud-pagination">
-        <p>Trang {{ currentPage }} / {{ lastPage }}</p>
+        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalCourses }} khóa học)</p>
         <div class="crud-pagination-actions">
-          <button class="crud-secondary-btn" type="button" :disabled="currentPage <= 1" @click="fetchCourses(currentPage - 1)">Trước</button>
-          <button class="crud-secondary-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchCourses(currentPage + 1)">Sau</button>
+          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchCourses(currentPage - 1)">
+            Trước
+          </button>
+          <div class="pagination-numbers">
+            <button
+              v-for="p in visiblePages"
+              :key="p"
+              class="pagination-num-btn"
+              :class="{ 'is-active': p === currentPage }"
+              type="button"
+              @click="fetchCourses(p)"
+            >
+              {{ p }}
+            </button>
+          </div>
+          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchCourses(currentPage + 1)">
+            Sau
+          </button>
         </div>
       </div>
     </section>

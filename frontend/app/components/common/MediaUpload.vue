@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { RefreshCw, CloudUpload, Trash2, CircleAlert } from 'lucide-vue-next'
 import { useAdminUpload } from '~/composables/useAdminUpload'
 
 type Folder = 'users' | 'settings' | 'courses'
@@ -161,7 +162,8 @@ function clear() {
             :disabled="disabled || isUploading"
             @click="openPicker"
           >
-            <span class="material-symbols-outlined">{{ hasImage ? 'sync' : 'cloud_upload' }}</span>
+            <RefreshCw v-if="hasImage" :size="18" :stroke-width="1.75" />
+            <CloudUpload v-else :size="18" :stroke-width="1.75" />
             <span>{{ hasImage ? 'Thay ảnh' : 'Chọn tệp' }}</span>
           </button>
           <button
@@ -171,13 +173,13 @@ function clear() {
             :disabled="disabled || isUploading"
             @click="clear"
           >
-            <span class="material-symbols-outlined">delete</span>
+            <Trash2 :size="18" :stroke-width="1.75" />
             <span>Xoá</span>
           </button>
         </div>
 
         <p v-if="errorMessage" class="media-upload-error">
-          <span class="material-symbols-outlined">error</span>
+          <CircleAlert :size="16" :stroke-width="1.75" />
           {{ errorMessage }}
         </p>
       </div>
@@ -337,7 +339,6 @@ function clear() {
   cursor: not-allowed;
   opacity: 0.6;
 }
-.media-upload-btn .material-symbols-outlined { font-size: 18px; }
 
 .media-upload-btn.is-primary {
   background: var(--green-deep, #166534);
@@ -367,7 +368,6 @@ function clear() {
   font-size: 0.8rem;
   color: #b91c1c;
 }
-.media-upload-error .material-symbols-outlined { font-size: 16px; }
 
 .media-upload-input {
   position: absolute;

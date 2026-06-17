@@ -12,11 +12,11 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'PTIT LMS',
+      title: 'Sylva LMS',
       meta: [
         {
           name: 'description',
-          content: 'Nen tang hoc tap truc tuyen voi giao dien toi gian, than thien va hien dai.',
+          content: 'Sylva LMS — Nền tảng học tập trực tuyến thế hệ mới, thích nghi và nuôi dưỡng tri thức lâu dài theo triết lý Dương Liễu Mộc.',
         },
       ],
       link: [
@@ -31,7 +31,7 @@ export default defineNuxtConfig({
         },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap',
         },
         {
           rel: 'stylesheet',

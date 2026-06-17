@@ -104,7 +104,7 @@ class AiManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'provider' => ['sometimes', 'required', 'string', 'in:chatgpt,gemini,claude'],
+            'provider' => ['sometimes', 'required', 'string', 'in:chatgpt,gemini,claude,openrouter'],
             'model' => ['sometimes', 'required', 'string', 'max:100'],
             'api_key' => ['nullable', 'string', 'max:500'],
             'monthly_token_quota' => ['sometimes', 'integer', 'min:1000'],
@@ -198,6 +198,20 @@ class AiManagementController extends Controller
                         ['id' => 'claude-3-5-sonnet-20241022', 'name' => 'Claude 3.5 Sonnet', 'tier' => 'standard'],
                         ['id' => 'claude-3-5-haiku-20241022', 'name' => 'Claude 3.5 Haiku', 'tier' => 'economy'],
                         ['id' => 'claude-3-opus-20240229', 'name' => 'Claude 3 Opus', 'tier' => 'premium'],
+                    ],
+                ],
+                [
+                    'id' => 'openrouter',
+                    'name' => 'OpenRouter',
+                    'icon' => 'hub',
+                    'color' => '#7c3aed',
+                    'models' => [
+                        ['id' => 'deepseek/deepseek-chat:free', 'name' => 'DeepSeek V3 (Free)', 'tier' => 'free'],
+                        ['id' => 'meta-llama/llama-3.3-70b-instruct:free', 'name' => 'Llama 3.3 70B (Free)', 'tier' => 'free'],
+                        ['id' => 'google/gemini-2.0-flash-exp:free', 'name' => 'Gemini 2.0 Flash (Free)', 'tier' => 'free'],
+                        ['id' => 'qwen/qwen-2.5-72b-instruct:free', 'name' => 'Qwen 2.5 72B (Free)', 'tier' => 'free'],
+                        ['id' => 'google/gemini-2.5-pro', 'name' => 'Gemini 2.5 Pro', 'tier' => 'premium'],
+                        ['id' => 'anthropic/claude-sonnet-4', 'name' => 'Claude Sonnet 4', 'tier' => 'premium'],
                     ],
                 ],
             ],

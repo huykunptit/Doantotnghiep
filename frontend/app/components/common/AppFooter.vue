@@ -17,7 +17,14 @@ const footerCopyright = computed(
       <div class="cd-footer-brand">
         <div class="cd-footer-logo-group">
           <img v-if="siteLogo" :src="siteLogo" :alt="siteName" class="cd-footer-logo">
-          <div v-else class="cd-footer-icon">{{ brandMark }}</div>
+          <div v-else class="cd-footer-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 22C12 22 22 12 22 2" />
+              <path d="M12 12C12 8 16 4 22 2" />
+              <path d="M12 12C8 12 4 16 2 22" />
+              <path d="M22 2c-3.5 6.5-9 9-20 20 6.5-3.5 9-9 20-20z" fill="currentColor" opacity="0.2"/>
+            </svg>
+          </div>
           <div>
             <p class="cd-footer-title">{{ siteName }}</p>
             <p class="cd-footer-slogan">{{ siteTagline || 'Nền tảng học tập số' }}</p>
@@ -27,7 +34,7 @@ const footerCopyright = computed(
         <div class="cd-footer-tags">
           <span class="cd-tag">E-Learning</span>
           <span class="cd-tag">LMS</span>
-          <span class="cd-tag">PTIT Graduation Project</span>
+          <span class="cd-tag">Adaptive LMS</span>
         </div>
       </div>
 

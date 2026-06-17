@@ -38,8 +38,53 @@ export function useExport() {
     URL.revokeObjectURL(url)
   }
 
+  function exportToPDF(
+    title: string,
+    subtitle: string,
+    tableHeaders: string[],
+    tableRows: (string | number)[][][],
+    filename = 'report',
+  ) {
+    if (!import.meta.client) return
+    const date = new Date().toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' })
+    const thead = `<tr>${tableHeaders.map(h => `<th>${h}</th>`).join('')}</tr>`
+    const tbody = tableRows.map(row =>
+      `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`
+    ).join('')
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>${title}</title>
+    <style>
+      body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 24px; color: #111; }
+      .header { border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 20px; }
+      .header h1 { margin: 0; font-size: 22px; }
+      .header p { margin: 4px 0 0; font-size: 13px; color: #666; }
+      .date { font-size: 11px; color: #999; margin-top: 4px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th { background: #f3f4f6; text-align: left; padding: 8px 10px; font-weight: 700; border-bottom: 2px solid #e5e7eb; }
+      td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
+      tr:nth-child(even) td { background: #f9fafb; }
+      @page { size: A4 landscape; margin: 15mm; }
+      @media print { body { padding: 0; } }
+    </style></head><body>
+    <div class="header">
+      <h1>${title}</h1>
+      <p>${subtitle}</p>
+      <p class="date">Xuất ngày: ${date}</p>
+    </div>
+    <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    <script>window.onload=function(){window.print();window.close();}<\/script>
+    </body></html>`
+
+    const w = window.open('', '_blank')
+    if (!w) return
+    w.document.write(html)
+    w.document.close()
+  }
+
   return {
     exportToCSV,
+    exportToPDF,
   }
 }
 

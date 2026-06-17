@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { ChevronRight } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 import { useCourseStore } from '~/stores/course'
@@ -48,7 +49,7 @@ const childCategories = computed(() => category.value?.children || [])
         <!-- Breadcrumbs -->
         <nav class="flex items-center gap-2 text-sm font-semibold text-outline-variant mb-8">
           <NuxtLink to="/categories" class="hover:text-primary transition-colors">Tất cả chuyên mục</NuxtLink>
-          <span class="material-symbols-outlined text-sm">chevron_right</span>
+          <ChevronRight :size="16" :stroke-width="1.75" />
           <span class="text-on-surface-variant">{{ category?.name || 'Đang tải...' }}</span>
         </nav>
 

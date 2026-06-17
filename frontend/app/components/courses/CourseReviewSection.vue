@@ -2,7 +2,7 @@
   <section class="cd-card">
     <div class="cd-card-header">
       <h2 class="cd-card-title">
-        <span class="material-symbols-outlined cd-card-icon">star_rate</span>
+        <Star :size="22" :stroke-width="1.75" class="cd-card-icon" />
         Đánh giá của học viên
       </h2>
     </div>
@@ -11,16 +11,19 @@
     <div v-if="isEnrolled && canReview" class="mb-6 rounded-2xl bg-surface-low p-5 border border-surface-dim/50">
       <h3 class="mb-3 text-sm font-bold text-on-surface">Đánh giá khóa học này</h3>
       <div class="flex items-center gap-2 mb-3">
-        <button 
-          v-for="star in 5" :key="star" 
+        <button
+          v-for="star in 5" :key="star"
           @click="reviewForm.rating = star"
           @mouseenter="hoverRating = star"
           @mouseleave="hoverRating = 0"
           class="text-2xl transition-colors focus:outline-none"
           :class="(hoverRating || reviewForm.rating) >= star ? 'text-amber-400' : 'text-surface-dim'"
-          style="font-variation-settings: 'FILL' 1;"
         >
-          <span class="material-symbols-outlined">star</span>
+          <Star
+            :size="24"
+            :stroke-width="1.75"
+            :style="{ fill: (hoverRating || reviewForm.rating) >= star ? 'currentColor' : 'none' }"
+          />
         </button>
         <span v-if="reviewForm.rating" class="ml-2 text-sm font-bold text-amber-500">{{ reviewForm.rating }} / 5</span>
       </div>
@@ -59,9 +62,14 @@
             <div>
               <p class="text-sm font-bold text-on-surface">{{ review.user?.name || 'Học viên ẩn danh' }}</p>
               <div class="flex items-center gap-1 mt-0.5">
-                <span v-for="star in 5" :key="star" class="text-[14px]" :class="star <= review.rating ? 'text-amber-400' : 'text-surface-dim'" style="font-variation-settings: 'FILL' 1;">
-                  <span class="material-symbols-outlined">star</span>
-                </span>
+                <Star
+                  v-for="star in 5"
+                  :key="star"
+                  :size="14"
+                  :stroke-width="1.75"
+                  :class="star <= review.rating ? 'text-amber-400' : 'text-surface-dim'"
+                  :style="{ fill: star <= review.rating ? 'currentColor' : 'none' }"
+                />
                 <span class="ml-2 text-xs text-on-surface-variant">{{ relativeTime(review.created_at) }}</span>
               </div>
             </div>
@@ -82,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { Star } from 'lucide-vue-next'
 import { useApi } from '~/composables/useApi'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 

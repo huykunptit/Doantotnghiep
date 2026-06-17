@@ -1,23 +1,26 @@
-<template>
-      <section class="space-y-8">
-      <AppPageHeader eyebrow="Instructor" title="Ngân hàng câu hỏi" :description="`Quản lý bộ câu hỏi cho khóa học #${courseId}`">
-        <template #actions>
-          <UiButton to="/instructor/courses" variant="secondary">Quay lại</UiButton>
-        </template>
-      </AppPageHeader>
-
-      <UiCard>
-        <QuestionBankManager :course-id="Number(courseId)" />
-      </UiCard>
-    </section>
-  </template>
-
 <script setup lang="ts">
 const route = useRoute()
 const courseId = route.params.id
 
 definePageMeta({
   layout: 'instructor',
-  middleware: 'auth',
+  middleware: 'instructor',
 })
 </script>
+
+<template>
+  <section class="crud-page">
+    <header class="crud-page-header dashboard-card">
+      <div>
+        <p class="section-kicker">Giảng viên</p>
+        <h2>Ngân hàng câu hỏi</h2>
+        <p>Quản lý bộ câu hỏi cho khoá học #{{ courseId }}</p>
+      </div>
+      <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="crud-secondary-btn">
+        ← Quay lại Curriculum
+      </NuxtLink>
+    </header>
+
+    <QuestionBankManager :course-id="Number(courseId)" />
+  </section>
+</template>

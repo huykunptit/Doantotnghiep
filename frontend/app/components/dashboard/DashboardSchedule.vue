@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { List, CalendarDays, Calendar, MapPin, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 interface ScheduleEvent {
   id: number
@@ -135,19 +136,19 @@ function getEventsForDay(day: number) {
       </div>
       
       <div class="view-switcher">
-        <button 
-          class="view-btn" 
+        <button
+          class="view-btn"
           :class="{ active: activeView === 'list' }"
           @click="activeView = 'list'"
         >
-          <span class="material-symbols-outlined">list</span>
+          <List :size="20" :stroke-width="1.75" />
         </button>
-        <button 
-          class="view-btn" 
+        <button
+          class="view-btn"
           :class="{ active: activeView === 'calendar' }"
           @click="activeView = 'calendar'"
         >
-          <span class="material-symbols-outlined">calendar_month</span>
+          <CalendarDays :size="20" :stroke-width="1.75" />
         </button>
       </div>
     </header>
@@ -168,7 +169,7 @@ function getEventsForDay(day: number) {
 
       <div class="schedule-list">
         <div v-if="events.length === 0" class="schedule-empty">
-          <span class="material-symbols-outlined">event_busy</span>
+          <Calendar :size="24" :stroke-width="1.75" />
           <p>Không có hoạt động nào trong ngày này.</p>
         </div>
         
@@ -186,7 +187,7 @@ function getEventsForDay(day: number) {
                 {{ event.type }}
               </span>
               <span v-if="event.location" class="event-loc">
-                <span class="material-symbols-outlined">location_on</span>
+                <MapPin :size="16" :stroke-width="1.75" />
                 {{ event.location }}
               </span>
             </div>
@@ -213,11 +214,11 @@ function getEventsForDay(day: number) {
 
       <div class="calendar-nav">
         <button class="nav-btn" @click="prevMonth">
-          <span class="material-symbols-outlined">chevron_left</span>
+          <ChevronLeft :size="18" :stroke-width="1.75" />
         </button>
         <span class="month-label">{{ currentMonthLabel }}</span>
         <button class="nav-btn" @click="nextMonth">
-          <span class="material-symbols-outlined">chevron_right</span>
+          <ChevronRight :size="18" :stroke-width="1.75" />
         </button>
       </div>
 
@@ -324,9 +325,6 @@ function getEventsForDay(day: number) {
   transition: all 0.2s;
 }
 
-.view-btn .material-symbols-outlined {
-  font-size: 20px;
-}
 
 .view-btn.active {
   background: white;
@@ -482,9 +480,6 @@ function getEventsForDay(day: number) {
   cursor: pointer;
 }
 
-.nav-btn .material-symbols-outlined {
-  font-size: 18px;
-}
 
 .calendar-grid {
   display: grid;

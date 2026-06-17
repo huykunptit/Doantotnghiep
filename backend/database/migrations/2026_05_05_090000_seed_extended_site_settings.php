@@ -29,7 +29,7 @@ return new class extends Migration {
             'social_zalo'        => null,
 
             // Legal / Footer
-            'footer_copyright'   => '© ' . date('Y') . ' ERIPT LMS. All rights reserved.',
+            'footer_copyright'   => '© ' . date('Y') . ' Sylva LMS. All rights reserved.',
             'legal_company_name' => null,
             'legal_tax_code'     => null,
             'terms_url'          => null,

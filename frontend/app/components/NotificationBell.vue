@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { Bell, BellOff, GraduationCap, ReceiptText, CircleCheckBig, XCircle, Star, Info } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
@@ -7,6 +8,19 @@ const open = ref(false)
 const loading = ref(false)
 const notifications = ref<any[]>([])
 const unreadCount = ref(0)
+
+const typeIconMap: Record<string, any> = {
+  enrollment: GraduationCap,
+  order: ReceiptText,
+  course_approved: CircleCheckBig,
+  course_rejected: XCircle,
+  review: Star,
+  system: Info,
+}
+
+function getTypeIcon(type: string) {
+  return typeIconMap[type] || Bell
+}
 
 async function fetchUnreadCount() {
   if (!auth.token) return
@@ -38,7 +52,7 @@ async function markAllRead() {
       headers: { Authorization: `Bearer ${auth.token}` },
     })
     unreadCount.value = 0
-    notifications.value.forEach(n => n.read_at = new Date().toISOString())
+    notifications.value.forEach(n => (n.read_at = new Date().toISOString()))
   } catch {}
 }
 
@@ -58,51 +72,36 @@ function formatTime(date: string) {
   return d.toLocaleDateString('vi-VN')
 }
 
-const typeIcon = (type: string) => {
-  const map: Record<string, string> = {
-    enrollment: 'school',
-    order: 'receipt_long',
-    course_approved: 'check_circle',
-    course_rejected: 'cancel',
-    review: 'star',
-    system: 'info',
-  }
-  return map[type] || 'notifications'
-}
-
 onMounted(fetchUnreadCount)
 
-// Poll every 60s
 if (import.meta.client) {
   setInterval(fetchUnreadCount, 60000)
 }
 </script>
 
 <template>
-  <div class="cd-bell-wrap">
-    <button @click="toggleDropdown" class="cd-bell-btn">
-      <span class="material-symbols-outlined cd-bell-icon">notifications</span>
-      <span v-if="unreadCount > 0" class="cd-bell-badge">
+  <div class="nb-wrap">
+    <button class="nb-btn" :aria-label="`Thông báo${unreadCount > 0 ? ` (${unreadCount} chưa đọc)` : ''}`" @click="toggleDropdown">
+      <Bell :size="18" :stroke-width="1.75" />
+      <span v-if="unreadCount > 0" class="nb-badge">
         {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
     </button>
 
     <!-- Dropdown -->
-    <Transition name="cd-fade-slide">
-      <div v-if="open" class="cd-notif-dropdown" @click.stop>
-        <!-- Header -->
-        <div class="cd-notif-header">
-          <h4 class="cd-notif-title">Thông báo</h4>
-          <button v-if="unreadCount > 0" @click="markAllRead" class="cd-notif-mark-read">
+    <Transition name="nb-pop">
+      <div v-if="open" class="nb-dropdown" @click.stop>
+        <div class="nb-header">
+          <h4 class="nb-title">Thông báo</h4>
+          <button v-if="unreadCount > 0" class="nb-mark-read" @click="markAllRead">
             Đánh dấu tất cả đã đọc
           </button>
         </div>
 
-        <!-- List -->
-        <div class="cd-notif-list">
-          <div v-if="loading" class="cd-notif-empty">Đang tải...</div>
-          <div v-else-if="notifications.length === 0" class="cd-notif-empty">
-            <span class="material-symbols-outlined">notifications_off</span>
+        <div class="nb-list">
+          <div v-if="loading" class="nb-empty">Đang tải...</div>
+          <div v-else-if="notifications.length === 0" class="nb-empty">
+            <BellOff :size="28" :stroke-width="1.5" class="nb-empty-icon" />
             <p>Chưa có thông báo nào</p>
           </div>
           <template v-else>
@@ -110,126 +109,121 @@ if (import.meta.client) {
               v-for="notif in notifications"
               :key="notif.id"
               :to="notif.link || '#'"
-              @click="open = false"
-              class="cd-notif-item"
+              class="nb-item"
               :class="{ 'is-unread': !notif.read_at }"
+              @click="open = false"
             >
-              <div class="cd-notif-icon-wrap" :class="{ 'is-unread-icon': !notif.read_at }">
-                <span class="material-symbols-outlined">{{ typeIcon(notif.type) }}</span>
+              <div class="nb-icon-wrap" :class="{ 'is-unread-icon': !notif.read_at }">
+                <component :is="getTypeIcon(notif.type)" :size="15" :stroke-width="1.75" />
               </div>
-              <div class="cd-notif-content">
-                <p class="cd-notif-msg-title">{{ notif.title }}</p>
-                <p class="cd-notif-msg-desc">{{ notif.message }}</p>
-                <p class="cd-notif-time">{{ formatTime(notif.created_at) }}</p>
+              <div class="nb-content">
+                <p class="nb-msg-title">{{ notif.title }}</p>
+                <p class="nb-msg-desc">{{ notif.message }}</p>
+                <p class="nb-time">{{ formatTime(notif.created_at) }}</p>
               </div>
-              <div v-if="!notif.read_at" class="cd-notif-dot"></div>
+              <div v-if="!notif.read_at" class="nb-dot" />
             </NuxtLink>
           </template>
         </div>
       </div>
     </Transition>
 
-    <!-- Click outside to close -->
-    <div v-if="open" class="cd-notif-overlay" @click="open = false"></div>
+    <div v-if="open" class="nb-overlay" @click="open = false" />
   </div>
 </template>
 
 <style scoped>
-.cd-bell-wrap { position: relative; }
+.nb-wrap { position: relative; }
 
-.cd-bell-btn {
+.nb-btn {
   position: relative;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: #fff;
-  border: 1px solid rgba(var(--green-rgb), 0.1);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface-strong, #fff); color: var(--muted);
+  cursor: pointer; transition: color 150ms, background 150ms, border-color 150ms;
 }
-.cd-bell-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.nb-btn:hover { color: var(--text); background: var(--surface); border-color: rgba(var(--primary-rgb), 0.2); }
 
-.cd-bell-icon { font-size: 20px; color: var(--outline, #64748b); transition: color 0.2s; }
-.cd-bell-btn:hover .cd-bell-icon { color: var(--primary, var(--green)); }
-
-.cd-bell-badge {
-  position: absolute; top: -2px; right: -2px;
+.nb-badge {
+  position: absolute; top: -4px; right: -4px;
   display: flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: #ef4444; color: #fff;
-  font-size: 10px; font-weight: 700;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: #ef4444; color: #fff; font-size: 0.625rem; font-weight: 700;
+  box-shadow: 0 0 0 2px var(--surface-strong, #fff);
 }
 
-.cd-notif-dropdown {
-  position: absolute; right: 0; top: 48px; z-index: 50;
-  width: 320px;
-  background: #fff;
-  border-radius: 24px;
-  border: 1px solid rgba(var(--green-rgb), 0.1);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+/* ── Dropdown ── */
+.nb-dropdown {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 300;
+  width: 340px; max-width: calc(100vw - 32px);
+  background: var(--surface-strong, #fff);
+  border-radius: 12px; border: 1px solid var(--line);
+  box-shadow: 0 12px 40px -12px rgba(31, 49, 43, 0.18);
   overflow: hidden;
 }
-@media (min-width: 640px) { .cd-notif-dropdown { width: 384px; } }
 
-.cd-notif-header {
+.nb-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.08);
-  background: var(--surface-low, #f1f5f9);
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
-.cd-notif-title { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--on-surface, #0f172a); }
-.cd-notif-mark-read {
+.nb-title { margin: 0; font-size: 0.875rem; font-weight: 700; color: var(--text); }
+.nb-mark-read {
   background: transparent; border: none; padding: 0;
-  font-size: 0.75rem; font-weight: 600; color: var(--primary, var(--green));
-  cursor: pointer;
+  font-size: 0.75rem; font-weight: 600; color: var(--green); cursor: pointer;
 }
-.cd-notif-mark-read:hover { text-decoration: underline; }
+.nb-mark-read:hover { text-decoration: underline; }
 
-.cd-notif-list { max-height: 320px; overflow-y: auto; }
+.nb-list { max-height: 340px; overflow-y: auto; }
+.nb-list::-webkit-scrollbar { width: 4px; }
+.nb-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
 
-.cd-notif-empty {
-  padding: 24px; text-align: center; color: var(--on-surface-variant, #475569); font-size: 0.875rem;
+.nb-empty {
+  padding: 28px 16px; text-align: center;
+  color: var(--muted); font-size: 0.875rem;
 }
-.cd-notif-empty .material-symbols-outlined { font-size: 32px; color: var(--outline, #64748b); margin-bottom: 8px; display: block; }
-.cd-notif-empty p { margin: 0; }
+.nb-empty-icon { margin: 0 auto 10px; display: block; color: var(--muted); }
+.nb-empty p { margin: 0; }
 
-.cd-notif-item {
+.nb-item {
   display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.05);
-  text-decoration: none; transition: background 0.2s;
+  padding: 12px 14px; border-bottom: 1px solid var(--line);
+  text-decoration: none; transition: background 150ms;
 }
-.cd-notif-item:last-child { border-bottom: none; }
-.cd-notif-item:hover { background: var(--surface-low, #f1f5f9); }
-.cd-notif-item.is-unread { background: rgba(var(--green-rgb), 0.04); }
+.nb-item:last-child { border-bottom: none; }
+.nb-item:hover { background: var(--surface); }
+.nb-item.is-unread { background: rgba(var(--primary-rgb), 0.03); }
 
-.cd-notif-icon-wrap {
+.nb-icon-wrap {
   display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; margin-top: 2px;
-  background: var(--surface-high, #e2e8f0); color: var(--outline, #64748b);
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; margin-top: 1px;
+  background: var(--surface); color: var(--muted);
 }
-.cd-notif-icon-wrap.is-unread-icon { background: rgba(var(--green-rgb), 0.1); color: var(--primary, var(--green)); }
-.cd-notif-icon-wrap .material-symbols-outlined { font-size: 16px; }
+.nb-icon-wrap.is-unread-icon { background: var(--green-soft); color: var(--green); }
 
-.cd-notif-content { min-width: 0; flex: 1; }
-.cd-notif-msg-title {
-  margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--on-surface, #0f172a);
+.nb-content { min-width: 0; flex: 1; }
+.nb-msg-title {
+  margin: 0; font-size: 0.84rem; font-weight: 600; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.cd-notif-msg-desc {
-  margin: 2px 0 0; font-size: 0.75rem; color: var(--on-surface-variant, #475569);
+.nb-msg-desc {
+  margin: 2px 0 0; font-size: 0.75rem; color: var(--muted);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.cd-notif-time { margin: 4px 0 0; font-size: 0.625rem; color: var(--outline, #64748b); }
+.nb-time { margin: 4px 0 0; font-size: 0.6875rem; color: var(--muted); opacity: 0.7; }
 
-.cd-notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary, var(--green)); margin-top: 8px; flex-shrink: 0; }
+.nb-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); margin-top: 6px; flex-shrink: 0;
+}
 
-.cd-notif-overlay { position: fixed; inset: 0; z-index: 40; }
+.nb-overlay { position: fixed; inset: 0; z-index: 299; }
 
-/* Transitions */
-.cd-fade-slide-enter-active { transition: all 0.2s ease-out; }
-.cd-fade-slide-leave-active { transition: all 0.15s ease-in; }
-.cd-fade-slide-enter-from, .cd-fade-slide-leave-to { opacity: 0; transform: translateY(4px) scale(0.95); }
+/* ── Transition ── */
+.nb-pop-enter-active { transition: opacity 180ms ease, transform 180ms ease; }
+.nb-pop-leave-active { transition: opacity 130ms ease, transform 130ms ease; }
+.nb-pop-enter-from, .nb-pop-leave-to { opacity: 0; transform: translateY(-6px) scale(0.97); }
+
+[data-theme="dark"] .nb-dropdown { background: #0F2219; border-color: rgba(255,255,255,0.08); }
+[data-theme="dark"] .nb-header { background: rgba(255,255,255,0.04); }
 </style>

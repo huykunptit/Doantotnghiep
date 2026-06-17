@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { GraduationCap, Star } from 'lucide-vue-next'
 import { useApi } from '~/composables/useApi'
 
 interface RecItem {
@@ -75,7 +76,7 @@ onMounted(load)
       >
         <div class="rec-thumb">
           <img v-if="item.course.thumbnail" :src="item.course.thumbnail" :alt="item.course.title">
-          <span v-else class="material-symbols-outlined">school</span>
+          <GraduationCap v-else :size="36" :stroke-width="1.75" />
         </div>
         <div class="rec-body">
           <p class="rec-category">{{ item.course.category?.name || 'Extension' }}</p>
@@ -87,7 +88,7 @@ onMounted(load)
           <div class="rec-foot">
             <strong class="rec-price">{{ item.course.price > 0 ? formatPrice(item.course.price) : 'Miễn phí' }}</strong>
             <span class="rec-score" :title="`Điểm gợi ý: ${item.score}`">
-              <span class="material-symbols-outlined">star</span>
+              <Star :size="14" :stroke-width="1.75" />
               {{ item.score }}
             </span>
           </div>
@@ -147,7 +148,6 @@ onMounted(load)
   color: var(--green-deep);
 }
 .rec-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.rec-thumb .material-symbols-outlined { font-size: 36px; }
 
 .rec-body { display: grid; gap: 4px; }
 .rec-category { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin: 0; }
@@ -193,7 +193,7 @@ onMounted(load)
   font-size: 0.8rem;
   font-weight: 600;
 }
-.rec-score .material-symbols-outlined { font-size: 14px; color: #ca8a04; }
+.rec-score svg { color: #ca8a04; }
 
 .rec-skeleton {
   display: grid;

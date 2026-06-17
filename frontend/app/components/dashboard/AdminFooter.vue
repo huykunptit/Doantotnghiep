@@ -17,8 +17,8 @@ const quickLinks = [
       <div class="af-brand">
         <div class="af-brand-mark" />
         <div>
-          <p class="af-brand-name">EduPress Admin</p>
-          <p class="af-brand-sub"> PTIT {{ year }}</p>
+          <p class="af-brand-name">Sylva LMS Admin</p>
+          <p class="af-brand-sub"> Sylva {{ year }}</p>
         </div>
       </div>
 

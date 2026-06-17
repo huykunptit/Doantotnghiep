@@ -1,6 +1,6 @@
-# ERIPT LMS 🎓
+# Sylva LMS 🎓
 
-ERIPT LMS là nền tảng quản lý học tập (Learning Management System) trực tuyến toàn diện với trải nghiệm mua khóa học và thanh toán tích hợp. Hệ thống được thiết kế với giao diện hiện đại (chuẩn Editorial) và kiến trúc mạnh mẽ, cung cấp trải nghiệm học tập và giảng dạy tối ưu, kết hợp cùng hệ thống thi trắc nghiệm, giám sát thi chuyên nghiệp và dịch vụ AI mở rộng.
+Sylva LMS là nền tảng quản lý học tập (Learning Management System) trực tuyến toàn diện với trải nghiệm mua khóa học và thanh toán tích hợp. Hệ thống được thiết kế với giao diện hiện đại (chuẩn Editorial) và kiến trúc mạnh mẽ, cung cấp trải nghiệm học tập và giảng dạy tối ưu, kết hợp cùng hệ thống thi trắc nghiệm, giám sát thi chuyên nghiệp và dịch vụ AI mở rộng.
 
 > **Lưu ý**: Đây là dự án Đồ án tốt nghiệp (Học viện Công nghệ Bưu chính Viễn thông - PTIT).
 
@@ -37,19 +37,28 @@ ERIPT LMS là nền tảng quản lý học tập (Learning Management System) t
 ## 🛠️ Công nghệ sử dụng
 
 **Backend (RESTful API):**
-- [Laravel 11](https://laravel.com/) (PHP)
-- MySQL (Database)
-- Redis (Caching & Queue)
-- JWT Authentication
+- [Laravel 13](https://laravel.com/) (PHP 8.3)
+- MySQL 8.0 (Database chính)
+- MongoDB 7 (Chat history, logs)
+- Redis 7 (Caching & Queue)
+- Laravel Sanctum (Authentication)
 
-**Frontend (Client & Admin):**
-- [Nuxt.js 3](https://nuxt.com/) (Vue.js 3)
-- Tailwind CSS (Styling)
-- Pinia (State Management)
+**Frontend:**
+- [Nuxt.js 4](https://nuxt.com/) (Vue.js 3)
 - TypeScript
+- Pinia (State Management)
 
-**Hạ tầng & Triển khai:**
-- Docker & Docker Compose (Môi trường phát triển cục bộ)
+**AI Service:**
+- FastAPI (Python)
+- OpenAI / Gemini / OpenRouter API
+- ChromaDB + multilingual-e5-base (RAG Pipeline — planned)
+
+**Hạ tầng:**
+- Docker & Docker Compose
+- Nginx (Reverse proxy)
+- MinIO (Object storage — video, file)
+- n8n (Workflow automation)
+- phpMyAdmin (Database management)
 
 ---
 
@@ -67,47 +76,104 @@ ERIPT LMS là nền tảng quản lý học tập (Learning Management System) t
 
 ---
 
-## �🚀 Hướng dẫn cài đặt (Local Development)
+## 🚀 Hướng dẫn cài đặt (Local Development)
 
-Yêu cầu môi trường: Có cài đặt sẵn **Docker** và **Docker Compose**.
+Yêu cầu: **Docker** và **Docker Compose** đã được cài đặt.
 
-### Bước 1: Clone kho lưu trữ
+### Bước 1: Clone repository
 ```bash
-git clone https://github.com/your-username/eript-lms.git
-cd eript-lms
+git clone https://github.com/huykunptit/Doantotnghiep.git
+cd Doantotnghiep
 ```
 
-### Bước 2: Cấu hình biến môi trường
-**Backend:**
+### Bước 2: Build & khởi chạy toàn bộ stack
 ```bash
-cd backend
-cp .env.example .env
-# Chỉnh sửa file .env với thông tin database phù hợp (ví dụ: host là mysql_db nếu dùng docker)
-# Thêm cấu hình thanh toán nếu cần: PAYMENT_GATEWAY, PAYMENT_SECRET, PAYMENT_CALLBACK_URL
+sudo docker compose build --no-cache
+sudo docker compose up -d
 ```
 
-**Frontend:**
-```bash
-cd ../frontend
-cp .env.example .env
-# Đảm bảo NUXT_PUBLIC_API_BASE chỉ tới đúng URL của backend API
-```
+> File `.env` của backend được tự động tạo từ `.env.example` khi container khởi động.
 
-### Bước 3: Khởi chạy bằng Docker
-Tại thư mục gốc của project (nơi chứa file `docker-compose.yml`), chạy lệnh:
-```bash
-docker-compose up -d --build
-```
+### Bước 3: Truy cập ứng dụng
 
-### Bước 4: Khởi tạo Database
-Sau khi các container đã chạy, tiến hành migrate database và tạo dữ liệu mẫu (Seeder):
-```bash
-docker exec -it lms_backend php artisan migrate:fresh --seed
-```
+---
 
-### Bước 5: Truy cập Ứng dụng
-- **Frontend (Giao diện người dùng/Admin)**: `http://localhost:3000`
-- **Backend API**: `http://localhost:8000`
+## 🌐 Danh sách Services & Cổng truy cập
+
+| Service | Container | Cổng host | Truy cập | Ghi chú |
+|---|---|---|---|---|
+| **Nginx** (Entry point) | `lms_nginx` | `80` | http://localhost | Proxy toàn bộ traffic |
+| **Frontend** (Nuxt) | `lms_frontend` | _(internal)_ | http://localhost/ | Qua nginx |
+| **Backend** (Laravel) | `lms_backend` | _(internal)_ | http://localhost/api | Qua nginx |
+| **AI Service** (FastAPI) | `lms_ai_service` | `8001` | http://localhost:8001 | REST API trực tiếp |
+| **phpMyAdmin** | `lms_phpmyadmin` | `8083` | http://localhost:8083 | Quản lý MySQL |
+| **n8n** (Automation) | `lms_n8n` | `5678` | http://localhost:5678 | Workflow automation |
+| **MinIO Console** | `lms_minio` | `9001` | http://localhost:9001 | Quản lý object storage |
+| **MinIO API** | `lms_minio` | `9000` | http://localhost:9000 | S3-compatible API |
+| **MySQL** | `lms_mysql` | `3308` | `localhost:3308` | Kết nối qua client |
+| **Redis** | `lms_redis` | `6379` | `localhost:6379` | Cache & Queue |
+| **MongoDB** | `lms_mongodb` | `27017` | `localhost:27017` | Chat history |
+
+### 🔑 Thông tin đăng nhập mặc định
+
+| Service | Username | Password |
+|---|---|---|
+| **phpMyAdmin / MySQL** | `root` | `root` |
+| **MySQL** (app user) | `lms_user` | `lms_password` |
+| **MinIO** | `minioadmin` | `minioadmin123` |
+| **n8n** | `admin` | `admin123` |
+
+### 👤 Tài khoản mẫu (Seeder)
+
+Tất cả tài khoản dùng mật khẩu chung: **`password`**
+
+| Vai trò | Email | Số lượng |
+|---|---|---|
+| **Admin** | `admin@lms.com` | 1 |
+| **Giảng viên** | `instructor1@lms.com` → `instructor8@lms.com` | 8 |
+| **Sinh viên** | `student1@lms.com` → `student18@lms.com` | 18 |
+
+**Dữ liệu mẫu được tạo kèm:**
+- Danh mục khóa học, khóa học core (miễn phí, gắn chương trình đào tạo) và extension (có phí, marketplace)
+- Đơn hàng, ghi danh, đánh giá, tiến độ học, kết quả quiz cho sinh viên
+- Cấu trúc tổ chức học vụ (khoa, ngành, chương trình đào tạo, lớp, học kỳ)
+- Ngân hàng câu hỏi, CV sinh viên, gợi ý nghề nghiệp AI
+
+---
+
+### 🤖 Cấu hình AI Provider
+
+Vào **Admin → Quản lý AI** để cấu hình provider và API key:
+
+| Provider | API Key lấy ở đâu |
+|---|---|
+| OpenAI (ChatGPT) | https://platform.openai.com/api-keys |
+| Google Gemini | https://aistudio.google.com/app/apikey |
+| OpenRouter (free models) | https://openrouter.ai/keys |
+
+---
+
+## 🐳 Lệnh Docker thường dùng
+
+```bash
+# Khởi động toàn bộ
+sudo docker compose up -d
+
+# Build lại không cache
+sudo docker compose build --no-cache && sudo docker compose up -d
+
+# Xem log backend
+sudo docker compose logs backend -f
+
+# Restart một service
+sudo docker compose restart backend
+
+# Dừng toàn bộ (giữ volume)
+sudo docker compose down
+
+# Dừng và xóa sạch volume (reset database)
+sudo docker compose down -v
+```
 
 ---
 

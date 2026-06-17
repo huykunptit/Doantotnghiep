@@ -1,149 +1,82 @@
-<template>
-  <div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="mb-6 flex items-center justify-between">
-      <div>
-        <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="text-sm text-on-surface-variant hover:text-primary">
-          ← Quay lại Curriculum
-        </NuxtLink>
-        <h1 class="text-2xl font-bold text-on-surface mt-2">Tài liệu đính kèm</h1>
-        <p class="text-on-surface-variant text-sm mt-1">Bài học: {{ lesson?.title }}</p>
-      </div>
-    </div>
-
-    <!-- Upload Area -->
-    <div class="card p-6 mb-8 border-2 border-dashed border-surface-dim/30 bg-surface-low text-center relative hover:border-primary transition-colors">
-      <input type="file" ref="fileInput" @change="handleFileChange" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" :disabled="uploading">
-      
-      <div v-if="uploading" class="py-8">
-        <svg class="animate-spin h-8 w-8 text-primary mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        <p class="text-on-surface-variant font-medium">Đang tải lên tài liệu...</p>
-      </div>
-      <div v-else class="py-8 pointer-events-none">
-        <svg class="w-12 h-12 text-outline mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-        <p class="text-on-surface font-medium mb-1">Kéo thả file vào đây hoặc click để chọn</p>
-        <p class="text-sm text-on-surface-variant">Hỗ trợ PDF, DOCX, ZIP, PPTX (Tối đa 50MB)</p>
-      </div>
-    </div>
-
-    <div v-if="loading" class="card p-6 text-center text-on-surface-variant animate-pulse">
-      Đang tải tài liệu...
-    </div>
-    
-    <!-- Attachments List -->
-    <div v-else class="card overflow-hidden">
-      <div class="px-6 py-4 border-b border-surface-dim/10 bg-surface-low">
-        <h2 class="text-lg font-semibold text-on-surface">Tài liệu đã tải lên ({{ attachments.length }})</h2>
-      </div>
-
-      <div v-if="attachments.length === 0" class="p-8 text-center text-on-surface-variant">
-        Chưa có tài liệu đính kèm nào.
-      </div>
-
-      <ul v-else class="divide-y divide-surface-dim/10">
-        <li v-for="file in attachments" :key="file.id" class="p-5 flex items-center justify-between hover:bg-surface-low transition-colors">
-          <div class="flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-on-surface line-clamp-1 truncate" style="max-width: 400px;">{{ file.original_name }}</p>
-              <div class="flex items-center gap-3 text-xs text-on-surface-variant mt-1">
-                <span>{{ file.file_size }}</span>
-                <span>{{ formatDate(file.created_at) }}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="flex items-center gap-2">
-            <button @click="downloadFile(file)" class="btn-icon text-on-surface-variant hover:text-primary" title="Tải xuống">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-            </button>
-            <button @click="deleteFile(file)" class="btn-icon text-on-surface-variant hover:text-error" title="Xóa">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-            </button>
-          </div>
-        </li>
-      </ul>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { useAuthStore } from '~/stores/auth'
-import { useApi } from '~/composables/useApi'
-definePageMeta({ middleware: 'instructor' })
+import { onMounted, ref } from 'vue'
+
+definePageMeta({ middleware: 'instructor', layout: 'instructor' })
 
 const route = useRoute()
-const auth = useAuthStore()
+const token = useAuthTokenCookie()
+const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
 
 const courseId = Number(route.params.id)
 const lessonId = Number(route.params.lessonId)
 
 const loading = ref(true)
 const uploading = ref(false)
+const uploadError = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
-
 const lesson = ref<any>(null)
 const attachments = ref<any[]>([])
 
-function formatDate(val: string) {
-  if (!val) return ''
-  return new Date(val).toLocaleDateString('vi-VN')
+const ICON_MAP: Record<string, string> = {
+  pdf: 'picture_as_pdf',
+  doc: 'description', docx: 'description',
+  xls: 'table_chart', xlsx: 'table_chart',
+  ppt: 'slideshow', pptx: 'slideshow',
+  zip: 'folder_zip', rar: 'folder_zip',
+  mp4: 'movie', mp3: 'music_note',
 }
 
-onMounted(async () => {
-  await loadData()
-})
+function fileIcon(name: string) {
+  const ext = name?.split('.').pop()?.toLowerCase() || ''
+  return ICON_MAP[ext] || 'attach_file'
+}
+
+function formatDate(val?: string) {
+  if (!val) return '—'
+  return new Date(val).toLocaleDateString('vi-VN')
+}
 
 async function loadData() {
   loading.value = true
   try {
-    lesson.value = await useApi(`/courses/${courseId}/lessons/${lessonId}`, { token: auth.token })
-    const res = await useApi<{ attachments: any[] }>(`/courses/${courseId}/lessons/${lessonId}/attachments`, { token: auth.token })
-    attachments.value = res.attachments || []
-  } catch (e) {
-    console.error('Failed to load attachments', e)
-  } finally {
-    loading.value = false
+    const [lessonRes, attRes] = await Promise.all([
+      useApi<any>(`/courses/${courseId}/lessons/${lessonId}`, { headers: authHeaders() }),
+      useApi<any>(`/courses/${courseId}/lessons/${lessonId}/attachments`, { headers: authHeaders() }),
+    ])
+    lesson.value = lessonRes
+    attachments.value = attRes.attachments || []
   }
+  catch { attachments.value = [] }
+  finally { loading.value = false }
 }
 
 async function handleFileChange(e: Event) {
+  uploadError.value = ''
   const target = e.target as HTMLInputElement
   if (!target.files || target.files.length === 0) return
-  
   const file = target.files[0]
   if (file.size > 50 * 1024 * 1024) {
-    alert('File vượt quá giới hạn 50MB')
+    uploadError.value = 'File vượt quá giới hạn 50MB.'
+    if (fileInput.value) fileInput.value.value = ''
     return
   }
 
   const formData = new FormData()
   formData.append('file', file)
-
   uploading.value = true
   try {
     const config = useRuntimeConfig()
     const response = await fetch(`${config.public.apiBase}/courses/${courseId}/lessons/${lessonId}/attachments`, {
       method: 'POST',
       body: formData,
-      headers: {
-        'Authorization': `Bearer ${auth.token}`,
-        'Accept': 'application/json'
-      }
+      headers: { Authorization: `Bearer ${token.value}`, Accept: 'application/json' },
     })
-
     if (!response.ok) throw new Error('Upload failed')
-    
     const data = await response.json()
     attachments.value.push(data.attachment)
-    
-  } catch (e: any) {
-    alert('Có lỗi khi tải lên tài liệu.')
-    console.error(e)
-  } finally {
+  }
+  catch { uploadError.value = 'Có lỗi khi tải lên. Vui lòng thử lại.' }
+  finally {
     uploading.value = false
     if (fileInput.value) fileInput.value.value = ''
   }
@@ -151,38 +84,143 @@ async function handleFileChange(e: Event) {
 
 async function downloadFile(file: any) {
   try {
-    const res = await useApi<{ url: string }>(`/courses/${courseId}/lessons/${lessonId}/attachments/${file.id}/download`, { token: auth.token })
+    const res = await useApi<{ url: string }>(`/courses/${courseId}/lessons/${lessonId}/attachments/${file.id}/download`, { headers: authHeaders() })
     window.open(res.url, '_blank')
-  } catch (e) {
-    alert('Không thể tải file lúc này.')
   }
+  catch { alert('Không thể tải file lúc này.') }
 }
 
 async function deleteFile(file: any) {
-  if (!confirm(`Bạn có chắc chắn muốn xóa file "${file.original_name}"?`)) return
-
+  if (!confirm(`Xoá file "${file.original_name}"? Không thể hoàn tác.`)) return
   try {
-    await useApi(`/courses/${courseId}/lessons/${lessonId}/attachments/${file.id}`, { 
+    await useApi(`/courses/${courseId}/lessons/${lessonId}/attachments/${file.id}`, {
       method: 'DELETE',
-      token: auth.token 
+      headers: authHeaders(),
     })
     attachments.value = attachments.value.filter(a => a.id !== file.id)
-  } catch (e) {
-    alert('Không thể xóa file.')
   }
+  catch { alert('Không thể xóa file.') }
 }
+
+onMounted(loadData)
 </script>
 
-<style scoped>
-.btn-icon {
-  padding: 0.5rem;
-  border-radius: 0.75rem;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  border: none;
-  background: transparent;
-}
+<template>
+  <section class="crud-page">
+    <header class="crud-page-header dashboard-card">
+      <div>
+        <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="section-kicker" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+          ← Quay lại Curriculum
+        </NuxtLink>
+        <h2>Tài liệu đính kèm</h2>
+        <p v-if="lesson">Bài học: <strong>{{ lesson.title }}</strong></p>
+      </div>
+      <label class="crud-primary-btn" style="cursor: pointer;">
+        <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">upload</span>
+        Tải lên tài liệu
+        <input ref="fileInput" type="file" style="display: none;" :disabled="uploading" @change="handleFileChange">
+      </label>
+    </header>
 
-.btn-icon:hover {
-  background: #f3f4f6;
+    <div v-if="uploadError" class="crud-alert is-error" style="margin-bottom: 16px;">{{ uploadError }}</div>
+
+    <!-- Drop zone -->
+    <div class="upload-zone dashboard-card" :class="{ 'is-uploading': uploading }" @click="fileInput?.click()">
+      <template v-if="uploading">
+        <span class="material-symbols-outlined upload-icon spinning">sync</span>
+        <p style="font-weight: 600; margin: 8px 0 4px;">Đang tải lên...</p>
+      </template>
+      <template v-else>
+        <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+        <p style="font-weight: 600; margin: 8px 0 4px;">Kéo thả file vào đây hoặc click để chọn</p>
+        <p style="font-size: 0.8rem; color: var(--muted);">Hỗ trợ PDF, DOCX, PPTX, XLSX, ZIP (tối đa 50MB)</p>
+      </template>
+    </div>
+
+    <!-- Attachment list -->
+    <section class="dashboard-card crud-panel">
+      <div class="crud-toolbar" style="margin-bottom: 16px;">
+        <div>
+          <p class="section-kicker">Bài học này</p>
+          <h3>Tài liệu đã tải lên ({{ attachments.length }})</h3>
+        </div>
+      </div>
+
+      <div v-if="loading" class="crud-empty">Đang tải...</div>
+      <div v-else-if="attachments.length === 0" class="crud-empty">
+        Chưa có tài liệu đính kèm nào. Tải lên để học viên có thể tải về.
+      </div>
+
+      <div v-else class="crud-table-wrap">
+        <table class="crud-table">
+          <thead>
+            <tr>
+              <th>Tài liệu</th>
+              <th>Dung lượng</th>
+              <th>Ngày tải lên</th>
+              <th style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="file in attachments" :key="file.id">
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div class="file-icon-wrap">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: var(--green);">{{ fileIcon(file.original_name) }}</span>
+                  </div>
+                  <span style="font-weight: 600; font-size: 0.875rem;">{{ file.original_name }}</span>
+                </div>
+              </td>
+              <td style="color: var(--muted); font-size: 0.85rem;">{{ file.file_size }}</td>
+              <td style="color: var(--muted); font-size: 0.85rem;">{{ formatDate(file.created_at) }}</td>
+              <td>
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                  <button type="button" class="crud-secondary-btn" style="padding: 6px 12px; font-size: 0.78rem;" @click="downloadFile(file)">
+                    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 2px;">download</span>
+                    Tải về
+                  </button>
+                  <button type="button" class="crud-secondary-btn" style="padding: 6px 10px; color: #ef4444; border-color: rgba(239,68,68,.3);" @click="deleteFile(file)">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+</template>
+
+<style scoped>
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  cursor: pointer;
+  border: 2px dashed var(--line);
+  transition: all 0.2s;
+  margin-bottom: 20px;
+  text-align: center;
+}
+.upload-zone:hover { border-color: var(--green); background: rgba(var(--green-rgb), 0.02); }
+.upload-zone.is-uploading { border-color: var(--green); cursor: default; }
+
+.upload-icon {
+  font-size: 36px;
+  color: var(--green);
+  opacity: 0.7;
+}
+.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.file-icon-wrap {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  background: rgba(var(--green-rgb), 0.08);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
 </style>
