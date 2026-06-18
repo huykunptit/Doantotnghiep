@@ -271,4 +271,14 @@ onUnmounted(() => {
   height: 18px;
   flex-shrink: 0;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .select-trigger { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .select-trigger:hover, [data-theme="dark"] .select-trigger.is-open { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); }
+[data-theme="dark"] .select-dropdown { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .select-search-wrap { background: rgba(255, 255, 255, 0.02); border-bottom-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .select-search { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .select-group-label { background: rgba(255, 255, 255, 0.03); }
+[data-theme="dark"] .select-option:hover { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .select-option.is-selected { background: rgba(var(--green-rgb), 0.1); color: var(--green); }
 </style>

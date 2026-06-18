@@ -205,7 +205,7 @@ const userInitials = computed(() => {
 .ins-brand-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
 .ins-brand-name {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 0.875rem; font-weight: 700;
   letter-spacing: -0.02em; color: var(--text);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

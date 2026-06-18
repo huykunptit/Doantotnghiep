@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useCourseStore } from '~/stores/course'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -9,6 +10,8 @@ const loading = ref(true)
 const courses = ref<any[]>([])
 const search = ref('')
 const selectedStatus = ref('all')
+const instrPage = ref(1)
+const instrPerPage = ref(10)
 
 const statusOptions = [
   { value: 'all', label: 'Tất cả' },
@@ -18,7 +21,7 @@ const statusOptions = [
   { value: 'rejected', label: 'Bị từ chối' },
 ]
 
-const filteredCourses = computed(() => {
+const allFilteredCourses = computed(() => {
   const keyword = search.value.trim().toLowerCase()
   return courses.value.filter((course) => {
     const matchesStatus = selectedStatus.value === 'all' || course.status === selectedStatus.value
@@ -26,6 +29,11 @@ const filteredCourses = computed(() => {
     const matchesKeyword = keyword === '' || haystack.includes(keyword)
     return matchesStatus && matchesKeyword
   })
+})
+const instrLastPage = computed(() => Math.max(1, Math.ceil(allFilteredCourses.value.length / instrPerPage.value)))
+const filteredCourses = computed(() => {
+  const start = (instrPage.value - 1) * instrPerPage.value
+  return allFilteredCourses.value.slice(start, start + instrPerPage.value)
 })
 
 const totalLessons = computed(() => courses.value.reduce((sum, c) => sum + Number(c.lessons_count || 0), 0))
@@ -108,16 +116,16 @@ onMounted(async () => {
           <thead>
             <tr>
               <th>Khóa học</th>
-              <th>Học viên</th>
-              <th>Bài học</th>
-              <th>Giá</th>
+              <th>Số học viên</th>
+              <th>Số bài học</th>
+              <th>Học phí</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading"><td colspan="6" class="crud-empty">Đang tải dữ liệu...</td></tr>
-            <tr v-else-if="filteredCourses.length === 0"><td colspan="6" class="crud-empty">Không tìm thấy khóa học phù hợp.</td></tr>
+            <tr v-else-if="allFilteredCourses.length === 0"><td colspan="6" class="crud-empty">Không tìm thấy khóa học phù hợp.</td></tr>
             <tr v-for="course in filteredCourses" :key="course.id">
               <td>
                 <div class="crud-course">
@@ -161,6 +169,15 @@ onMounted(async () => {
           </tbody>
         </table>
       </div>
+
+      <DataTableFooter
+        :current="instrPage"
+        :last="instrLastPage"
+        :total="allFilteredCourses.length"
+        :per-page="instrPerPage"
+        @page="instrPage = $event"
+        @update:per-page="instrPerPage = $event; instrPage = 1"
+      />
     </section>
   </section>
 </template>

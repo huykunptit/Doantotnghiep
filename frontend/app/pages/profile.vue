@@ -130,14 +130,14 @@ const userInitials = computed(() => {
   width: 64px; height: 64px; border-radius: 50%;
   background: var(--green-soft); color: var(--green-deep);
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700;
+  font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.25rem; font-weight: 700;
   overflow: hidden; flex-shrink: 0; border: 3px solid var(--green-soft);
 }
 .pf-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 .pf-hero-name {
   margin: 0 0 3px;
-  font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700;
+  font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.25rem; font-weight: 700;
   color: var(--text);
 }
 .pf-hero-email { margin: 0 0 8px; font-size: 0.875rem; color: var(--muted); }
@@ -196,7 +196,7 @@ const userInitials = computed(() => {
 }
 .pf-main-title {
   margin: 0 0 6px;
-  font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text);
+  font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text);
 }
 .pf-main-desc { margin: 0 0 24px; font-size: 0.875rem; line-height: 1.6; color: var(--muted); }
 

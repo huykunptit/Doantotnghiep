@@ -237,6 +237,9 @@ onUnmounted(() => {
 [data-theme="dark"] .cd-header {
   background: rgba(10, 26, 20, 0.88);
 }
+[data-theme="dark"] .cd-header.is-scrolled {
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.3);
+}
 
 .cd-header-inner {
   display: flex;
@@ -285,7 +288,7 @@ onUnmounted(() => {
 }
 
 .cd-brand-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.02em;

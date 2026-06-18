@@ -2,7 +2,9 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import CategoryNode from '~/components/categories/CategoryNode.vue'
 import { useAuthUserCookie } from '~/composables/useAuthSession'
+import { useAuthTokenCookie } from '~/composables/useAuthSession'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({
@@ -42,23 +44,6 @@ const confirmOpen = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const selectedCategory = ref<CategoryItem | null>(null)
 const selectedIds = ref<number[]>([])
-const activeDropdown = ref<number | null>(null)
-
-const isAllSelected = computed(() => {
-  return categories.value.length > 0 && categories.value.every(c => selectedIds.value.includes(c.id))
-})
-
-function toggleSelectAll() {
-  if (isAllSelected.value) {
-    selectedIds.value = []
-  } else {
-    selectedIds.value = categories.value.map(c => c.id)
-  }
-}
-
-function toggleDropdown(id: number) {
-  activeDropdown.value = activeDropdown.value === id ? null : id
-}
 
 const form = reactive({
   name: '',
@@ -125,15 +110,6 @@ const parentOptions = computed(() => {
   )
 })
 
-const categoryRowClass = (item: TreeCategoryItem) => ({
-  'category-row-parent': item.hasChildren,
-  'category-row-child': item.depth > 0
-})
-
-const categoryNameStyle = (item: TreeCategoryItem) => ({
-  paddingLeft: `${item.depth * 50}px`
-})
-
 function resetForm() {
   form.name = ''
   form.icon = ''
@@ -171,8 +147,9 @@ async function fetchCategories() {
   }
 }
 
-async function saveCategory() {
+async function submitForm() {
   saving.value = true
+  errorMessage.value = ''
   try {
     const body = {
       name: form.name.trim(),
@@ -247,7 +224,7 @@ onMounted(fetchCategories)
 <template>
   <AdminWorkspaceShell
     :breadcrumb="['Trang chủ', 'Quản lý khóa học', 'Danh mục']"
-    description="Quản lý cấu trúc danh mục theo chuẩn CRUD thống nhất, hỗ trợ cây danh mục nhiều cấp và hiển thị số khóa học trong từng danh mục."
+    description="Quản lý cấu trúc danh mục học tập theo dạng cây thư mục thông minh. Bạn có thể mở rộng, thu gọn và tương tác trực quan với các danh mục."
     title="Quản lý danh mục"
   >
     <section class="crud-overview-grid">
@@ -270,8 +247,8 @@ onMounted(fetchCategories)
       <article class="dashboard-card mini-card">
         <p class="mini-title">Mô hình</p>
         <div class="mini-head">
-          <strong>Nhiều cấp</strong>
-          <span>Danh mục cha có nền riêng, danh mục con thụt lề</span>
+          <strong>Collapsible Tree</strong>
+          <span>Cây danh mục có khả năng đóng/mở trực quan</span>
         </div>
       </article>
     </section>
@@ -280,7 +257,7 @@ onMounted(fetchCategories)
       <div class="crud-toolbar">
         <div>
           <p class="section-kicker">Danh mục khóa học</p>
-          <h3>Danh sách danh mục hiện tại</h3>
+          <h3>Cấu trúc danh mục hiện tại</h3>
         </div>
         <div class="crud-toolbar-right">
           <button class="crud-export-btn" type="button" @click="exportData">
@@ -300,63 +277,20 @@ onMounted(fetchCategories)
         {{ successMessage }}
       </div>
 
-      <div class="crud-table-wrap">
-        <table class="crud-table">
-          <thead>
-            <tr>
-              <th style="width: 40px">
-                <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll">
-              </th>
-              <th style="width: 60px">STT</th>
-              <th>Tên danh mục</th>
-              <th>Cha</th>
-              <th>Icon</th>
-              <th>Số khóa học</th>
-              <th>Thứ tự</th>
-              <th style="text-align: right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="6" class="crud-empty">Đang tải danh mục...</td>
-            </tr>
-            <tr v-else-if="categories.length === 0">
-              <td colspan="6" class="crud-empty">Chưa có danh mục nào.</td>
-            </tr>
-            <tr v-for="(item, idx) in treeCategories" :key="item.id" :class="categoryRowClass(item)">
-              <td>
-                <input type="checkbox" v-model="selectedIds" :value="item.id">
-              </td>
-              <td>{{ idx + 1 }}</td>
-              <td>
-                <div class="category-name-cell" :style="categoryNameStyle(item)">
-                  <span v-if="item.depth > 0" class="category-branch-line"></span>
-                  <strong>{{ item.name }}</strong>
-                </div>
-              </td>
-              <td>{{ item.parentLabel }}</td>
-              <td>{{ item.icon || '--' }}</td>
-              <td>{{ item.courses_count || 0 }}</td>
-              <td>{{ item.sort_order || 0 }}</td>
-              <td>
-                <div class="crud-actions-dropdown" style="text-align: right">
-                  <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(item.id)">
-                    <span class="material-symbols-outlined">more_vert</span>
-                  </button>
-                  <div v-if="activeDropdown === item.id" class="dropdown-menu">
-                    <button class="dropdown-item" type="button" @click="openEditModal(item)">
-                      Sửa danh mục
-                    </button>
-                    <div class="dropdown-divider"></div>
-                    <button class="dropdown-item is-danger" type="button" @click="deleteCategory(item)">
-                      Xóa danh mục
-                    </button>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="categories-tree-container">
+        <div v-if="loading" class="crud-empty">Đang tải danh mục...</div>
+        <div v-else-if="categories.length === 0" class="crud-empty">Chưa có danh mục nào.</div>
+        <div v-else class="tree-root">
+          <CategoryNode
+            v-for="item in rootCategories"
+            :key="item.id"
+            :category="item"
+            :children-map="childrenByParent"
+            :depth="0"
+            @edit="openEditModal($event)"
+            @delete="deleteCategory($event)"
+          />
+        </div>
       </div>
     </section>
 
@@ -390,17 +324,17 @@ onMounted(fetchCategories)
               </select>
             </label>
             <label class="crud-field">
-              <span>Thứ tự</span>
-              <input v-model="form.sort_order" type="number" min="0">
+              <span>Thứ tự sắp xếp</span>
+              <input v-model="form.sort_order" type="number" placeholder="Ví dụ: 1">
             </label>
           </div>
 
           <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="modalOpen = false">
-              Đóng
+            <button class="crud-secondary-btn" type="button" :disabled="saving" @click="modalOpen = false">
+              Hủy
             </button>
-            <button class="crud-primary-btn" type="button" :disabled="saving" @click="saveCategory">
-              {{ saving ? 'Đang lưu...' : 'Lưu danh mục' }}
+            <button class="crud-primary-btn" type="button" :disabled="saving" @click="submitForm">
+              {{ saving ? 'Đang lưu...' : 'Lưu' }}
             </button>
           </div>
         </div>
@@ -410,9 +344,7 @@ onMounted(fetchCategories)
     <CrudConfirmModal
       :open="confirmOpen"
       title="Xóa danh mục"
-      :description="`Bạn có chắc chắn muốn xóa ${selectedCategory?.name || 'danh mục này'}?`"
-      confirm-text="Xóa danh mục"
-      tone="danger"
+      message="Bạn có chắc chắn muốn xóa danh mục này? Hành động này không thể hoàn tác và các danh mục con liên quan cũng sẽ chịu ảnh hưởng."
       @close="confirmOpen = false"
       @confirm="deleteCategory()"
     />
@@ -420,90 +352,13 @@ onMounted(fetchCategories)
 </template>
 
 <style scoped>
-.category-row-parent {
-  background: color-mix(in srgb, var(--warning-soft, #fef3c7) 55%, white 45%);
+.categories-tree-container {
+  padding: 12px 0;
 }
 
-.category-row-child td:first-child {
-  position: relative;
-}
-
-.category-name-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-}
-
-.category-branch-line {
-  width: 18px;
-  height: 2px;
-  background: var(--muted);
-  border-radius: 999px;
-  flex: 0 0 auto;
-  opacity: 0.7;
-}
-
-/* Dropdown Styles */
-.crud-actions-dropdown {
-  position: relative;
-  display: block;
-  text-align: right;
-}
-
-.action-toggle-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  transition: background-color 0.2s;
-}
-
-.action-toggle-btn:hover {
-  background-color: rgba(17, 17, 17, 0.05);
-}
-
-.dropdown-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 160px;
-  z-index: 50;
-  padding: 8px 0;
+.tree-root {
   display: flex;
   flex-direction: column;
-  text-align: left;
-}
-
-.dropdown-item {
-  background: transparent;
-  border: none;
-  width: 100%;
-  text-align: left;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  color: #1e293b;
-  transition: all 0.2s;
-}
-
-.dropdown-item:hover {
-  background-color: rgba(var(--green-rgb), 0.08);
-  color: var(--green);
-}
-
-.dropdown-item.is-danger {
-  color: #dc2626;
 }
 
 .dropdown-item.is-danger:hover {

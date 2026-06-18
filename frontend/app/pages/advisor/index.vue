@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useApi } from '~/composables/useApi'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -30,6 +31,8 @@ const data = ref<AdviseesResponse | null>(null)
 const loading = ref(true)
 const error = ref('')
 const showOnlyRisk = ref(false)
+const advisorPage = ref(1)
+const advisorPerPage = ref(10)
 
 async function load() {
   loading.value = true
@@ -45,9 +48,14 @@ async function load() {
   }
 }
 
-const filtered = computed(() => {
+const allFiltered = computed(() => {
   if (!data.value) return []
   return showOnlyRisk.value ? data.value.advisees.filter((r) => r.is_at_risk) : data.value.advisees
+})
+const advisorLastPage = computed(() => Math.max(1, Math.ceil(allFiltered.value.length / advisorPerPage.value)))
+const filtered = computed(() => {
+  const start = (advisorPage.value - 1) * advisorPerPage.value
+  return allFiltered.value.slice(start, start + advisorPerPage.value)
 })
 
 function fmtScore(s: number | null) {
@@ -98,12 +106,12 @@ onMounted(load)
         <thead>
           <tr>
             <th>STT</th>
-            <th>Mã SV</th>
-            <th>Họ tên</th>
+            <th>Mã sinh viên</th>
+            <th>Họ và tên</th>
             <th>Khóa/Lớp</th>
             <th class="text-center">Đang ghi danh</th>
-            <th class="text-center">Đã chấm</th>
-            <th class="text-center">GPA kỳ</th>
+            <th class="text-center">Đã chấm điểm</th>
+            <th class="text-center">GPA kỳ học</th>
             <th>Trạng thái</th>
           </tr>
         </thead>
@@ -111,13 +119,13 @@ onMounted(load)
           <tr v-if="loading">
             <td colspan="8" class="crud-empty">Đang tải...</td>
           </tr>
-          <tr v-else-if="!filtered.length">
+          <tr v-else-if="!allFiltered.length">
             <td colspan="8" class="crud-empty">
               {{ showOnlyRisk ? 'Không có sinh viên nào trong diện cảnh báo.' : 'Chưa có sinh viên được gán cố vấn.' }}
             </td>
           </tr>
           <tr v-for="(row, i) in filtered" :key="row.student.id">
-            <td>{{ i + 1 }}</td>
+            <td>{{ (advisorPage - 1) * advisorPerPage + i + 1 }}</td>
             <td><code>{{ row.student.student_code || '--' }}</code></td>
             <td>
               <strong>{{ row.student.name }}</strong>
@@ -138,6 +146,15 @@ onMounted(load)
           </tr>
         </tbody>
       </table>
+
+      <DataTableFooter
+        :current="advisorPage"
+        :last="advisorLastPage"
+        :total="allFiltered.length"
+        :per-page="advisorPerPage"
+        @page="advisorPage = $event"
+        @update:per-page="advisorPerPage = $event; advisorPage = 1"
+      />
     </section>
   </main>
 </template>
@@ -160,7 +177,7 @@ onMounted(load)
   margin: 0 0 8px; 
 }
 .stat-value { 
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 1.85rem; 
   font-weight: 800; 
   letter-spacing: -0.02em; 

@@ -605,4 +605,13 @@ function handleSubmit() {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .picker-tab { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .picker-tab.is-active { background: rgba(var(--green-rgb), 0.15); border-color: var(--green); color: var(--green); }
+[data-theme="dark"] .content-picker-card { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .content-picker-card:hover { border-color: var(--green); background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .content-picker-card strong { color: var(--text); }
+[data-theme="dark"] .upload-dropzone { background: rgba(255, 255, 255, 0.02); }
+[data-theme="dark"] .upload-dropzone strong { color: var(--text); }
 </style>

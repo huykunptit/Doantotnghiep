@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Download, Award, ZoomIn } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
 import { useExport } from '~/composables/useExport'
 
@@ -39,6 +40,7 @@ const searchIssued = ref('')
 const issuedPage = ref(1)
 const issuedLastPage = ref(1)
 const issuedTotal = ref(0)
+const issuedPerPage = ref(15)
 
 const isCreating = ref(false)
 const formName = ref('')
@@ -58,7 +60,7 @@ async function fetchTemplates() {
 async function fetchIssued(page = 1) {
   issuedLoading.value = true
   try {
-    const params = new URLSearchParams({ per_page: '15', page: String(page) })
+    const params = new URLSearchParams({ per_page: String(issuedPerPage.value), page: String(page) })
     if (searchIssued.value) params.set('search', searchIssued.value)
     const res = await useApi<any>(`/my-certificates?${params}`, { headers: authHeaders() })
     issued.value = res.data || []
@@ -133,20 +135,6 @@ function exportIssuedData() {
   ]
   exportToCSV(issued.value, cols, 'danh_sach_chung_chi_da_cap')
 }
-
-const visiblePages = computed(() => {
-  const range: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, issuedPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(issuedLastPage.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-  for (let i = start; i <= end; i++) {
-    if (i >= 1) range.push(i)
-  }
-  return range
-})
 
 onMounted(() => {
   fetchTemplates()
@@ -342,47 +330,54 @@ onMounted(() => {
           </table>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="issuedLastPage > 1" class="crud-pagination">
-          <p>Hiển thị trang {{ issuedPage }} / {{ issuedLastPage }} (Tổng số {{ issuedTotal }} chứng chỉ)</p>
-          <div class="crud-pagination-actions">
-            <button class="pagination-num-btn" type="button" :disabled="issuedPage <= 1" @click="fetchIssued(issuedPage - 1)">
-              Trước
-            </button>
-            <div class="pagination-numbers">
-              <button
-                v-for="p in visiblePages"
-                :key="p"
-                class="pagination-num-btn"
-                :class="{ 'is-active': p === issuedPage }"
-                type="button"
-                @click="fetchIssued(p)"
-              >
-                {{ p }}
-              </button>
-            </div>
-            <button class="pagination-num-btn" type="button" :disabled="issuedPage >= issuedLastPage" @click="fetchIssued(issuedPage + 1)">
-              Sau
-            </button>
-          </div>
-        </div>
+        <DataTableFooter
+          :current="issuedPage"
+          :last="issuedLastPage"
+          :total="issuedTotal"
+          :per-page="issuedPerPage"
+          @page="fetchIssued"
+          @update:per-page="issuedPerPage = $event; fetchIssued(1)"
+        />
       </section>
     </template>
 
     <!-- Preview modal -->
     <div v-if="previewTemplate" class="modal-overlay" @click.self="previewTemplate = null">
       <div class="preview-modal dashboard-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="margin: 0;">{{ previewTemplate.name }}</h3>
-          <button type="button" class="crud-secondary-btn" @click="previewTemplate = null">Đóng</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <p class="section-kicker" style="margin-bottom: 4px;">Xem trước phôi</p>
+            <h3 style="margin: 0;">{{ previewTemplate.name }}</h3>
+          </div>
+          <button type="button" class="crud-secondary-btn" @click="previewTemplate = null">✕ Đóng</button>
         </div>
-        <img
-          v-if="previewTemplate.background_image_url"
-          :src="previewTemplate.background_image_url"
-          :alt="previewTemplate.name"
-          style="width: 100%; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.15);"
-        >
-        <p v-else style="text-align: center; color: var(--muted); padding: 40px 0;">Chưa có ảnh phôi.</p>
+
+        <!-- Certificate preview frame -->
+        <div class="cert-preview-frame">
+          <img
+            v-if="previewTemplate.background_image_url"
+            :src="previewTemplate.background_image_url"
+            :alt="previewTemplate.name"
+            class="cert-preview-bg"
+          >
+          <div v-else class="cert-preview-bg cert-preview-blank">
+            <Award :size="64" :stroke-width="1" style="opacity: 0.2;" />
+          </div>
+          <!-- Sample overlay text -->
+          <div class="cert-preview-overlay">
+            <div class="cert-preview-inner">
+              <p class="prev-cert-label">CHỨNG CHỈ HOÀN THÀNH</p>
+              <p class="prev-cert-name">Nguyễn Văn Mẫu</p>
+              <p class="prev-cert-course">{{ previewTemplate.name }}</p>
+              <p class="prev-cert-date">Hà Nội, ngày 18 tháng 06 năm 2026</p>
+              <code class="prev-cert-cred">SYLVA-SAMPLE-000001</code>
+            </div>
+          </div>
+        </div>
+
+        <p style="text-align: center; font-size: 0.78rem; color: var(--muted); margin-top: 12px;">
+          Nội dung thực tế sẽ được điền tự động khi cấp cho học viên.
+        </p>
       </div>
     </div>
   </AdminWorkspaceShell>
@@ -470,4 +465,88 @@ onMounted(() => {
   max-height: 90vh;
   overflow-y: auto;
 }
+
+.cert-preview-frame {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  aspect-ratio: 16 / 11;
+}
+
+.cert-preview-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cert-preview-blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
+.cert-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.18);
+}
+
+.cert-preview-inner {
+  text-align: center;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  padding: 24px 36px;
+  max-width: 70%;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+
+.prev-cert-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin: 0 0 10px;
+}
+.prev-cert-name {
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-family: Georgia, serif;
+  color: #111;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+.prev-cert-course {
+  font-size: 0.875rem;
+  color: #555;
+  margin: 0 0 12px;
+}
+.prev-cert-date {
+  font-size: 0.72rem;
+  color: #888;
+  margin: 0 0 10px;
+}
+.prev-cert-cred {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-family: 'Courier New', monospace;
+  background: rgba(22,163,74,0.08);
+  border: 1px solid rgba(22,163,74,0.2);
+  border-radius: 6px;
+  padding: 3px 12px;
+  color: var(--green-deep);
+}
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .tab-btn.active { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .cert-preview-inner { background: rgba(0, 0, 0, 0.8); }
+[data-theme="dark"] .prev-cert-name { color: var(--text); }
+[data-theme="dark"] .prev-cert-course { color: var(--muted); }
 </style>

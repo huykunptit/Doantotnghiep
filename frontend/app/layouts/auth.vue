@@ -79,3 +79,9 @@
     </div>
   </main>
 </template>
+
+<style scoped>
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .bg-white\/88 { background-color: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .bg-surface-lowest\/95, [data-theme="dark"] .bg-surface-lowest { background-color: var(--surface); border-color: rgba(255, 255, 255, 0.08); }
+</style>

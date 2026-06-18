@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import UiStatCard from '~/components/dashboard/charts/UiStatCard.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
@@ -65,6 +66,8 @@ const byProvider   = ref<ProviderStat[]>([])
 const dailyPoints  = ref<DailyPoint[]>([])
 const recentLogs   = ref<RecentLog[]>([])
 const providers    = ref<Provider[]>([])
+const logPage      = ref(1)
+const logPerPage   = ref(10)
 
 const form = ref({
   provider: 'chatgpt',
@@ -177,6 +180,11 @@ const availableModels = computed(() =>
 )
 
 const usagePercent = computed(() => settings.value?.usage_percent ?? 0)
+const logLastPage = computed(() => Math.max(1, Math.ceil(recentLogs.value.length / logPerPage.value)))
+const pagedLogs = computed(() => {
+  const start = (logPage.value - 1) * logPerPage.value
+  return recentLogs.value.slice(start, start + logPerPage.value)
+})
 
 const quotaBarColor = computed(() => {
   if (usagePercent.value >= 90) return '#dc2626'
@@ -437,16 +445,16 @@ onMounted(fetchDashboard)
           <thead>
             <tr>
               <th>Người dùng</th>
-              <th>Endpoint</th>
-              <th>Provider / Model</th>
-              <th>Tokens</th>
-              <th>Thời gian</th>
+              <th>Điểm cuối (Endpoint)</th>
+              <th>Nhà cung cấp / Mô hình</th>
+              <th>Số Token</th>
+              <th>Thời gian phản hồi</th>
               <th>Trạng thái</th>
-              <th>Lúc</th>
+              <th>Thời điểm gọi</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="log in recentLogs" :key="log.id">
+            <tr v-for="log in pagedLogs" :key="log.id">
               <td>
                 <div class="ai-user-cell">
                   <img v-if="log.user?.avatar" :src="log.user.avatar" class="ai-avatar" />
@@ -470,6 +478,15 @@ onMounted(fetchDashboard)
             </tr>
           </tbody>
         </table>
+
+        <DataTableFooter
+          :current="logPage"
+          :last="logLastPage"
+          :total="recentLogs.length"
+          :per-page="logPerPage"
+          @page="logPage = $event"
+          @update:per-page="logPerPage = $event; logPage = 1"
+        />
       </div>
     </div>
   </AdminWorkspaceShell>

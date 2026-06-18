@@ -180,4 +180,28 @@ const footerCopyright = computed(
 .cd-tech-stack { display: flex; align-items: center; gap: 20px; }
 .cd-tech-stack span { transition: color 0.2s; cursor: default; }
 .cd-tech-stack span:hover { color: var(--primary, var(--green)); }
+
+/* ── Dark mode overrides ── */
+[data-theme="dark"] .cd-footer {
+  background: var(--bg, #0A1A14);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .cd-tag {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+[data-theme="dark"] .cd-footer-cta {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .cd-btn-outline {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+[data-theme="dark"] .cd-btn-outline:hover {
+  border-color: rgba(var(--green-rgb), 0.4);
+}
+[data-theme="dark"] .cd-footer-bottom {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
 </style>

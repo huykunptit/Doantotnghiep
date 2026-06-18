@@ -2,6 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { Download, Trash2, Star, BookOpen } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 
 definePageMeta({ layout: 'admin' })
 
@@ -56,10 +59,11 @@ async function removeReview(review: any) {
   try {
     await useApi(`/admin/reviews/${review.id}`, { method: 'DELETE', headers: authHeaders() })
     allReviews.value = allReviews.value.filter(r => r.id !== review.id)
+    toast.success('Đã xoá đánh giá', `Đánh giá của ${review.user?.name || 'người dùng'} đã được xoá.`)
     await fetchReviews(currentPage.value)
   }
   catch (e: any) {
-    alert(e?.data?.message || 'Xoá thất bại.')
+    toast.error('Xoá thất bại', e?.data?.message || 'Không thể xoá đánh giá này.')
   }
 }
 

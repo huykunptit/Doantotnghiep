@@ -330,4 +330,8 @@ onMounted(fetchOrders)
 .progress-track { height: 6px; background: rgba(17,17,17,.05); border-radius: 999px; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--green); border-radius: 999px; }
 @media (max-width: 1100px) { .report-layout { grid-template-columns: 1fr; } }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .bar-value { background: var(--surface-strong); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+[data-theme="dark"] .progress-track { background: rgba(255, 255, 255, 0.08); }
 </style>

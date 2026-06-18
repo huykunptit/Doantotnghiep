@@ -4,6 +4,7 @@ import { Download, MoreVertical } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({
@@ -59,6 +60,7 @@ const successMessage = ref('')
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalUsers = ref(0)
+const perPage = ref(10)
 const activeDropdown = ref<number | null>(null)
 const selectedIds = ref<number[]>([])
 
@@ -75,20 +77,6 @@ function exportData() {
   ]
   exportToCSV(users.value, cols, 'danh_sach_nguoi_dung')
 }
-
-const visiblePages = computed(() => {
-  const range: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(lastPage.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-  for (let i = start; i <= end; i++) {
-    if (i >= 1) range.push(i)
-  }
-  return range
-})
 
 const isAllSelected = computed(() => {
   return users.value.length > 0 && users.value.every(u => selectedIds.value.includes(u.id))
@@ -175,7 +163,7 @@ async function fetchUsers(page = 1) {
   try {
     const query = new URLSearchParams()
     query.set('page', String(page))
-    query.set('per_page', '8')
+    query.set('per_page', String(perPage.value))
     if (filters.search.trim()) query.set('search', filters.search.trim())
     if (filters.role) query.set('role', filters.role)
 
@@ -387,12 +375,12 @@ onUnmounted(() => {
             <tr>
               <th style="width: 40px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th>
               <th style="width: 60px">STT</th>
-              <th>Nguoi dung</th>
-              <th>Vai tro</th>
+              <th>Người dùng</th>
+              <th>Vai trò</th>
               <th>Email</th>
-              <th>Ngay tao</th>
-              <th>Cap nhat</th>
-              <th style="text-align: right">Thao tac</th>
+              <th>Ngày tạo</th>
+              <th>Cập nhật</th>
+              <th style="text-align: right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -404,7 +392,7 @@ onUnmounted(() => {
             </tr>
             <tr v-for="(item, index) in users" :key="item.id">
               <td><input type="checkbox" :value="item.id"></td>
-              <td>{{ (currentPage - 1) * 8 + index + 1 }}</td>
+              <td>{{ (currentPage - 1) * perPage + index + 1 }}</td>
               <td>
                 <div class="crud-profile">
                   <div v-if="item.avatar" class="crud-avatar">
@@ -452,29 +440,14 @@ onUnmounted(() => {
         </table>
       </div>
 
-      <div class="crud-pagination">
-        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalUsers }} người dùng)</p>
-        <div class="crud-pagination-actions">
-          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchUsers(currentPage - 1)">
-            Trước
-          </button>
-          <div class="pagination-numbers">
-            <button
-              v-for="p in visiblePages"
-              :key="p"
-              class="pagination-num-btn"
-              :class="{ 'is-active': p === currentPage }"
-              type="button"
-              @click="fetchUsers(p)"
-            >
-              {{ p }}
-            </button>
-          </div>
-          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchUsers(currentPage + 1)">
-            Sau
-          </button>
-        </div>
-      </div>
+      <DataTableFooter
+        :current="currentPage"
+        :last="lastPage"
+        :total="totalUsers"
+        :per-page="perPage"
+        @page="fetchUsers"
+        @update:per-page="perPage = $event; fetchUsers(1)"
+      />
     </section>
 
     <Teleport to="body">
@@ -640,4 +613,8 @@ onUnmounted(() => {
   background-color: rgba(17, 17, 17, 0.1);
   margin: 4px 0;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .dropdown-menu { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .dropdown-divider { background-color: rgba(255, 255, 255, 0.1); }
 </style>

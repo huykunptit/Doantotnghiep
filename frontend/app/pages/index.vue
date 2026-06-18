@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
-  Compass, Briefcase, GraduationCap, ShieldCheck, Sparkles,
+  Compass, Briefcase, GraduationCap, Sparkles,
   ArrowRight, BookOpen, User, PlayCircle, Users, UserPlus, Map,
-  TrendingUp, Award, MessageCircle, CheckCircle,
+  Award, CheckCircle, ChevronRight, Zap, BarChart3,
 } from 'lucide-vue-next'
 
 definePageMeta({
@@ -139,7 +139,7 @@ const features = [
     color: 'green',
   },
   {
-    icon: ShieldCheck,
+    icon: BarChart3,
     title: 'Đánh giá & phát triển bền vững',
     desc: 'Theo dõi tiến trình tích lũy kiến thức sâu sắc qua thời gian, đảm bảo phát triển kỹ năng thực tế bền vững.',
     color: 'blue',
@@ -173,54 +173,70 @@ const googleMapEmbedUrl = computed(() => {
 
     <!-- ── Hero ─────────────────────────────── -->
     <section class="hero" aria-labelledby="hero-title">
+      <!-- Background layers -->
       <div class="hero-bg" aria-hidden="true">
-        <div class="hero-orb hero-orb-1" />
-        <div class="hero-orb hero-orb-2" />
+        <div class="hero-grid" />
+        <div class="hero-glow hero-glow-1" />
+        <div class="hero-glow hero-glow-2" />
+        <div class="hero-glow hero-glow-3" />
       </div>
+
       <div class="hero-inner">
-        <p class="hero-kicker">
-          <CheckCircle :size="14" :stroke-width="2" />
-          Phát triển bền vững · Học tập thích nghi · Trợ lý AI đồng hành
-        </p>
+        <!-- Eyebrow badge -->
+        <div class="hero-badge">
+          <span class="hero-badge-dot" />
+          Nền tảng học tập thích nghi thế hệ mới
+        </div>
+
         <h1 id="hero-title" class="hero-title">
-          Học tập thích nghi<br>
-          cùng <span class="hero-accent">Sylva LMS</span>
+          Phát triển bản thân<br>
+          cùng <em class="hero-em">Sylva LMS</em>
         </h1>
+
         <p class="hero-lead">
-          Hệ thống quản lý học tập thông minh thế hệ mới — thích nghi linh hoạt,
-          đánh giá trực quan và trợ lý AI đồng hành suốt tiến trình của bạn.
+          Hệ thống quản lý học tập thông minh — thích nghi linh hoạt, đánh giá
+          trực quan và trợ lý AI đồng hành suốt hành trình của bạn.
         </p>
+
+        <div class="hero-checks">
+          <span v-for="item in ['Miễn phí đăng ký', 'AI hỗ trợ 24/7', 'Chứng chỉ số']" :key="item" class="hero-check">
+            <CheckCircle :size="14" :stroke-width="2.5" />
+            {{ item }}
+          </span>
+        </div>
+
         <div class="hero-actions">
-          <NuxtLink to="/courses" class="btn-primary">
+          <NuxtLink to="/courses" class="btn-hero-primary">
             <Compass :size="18" :stroke-width="1.75" />
             Khám phá khoá học
+            <ChevronRight :size="16" :stroke-width="2.5" />
           </NuxtLink>
-          <NuxtLink to="/career" class="btn-ghost">
-            <Briefcase :size="18" :stroke-width="1.75" />
+          <NuxtLink to="/career" class="btn-hero-ghost">
+            <Briefcase :size="17" :stroke-width="1.75" />
             Lộ trình nghề nghiệp
           </NuxtLink>
         </div>
       </div>
 
-      <!-- Stats bar -->
+      <!-- Stats floating shelf -->
       <div class="hero-stats" role="list" aria-label="Thống kê nền tảng">
         <div class="hero-stat" role="listitem">
           <strong>{{ stats.totalCourses || '50' }}+</strong>
           <span>Khoá học</span>
         </div>
-        <div class="hero-stat-divider" aria-hidden="true" />
+        <div class="hero-stat-sep" aria-hidden="true" />
         <div class="hero-stat" role="listitem">
           <strong>{{ stats.totalStudents.toLocaleString('vi-VN') || '2.000' }}+</strong>
           <span>Lượt ghi danh</span>
         </div>
-        <div class="hero-stat-divider" aria-hidden="true" />
+        <div class="hero-stat-sep" aria-hidden="true" />
         <div class="hero-stat" role="listitem">
           <strong>{{ stats.totalLessons || '500' }}+</strong>
           <span>Bài học</span>
         </div>
-        <div class="hero-stat-divider" aria-hidden="true" />
+        <div class="hero-stat-sep" aria-hidden="true" />
         <div class="hero-stat" role="listitem">
-          <strong>{{ categories.length }}</strong>
+          <strong>{{ categories.length || '10' }}+</strong>
           <span>Lĩnh vực</span>
         </div>
       </div>
@@ -235,11 +251,14 @@ const googleMapEmbedUrl = computed(() => {
       </header>
       <div class="features-grid">
         <article v-for="f in features" :key="f.title" class="feature-card" :class="`feature-card--${f.color}`">
-          <div class="feature-icon-wrap">
-            <component :is="f.icon" :size="24" :stroke-width="1.75" />
+          <div class="feature-icon-wrap" :class="`feature-icon-wrap--${f.color}`">
+            <component :is="f.icon" :size="22" :stroke-width="1.75" />
           </div>
           <h3>{{ f.title }}</h3>
           <p>{{ f.desc }}</p>
+          <div class="feature-bottom-link">
+            Tìm hiểu thêm <ArrowRight :size="14" :stroke-width="2" />
+          </div>
         </article>
       </div>
     </section>
@@ -262,13 +281,14 @@ const googleMapEmbedUrl = computed(() => {
           :to="`/courses?category=${cat.slug || cat.id}`"
           class="category-card"
         >
+          <div class="category-icon">
+            <Zap :size="18" :stroke-width="1.75" />
+          </div>
           <div class="category-body">
             <h3>{{ cat.name }}</h3>
             <p v-if="cat.courses_count">{{ cat.courses_count }} khoá học</p>
           </div>
-          <div class="category-arrow">
-            <ArrowRight :size="16" :stroke-width="2" />
-          </div>
+          <ArrowRight :size="15" :stroke-width="2" class="category-arrow" />
         </NuxtLink>
       </div>
     </section>
@@ -307,6 +327,11 @@ const googleMapEmbedUrl = computed(() => {
             <div v-else class="course-thumb course-thumb-placeholder" aria-hidden="true">
               <BookOpen :size="32" :stroke-width="1.5" />
             </div>
+            <div class="course-thumb-overlay">
+              <div class="course-play-btn">
+                <PlayCircle :size="28" :stroke-width="1.5" />
+              </div>
+            </div>
           </NuxtLink>
 
           <div class="course-body">
@@ -341,17 +366,19 @@ const googleMapEmbedUrl = computed(() => {
 
     <!-- ── How it works ─────────────────────── -->
     <section class="section steps" aria-labelledby="steps-title">
+      <div class="steps-bg" aria-hidden="true" />
       <header class="section-head center">
         <p class="section-kicker">Bắt đầu thế nào</p>
         <h2 id="steps-title">3 bước để phát triển năng lực</h2>
+        <p class="section-sub">Đơn giản, nhanh chóng và hiệu quả ngay từ ngày đầu tiên.</p>
       </header>
       <ol class="steps-list">
         <li v-for="(step, idx) in steps" :key="step.num" class="step-item">
-          <div class="step-connector" v-if="idx < steps.length - 1" aria-hidden="true" />
+          <div class="step-num-badge">{{ step.num }}</div>
+          <div v-if="idx < steps.length - 1" class="step-connector" aria-hidden="true" />
           <div class="step-icon-wrap">
-            <component :is="step.icon" :size="22" :stroke-width="1.75" />
+            <component :is="step.icon" :size="24" :stroke-width="1.75" />
           </div>
-          <span class="step-num">{{ step.num }}</span>
           <h3>{{ step.title }}</h3>
           <p>{{ step.desc }}</p>
         </li>
@@ -360,9 +387,12 @@ const googleMapEmbedUrl = computed(() => {
 
     <!-- ── CTA band ──────────────────────────── -->
     <section class="cta" aria-labelledby="cta-title">
+      <div class="cta-bg" aria-hidden="true">
+        <div class="cta-glow" />
+      </div>
       <div class="cta-inner">
         <div class="cta-copy">
-          <p class="section-kicker light">Bắt đầu ngay hôm nay</p>
+          <p class="cta-kicker">Bắt đầu ngay hôm nay</p>
           <h2 id="cta-title">Sẵn sàng cho hành trình<br>học tập bền vững?</h2>
           <p>Tham gia cùng hàng nghìn học viên đang phát triển bản thân trên Sylva LMS mỗi ngày.</p>
         </div>
@@ -387,15 +417,15 @@ const googleMapEmbedUrl = computed(() => {
           <p>Xem nhanh vị trí hỗ trợ kỹ thuật và vận hành hệ thống Sylva LMS trên bản đồ Google Maps.</p>
           <div class="map-actions">
             <a
-              class="btn-primary"
+              class="btn-map-primary"
               :href="`https://www.google.com/maps/search/?api=1&query=${mapQuery}`"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Map :size="18" :stroke-width="1.75" />
+              <Map :size="17" :stroke-width="1.75" />
               Mở Google Maps
             </a>
-            <NuxtLink to="/register" class="btn-secondary">
+            <NuxtLink to="/register" class="btn-map-secondary">
               Tạo tài khoản miễn phí
             </NuxtLink>
           </div>
@@ -418,18 +448,16 @@ const googleMapEmbedUrl = computed(() => {
 </template>
 
 <style scoped>
-/* ── Reset & wrapper ── */
+/* ── Base ── */
 .home {
-  --section-gap: 96px;
   display: flex;
   flex-direction: column;
 }
 
-/* ── Common section base ── */
 .section {
   max-width: 1280px;
   margin: 0 auto;
-  padding: var(--section-gap) 24px;
+  padding: 88px 24px;
   width: 100%;
 }
 
@@ -440,7 +468,7 @@ const googleMapEmbedUrl = computed(() => {
   align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 40px;
+  margin-bottom: 44px;
 }
 
 .section-head.center {
@@ -450,36 +478,32 @@ const googleMapEmbedUrl = computed(() => {
 }
 
 .section-kicker {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   margin: 0 0 10px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--green);
-}
-
-.section-kicker.light {
-  color: rgba(255, 255, 255, 0.65);
   letter-spacing: 0.2em;
+  color: var(--green);
 }
 
 .section-head h2 {
   margin: 0;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
   color: var(--text);
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .section-sub {
-  margin: 12px 0 0;
+  margin: 14px 0 0;
   max-width: 52ch;
+  font-size: 0.9625rem;
   color: var(--muted);
-  line-height: 1.7;
+  line-height: 1.75;
 }
 
 .section-link {
@@ -494,70 +518,15 @@ const googleMapEmbedUrl = computed(() => {
   transition: gap 150ms;
 }
 
-.section-link:hover {
-  gap: 8px;
-}
-
-/* ── Shared buttons ── */
-.btn-primary, .btn-secondary, .btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 46px;
-  padding: 0 24px;
-  border-radius: 8px;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 200ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), background 150ms, box-shadow 150ms;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-primary {
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(29, 158, 117, 0.25);
-}
-
-.btn-primary:hover {
-  background: var(--green-deep);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(29, 158, 117, 0.3);
-}
-
-.btn-secondary {
-  background: var(--green-soft);
-  color: var(--green-deep);
-  border: 1px solid rgba(29, 158, 117, 0.2);
-}
-
-.btn-secondary:hover {
-  background: rgba(29, 158, 117, 0.15);
-  transform: translateY(-2px);
-}
-
-.btn-ghost {
-  background: transparent;
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(4px);
-}
-
-.btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-}
+.section-link:hover { gap: 8px; }
 
 /* ── Hero ── */
 .hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(160deg, var(--green-deep) 0%, #0F6E56 40%, #1D9E75 100%);
+  background: linear-gradient(135deg, #071812 0%, #0d2e1e 50%, #163d2a 100%);
   color: #fff;
-  padding: 120px 24px 0;
-  margin-top: 0;
+  padding: 130px 24px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -567,27 +536,43 @@ const googleMapEmbedUrl = computed(() => {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
-.hero-orb {
+/* Subtle grid lines */
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(29,158,117,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29,158,117,0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 100%);
+}
+
+.hero-glow {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
+  filter: blur(80px);
+  pointer-events: none;
 }
 
-.hero-orb-1 {
-  width: 600px;
-  height: 600px;
-  top: -200px;
-  right: -100px;
+.hero-glow-1 {
+  width: 500px; height: 500px;
+  top: -200px; right: -100px;
+  background: radial-gradient(circle, rgba(29,158,117,0.18) 0%, transparent 70%);
 }
 
-.hero-orb-2 {
-  width: 400px;
-  height: 400px;
-  bottom: 60px;
-  left: -120px;
+.hero-glow-2 {
+  width: 400px; height: 400px;
+  bottom: 40px; left: -120px;
+  background: radial-gradient(circle, rgba(29,158,117,0.1) 0%, transparent 70%);
+}
+
+.hero-glow-3 {
+  width: 320px; height: 320px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(29,158,117,0.07) 0%, transparent 70%);
 }
 
 .hero-inner {
@@ -596,47 +581,84 @@ const googleMapEmbedUrl = computed(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 800px;
+  max-width: 820px;
   width: 100%;
 }
 
-.hero-kicker {
+/* Badge */
+.hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 0 0 24px;
+  gap: 8px;
+  margin: 0 0 28px;
+  padding: 7px 18px;
+  background: rgba(29,158,117,0.12);
+  border: 1px solid rgba(29,158,117,0.3);
+  border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.08);
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.04em;
+  color: #6eedc7;
+}
+
+.hero-badge-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(29,158,117,0.25);
+  animation: pulse-dot 2s ease infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(29,158,117,0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(29,158,117,0.1); }
 }
 
 .hero-title {
   margin: 0;
-  font-family: 'Outfit', sans-serif;
-  font-size: clamp(2.5rem, 6vw, 4rem);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.04em;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: clamp(2.6rem, 6.5vw, 4.2rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
   color: #fff;
 }
 
-.hero-accent {
-  color: #9FE1CB;
+.hero-em {
+  font-style: normal;
+  background: linear-gradient(90deg, #1D9E75 0%, #34d39b 50%, #6eedc7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .hero-lead {
-  margin: 24px 0 40px;
-  max-width: 56ch;
+  margin: 24px 0 32px;
+  max-width: 54ch;
   font-size: 1.0625rem;
-  line-height: 1.7;
-  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.75;
+  color: rgba(255,255,255,0.72);
 }
+
+.hero-checks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.hero-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.65);
+}
+
+.hero-check svg { color: var(--green); flex-shrink: 0; }
 
 .hero-actions {
   display: flex;
@@ -646,21 +668,65 @@ const googleMapEmbedUrl = computed(() => {
   margin-bottom: 80px;
 }
 
-/* Stats bar */
+.btn-hero-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 28px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green) 0%, #0d7a5a 100%);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 20px rgba(29,158,117,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms;
+}
+
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(29,158,117,0.5);
+}
+
+.btn-hero-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 24px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+  transition: background 150ms, border-color 150ms, transform 200ms cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.btn-hero-ghost:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+}
+
+/* Hero stats shelf */
 .hero-stats {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0;
   width: 100%;
-  max-width: 760px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px 16px 0 0;
-  padding: 24px 32px;
-  backdrop-filter: blur(8px);
+  max-width: 740px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 28px 32px;
+  backdrop-filter: blur(12px);
 }
 
 .hero-stat {
@@ -670,30 +736,30 @@ const googleMapEmbedUrl = computed(() => {
   gap: 4px;
   flex: 1;
   min-width: 100px;
-  padding: 8px 16px;
+  padding: 4px 12px;
 }
 
 .hero-stat strong {
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  color: #9FE1CB;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: #6eedc7;
   line-height: 1;
 }
 
 .hero-stat span {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
 }
 
-.hero-stat-divider {
+.hero-stat-sep {
   width: 1px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.15);
+  height: 36px;
+  background: rgba(255,255,255,0.1);
   flex-shrink: 0;
 }
 
@@ -701,29 +767,41 @@ const googleMapEmbedUrl = computed(() => {
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
+  gap: 20px;
 }
 
 .feature-card {
-  padding: 32px 28px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 32px 28px 28px;
   background: var(--surface-strong, #fff);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 250ms, border-color 200ms;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform 280ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 280ms;
 }
 
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(31, 49, 43, 0.08);
+.feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 250ms;
+  border-radius: inherit;
+  pointer-events: none;
 }
+
+.feature-card--green::before { background: linear-gradient(135deg, rgba(29,158,117,0.04) 0%, transparent 60%); }
+.feature-card--blue::before  { background: linear-gradient(135deg, rgba(59,130,246,0.04) 0%, transparent 60%); }
+.feature-card--accent::before{ background: linear-gradient(135deg, rgba(139,92,246,0.04) 0%, transparent 60%); }
+
+.feature-card:hover { transform: translateY(-5px); box-shadow: 0 20px 48px rgba(0,0,0,0.08); }
+.feature-card:hover::before { opacity: 1; }
 
 .feature-card--green { border-top: 3px solid var(--green); }
-.feature-card--blue  { border-top: 3px solid var(--secondary); }
-.feature-card--accent { border-top: 3px solid var(--accent); }
-
-.feature-card--green:hover { border-color: var(--green); }
-.feature-card--blue:hover  { border-color: var(--secondary); }
-.feature-card--accent:hover { border-color: var(--accent); }
+.feature-card--blue  { border-top: 3px solid #3b82f6; }
+.feature-card--accent{ border-top: 3px solid #8b5cf6; }
 
 .feature-icon-wrap {
   display: inline-flex;
@@ -731,99 +809,121 @@ const googleMapEmbedUrl = computed(() => {
   justify-content: center;
   width: 52px; height: 52px;
   border-radius: 14px;
-  background: var(--green-soft);
-  color: var(--green);
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
-.feature-card--blue .feature-icon-wrap {
-  background: var(--secondary-soft);
-  color: var(--secondary);
-}
-
-.feature-card--accent .feature-icon-wrap {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
+.feature-icon-wrap--green  { background: rgba(29,158,117,0.1); color: var(--green); }
+.feature-icon-wrap--blue   { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.feature-icon-wrap--accent { background: rgba(139,92,246,0.1); color: #8b5cf6; }
 
 .feature-card h3 {
   margin: 0 0 10px;
   font-size: 1.0625rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--text);
 }
 
 .feature-card p {
   margin: 0;
   font-size: 0.9rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--muted);
+  flex: 1;
 }
+
+.feature-bottom-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green);
+  transition: gap 150ms;
+}
+
+.feature-card:hover .feature-bottom-link { gap: 8px; }
 
 /* ── Categories ── */
 .categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
 }
 
 .category-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 18px 20px;
+  padding: 16px 18px;
   background: var(--surface-strong, #fff);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   text-decoration: none;
   color: var(--text);
-  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 220ms cubic-bezier(0.34,1.56,0.64,1);
 }
 
 .category-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(29, 158, 117, 0.3);
-  background: var(--green-soft);
-  box-shadow: 0 8px 24px rgba(29, 158, 117, 0.1);
+  border-color: rgba(29,158,117,0.35);
+  box-shadow: 0 8px 24px rgba(29,158,117,0.1);
+}
+
+.category-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: rgba(29,158,117,0.08);
+  color: var(--green);
+  flex-shrink: 0;
+  transition: background 150ms, color 150ms;
+}
+
+.category-card:hover .category-icon {
+  background: var(--green);
+  color: #fff;
+}
+
+.category-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .category-body h3 {
-  margin: 0 0 4px;
-  font-size: 0.9375rem;
-  font-weight: 600;
+  margin: 0 0 2px;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .category-body p {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--muted);
 }
 
 .category-arrow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  background: rgba(29, 158, 117, 0.08);
-  color: var(--green);
+  color: var(--muted);
   flex-shrink: 0;
-  transition: background 150ms, transform 150ms;
+  transition: color 150ms, transform 150ms;
 }
 
 .category-card:hover .category-arrow {
-  background: var(--green);
-  color: #fff;
-  transform: translateX(2px);
+  color: var(--green);
+  transform: translateX(3px);
 }
 
 /* ── Courses ── */
 .courses-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));
   gap: 20px;
 }
 
@@ -832,35 +932,54 @@ const googleMapEmbedUrl = computed(() => {
   flex-direction: column;
   background: var(--surface-strong, #fff);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms, border-color 200ms;
+  transition: transform 220ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 220ms, border-color 220ms;
 }
 
 .course-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(31, 49, 43, 0.1);
-  border-color: rgba(29, 158, 117, 0.2);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+  border-color: rgba(29,158,117,0.25);
 }
 
 .course-thumb-link {
   display: block;
+  position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
   flex-shrink: 0;
 }
 
 .course-thumb {
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   object-fit: cover;
-  transition: transform 350ms ease;
+  transition: transform 400ms ease;
   display: block;
 }
 
-.course-card:hover .course-thumb {
-  transform: scale(1.04);
+.course-card:hover .course-thumb { transform: scale(1.05); }
+
+.course-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(4,12,8,0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 250ms;
 }
+
+.course-card:hover .course-thumb-overlay { background: rgba(4,12,8,0.35); }
+
+.course-play-btn {
+  color: #fff;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 250ms, transform 250ms cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.course-card:hover .course-play-btn { opacity: 1; transform: scale(1); }
 
 .course-thumb-placeholder {
   display: flex;
@@ -881,19 +1000,19 @@ const googleMapEmbedUrl = computed(() => {
 
 .course-category {
   margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--green);
 }
 
 .course-title {
   margin: 0;
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   flex: 1;
 }
 
@@ -903,9 +1022,7 @@ const googleMapEmbedUrl = computed(() => {
   transition: color 150ms;
 }
 
-.course-title a:hover {
-  color: var(--green);
-}
+.course-title a:hover { color: var(--green); }
 
 .course-instructor {
   display: flex;
@@ -935,16 +1052,25 @@ const googleMapEmbedUrl = computed(() => {
 
 .course-price {
   margin-left: auto;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 800;
   color: var(--text);
 }
 
-.course-price.is-free {
-  color: var(--green);
-}
+.course-price.is-free { color: var(--green); }
 
 /* ── Steps ── */
+.steps {
+  position: relative;
+}
+
+.steps-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(29,158,117,0.025) 50%, transparent 100%);
+  pointer-events: none;
+}
+
 .steps-list {
   list-style: none;
   margin: 0;
@@ -961,73 +1087,102 @@ const googleMapEmbedUrl = computed(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 12px;
+  gap: 14px;
+}
+
+.step-num-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: rgba(29,158,117,0.6);
+  background: var(--green-soft, rgba(29,158,117,0.06));
+  border: 1px solid rgba(29,158,117,0.15);
+  border-radius: 999px;
+  padding: 2px 10px;
 }
 
 .step-connector {
+  position: absolute;
+  top: 44px;
+  left: calc(50% + 40px);
+  right: calc(-50% + 40px);
+  height: 0;
+  border-top: 2px dashed rgba(29,158,117,0.2);
   display: none;
 }
 
 @media (min-width: 768px) {
-  .step-connector {
-    display: block;
-    position: absolute;
-    top: 28px;
-    left: calc(50% + 32px);
-    right: calc(-50% + 32px);
-    height: 1px;
-    border-top: 2px dashed rgba(29, 158, 117, 0.25);
-  }
-
-  .step-item:last-child .step-connector {
-    display: none;
-  }
+  .step-connector { display: block; }
+  .step-item:last-child .step-connector { display: none; }
 }
 
 .step-icon-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px; height: 56px;
-  border-radius: 16px;
-  background: var(--green-soft);
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  background: rgba(29,158,117,0.07);
   color: var(--green);
-  border: 2px solid rgba(29, 158, 117, 0.2);
+  border: 2px solid rgba(29,158,117,0.18);
+  margin-top: 24px;
   flex-shrink: 0;
+  transition: background 200ms, border-color 200ms, color 200ms, transform 200ms;
 }
 
-.step-num {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--green);
-  text-transform: uppercase;
+.step-item:hover .step-icon-wrap {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+  transform: translateY(-4px);
 }
 
 .step-item h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
 .step-item p {
   margin: 0;
   font-size: 0.875rem;
-  line-height: 1.65;
+  line-height: 1.7;
   color: var(--muted);
   max-width: 22ch;
 }
 
 /* ── CTA band ── */
 .cta {
-  background: linear-gradient(135deg, var(--green-deep) 0%, #0F6E56 100%);
-  padding: 80px 24px;
-  margin: 80px 0;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #071812 0%, #0d2e1e 50%, #163d2a 100%);
+  padding: 96px 24px;
+  margin: 16px 0;
+}
+
+.cta-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cta-glow {
+  position: absolute;
+  width: 600px; height: 400px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, rgba(29,158,117,0.15) 0%, transparent 70%);
+  filter: blur(40px);
 }
 
 .cta-inner {
+  position: relative;
   max-width: 1280px;
   margin: 0 auto;
   display: flex;
@@ -1037,21 +1192,30 @@ const googleMapEmbedUrl = computed(() => {
   flex-wrap: wrap;
 }
 
+.cta-kicker {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(29,158,117,0.9);
+  margin: 0 0 12px;
+}
+
 .cta-copy h2 {
-  margin: 10px 0 12px;
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  margin: 0 0 14px;
+  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
   color: #fff;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .cta-copy p {
   margin: 0;
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255,255,255,0.65);
   max-width: 44ch;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 
 .cta-actions {
@@ -1064,147 +1228,174 @@ const googleMapEmbedUrl = computed(() => {
 .btn-cta-primary {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 28px;
-  border-radius: 8px;
-  background: #fff;
-  color: var(--green-deep);
+  gap: 9px;
+  height: 50px;
+  padding: 0 30px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green) 0%, #0d7a5a 100%);
+  color: #fff;
   font-size: 0.9375rem;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 200ms, box-shadow 200ms;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(29,158,117,0.4);
+  transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms;
 }
 
 .btn-cta-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 28px rgba(29,158,117,0.5);
 }
 
 .btn-cta-ghost {
   display: inline-flex;
   align-items: center;
-  height: 48px;
+  height: 50px;
   padding: 0 24px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.88);
+  border: 1px solid rgba(255,255,255,0.15);
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background 150ms;
+  transition: background 150ms, border-color 150ms;
 }
 
 .btn-cta-ghost:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
 }
 
 /* ── Map ── */
-.map { padding-bottom: var(--section-gap); }
+.map { padding-bottom: 96px; }
 
 .map-inner {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 48px;
+  gap: 56px;
   align-items: center;
 }
 
 .map-copy h2 {
-  margin: 0 0 16px;
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
-  font-weight: 700;
+  margin: 0 0 14px;
+  font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+  font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text);
+  line-height: 1.2;
 }
 
 .map-copy p {
-  margin: 0 0 24px;
+  margin: 0 0 28px;
   font-size: 0.9375rem;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--muted);
 }
 
-.map-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+.map-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.btn-map-primary, .btn-map-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms;
+}
+
+.btn-map-primary {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(29,158,117,0.25);
+}
+
+.btn-map-primary:hover {
+  background: var(--green-deep);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(29,158,117,0.35);
+}
+
+.btn-map-secondary {
+  background: var(--green-soft, rgba(29,158,117,0.08));
+  color: var(--green-deep, #0d6b4f);
+  border: 1px solid rgba(29,158,117,0.2);
+}
+
+.btn-map-secondary:hover {
+  background: rgba(29,158,117,0.14);
+  transform: translateY(-2px);
 }
 
 .map-frame-wrap {
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   border: 1px solid var(--line);
   aspect-ratio: 4 / 3;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
 }
 
 .map-frame {
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   border: none;
   display: block;
 }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
-  .map-inner {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-  .cta-inner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+@media (max-width: 960px) {
+  .map-inner { grid-template-columns: 1fr; gap: 32px; }
+  .cta-inner { flex-direction: column; align-items: flex-start; }
 }
 
 @media (max-width: 640px) {
-  .hero {
-    padding: 100px 16px 0;
-  }
-  .section {
-    padding: 64px 16px;
-  }
+  .hero { padding: 110px 16px 0; }
+  .section { padding: 64px 16px; }
+
   .hero-stats {
+    flex-wrap: wrap;
     padding: 20px 16px;
-    gap: 0;
+    max-width: 100%;
   }
-  .hero-stat-divider {
-    display: none;
-  }
+
+  .hero-stat-sep { display: none; }
+
   .hero-stat {
-    flex: 1 0 50%;
-    padding: 12px;
+    flex: 1 0 40%;
+    padding: 10px;
   }
+
   .hero-actions {
     flex-direction: column;
     align-items: stretch;
-    margin-bottom: 48px;
+    margin-bottom: 52px;
   }
-  .btn-primary, .btn-ghost, .btn-secondary {
+
+  .btn-hero-primary, .btn-hero-ghost {
     justify-content: center;
   }
-  .cta {
-    margin: 40px 0;
-    padding: 60px 16px;
-  }
+
+  .cta { padding: 72px 16px; margin: 0; }
 }
 
-/* ── Dark mode overrides ── */
-[data-theme="dark"] .feature-card,
-[data-theme="dark"] .course-card,
-[data-theme="dark"] .category-card {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
+/* ── Dark mode ── */
+:global([data-theme="dark"]) .feature-card,
+:global([data-theme="dark"]) .course-card,
+:global([data-theme="dark"]) .category-card {
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.07);
 }
 
-[data-theme="dark"] .feature-card:hover,
-[data-theme="dark"] .course-card:hover,
-[data-theme="dark"] .category-card:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
+:global([data-theme="dark"]) .feature-card:hover { box-shadow: 0 20px 48px rgba(0,0,0,0.4); }
+:global([data-theme="dark"]) .course-card:hover  { box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
 
-[data-theme="dark"] .map-frame-wrap {
-  border-color: rgba(255, 255, 255, 0.08);
+:global([data-theme="dark"]) .map-frame-wrap { border-color: rgba(255,255,255,0.07); }
+
+:global([data-theme="dark"]) .btn-map-secondary {
+  background: rgba(29,158,117,0.1);
+  color: #6eedc7;
+  border-color: rgba(29,158,117,0.2);
 }
 </style>

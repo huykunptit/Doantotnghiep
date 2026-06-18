@@ -325,4 +325,11 @@ onMounted(() => {
   background-color: rgba(17, 17, 17, 0.1);
   margin: 4px 0;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .action-dropdown-menu { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .dropdown-item { color: var(--text); }
+[data-theme="dark"] .dropdown-item.is-danger { color: #f87171; }
+[data-theme="dark"] .dropdown-item.is-danger:hover { background: rgba(239, 68, 68, 0.1); }
+[data-theme="dark"] .dropdown-divider { background-color: rgba(255, 255, 255, 0.1); }
 </style>

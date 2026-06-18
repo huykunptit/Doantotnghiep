@@ -136,10 +136,38 @@ class DatabaseSeeder extends Seeder
             ? Curriculum::query()->where('program_id', $itProgram->id)->where('code', 'CTDT-CNTT')->first()
             : null;
 
-        $thumbnails = [
+        // Ảnh bìa theo từng lĩnh vực: core + 3 extension (thực chiến / chuyên sâu / dự án)
+        $thumbMap = [
+            'lap-trinh-cntt' => [
+                'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80', // code editor
+                'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80', // laptop code
+                'https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=1200&q=80', // web design screen
+                'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80', // dev workspace
+            ],
+            'thiet-ke' => [
+                'https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1200&q=80', // design tablet
+                'https://images.unsplash.com/photo-1541462608143-67571c6738dd?auto=format&fit=crop&w=1200&q=80', // graphic design
+                'https://images.unsplash.com/photo-1558655146-364adaf1fcc9?auto=format&fit=crop&w=1200&q=80', // design tools
+                'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&w=1200&q=80', // UI mockup
+            ],
+            'kinh-doanh' => [
+                'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80', // business charts
+                'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80', // team marketing
+                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80', // business meeting
+                'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80', // data analytics
+            ],
+            'ngoai-ngu' => [
+                'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=1200&q=80', // language study
+                'https://images.unsplash.com/photo-1434030216411-0b793f4b6b23?auto=format&fit=crop&w=1200&q=80', // studying
+                'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1200&q=80', // library books
+                'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=1200&q=80', // japanese/language
+            ],
+        ];
+
+        $fallbackThumbs = [
+            'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=1200&q=80',
             'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
             'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=1200&q=80',
             'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
         ];
 
@@ -180,7 +208,7 @@ class DatabaseSeeder extends Seeder
                     'is_credit_bearing' => true,
                     'credit_value' => 3,
                     'status' => 'published',
-                    'thumbnail' => $thumbnails[$rootIndex % count($thumbnails)],
+                    'thumbnail' => ($thumbMap[$rootCategory->slug] ?? $fallbackThumbs)[0],
                     'published_at' => now()->subDays(30),
                 ]
             );
@@ -209,7 +237,7 @@ class DatabaseSeeder extends Seeder
                         'is_credit_bearing' => false,
                         'credit_value' => null,
                         'status' => 'published',
-                        'thumbnail' => $thumbnails[($rootIndex + $tmplIndex + 1) % count($thumbnails)],
+                        'thumbnail' => ($thumbMap[$rootCategory->slug] ?? $fallbackThumbs)[$tmplIndex + 1],
                         'published_at' => now()->subDays(random_int(5, 25)),
                     ]
                 );

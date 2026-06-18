@@ -210,4 +210,7 @@ onBeforeUnmount(() => {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .scorm-iframe { background: var(--surface); }
 </style>

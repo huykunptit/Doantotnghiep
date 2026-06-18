@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAdminUpload } from '~/composables/useAdminUpload'
 import { useExport } from '~/composables/useExport'
 
@@ -57,6 +58,7 @@ const categories = ref<CategoryItem[]>([])
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalCourses = ref(0)
+const perPage = ref(10)
 
 const errorMessage = ref('')
 const successMessage = ref('')
@@ -121,7 +123,7 @@ const statusClass = (value: string) =>
 async function fetchCourses(page = 1) {
   loading.value = true
   try {
-    const query = new URLSearchParams({ page: String(page), per_page: '8' })
+    const query = new URLSearchParams({ page: String(page), per_page: String(perPage.value) })
     if (search.value.trim()) query.set('search', search.value.trim())
     if (status.value) query.set('status', status.value)
 
@@ -232,20 +234,6 @@ function exportData() {
   ]
   exportToCSV(courses.value, cols, 'danh_sach_kiem_duyet_khoa_hoc')
 }
-
-const visiblePages = computed(() => {
-  const range: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(lastPage.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-  for (let i = start; i <= end; i++) {
-    if (i >= 1) range.push(i)
-  }
-  return range
-})
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -395,30 +383,14 @@ onMounted(async () => {
         </table>
       </div>
 
-      <!-- Pagination -->
-      <div class="crud-pagination">
-        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalCourses }} khóa học)</p>
-        <div class="crud-pagination-actions">
-          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchCourses(currentPage - 1)">
-            Trước
-          </button>
-          <div class="pagination-numbers">
-            <button
-              v-for="p in visiblePages"
-              :key="p"
-              class="pagination-num-btn"
-              :class="{ 'is-active': p === currentPage }"
-              type="button"
-              @click="fetchCourses(p)"
-            >
-              {{ p }}
-            </button>
-          </div>
-          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchCourses(currentPage + 1)">
-            Sau
-          </button>
-        </div>
-      </div>
+      <DataTableFooter
+        :current="currentPage"
+        :last="lastPage"
+        :total="totalCourses"
+        :per-page="perPage"
+        @page="fetchCourses"
+        @update:per-page="perPage = $event; fetchCourses(1)"
+      />
     </section>
 
     <!-- ── Approve modal ── -->

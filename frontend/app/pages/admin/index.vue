@@ -355,8 +355,8 @@ onMounted(async () => {
 .chart-card {
   background: var(--surface-lowest);
   border: 1px solid var(--line);
-  border-radius: 24px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 16px 20px;
   min-width: 0;
   box-shadow: 0 8px 30px rgba(31, 49, 43, 0.03);
 }
@@ -376,9 +376,9 @@ onMounted(async () => {
   color: var(--muted);
 }
 .chart-card-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   margin: 4px 0 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text);
@@ -472,15 +472,15 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px 20px;
-  border-radius: 18px;
+  padding: 12px 16px;
+  border-radius: 14px;
   background: var(--surface);
   border: 1px solid var(--line);
 }
-.engagement-icon { font-size: 34px; }
+.engagement-icon { font-size: 28px; }
 .engagement-value {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 1.4rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text);

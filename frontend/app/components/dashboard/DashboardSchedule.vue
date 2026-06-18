@@ -630,4 +630,18 @@ function getEventsForDay(day: number) {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .dashboard-schedule-widget { background: var(--surface); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .widget-header h3 { color: var(--text); }
+[data-theme="dark"] .today-highlight { background: rgba(255, 255, 255, 0.04); }
+[data-theme="dark"] .td-date strong { color: var(--text); }
+[data-theme="dark"] .date-badge { background: rgba(255, 255, 255, 0.05); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .event-item { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .event-item:hover { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .event-main strong { color: var(--text); }
+[data-theme="dark"] .mini-calendar-wrap { background: rgba(255, 255, 255, 0.02); }
+[data-theme="dark"] .calendar-tooltip { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+[data-theme="dark"] .calendar-tooltip::after { border-top-color: var(--surface-strong); }
+[data-theme="dark"] .calendar-day:hover .day-number:not(.has-bg) { background: rgba(255, 255, 255, 0.08); }
 </style>

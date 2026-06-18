@@ -586,4 +586,17 @@ onMounted(loadQas)
   background: #fff;
   box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.1);
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .qa-shell { background: var(--surface); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .qa-header h3 { color: var(--text); }
+[data-theme="dark"] .qa-composer-box { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .qa-composer-input { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .qa-composer-input:focus { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .qa-card { background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .qa-card-body p { color: var(--text); }
+[data-theme="dark"] .qa-action:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+[data-theme="dark"] .qa-reply-input { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .qa-reply-input:focus { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .qa-replies { border-color: rgba(255, 255, 255, 0.1); }
 </style>

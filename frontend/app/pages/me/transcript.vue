@@ -101,11 +101,11 @@ onMounted(load)
       <table class="crud-table">
         <thead>
           <tr>
-            <th>Học phần</th>
-            <th>Lớp</th>
-            <th>Loại</th>
-            <th class="text-center">Tín chỉ</th>
-            <th class="text-center">Điểm tổng kết (10)</th>
+            <th>Tên học phần</th>
+            <th>Mã lớp học phần</th>
+            <th>Loại học phần</th>
+            <th class="text-center">Số tín chỉ</th>
+            <th class="text-center">Điểm tổng kết (thang 10)</th>
           </tr>
         </thead>
         <tbody>

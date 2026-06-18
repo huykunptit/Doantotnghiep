@@ -22,13 +22,13 @@ function getTypeIcon(type: string) {
   return typeIconMap[type] || Bell
 }
 
+const authHeaders = () => ({ Authorization: `Bearer ${auth.token}` })
+
 async function fetchUnreadCount() {
   if (!auth.token) return
   try {
-    const data = await $fetch<{ count: number }>('/api/notifications/unread-count', {
-      headers: { Authorization: `Bearer ${auth.token}` },
-    })
-    unreadCount.value = data.count
+    const data = await useApi<{ count: number }>('/notifications/unread-count', { headers: authHeaders() })
+    unreadCount.value = (data as any).count ?? 0
   } catch {}
 }
 
@@ -36,10 +36,8 @@ async function fetchNotifications() {
   if (!auth.token) return
   loading.value = true
   try {
-    const data = await $fetch<{ data: any[] }>('/api/notifications?per_page=10', {
-      headers: { Authorization: `Bearer ${auth.token}` },
-    })
-    notifications.value = data.data || []
+    const data = await useApi<{ data: any[] }>('/notifications?per_page=10', { headers: authHeaders() })
+    notifications.value = (data as any).data || []
   } catch {}
   loading.value = false
 }
@@ -47,10 +45,7 @@ async function fetchNotifications() {
 async function markAllRead() {
   if (!auth.token) return
   try {
-    await $fetch('/api/notifications/read-all', {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${auth.token}` },
-    })
+    await useApi('/notifications/read-all', { method: 'PUT', headers: authHeaders() })
     unreadCount.value = 0
     notifications.value.forEach(n => (n.read_at = new Date().toISOString()))
   } catch {}

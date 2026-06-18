@@ -135,4 +135,8 @@ p {
   transition: opacity 0.2s;
 }
 .back-btn:hover { opacity: 0.88; }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .google-card { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] h1 { color: var(--text); }
 </style>

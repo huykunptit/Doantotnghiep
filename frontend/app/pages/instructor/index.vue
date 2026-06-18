@@ -354,7 +354,7 @@ onMounted(async () => {
   color: var(--muted);
 }
 .header-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   margin: 0;
   font-size: 1.85rem;
   font-weight: 800;
@@ -448,7 +448,7 @@ onMounted(async () => {
   color: var(--muted);
 }
 .chart-card-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   margin: 4px 0 0;
   font-size: 1.15rem;
   font-weight: 800;

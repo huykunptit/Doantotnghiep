@@ -91,4 +91,8 @@ onBeforeUnmount(() => {
   font-size: 48px;
   color: #94a3b8;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .h5p-embed, [data-theme="dark"] .h5p-embed-frame { background: var(--surface); }
+[data-theme="dark"] .h5p-embed-empty { background: rgba(255, 255, 255, 0.02); color: var(--muted); }
 </style>

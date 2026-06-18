@@ -370,4 +370,15 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
   color: #334155;
 }
 .proctor-quick-btn:hover { border-color: var(--green); color: #1558b0; background: rgba(var(--green-rgb), 0.05); }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .proctor-modal { background: var(--surface-strong); border: 1px solid rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .proctor-modal__header { border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .proctor-modal__header h3 { color: var(--text); }
+[data-theme="dark"] .proctor-modal__footer { background: var(--surface); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .proctor-field span { color: var(--text); }
+[data-theme="dark"] .proctor-field input, [data-theme="dark"] .proctor-field select, [data-theme="dark"] .proctor-field textarea { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .proctor-quick-btn { background: rgba(255, 255, 255, 0.05); color: var(--text); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .proctor-quick-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--green); }
+[data-theme="dark"] .monitor-card { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
 </style>

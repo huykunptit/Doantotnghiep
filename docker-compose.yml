@@ -135,15 +135,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: production
+      target: development
     container_name: lms_frontend
     restart: unless-stopped
     environment:
       NUXT_PUBLIC_API_BASE: /api
       NUXT_API_PROXY_BASE: http://backend:8000/api
-      NODE_ENV: production
+      NODE_ENV: development
       HOST: 0.0.0.0
       PORT: 3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.nuxt
     expose:
       - "3000"
     networks:

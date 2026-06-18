@@ -683,10 +683,10 @@ onMounted(bootstrap)
         <table class="crud-table academic-v2-table">
           <thead>
             <tr>
-              <th style="width: 70px">Kỳ</th>
-              <th>Môn học</th>
-              <th style="width: 140px">Tín chỉ</th>
-              <th style="width: 160px">Loại</th>
+              <th style="width: 70px">Học kỳ</th>
+              <th>Tên môn học</th>
+              <th style="width: 140px">Số tín chỉ</th>
+              <th style="width: 160px">Loại môn</th>
             </tr>
           </thead>
           <tbody>
@@ -834,9 +834,9 @@ onMounted(bootstrap)
             <thead>
               <tr>
                 <th style="width: 48px"></th>
-                <th style="width: 120px">Mã lớp</th>
-                <th>Môn</th>
-                <th style="width: 160px">Trạng thái</th>
+                <th style="width: 120px">Mã lớp học phần</th>
+                <th>Tên môn học</th>
+                <th style="width: 160px">Trạng thái lớp</th>
               </tr>
             </thead>
             <tbody>

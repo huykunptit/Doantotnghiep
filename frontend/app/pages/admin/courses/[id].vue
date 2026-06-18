@@ -124,10 +124,12 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: false, middleware: ['auth', 'admin'] })
 const route = useRoute()
 const auth = useAuthStore()
+const toast = useToast()
 const courseId = route.params.id as string
 const course = ref<any>(null)
 const lessons = ref<any[]>([])
@@ -138,12 +140,24 @@ const statusLabel = (status: string) => ({ published: 'Đã xuất bản', draft
 const formatPrice = (price: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
 async function approveCourse() {
   actionLoading.value = true
-  try { await useApi(`/admin/courses/${courseId}/approve`, { method: 'PUT', token: auth.token }); if (course.value) course.value.status = 'published' } catch (e: any) { alert(e?.data?.message || 'Thất bại') } finally { actionLoading.value = false }
+  try {
+    await useApi(`/admin/courses/${courseId}/approve`, { method: 'PUT', token: auth.token })
+    if (course.value) course.value.status = 'published'
+    toast.success('Khóa học đã được duyệt', 'Khóa học đã chuyển sang trạng thái xuất bản.')
+  } catch (e: any) {
+    toast.error('Duyệt thất bại', e?.data?.message || 'Không thể duyệt khóa học này.')
+  } finally { actionLoading.value = false }
 }
 async function rejectCourse() {
   if (!rejectReason.value.trim()) return
   actionLoading.value = true
-  try { await useApi(`/admin/courses/${courseId}/reject`, { method: 'PUT', body: { reject_reason: rejectReason.value }, token: auth.token }); if (course.value) { course.value.status = 'rejected'; course.value.reject_reason = rejectReason.value } } catch (e: any) { alert(e?.data?.message || 'Thất bại') } finally { actionLoading.value = false }
+  try {
+    await useApi(`/admin/courses/${courseId}/reject`, { method: 'PUT', body: { reject_reason: rejectReason.value }, token: auth.token })
+    if (course.value) { course.value.status = 'rejected'; course.value.reject_reason = rejectReason.value }
+    toast.warning('Khóa học bị từ chối', 'Lý do từ chối đã được gửi đến giảng viên.')
+  } catch (e: any) {
+    toast.error('Từ chối thất bại', e?.data?.message || 'Không thể từ chối khóa học này.')
+  } finally { actionLoading.value = false }
 }
 onMounted(async () => {
   try { const courseData = await useApi<any>(`/admin/courses/${courseId}`, { token: auth.token }); course.value = courseData; lessons.value = Array.isArray(courseData?.lessons) ? courseData.lessons : [] } catch { course.value = null } finally { loading.value = false }

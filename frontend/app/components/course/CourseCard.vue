@@ -180,4 +180,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
 .course-card:hover .cta-arrow { transform: translateX(3px); }
 
 [data-theme="dark"] .course-card { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+[data-theme="dark"] .course-card:hover { box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.4); }
+[data-theme="dark"] .badge--cat { background: rgba(255,255,255,0.15); color: var(--text); }
+[data-theme="dark"] .lesson-pill { background: rgba(255,255,255,0.15); color: var(--text); }
 </style>

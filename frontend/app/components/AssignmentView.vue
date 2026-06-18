@@ -811,4 +811,22 @@ async function submitAssignment() {
   border-color: #fecaca;
   color: #b91c1c;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .assignment-view { background: var(--bg); color: var(--text); }
+[data-theme="dark"] .assignment-content, [data-theme="dark"] .assignment-panel { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .assignment-desc { color: var(--text); }
+[data-theme="dark"] .assignment-desc :deep(p), [data-theme="dark"] .assignment-desc :deep(h1), [data-theme="dark"] .assignment-desc :deep(h2), [data-theme="dark"] .assignment-desc :deep(h3), [data-theme="dark"] .assignment-desc :deep(li) { color: var(--text); }
+[data-theme="dark"] .assignment-upload { background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.12); color: var(--text); }
+[data-theme="dark"] .assignment-upload-file { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .assignment-textarea { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .assignment-submitted { background: rgba(var(--green-rgb), 0.1); border-color: rgba(var(--green-rgb), 0.2); }
+[data-theme="dark"] .assignment-file-pill { background: rgba(var(--green-rgb), 0.15); border-color: rgba(var(--green-rgb), 0.3); color: var(--green); }
+[data-theme="dark"] .assignment-locked { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .assignment-locked--soon { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+[data-theme="dark"] .assignment-locked--closed { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #f87171; }
+[data-theme="dark"] .assignment-grade-value { color: var(--green); }
+[data-theme="dark"] .assignment-feedback { color: var(--text); }
+[data-theme="dark"] .assignment-submitted-title { color: var(--green); }
+[data-theme="dark"] .assignment-submitted-meta { color: var(--muted); }
 </style>

@@ -244,10 +244,10 @@ onMounted(fetchExams)
                 <table class="crud-table">
                   <thead>
                     <tr>
-                      <th>Thí sinh</th>
-                      <th>Trạng thái</th>
-                      <th>Thời gian còn</th>
-                      <th>Vi phạm</th>
+                      <th>Tên thí sinh</th>
+                      <th>Trạng thái bài thi</th>
+                      <th>Thời gian còn lại</th>
+                      <th>Số vi phạm</th>
                     </tr>
                   </thead>
                   <tbody>

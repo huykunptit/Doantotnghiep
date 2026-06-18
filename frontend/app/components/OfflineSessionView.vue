@@ -146,4 +146,11 @@ function formatTime(dateStr: string) {
   color: var(--green);
   margin-top: 0.2rem;
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .offline-session-view { background: transparent; }
+[data-theme="dark"] .info-card { background: var(--surface-strong); border: 1px solid rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .content h2 { color: var(--text); }
+[data-theme="dark"] .value { color: var(--text); }
+[data-theme="dark"] .note-box { background: rgba(255, 255, 255, 0.05); color: var(--text); }
 </style>

@@ -43,7 +43,7 @@ withDefaults(
           <p class="stat-value">{{ value }}</p>
         </div>
         <div v-if="icon" class="stat-icon" :style="{ background: iconBg, color: iconColor }">
-          <SylvaIcon :name="icon" :size="20" :stroke-width="1.75" />
+          <SylvaIcon :name="icon" :size="18" :stroke-width="1.75" />
         </div>
       </header>
 
@@ -74,10 +74,10 @@ withDefaults(
 
 <style scoped>
 .stat-card {
-  position: relative; display: flex; flex-direction: column; gap: 12px;
-  padding: 20px 22px;
+  position: relative; display: flex; flex-direction: column; gap: 8px;
+  padding: 14px 16px;
   background: var(--surface-strong, #fff); border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 .stat-card:hover {
@@ -100,16 +100,16 @@ withDefaults(
 /* ── Head ── */
 .stat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .stat-label {
-  margin: 0 0 5px; font-size: 0.72rem; font-weight: 700;
+  margin: 0 0 3px; font-size: 0.68rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
 }
 .stat-value {
-  margin: 0; font-size: 1.7rem; font-weight: 800;
-  letter-spacing: -0.03em; color: var(--text); font-variant-numeric: tabular-nums;
+  margin: 0; font-size: 1.35rem; font-weight: 800;
+  letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums;
 }
 .stat-icon {
   display: flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
 }
 
 /* ── Spark ── */

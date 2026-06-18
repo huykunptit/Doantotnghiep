@@ -245,4 +245,15 @@ h1 { font-size: 24px; font-weight: 700; color: #111827; }
 .btn-submit { padding: 9px 22px; background: #111827; color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; }
 .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 .error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 8px 12px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] h1, [data-theme="dark"] .lesson-title, [data-theme="dark"] .modal h2, [data-theme="dark"] .field label { color: var(--text); }
+[data-theme="dark"] .btn-add { background: var(--surface-strong); border: 1px solid rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .lesson-row { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .order-badge { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+[data-theme="dark"] .btn-edit-sm { background: rgba(255, 255, 255, 0.05); color: var(--text); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .modal { background: var(--surface-strong); }
+[data-theme="dark"] .field input { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .btn-cancel { background: rgba(255, 255, 255, 0.05); color: var(--text); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .btn-submit { background: rgba(var(--green-rgb), 0.2); border: 1px solid var(--green); }
 </style>

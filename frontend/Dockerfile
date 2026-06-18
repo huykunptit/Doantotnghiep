@@ -27,6 +27,9 @@ RUN npm run build
 # ─── Stage 3: Production ──────────────────────────────────────────────────────
 FROM node:22-alpine AS production
 
+# Docker CLI needed for health-check-log server routes
+RUN apk add --no-cache docker-cli
+
 WORKDIR /app
 
 COPY --from=builder /app/.output ./.output

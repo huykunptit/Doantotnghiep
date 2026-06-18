@@ -127,7 +127,7 @@ const { siteName, authPageImage } = useSiteSettings()
 }
 
 .auth-brand-name {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -148,7 +148,7 @@ const { siteName, authPageImage } = useSiteSettings()
 
 .auth-title {
   margin: 0;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -272,7 +272,7 @@ const { siteName, authPageImage } = useSiteSettings()
 }
 
 .auth-visual-stat strong {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.03em;

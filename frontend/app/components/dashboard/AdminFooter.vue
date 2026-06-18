@@ -166,4 +166,14 @@ const quickLinks = [
   .af-inner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px 18px; }
   .af-links { flex-wrap: wrap; }
 }
+
+/* ── Dark mode overrides ── */
+[data-theme="dark"] .af {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark"] .af-version {
+  background: rgba(255, 255, 255, 0.06);
+}
 </style>

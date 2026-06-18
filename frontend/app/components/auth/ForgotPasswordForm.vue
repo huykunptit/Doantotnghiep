@@ -143,7 +143,7 @@ async function handleSubmit() {
 }
 
 .fpf-success-title {
-  margin: 0; font-family: 'Outfit', sans-serif;
+  margin: 0; font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 1.25rem; font-weight: 700; color: var(--text);
 }
 

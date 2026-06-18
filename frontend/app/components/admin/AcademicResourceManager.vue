@@ -1590,4 +1590,13 @@ onMounted(async () => {
   .academic-stats { flex-direction: column; }
   .academic-stats article { width: 100%; }
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .academic-hero-chip { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .academic-hero-panel { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .academic-tab { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .academic-tab:hover { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .academic-tab.is-active { background: rgba(var(--green-rgb), 0.15); border-color: var(--green); }
+[data-theme="dark"] .academic-search input { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .academic-stats article { background: rgba(255, 255, 255, 0.05); }
 </style>

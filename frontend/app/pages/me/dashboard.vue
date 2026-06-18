@@ -79,10 +79,10 @@ onMounted(load)
       <table v-else class="crud-table">
         <thead>
           <tr>
-            <th>Học phần</th>
-            <th>Mã lớp</th>
-            <th>Giảng viên</th>
-            <th>Loại</th>
+            <th>Tên học phần</th>
+            <th>Mã lớp học phần</th>
+            <th>Giảng viên phụ trách</th>
+            <th>Loại học phần</th>
           </tr>
         </thead>
         <tbody>

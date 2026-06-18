@@ -19,10 +19,10 @@
         <table class="crud-table">
           <thead>
             <tr>
-              <th>#</th>
+              <th>STT</th>
               <th>Khóa học</th>
-              <th>Bài học</th>
-              <th>Học viên</th>
+              <th>Số bài học</th>
+              <th>Số học viên</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
             </tr>
@@ -35,7 +35,7 @@
               <td colspan="6" class="crud-empty">Chưa có khóa học.</td>
             </tr>
             <tr v-for="(course, idx) in filteredCourses" :key="course.id">
-              <td>{{ idx + 1 }}</td>
+              <td>{{ (qbPage - 1) * qbPerPage + idx + 1 }}</td>
               <td>
                 <div class="crud-course">
                   <div class="crud-course-thumb">
@@ -57,17 +57,30 @@
           </tbody>
         </table>
       </div>
+
+      <DataTableFooter
+        :current="qbPage"
+        :last="qbLastPage"
+        :total="allFilteredCourses.length"
+        :per-page="qbPerPage"
+        @page="qbPage = $event"
+        @update:per-page="qbPerPage = $event; qbPage = 1"
+      />
     </section>
   </section>
 </template>
 
 <script setup lang="ts">
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
+
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
 const courseStore = useCourseStore()
 const loading = ref(true)
 const courses = ref<any[]>([])
 const search = ref('')
+const qbPage = ref(1)
+const qbPerPage = ref(10)
 
 const statusLabel = (status: string) => {
   const map: Record<string, string> = { published: 'Đã xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Bị từ chối' }
@@ -76,10 +89,15 @@ const statusLabel = (status: string) => {
 
 const statusClass = (s: string) => ({ published: 'role-instructor', pending_review: 'role-student', draft: 'role-admin', rejected: 'role-admin' }[s] || 'role-admin')
 
-const filteredCourses = computed(() => {
+const allFilteredCourses = computed(() => {
   if (!search.value.trim()) return courses.value
   const q = search.value.toLowerCase()
   return courses.value.filter(c => c.title?.toLowerCase().includes(q))
+})
+const qbLastPage = computed(() => Math.max(1, Math.ceil(allFilteredCourses.value.length / qbPerPage.value)))
+const filteredCourses = computed(() => {
+  const start = (qbPage.value - 1) * qbPerPage.value
+  return allFilteredCourses.value.slice(start, start + qbPerPage.value)
 })
 
 onMounted(async () => {

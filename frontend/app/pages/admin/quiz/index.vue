@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 import SearchableCourseSelect from '~/components/dashboard/SearchableCourseSelect.vue'
 import { useExport } from '~/composables/useExport'
@@ -38,8 +39,15 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const confirmOpen = ref(false)
 const selectedExam = ref<ExamItem | null>(null)
+const examPage = ref(1)
+const examPerPage = ref(10)
 
-const currentExams = computed(() => activeTab.value === 'standalone' ? standaloneExams.value : exams.value)
+const allCurrentExams = computed(() => activeTab.value === 'standalone' ? standaloneExams.value : exams.value)
+const currentExams = computed(() => {
+  const start = (examPage.value - 1) * examPerPage.value
+  return allCurrentExams.value.slice(start, start + examPerPage.value)
+})
+const examLastPage = computed(() => Math.max(1, Math.ceil(allCurrentExams.value.length / examPerPage.value)))
 const selectedCourse = computed(() => courses.value.find(c => c.id === selectedCourseId.value))
 
 async function fetchCourses() {
@@ -168,10 +176,10 @@ onMounted(async () => {
           <thead>
             <tr>
               <th>Tên đề thi</th>
-              <th>Thời lượng</th>
-              <th>Điểm đạt</th>
-              <th>Số lần thi</th>
-              <th>Học viên</th>
+              <th>Thời lượng (phút)</th>
+              <th>Điểm đạt (%)</th>
+              <th>Số lần thi tối đa</th>
+              <th>Học viên tham gia</th>
               <th>Lịch thi</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
@@ -181,7 +189,7 @@ onMounted(async () => {
             <tr v-if="loadingExams">
               <td colspan="8" class="crud-empty">Đang tải dữ liệu...</td>
             </tr>
-            <tr v-else-if="currentExams.length === 0">
+            <tr v-else-if="allCurrentExams.length === 0">
               <td colspan="8" class="crud-empty">
                 Chưa có đề thi nào.
                 <button class="inline-link" type="button" @click="goCreate">Tạo đề thi đầu tiên</button>
@@ -213,6 +221,15 @@ onMounted(async () => {
           </tbody>
         </table>
       </div>
+
+      <DataTableFooter
+        :current="examPage"
+        :last="examLastPage"
+        :total="allCurrentExams.length"
+        :per-page="examPerPage"
+        @page="examPage = $event"
+        @update:per-page="examPerPage = $event; examPage = 1"
+      />
     </section>
 
     <CrudConfirmModal

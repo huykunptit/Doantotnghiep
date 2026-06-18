@@ -210,4 +210,9 @@ onMounted(load)
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .rec-card { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .rec-skeleton-card { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .rec-head h3, [data-theme="dark"] .rec-body h4 { color: var(--text); }
 </style>

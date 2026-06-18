@@ -45,6 +45,20 @@ const totalQuestions = computed(() => questions.value.length)
 const bookmarkedCount = computed(() => Object.values(bookmarks.value).filter(Boolean).length)
 const isCurrentBookmarked = computed(() => !!(currentQuestion.value && bookmarks.value[currentQuestion.value.id]))
 
+function getTypeText(type: string) {
+  const map: any = {
+    single_choice: 'Trắc nghiệm',
+    multiple_choice: 'Nhiều lựa chọn',
+    true_false: 'Đúng/Sai',
+    essay: 'Tự luận',
+    ordering: 'Sắp xếp',
+    matching: 'Nối cặp',
+    short_answer: 'Trả lời ngắn',
+    numerical: 'Điền số'
+  }
+  return map[type] || 'Câu hỏi'
+}
+
 function loadBookmarks() {
   if (typeof window === 'undefined') return
   try {
@@ -319,7 +333,7 @@ onUnmounted(() => {
                   <span class="material-symbols-outlined bookmark-icon">{{ isCurrentBookmarked ? 'bookmark' : 'bookmark_border' }}</span>
                   <span>{{ isCurrentBookmarked ? 'Đã đánh dấu' : 'Đánh dấu' }}</span>
                 </button>
-                <span class="question-type">{{ currentQuestion.type }}</span>
+                <span class="question-type">{{ getTypeText(currentQuestion.type) }}</span>
               </div>
             </div>
 
@@ -409,7 +423,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.exam-shell { min-height: 100vh; background: #f8fbff; font-family: 'Inter', system-ui, sans-serif; color: #14213d; }
+.exam-shell { min-height: 100vh; background: #f8fbff; font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #14213d; }
 .exam-topbar { position: sticky; top: 0; z-index: 40; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; padding: 1rem 1.25rem; border-bottom: 1px solid rgba(var(--green-rgb), 0.12); background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(18px); }
 .exam-topbar__title h1, .exam-result-card h2, .exam-overlay-card h2 { margin: 0; }
 .exam-kicker { margin: 0 0 0.35rem; color: var(--green); font-size: 0.76rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; }
@@ -426,18 +440,22 @@ onUnmounted(() => {
 .exam-submit-btn:disabled, .nav-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .exam-link-btn { display: inline-flex; justify-content: center; text-decoration: none; }
 .exam-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 1.5rem; padding: 1.5rem; }
+.exam-sidebar { position: sticky; top: 6.5rem; display: flex; flex-direction: column; gap: 1.5rem; height: calc(100vh - 4rem); }
 .exam-sidebar__card, .question-panel, .exam-result-card, .exam-overlay-card, .exam-state-card { border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 24px; background: rgba(255, 255, 255, 0.92); box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08); }
-.exam-sidebar__card { position: sticky; top: 6.5rem; padding: 1.25rem; }
-.exam-sidebar__card h3 { margin: 0 0 0.45rem; }
-.exam-sidebar__card p { margin: 0 0 1rem; color: #64748b; font-size: 0.92rem; line-height: 1.6; }
-.question-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; }
+.exam-sidebar__card { display: flex; flex-direction: column; max-height: 70%; padding: 1.5rem; }
+.exam-sidebar__card h3 { margin: 0 0 0.45rem; flex-shrink: 0; }
+.exam-sidebar__card p { margin: 0 0 1rem; color: #64748b; font-size: 0.92rem; line-height: 1.6; flex-shrink: 0; }
+.question-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; overflow-y: auto; padding-right: 0.25rem; flex: 1; margin-bottom: 0.85rem; }
+.question-nav::-webkit-scrollbar { width: 4px; }
+.question-nav::-webkit-scrollbar-track { background: transparent; }
+.question-nav::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 .q-nav-btn { position: relative; min-height: 44px; border: 1px solid #dbe6f5; border-radius: 14px; background: #fff; color: #475569; font-weight: 800; cursor: pointer; }
 .q-nav-btn.active { background: rgba(var(--green-rgb), 0.05); color: var(--green); border-color: #90caf9; }
 .q-nav-btn.answered { background: #ecfdf3; color: var(--green-deep); border-color: #86efac; }
 .q-nav-btn.active.answered { box-shadow: inset 0 0 0 1px var(--green); }
 .q-nav-btn.bookmarked { border-color: #f59e0b; box-shadow: inset 0 0 0 1px #fbbf24; }
 .q-nav-flag { position: absolute; top: -6px; right: -6px; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: #f59e0b; color: #fff; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.4); font-variation-settings: 'FILL' 1, 'wght' 600; font-size: 14px !important; line-height: 1; }
-.question-nav-legend { display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed #dbe6f5; color: #64748b; font-size: 0.78rem; }
+.question-nav-legend { display: flex; flex-wrap: wrap; gap: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed #dbe6f5; color: #64748b; font-size: 0.78rem; flex-shrink: 0; }
 .question-nav-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
 .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
 .legend-answered { background: #ecfdf3; border: 1px solid #86efac; }
@@ -589,7 +607,8 @@ onUnmounted(() => {
 .exam-result-fullscreen .exam-submit-btn .material-symbols-outlined { font-size: 20px; }
 @media (max-width: 1024px) {
   .exam-layout { grid-template-columns: 1fr; }
-  .exam-sidebar__card { position: static; }
+  .exam-sidebar { position: static; height: auto; }
+  .exam-sidebar__card { max-height: none; }
 }
 @media (max-width: 640px) {
   .exam-topbar, .exam-layout { padding: 1rem; }
@@ -597,4 +616,30 @@ onUnmounted(() => {
   .question-nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .question-panel, .exam-sidebar__card, .exam-result-card, .exam-overlay-card { padding: 1.1rem; }
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .exam-shell { background: var(--bg); color: var(--text); }
+[data-theme="dark"] .exam-topbar { background: rgba(15, 34, 25, 0.92); border-color: rgba(255, 255, 255, 0.12); }
+[data-theme="dark"] .exam-topbar__title h1, [data-theme="dark"] .exam-result-card h2, [data-theme="dark"] .exam-overlay-card h2 { color: var(--text); }
+[data-theme="dark"] .exam-sidebar__card, [data-theme="dark"] .question-panel, [data-theme="dark"] .exam-result-card, [data-theme="dark"] .exam-overlay-card, [data-theme="dark"] .exam-state-card { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .exam-sidebar__card h3, [data-theme="dark"] .exam-state-card h2, [data-theme="dark"] .proctor-alert-message { color: var(--text); }
+[data-theme="dark"] .q-nav-btn { background: rgba(255, 255, 255, 0.05); color: var(--text); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .question-content { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .answer-option { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .answer-option:hover { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .exam-text-input { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .nav-btn { background: rgba(255, 255, 255, 0.05); color: var(--text); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .exam-result-fullscreen { background: var(--bg); }
+[data-theme="dark"] .exam-result-icon-wrap { background: var(--surface-strong); }
+[data-theme="dark"] .exam-result-stat { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .exam-result-title { color: var(--text); }
+[data-theme="dark"] .exam-result-message { color: var(--muted); }
+[data-theme="dark"] .q-nav-btn.answered { background: rgba(var(--green-rgb), 0.15); color: var(--green); border-color: rgba(var(--green-rgb), 0.3); }
+[data-theme="dark"] .legend-answered { background: rgba(var(--green-rgb), 0.12); border-color: rgba(var(--green-rgb), 0.3); }
+[data-theme="dark"] .legend-bookmark { background: rgba(245, 158, 11, 0.1); }
+[data-theme="dark"] .bookmark-btn { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--muted); }
+[data-theme="dark"] .bookmark-btn.is-active { background: rgba(245, 158, 11, 0.12); border-color: #f59e0b; color: #fbbf24; }
+[data-theme="dark"] .exam-sidebar__card p { color: var(--muted); }
+[data-theme="dark"] .question-nav-legend { color: var(--muted); border-top-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .question-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
 </style>

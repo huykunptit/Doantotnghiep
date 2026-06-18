@@ -1575,4 +1575,15 @@ onMounted(() => {
 @keyframes preview-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .course-builder-shell { background: var(--bg); }
+[data-theme="dark"] .cb-sidebar, [data-theme="dark"] .cb-main, [data-theme="dark"] .course-header, [data-theme="dark"] .course-tab-panel, [data-theme="dark"] .course-info-panel, [data-theme="dark"] .preview-resource, [data-theme="dark"] .preview-scroll { background: var(--surface-strong); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .cb-sidebar-link:hover, [data-theme="dark"] .cb-sidebar-link.is-active { background: rgba(255, 255, 255, 0.05); color: var(--green); }
+[data-theme="dark"] .cb-form-field input, [data-theme="dark"] .cb-form-field textarea, [data-theme="dark"] .cb-form-field select { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .preview-resource h4, [data-theme="dark"] .preview-resource p, [data-theme="dark"] .preview-rich { color: var(--text); }
+[data-theme="dark"] .curriculum-section, [data-theme="dark"] .curriculum-lesson { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .action-btn { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .course-settings-panel { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .cb-topbar { background: rgba(15, 34, 25, 0.95); border-color: rgba(255, 255, 255, 0.08); }
 </style>

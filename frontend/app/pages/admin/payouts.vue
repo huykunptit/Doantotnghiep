@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 
 definePageMeta({ layout: 'admin' })
 
@@ -14,6 +15,8 @@ const rawCourses = ref<any[]>([])
 const search = ref('')
 const periodFilter = ref<'all' | 'this_month' | 'last_month' | 'this_year'>('all')
 const markedPaid = ref<Set<number>>(new Set())
+const payoutPage = ref(1)
+const payoutPerPage = ref(10)
 
 async function fetchData() {
   loading.value = true
@@ -100,6 +103,12 @@ const payoutRows = computed<PayoutRow[]>(() => {
     )
   }
   return rows
+})
+
+const payoutLastPage = computed(() => Math.max(1, Math.ceil(payoutRows.value.length / payoutPerPage.value)))
+const pagedPayoutRows = computed(() => {
+  const start = (payoutPage.value - 1) * payoutPerPage.value
+  return payoutRows.value.slice(start, start + payoutPerPage.value)
 })
 
 const totalRevenue = computed(() => payoutRows.value.reduce((s, r) => s + r.revenue, 0))
@@ -225,16 +234,16 @@ onMounted(fetchData)
               <tr>
                 <th>Giảng viên</th>
                 <th>Khoá học</th>
-                <th>Đơn hàng</th>
+                <th>Số đơn hàng</th>
                 <th>Doanh thu</th>
-                <th>Payout (70%)</th>
-                <th>Trạng thái</th>
+                <th>Thanh toán (70%)</th>
+                <th>Trạng thái chi trả</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr
-                v-for="row in payoutRows"
+                v-for="row in pagedPayoutRows"
                 :key="row.instructorId"
                 :class="{ 'row-paid': markedPaid.has(row.instructorId) }"
               >
@@ -297,6 +306,15 @@ onMounted(fetchData)
             </tbody>
           </table>
         </div>
+
+        <DataTableFooter
+          :current="payoutPage"
+          :last="payoutLastPage"
+          :total="payoutRows.length"
+          :per-page="payoutPerPage"
+          @page="payoutPage = $event"
+          @update:per-page="payoutPerPage = $event; payoutPage = 1"
+        />
 
         <!-- Note -->
         <div style="margin-top: 16px; padding: 12px 16px; background: rgba(var(--green-rgb), 0.04); border-radius: 12px; font-size: 0.8rem; color: var(--muted); line-height: 1.6;">

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Download, MoreVertical } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAuthUserCookie } from '~/composables/useAuthSession'
 import { useExport } from '~/composables/useExport'
 
@@ -49,6 +50,7 @@ const detailOpen = ref(false)
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalOrders = ref(0)
+const perPage = ref(10)
 const search = ref('')
 const status = ref('')
 const selectedOrder = ref<OrderItem | null>(null)
@@ -71,20 +73,6 @@ function exportData() {
   ]
   exportToCSV(orders.value, cols, 'danh_sach_don_hang')
 }
-
-const visiblePages = computed(() => {
-  const range: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(lastPage.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-  for (let i = start; i <= end; i++) {
-    if (i >= 1) range.push(i)
-  }
-  return range
-})
 
 const isAllSelected = computed(() => {
   return orders.value.length > 0 && orders.value.every(o => selectedIds.value.includes(o.id))
@@ -139,7 +127,7 @@ async function fetchOrders(page = 1) {
   try {
     const query = new URLSearchParams({
       page: String(page),
-      per_page: '10'
+      per_page: String(perPage.value)
     })
 
     if (search.value.trim()) {
@@ -265,7 +253,7 @@ onMounted(fetchOrders)
               <td>
                 <input type="checkbox" v-model="selectedIds" :value="order.id">
               </td>
-              <td>{{ (currentPage - 1) * 10 + idx + 1 }}</td>
+              <td>{{ (currentPage - 1) * perPage + idx + 1 }}</td>
               <td>
                 <div class="crud-profile">
                   <div v-if="order.user?.avatar" class="crud-avatar">
@@ -320,29 +308,14 @@ onMounted(fetchOrders)
         </table>
       </div>
 
-      <div class="crud-pagination">
-        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalOrders }} đơn hàng)</p>
-        <div class="crud-pagination-actions">
-          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchOrders(currentPage - 1)">
-            Trước
-          </button>
-          <div class="pagination-numbers">
-            <button
-              v-for="p in visiblePages"
-              :key="p"
-              class="pagination-num-btn"
-              :class="{ 'is-active': p === currentPage }"
-              type="button"
-              @click="fetchOrders(p)"
-            >
-              {{ p }}
-            </button>
-          </div>
-          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchOrders(currentPage + 1)">
-            Sau
-          </button>
-        </div>
-      </div>
+      <DataTableFooter
+        :current="currentPage"
+        :last="lastPage"
+        :total="totalOrders"
+        :per-page="perPage"
+        @page="fetchOrders"
+        @update:per-page="perPage = $event; fetchOrders(1)"
+      />
     </section>
 
     <Teleport to="body">
@@ -449,5 +422,9 @@ onMounted(fetchOrders)
   background-color: rgba(var(--green-rgb), 0.08);
   color: var(--green);
 }
+
+/* ====== DARK MODE OVERRIDES ====== */
+[data-theme="dark"] .dropdown-menu { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .dropdown-item { color: var(--text); }
 </style>
 

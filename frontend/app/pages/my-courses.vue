@@ -164,7 +164,7 @@ onMounted(async () => {
 }
 .mc-title {
   margin: 0 0 6px;
-  font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 800;
+  font-family: 'Be Vietnam Pro', sans-serif; font-size: 2rem; font-weight: 800;
   letter-spacing: -0.04em; color: var(--text);
 }
 .mc-subtitle { margin: 0; font-size: 1rem; color: var(--muted); line-height: 1.6; }
@@ -240,7 +240,7 @@ onMounted(async () => {
 .mc-badge--active { background: var(--secondary-soft, rgba(55,138,221,0.12)); color: var(--secondary, #378ADD); }
 .mc-date { font-size: 0.8rem; color: var(--muted); }
 .mc-featured-title {
-  margin: 0; font-family: 'Outfit', sans-serif; font-size: 1.3rem;
+  margin: 0; font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.3rem;
   font-weight: 700; line-height: 1.3; color: var(--text);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   transition: color 150ms;
@@ -293,7 +293,7 @@ onMounted(async () => {
 .mc-stat-icon--green { background: var(--green-soft); color: var(--green); }
 .mc-stat-icon--blue { background: rgba(55,138,221,0.1); color: var(--secondary, #378ADD); }
 .mc-stat-val {
-  margin: 0 0 2px; font-family: 'Outfit', sans-serif;
+  margin: 0 0 2px; font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 1.5rem; font-weight: 800; color: var(--text);
 }
 .mc-stat-lbl { margin: 0; font-size: 0.75rem; color: var(--muted); }
