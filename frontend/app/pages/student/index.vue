@@ -230,7 +230,7 @@ const scheduleEvents = computed(() => {
   --green-soft: rgba(29, 158, 117, 0.15);
   --text: #111827;
   --muted: #6b7280;
-  --surface-strong: #f3f4f6;
+  --surface-strong: #ffffff;
   --line: #e5e7eb;
 
   min-height: calc(100vh - 80px);

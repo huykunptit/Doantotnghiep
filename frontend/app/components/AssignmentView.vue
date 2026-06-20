@@ -149,8 +149,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 
+const toast = useToast()
 const props = defineProps<{
   data: any
   courseId: number
@@ -357,7 +359,7 @@ async function submitAssignment() {
     existingSubmission.value = response.submission
     if (response.submission) emit('submitted', response.submission)
   } catch {
-    alert('Nộp bài thất bại. Vui lòng thử lại.')
+    toast.error('Nộp bài thất bại. Vui lòng thử lại.')
   } finally {
     isSubmitting.value = false
   }

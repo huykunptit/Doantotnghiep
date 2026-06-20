@@ -161,7 +161,7 @@ const userInitials = computed(() => {
 .ins-shell {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
+  background: url('/body-bg.jpg') center/cover fixed, var(--bg);
 }
 
 /* ── Sidebar ── */

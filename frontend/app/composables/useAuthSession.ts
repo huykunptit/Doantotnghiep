@@ -7,6 +7,9 @@ export interface AuthUser {
   roles?: string[]
   email_verified?: boolean
   email_verified_at?: string | null
+  student_code?: string | null
+  class_name?: string | null
+  department?: string | null
 }
 
 export interface AuthResponse {

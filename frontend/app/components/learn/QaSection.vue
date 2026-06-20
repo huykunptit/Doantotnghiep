@@ -2,6 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useCourseStore, type CourseQa, type CourseQaReply, type QaReactionKind } from '~/stores/course'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   courseId: number
@@ -51,7 +54,7 @@ async function submitQuestion() {
     newQuestion.value = ''
     newQuestionFocused.value = false
   } catch (e: any) {
-    alert(e?.data?.message || 'Không thể gửi câu hỏi.')
+    toast.error(e?.data?.message || 'Không thể gửi câu hỏi.')
   } finally {
     submitting.value = false
   }
@@ -68,7 +71,7 @@ async function submitReply(qa: CourseQa) {
     replyDrafts.value[qa.id] = ''
     expandedQa.value[qa.id] = true
   } catch {
-    alert('Không thể gửi phản hồi.')
+    toast.error('Không thể gửi phản hồi.')
   } finally {
     submitting.value = false
   }

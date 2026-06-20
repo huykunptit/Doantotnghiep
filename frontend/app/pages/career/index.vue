@@ -1,6 +1,5 @@
 <template>
-  <NuxtLayout name="default">
-    <div class="car-page">
+  <div class="car-page">
       <input ref="fileInput" type="file" class="car-file-hidden" accept=".pdf,.doc,.docx" @change="handleFileUpload">
 
       <!-- STATE 1: Loading -->
@@ -41,17 +40,59 @@
         </header>
 
         <!-- STATE 2: No CV — dropzone -->
-        <div v-if="!cvData" class="car-dropzone-wrap">
-          <div class="car-card car-dropzone">
-            <div class="car-icon-circle car-icon-circle--lg">
-              <CloudUpload :size="28" color="var(--green-deep)" />
+        <div v-if="!cvData" class="car-upload-wrap">
+          <div class="car-upload-grid">
+            <!-- Dropzone -->
+            <div
+              class="car-dropzone"
+              :class="{ 'car-dropzone--drag': isDragging, 'car-dropzone--busy': uploading }"
+              role="button"
+              tabindex="0"
+              @click="!uploading && openFilePicker()"
+              @keyup.enter="!uploading && openFilePicker()"
+              @dragover.prevent="onDragOver"
+              @dragleave.prevent="onDragLeave"
+              @drop.prevent="onDrop"
+            >
+              <template v-if="uploading">
+                <div class="car-upload-spinner"><span class="car-spinner-ring" /></div>
+                <strong class="car-dropzone-title">Đang phân tích hồ sơ...</strong>
+                <p class="car-dropzone-desc">AI đang đọc và trích xuất kỹ năng từ CV của bạn. Vui lòng đợi trong giây lát.</p>
+              </template>
+              <template v-else>
+                <div class="car-icon-circle car-icon-circle--lg">
+                  <CloudUpload :size="32" color="var(--green-deep)" />
+                </div>
+                <strong class="car-dropzone-title">{{ isDragging ? 'Thả tệp để tải lên' : 'Kéo & thả CV vào đây' }}</strong>
+                <p class="car-dropzone-desc">hoặc bấm để chọn tệp từ máy của bạn</p>
+                <button class="car-btn-primary car-btn-primary--auto" type="button" @click.stop="openFilePicker">
+                  <Upload :size="16" />
+                  <span>Chọn tệp CV</span>
+                </button>
+                <div class="car-format-row">
+                  <span class="car-format-chip">PDF</span>
+                  <span class="car-format-chip">DOC</span>
+                  <span class="car-format-chip">DOCX</span>
+                  <span class="car-format-hint">Tối đa 10MB</span>
+                </div>
+              </template>
             </div>
-            <strong class="car-dropzone-title">{{ uploading ? 'Đang phân tích hồ sơ...' : 'Tải CV để bắt đầu' }}</strong>
-            <p class="car-dropzone-desc">Hỗ trợ PDF, DOC, DOCX. Hệ thống sẽ tự động trích xuất kỹ năng và chuẩn bị khuyến nghị cá nhân hóa.</p>
-            <button class="car-btn-primary" type="button" :disabled="uploading" @click="openFilePicker">
-              <Upload :size="16" />
-              <span>{{ uploading ? 'Đang tải...' : 'Chọn tệp CV' }}</span>
-            </button>
+
+            <!-- What AI will do -->
+            <aside class="car-upload-side">
+              <p class="car-label">Sau khi tải lên</p>
+              <h3 class="car-upload-side-title">AI sẽ giúp bạn</h3>
+              <ul class="car-feature-list">
+                <li v-for="feat in uploadFeatures" :key="feat.text">
+                  <span class="car-feature-icon"><component :is="feat.icon" :size="18" /></span>
+                  <span>{{ feat.text }}</span>
+                </li>
+              </ul>
+              <div class="car-privacy-note">
+                <ShieldCheck :size="15" />
+                <span>CV của bạn được bảo mật và chỉ dùng để phân tích cá nhân hóa.</span>
+              </div>
+            </aside>
           </div>
         </div>
 
@@ -248,12 +289,11 @@
         </div>
       </template>
     </div>
-  </NuxtLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RefreshCw, CloudUpload, Upload, Sparkles, FileText, CheckCircle, AlertCircle, Target, BookOpen, ChevronRight, TrendingUp } from 'lucide-vue-next'
+import { RefreshCw, CloudUpload, Upload, Sparkles, FileText, CheckCircle, AlertCircle, Target, BookOpen, ChevronRight, TrendingUp, ShieldCheck, ScanSearch, GraduationCap, Route } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -266,7 +306,15 @@ const targetJob = ref('')
 const initialLoading = ref(true)
 const uploading = ref(false)
 const loadingRecommendations = ref(false)
+const isDragging = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+
+const uploadFeatures = [
+  { icon: ScanSearch, text: 'Trích xuất & phân tích kỹ năng từ CV' },
+  { icon: Target, text: 'Đánh giá mức độ phù hợp với mục tiêu nghề nghiệp' },
+  { icon: Route, text: 'Xác định khoảng trống kỹ năng cần bổ sung' },
+  { icon: GraduationCap, text: 'Gợi ý lộ trình & khóa học cá nhân hóa' },
+]
 
 const matchScore = computed(() => {
   const raw = Number(analysis.value?.match_score || 0)
@@ -318,10 +366,20 @@ const loadInitialData = async () => {
   }
 }
 
-const handleFileUpload = async (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
+const ALLOWED_EXT = ['pdf', 'doc', 'docx']
+const MAX_SIZE = 10 * 1024 * 1024
+
+const uploadCv = async (file: File) => {
+  if (uploading.value) return
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  if (!ALLOWED_EXT.includes(ext)) {
+    alert('Định dạng không hỗ trợ. Vui lòng chọn tệp PDF, DOC hoặc DOCX.')
+    return
+  }
+  if (file.size > MAX_SIZE) {
+    alert('Tệp quá lớn. Kích thước tối đa là 10MB.')
+    return
+  }
   const formData = new FormData()
   formData.append('cv', file)
   uploading.value = true
@@ -335,6 +393,26 @@ const handleFileUpload = async (event: Event) => {
     uploading.value = false
     if (fileInput.value) fileInput.value.value = ''
   }
+}
+
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) uploadCv(file)
+}
+
+const onDragOver = () => {
+  if (!uploading.value) isDragging.value = true
+}
+
+const onDragLeave = () => {
+  isDragging.value = false
+}
+
+const onDrop = (event: DragEvent) => {
+  isDragging.value = false
+  const file = event.dataTransfer?.files?.[0]
+  if (file) uploadCv(file)
 }
 
 const getRecommendations = async () => {
@@ -369,7 +447,7 @@ onMounted(loadInitialData)
   --green-soft: rgba(29, 158, 117, 0.08);
   --text: #111;
   --muted: #6b7280;
-  --surface-strong: #f4f6f8;
+  --surface-strong: #FFFFFF;
   --line: #e5e7eb;
 }
 
@@ -587,24 +665,62 @@ onMounted(loadInitialData)
   cursor: not-allowed;
 }
 
-/* ── Dropzone ── */
-.car-dropzone-wrap {
-  max-width: 600px;
-  margin: 64px auto;
+/* ── Upload / Dropzone ── */
+.car-upload-wrap {
+  max-width: 1080px;
+  margin: 56px auto 72px;
   padding: 0 24px;
 }
 
-.car-dropzone {
+.car-upload-grid {
   display: grid;
-  place-items: center;
-  gap: 16px;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.car-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
   text-align: center;
   padding: 56px 40px;
-  border: 2px dashed rgba(var(--green-rgb), 0.25) !important;
+  background: #fff;
+  border: 2px dashed rgba(var(--green-rgb), 0.3);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.car-dropzone:hover {
+  border-color: rgba(var(--green-rgb), 0.55);
+  background: rgba(var(--green-rgb), 0.03);
+}
+
+.car-dropzone:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(var(--green-rgb), 0.15);
+}
+
+.car-dropzone--drag {
+  border-color: var(--green);
+  border-style: solid;
+  background: rgba(var(--green-rgb), 0.06);
+  transform: scale(1.005);
+  box-shadow: 0 18px 40px -22px rgba(var(--green-rgb), 0.5);
+}
+
+.car-dropzone--busy {
+  cursor: progress;
+  border-style: solid;
+  border-color: rgba(var(--green-rgb), 0.4);
 }
 
 .car-dropzone-title {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text);
 }
@@ -612,8 +728,115 @@ onMounted(loadInitialData)
 .car-dropzone-desc {
   margin: 0;
   color: var(--muted);
-  max-width: 400px;
+  max-width: 420px;
   line-height: 1.6;
+}
+
+.car-upload-spinner {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+}
+
+.car-btn-primary--auto {
+  width: auto;
+  margin-top: 6px;
+}
+
+/* ── Format chips ── */
+.car-format-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.car-format-chip {
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(17, 17, 17, 0.05);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.car-format-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* ── Upload side panel ── */
+.car-upload-side {
+  background: linear-gradient(160deg, #0d2e1e 0%, #163d2a 100%);
+  border-radius: 20px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #fff;
+}
+
+.car-upload-side .car-label {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.car-upload-side-title {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.car-feature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  flex: 1;
+}
+
+.car-feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.car-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(var(--green-rgb), 0.22);
+  color: #fff;
+}
+
+.car-privacy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.car-privacy-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--green);
 }
 
 /* ── Icon Circles ── */
@@ -1090,6 +1313,20 @@ onMounted(loadInitialData)
   background: rgba(255, 255, 255, 0.04);
 }
 
+[data-theme="dark"] .car-dropzone {
+  background: var(--surface-strong);
+  border-color: rgba(var(--green-rgb), 0.35);
+}
+
+[data-theme="dark"] .car-dropzone:hover {
+  background: rgba(var(--green-rgb), 0.06);
+}
+
+[data-theme="dark"] .car-format-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--line);
+}
+
 [data-theme="dark"] .car-input {
   background: rgba(255, 255, 255, 0.05);
   border-color: var(--line);
@@ -1161,6 +1398,14 @@ onMounted(loadInitialData)
 
   .car-container {
     padding: 28px 20px 60px;
+  }
+
+  .car-upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .car-dropzone {
+    padding: 44px 24px;
   }
 
   .car-sidebar {

@@ -49,6 +49,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import { FileText, Download, ExternalLink } from 'lucide-vue-next'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -110,7 +114,7 @@ async function downloadFile(file: any) {
     a.click()
     document.body.removeChild(a)
   } catch (e) {
-    alert('Không thể tải file lúc này.')
+    toast.error('Không thể tải file lúc này.')
   }
 }
 </script>

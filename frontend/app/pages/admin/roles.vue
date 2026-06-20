@@ -1,139 +1,6 @@
-<template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Phân quyền']"
-    description="Cấu hình quyền hạn cho từng vai trò. Vai trò admin luôn có toàn bộ quyền và không thể chỉnh sửa."
-    title="Phân quyền hệ thống"
-  >
-    <section class="space-y-6">
-      <!-- Loading skeleton -->
-      <div v-if="loading" class="space-y-4">
-        <div class="h-12 rounded-2xl bg-surface-high animate-pulse" />
-        <div class="h-64 rounded-2xl bg-surface-high animate-pulse" />
-      </div>
-
-      <template v-else>
-        <!-- Role summary chips -->
-        <UiCard>
-          <div class="flex flex-wrap items-center gap-3">
-            <p class="text-sm font-semibold text-on-surface-variant">Tổng quan vai trò:</p>
-            <span
-              v-for="role in roles"
-              :key="role.id"
-              class="inline-flex items-center gap-2 rounded-full border border-surface-dim/50 bg-surface-low px-3 py-1.5 text-sm"
-            >
-              <span class="font-bold text-on-surface">{{ roleLabel(role.name) }}</span>
-              <span class="text-xs text-on-surface-variant">
-                {{ permCount(role) }} / {{ permissions.length }} quyền
-              </span>
-            </span>
-          </div>
-        </UiCard>
-
-        <!-- Action bar -->
-        <div
-          class="sticky top-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-dim/50 bg-surface-lowest/95 px-5 py-3 backdrop-blur-md shadow-sm"
-        >
-          <div class="flex items-center gap-3">
-            <span
-              v-if="hasUnsavedChanges"
-              class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700"
-            >
-              <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Có thay đổi chưa lưu
-            </span>
-            <span
-              v-else
-              class="inline-flex items-center gap-1.5 rounded-full bg-secondary-50 px-3 py-1 text-xs font-bold text-secondary"
-            >
-              <span class="h-1.5 w-1.5 rounded-full bg-secondary" />
-              Đã đồng bộ
-            </span>
-          </div>
-          <div class="flex items-center gap-2">
-            <UiButton variant="ghost" :disabled="!hasUnsavedChanges || saving" @click="resetChanges">
-              Hoàn tác
-            </UiButton>
-            <UiButton :disabled="!hasUnsavedChanges || saving" @click="savePermissions">
-              {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
-            </UiButton>
-          </div>
-        </div>
-
-        <!-- Feedback -->
-        <div v-if="errorMessage" class="rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
-          {{ errorMessage }}
-        </div>
-        <div v-if="successMessage" class="rounded-xl border border-success/30 bg-success/10 p-3 text-sm text-success">
-          {{ successMessage }}
-        </div>
-
-        <!-- Permission groups -->
-        <UiCard
-          v-for="group in permissionGroups"
-          :key="group.key"
-          class="overflow-hidden"
-        >
-          <div class="flex items-center justify-between border-b border-surface-dim/50 pb-3 mb-3">
-            <div>
-              <h3 class="text-base font-bold text-on-surface">{{ group.label }}</h3>
-              <p class="text-xs text-on-surface-variant">{{ group.items.length }} quyền</p>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-                  <th class="px-3 py-3 min-w-[260px]">Quyền</th>
-                  <th
-                    v-for="role in roles"
-                    :key="role.id"
-                    class="px-3 py-3 text-center min-w-[120px]"
-                  >
-                    <span class="rounded-full bg-primary/10 px-3 py-1 text-primary">
-                      {{ roleLabel(role.name) }}
-                    </span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-surface-dim/40">
-                <tr
-                  v-for="perm in group.items"
-                  :key="perm.id"
-                  class="hover:bg-surface-low/50 transition-colors"
-                >
-                  <td class="px-3 py-3">
-                    <p class="font-semibold text-on-surface">{{ permLabel(perm.name) }}</p>
-                    <code class="text-[11px] text-on-surface-variant/80">{{ perm.name }}</code>
-                  </td>
-                  <td v-for="role in roles" :key="role.id" class="px-3 py-3 text-center">
-                    <button
-                      type="button"
-                      class="permission-toggle"
-                      :class="{
-                        'is-checked': hasPermission(role, perm.name),
-                        'is-locked': role.name === 'admin',
-                      }"
-                      :disabled="role.name === 'admin'"
-                      :aria-checked="hasPermission(role, perm.name)"
-                      role="switch"
-                      @click="togglePermission(role, perm.name)"
-                    >
-                      <span class="permission-toggle-thumb" />
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </UiCard>
-      </template>
-    </section>
-  </AdminWorkspaceShell>
-</template>
-
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { Save, RotateCcw, ShieldCheck, ShieldAlert } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
@@ -160,6 +27,12 @@ const ROLE_LABELS: Record<string, string> = {
   student: 'Học viên',
 }
 
+const ROLE_COLOR: Record<string, string> = {
+  admin: 'rl-role--admin',
+  instructor: 'rl-role--instructor',
+  student: 'rl-role--student',
+}
+
 const PERMISSION_LABELS: Record<string, string> = {
   view_dashboard: 'Xem bảng điều khiển',
   manage_users: 'Quản lý người dùng',
@@ -174,17 +47,17 @@ const PERMISSION_LABELS: Record<string, string> = {
 }
 
 const PERMISSION_GROUPS: Array<{ key: string; label: string; match: (name: string) => boolean }> = [
-  { key: 'system', label: 'Hệ thống & quản trị', match: (n) => /^(view_dashboard|manage_users|manage_roles)$/.test(n) },
-  { key: 'course', label: 'Khoá học & bài giảng', match: (n) => /(course|lesson)/.test(n) },
-  { key: 'exam', label: 'Thi cử & đánh giá', match: (n) => /(exam|review)/.test(n) },
-  { key: 'finance', label: 'Tài chính & báo cáo', match: (n) => /(finance|report)/.test(n) },
+  { key: 'system', label: 'Hệ thống & Quản trị', match: (n) => /^(view_dashboard|manage_users|manage_roles)$/.test(n) },
+  { key: 'course', label: 'Khoá học & Bài giảng', match: (n) => /(course|lesson)/.test(n) },
+  { key: 'exam', label: 'Thi cử & Đánh giá', match: (n) => /(exam|review)/.test(n) },
+  { key: 'finance', label: 'Tài chính & Báo cáo', match: (n) => /(finance|report)/.test(n) },
   { key: 'other', label: 'Khác', match: () => true },
 ]
 
 const roleLabel = (name: string) => ROLE_LABELS[name] || name
+const roleColor = (name: string) => ROLE_COLOR[name] || ''
 const permLabel = (name: string) =>
-  PERMISSION_LABELS[name] ||
-  name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  PERMISSION_LABELS[name] || name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 
 const permissionGroups = computed(() => {
   const used = new Set<number>()
@@ -201,19 +74,19 @@ const permissionGroups = computed(() => {
     .filter((g) => g.items.length > 0)
 })
 
-const hasPermission = (role: Role, permissionName: string) => {
+const hasPermission = (role: Role, permName: string) => {
   if (role.name === 'admin') return true
-  return current.value[role.id]?.has(permissionName) ?? false
+  return current.value[role.id]?.has(permName) ?? false
 }
 
 const permCount = (role: Role) =>
   role.name === 'admin' ? permissions.value.length : current.value[role.id]?.size ?? 0
 
-const togglePermission = (role: Role, permissionName: string) => {
+const togglePermission = (role: Role, permName: string) => {
   if (role.name === 'admin') return
   const set = current.value[role.id] ?? new Set<string>()
-  if (set.has(permissionName)) set.delete(permissionName)
-  else set.add(permissionName)
+  if (set.has(permName)) set.delete(permName)
+  else set.add(permName)
   current.value = { ...current.value, [role.id]: new Set(set) }
 }
 
@@ -242,9 +115,7 @@ const snapshot = (data: Role[]) => {
 
 const resetChanges = () => {
   const curr: Record<number, Set<string>> = {}
-  Object.entries(original.value).forEach(([id, set]) => {
-    curr[Number(id)] = new Set(set)
-  })
+  Object.entries(original.value).forEach(([id, set]) => { curr[Number(id)] = new Set(set) })
   current.value = curr
   successMessage.value = ''
   errorMessage.value = ''
@@ -261,7 +132,7 @@ const loadData = async () => {
     permissions.value = res.permissions || []
     snapshot(roles.value)
   } catch {
-    errorMessage.value = 'Không thể tải danh sách quyền. Vui lòng kiểm tra API.'
+    errorMessage.value = 'Không thể tải danh sách quyền. Vui lòng thử lại.'
   } finally {
     loading.value = false
   }
@@ -271,7 +142,6 @@ const savePermissions = async () => {
   saving.value = true
   errorMessage.value = ''
   successMessage.value = ''
-
   try {
     const targets = roles.value.filter((r) => r.name !== 'admin')
     await Promise.all(
@@ -295,47 +165,480 @@ const savePermissions = async () => {
 onMounted(loadData)
 </script>
 
+<template>
+  <AdminWorkspaceShell
+    title="Phân quyền hệ thống"
+    description="Cấu hình quyền hạn cho từng vai trò. Vai trò admin luôn có toàn bộ quyền và không thể chỉnh sửa."
+    :breadcrumb="['Trang chủ', 'Phân quyền']"
+  >
+    <div class="rl-stack">
+
+      <!-- Skeleton -->
+      <template v-if="loading">
+        <div class="rl-skeleton rl-skeleton--sm" />
+        <div class="rl-skeleton rl-skeleton--lg" />
+        <div class="rl-skeleton rl-skeleton--lg" />
+      </template>
+
+      <template v-else>
+
+        <!-- Role summary -->
+        <div class="dashboard-card rl-summary">
+          <p class="rl-summary-label">Tổng quan vai trò</p>
+          <div class="rl-role-chips">
+            <div v-for="role in roles" :key="role.id" class="rl-role-chip" :class="roleColor(role.name)">
+              <span class="rl-role-name">{{ roleLabel(role.name) }}</span>
+              <span class="rl-role-stat">
+                {{ permCount(role) }}<span class="rl-role-total"> / {{ permissions.length }}</span>
+              </span>
+              <div class="rl-role-bar">
+                <div
+                  class="rl-role-fill"
+                  :style="{ width: `${Math.round((permCount(role) / permissions.length) * 100)}%` }"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky action bar -->
+        <div class="rl-actionbar dashboard-card">
+          <div class="rl-actionbar-status">
+            <template v-if="hasUnsavedChanges">
+              <ShieldAlert :size="15" class="rl-status-icon rl-status-icon--warn" />
+              <span class="rl-status-text rl-status-text--warn">Có thay đổi chưa lưu</span>
+            </template>
+            <template v-else>
+              <ShieldCheck :size="15" class="rl-status-icon rl-status-icon--ok" />
+              <span class="rl-status-text rl-status-text--ok">Đã đồng bộ</span>
+            </template>
+          </div>
+          <div class="rl-actionbar-btns">
+            <button
+              class="rl-btn rl-btn--ghost"
+              type="button"
+              :disabled="!hasUnsavedChanges || saving"
+              @click="resetChanges"
+            >
+              <RotateCcw :size="14" /> Hoàn tác
+            </button>
+            <button
+              class="rl-btn rl-btn--primary"
+              type="button"
+              :disabled="!hasUnsavedChanges || saving"
+              @click="savePermissions"
+            >
+              <Save :size="14" /> {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
+        <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+
+        <!-- Permission groups -->
+        <div
+          v-for="group in permissionGroups"
+          :key="group.key"
+          class="dashboard-card rl-group"
+        >
+          <div class="rl-group-header">
+            <strong class="rl-group-title">{{ group.label }}</strong>
+            <span class="rl-group-count">{{ group.items.length }} quyền</span>
+          </div>
+
+          <div class="rl-table-wrap">
+            <table class="rl-table">
+              <thead>
+                <tr>
+                  <th class="rl-th-perm">Quyền</th>
+                  <th v-for="role in roles" :key="role.id" class="rl-th-role">
+                    <span class="rl-role-pill" :class="roleColor(role.name)">
+                      {{ roleLabel(role.name) }}
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="perm in group.items" :key="perm.id" class="rl-row">
+                  <td class="rl-td-perm">
+                    <span class="rl-perm-label">{{ permLabel(perm.name) }}</span>
+                    <code class="rl-perm-code">{{ perm.name }}</code>
+                  </td>
+                  <td v-for="role in roles" :key="role.id" class="rl-td-toggle">
+                    <button
+                      type="button"
+                      class="permission-toggle"
+                      :class="{
+                        'is-checked': hasPermission(role, perm.name),
+                        'is-locked': role.name === 'admin',
+                      }"
+                      :disabled="role.name === 'admin'"
+                      :aria-checked="hasPermission(role, perm.name)"
+                      role="switch"
+                      @click="togglePermission(role, perm.name)"
+                    >
+                      <span class="permission-toggle-thumb" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </template>
+    </div>
+  </AdminWorkspaceShell>
+</template>
+
 <style scoped>
+/* ── Layout ── */
+.rl-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Skeleton ── */
+.rl-skeleton {
+  border-radius: 30px;
+  background: var(--bg, #eff2f0);
+  border: 1px solid var(--line);
+  animation: rl-pulse 1.4s ease-in-out infinite;
+}
+.rl-skeleton--sm  { height: 80px; }
+.rl-skeleton--lg  { height: 200px; }
+
+@keyframes rl-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* ── Role summary ── */
+.rl-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rl-summary-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rl-role-chips {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rl-role-chip {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
+  background: var(--surface-strong, #fff);
+}
+
+.rl-role-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rl-role-stat {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.rl-role-total {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.rl-role-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg, #eff2f0);
+  overflow: hidden;
+}
+
+.rl-role-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Role accent colors */
+.rl-role--admin   .rl-role-fill { background: var(--green, #1d9e75); }
+.rl-role--admin   { border-color: rgba(29,158,117,0.25); }
+
+.rl-role--instructor .rl-role-fill { background: #378add; }
+.rl-role--instructor { border-color: rgba(55,138,221,0.25); }
+
+.rl-role--student .rl-role-fill { background: #7c3aed; }
+.rl-role--student { border-color: rgba(124,58,237,0.25); }
+
+/* ── Action bar ── */
+.rl-actionbar {
+  position: sticky;
+  top: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px !important;
+}
+
+.rl-actionbar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rl-status-icon--ok   { color: var(--green, #1d9e75); flex-shrink: 0; }
+.rl-status-icon--warn { color: #b45309; flex-shrink: 0; }
+
+.rl-status-text {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.rl-status-text--ok   { color: var(--green-deep, #085041); }
+.rl-status-text--warn { color: #b45309; }
+
+.rl-actionbar-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 140ms, border-color 140ms, transform 140ms, opacity 140ms;
+}
+
+.rl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+.rl-btn:not(:disabled):hover { transform: translateY(-1px); }
+
+.rl-btn--ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--line-strong, rgba(31,49,43,0.16));
+}
+.rl-btn--ghost:not(:disabled):hover { background: var(--bg, #eff2f0); }
+
+.rl-btn--primary {
+  background: linear-gradient(135deg, var(--green, #1d9e75) 0%, var(--green-deep, #085041) 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px -4px rgba(29,158,117,0.5);
+}
+.rl-btn--primary:not(:disabled):hover {
+  box-shadow: 0 6px 16px -4px rgba(29,158,117,0.6);
+}
+
+/* ── Permission group ── */
+.rl-group {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.rl-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--line-strong, rgba(31,49,43,0.16));
+}
+
+.rl-group-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rl-group-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg, #eff2f0);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* ── Table ── */
+.rl-table-wrap {
+  overflow-x: auto;
+}
+
+.rl-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.rl-table thead tr {
+  border-bottom: 1px solid var(--line, #dde5e1);
+}
+
+.rl-th-perm {
+  padding: 10px 20px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  width: 100%;
+}
+
+.rl-th-role {
+  padding: 10px 16px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Role pill in header */
+.rl-role-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.rl-role-pill.rl-role--admin       { background: rgba(29,158,117,0.1);  color: var(--green-deep); border-color: rgba(29,158,117,0.22); }
+.rl-role-pill.rl-role--instructor  { background: rgba(55,138,221,0.1);  color: #1a5fa8;           border-color: rgba(55,138,221,0.22); }
+.rl-role-pill.rl-role--student     { background: rgba(124,58,237,0.1);  color: #5b21b6;           border-color: rgba(124,58,237,0.22); }
+
+/* ── Table rows ── */
+.rl-row {
+  border-bottom: 1px solid var(--line, #dde5e1);
+  transition: background 140ms;
+}
+.rl-row:last-child { border-bottom: none; }
+.rl-row:hover { background: rgba(17,17,17,0.025); }
+
+.rl-td-perm {
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rl-perm-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rl-perm-code {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-family: 'Courier New', monospace;
+  opacity: 0.7;
+}
+
+.rl-td-toggle {
+  padding: 12px 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* ── Toggle switch ── */
 .permission-toggle {
   position: relative;
   display: inline-block;
-  width: 44px;
-  height: 24px;
+  width: 40px;
+  height: 22px;
   border-radius: 999px;
-  background: var(--surface-high, #dde0db);
+  background: var(--line-strong, rgba(31,49,43,0.16));
   border: none;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 200ms ease;
   padding: 0;
   vertical-align: middle;
+  flex-shrink: 0;
 }
+
 .permission-toggle:hover:not(:disabled) {
-  background: var(--surface-dim, #ced2cc);
+  background: rgba(31,49,43,0.25);
 }
+
 .permission-toggle.is-checked {
-  background: var(--green);
+  background: var(--green, #1d9e75);
 }
+
 .permission-toggle.is-locked {
-  background: rgba(var(--green-rgb), 0.4);
+  background: rgba(29,158,117,0.45);
   cursor: not-allowed;
 }
+
 .permission-toggle:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
+
 .permission-toggle-thumb {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(17, 17, 17, 0.18);
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 4px rgba(17,17,17,0.2);
+  transition: transform 200ms ease;
 }
+
 .permission-toggle.is-checked .permission-toggle-thumb,
 .permission-toggle.is-locked .permission-toggle-thumb {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
+
+/* ── Dark mode ── */
+[data-theme="dark"] .rl-role-chip       { background: rgba(255,255,255,0.04); }
+[data-theme="dark"] .rl-role-bar        { background: rgba(255,255,255,0.08); }
+[data-theme="dark"] .rl-group-count     { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+[data-theme="dark"] .rl-skeleton        { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
+[data-theme="dark"] .rl-btn--ghost      { border-color: rgba(255,255,255,0.12); }
+[data-theme="dark"] .rl-btn--ghost:not(:disabled):hover { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] .rl-table thead tr  { border-color: rgba(255,255,255,0.1); }
+[data-theme="dark"] .rl-row             { border-color: rgba(255,255,255,0.07); }
+[data-theme="dark"] .rl-row:hover       { background: rgba(255,255,255,0.03); }
+[data-theme="dark"] .permission-toggle  { background: rgba(255,255,255,0.15); }
+[data-theme="dark"] .rl-role--admin     { border-color: rgba(29,158,117,0.3); }
+[data-theme="dark"] .rl-role--instructor { border-color: rgba(55,138,221,0.3); }
+[data-theme="dark"] .rl-role--student   { border-color: rgba(124,58,237,0.3); }
+[data-theme="dark"] .rl-role-pill.rl-role--admin      { background: rgba(29,158,117,0.15); color: #5ddfb4; }
+[data-theme="dark"] .rl-role-pill.rl-role--instructor { background: rgba(55,138,221,0.15); color: #7db8ed; }
+[data-theme="dark"] .rl-role-pill.rl-role--student    { background: rgba(124,58,237,0.15); color: #a78bfa; }
 </style>

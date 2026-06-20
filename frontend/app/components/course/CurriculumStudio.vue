@@ -3,6 +3,9 @@ import { ref, onMounted } from 'vue'
 import SectionBlock from './SectionBlock.vue'
 import LessonFormModal from './LessonFormModal.vue'
 import { useAuthStore } from '~/stores/auth'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   courseId: number
@@ -71,7 +74,7 @@ async function saveSection() {
     showSectionModal.value = false
     await loadSections()
   } catch {
-    alert('Không thể lưu chương học.')
+    toast.error('Không thể lưu chương học.')
   } finally {
     saving.value = false
   }
@@ -86,7 +89,7 @@ async function deleteSection(id: number) {
     })
     await loadSections()
   } catch {
-    alert('Lỗi khi xóa chương.')
+    toast.error('Lỗi khi xóa chương.')
   }
 }
 
@@ -188,7 +191,7 @@ async function saveLesson(formData: any) {
     showLessonModal.value = false
     await loadSections()
   } catch {
-    alert('Không thể lưu bài học.')
+    toast.error('Không thể lưu bài học.')
   } finally {
     saving.value = false
   }
@@ -203,7 +206,7 @@ async function deleteLesson(lesson: any) {
     })
     await loadSections()
   } catch {
-    alert('Lỗi khi xóa bài học.')
+    toast.error('Lỗi khi xóa bài học.')
   }
 }
 

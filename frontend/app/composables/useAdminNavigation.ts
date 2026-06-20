@@ -30,12 +30,14 @@ export function useAdminNavigation() {
         { label: 'Phân quyền', icon: 'shield-check', to: '/admin/roles' },
       ],
     },
+    /*
     {
       label: 'Tổ chức & Học vụ',
       items: [
         { label: 'Tổ chức & Học vụ', icon: 'building-2', to: '/admin/academic' },
       ],
     },
+    */
     {
       label: 'Khóa học',
       items: [

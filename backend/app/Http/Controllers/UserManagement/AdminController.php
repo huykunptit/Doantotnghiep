@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\SiteSetting;
@@ -269,20 +270,66 @@ class AdminController extends Controller
             'study_status' => ['nullable', 'in:' . implode(',', StudyStatus::all())],
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'avatar' => $validated['avatar'] ?? null,
-            'email_verified_at' => now(),
-        ]);
+        $user = User::create(array_merge(
+            collect($validated)->except(['password', 'role'])->toArray(),
+            [
+                'password' => Hash::make($validated['password']),
+                'email_verified_at' => now(),
+            ]
+        ));
         $user->syncRoles([$validated['role']]);
-        $user->load('roles');
+        $user->load(['roles', 'administrativeClass:id,name,code', 'cohort:id,name,code', 'program:id,name,code', 'major:id,name,code', 'unit:id,name,code']);
 
         return response()->json([
             'message' => 'User created',
             'user' => $user,
         ], 201);
+    }
+
+    public function userAcademicSummary(Request $request, User $user): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $enrollments = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->with([
+                'course:id,title,credit_value,is_credit_bearing',
+                'term:id,name,code,start_date,end_date',
+                'classSection:id,code,name,term_id',
+            ])
+            ->whereNotNull('term_id')
+            ->orderBy('term_id')
+            ->get();
+
+        $byTerm = $enrollments->groupBy(fn ($e) => $e->term_id ?? 0);
+
+        $terms = $byTerm->map(function ($items) {
+            $term = $items->first()->term;
+            $finalScores = $items->pluck('final_score')->filter(fn ($s) => $s !== null);
+            return [
+                'term' => $term,
+                'course_count' => $items->count(),
+                'credit_count' => $items->sum(fn ($e) => (int) ($e->course->credit_value ?? 0)),
+                'gpa' => $finalScores->count() ? round($finalScores->avg(), 2) : null,
+                'courses' => $items->map(fn ($e) => [
+                    'title' => $e->course?->title,
+                    'credit_value' => $e->course?->credit_value,
+                    'final_score' => $e->final_score,
+                    'class_section' => $e->classSection?->code,
+                ])->values(),
+            ];
+        })->values();
+
+        $gpas = $terms->pluck('gpa')->filter(fn ($g) => $g !== null);
+
+        return response()->json([
+            'overall_gpa' => $gpas->count() ? round($gpas->avg(), 2) : null,
+            'total_credits' => $terms->sum('credit_count'),
+            'total_courses' => $enrollments->count(),
+            'terms' => $terms,
+        ]);
     }
 
     public function updateUser(Request $request, User $user): JsonResponse
@@ -337,7 +384,7 @@ class AdminController extends Controller
             $user->syncRoles([$validated['role']]);
         }
 
-        $user->load('roles');
+        $user->load(['roles', 'administrativeClass:id,name,code', 'cohort:id,name,code', 'program:id,name,code', 'major:id,name,code', 'unit:id,name,code']);
 
         return response()->json([
             'message' => 'User updated',

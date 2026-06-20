@@ -162,6 +162,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   courseId: number
@@ -248,7 +251,7 @@ const deleteSection = async (sectionId: number) => {
     })
     await loadSections()
   } catch (error: any) {
-    alert(error?.data?.message || 'Có lỗi khi xóa chương này.')
+    toast.error(error?.data?.message || 'Có lỗi khi xóa chương này.')
   }
 }
 

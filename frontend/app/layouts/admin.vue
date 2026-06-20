@@ -76,7 +76,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background: var(--bg);
+  background: url('/body-bg.jpg') center/cover fixed, var(--bg);
 }
 
 .admin-sidebar {

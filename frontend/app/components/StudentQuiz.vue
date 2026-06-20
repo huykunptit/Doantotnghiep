@@ -221,6 +221,10 @@
 </template>
 
 <script setup lang="ts">
+import { AlertCircle, Clock, CheckCircle2, XCircle, HelpCircle, Save } from 'lucide-vue-next'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
@@ -341,7 +345,7 @@ function stopTimer() {
 function handleVisibilityChange() {
   if (document.hidden && !result.value && quiz.value) {
     warnings.value++
-    // alert(`CẢNH BÁO GIAN LẬN (${warnings.value}): Bạn vừa chuyển tab hoặc rời khỏi cửa sổ làm bài!`)
+    // toast.error(`CẢNH BÁO GIAN LẬN (${warnings.value}): Bạn vừa chuyển tab hoặc rời khỏi cửa sổ làm bài!`)
   }
 }
 
@@ -403,7 +407,7 @@ async function submitQuiz(auto = false) {
       })
     }
   } catch (e) {
-    alert('Không thể nộp bài, vui lòng thử lại sau.')
+    toast.error('Không thể nộp bài, vui lòng thử lại sau.')
   } finally {
     submitting.value = false
   }

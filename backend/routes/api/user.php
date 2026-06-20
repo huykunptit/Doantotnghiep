@@ -101,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/students', [AdminController::class, 'listStudents']);
         Route::get('/instructors', [AdminController::class, 'listInstructors']);
         Route::post('/users', [AdminController::class, 'storeUser']);
+        Route::get('/users/{user}/academic-summary', [AdminController::class, 'userAcademicSummary']);
         Route::put('/users/{user}', [AdminController::class, 'updateUser']);
         Route::put('/users/{user}/role', [AdminController::class, 'updateUserRole']);
         Route::delete('/users/{user}', [AdminController::class, 'destroyUser']);

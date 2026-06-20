@@ -93,6 +93,9 @@ import { ref, onMounted, computed } from 'vue'
 import { Star } from 'lucide-vue-next'
 import { useApi } from '~/composables/useApi'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
+import { useToast } from '~/composables/useToast'
+
+const toast = useToast()
 
 const props = defineProps<{
   courseId: number
@@ -143,9 +146,9 @@ async function submitReview() {
     
     // Reset form
     reviewForm.value = { rating: 0, comment: '' }
-    alert('Cảm ơn bạn đã gửi đánh giá!')
+    toast.success('Cảm ơn bạn đã gửi đánh giá!')
   } catch (e: any) {
-    alert(e.data?.message || 'Không thể gửi đánh giá, vui lòng thử lại sau.')
+    toast.error(e.data?.message || 'Không thể gửi đánh giá, vui lòng thử lại sau.')
   } finally {
     submitting.value = false
   }

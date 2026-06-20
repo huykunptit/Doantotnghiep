@@ -8,6 +8,9 @@ const auth = useAuthStore()
 const form = reactive({
   name: auth.user?.name ?? '',
   avatar: auth.user?.avatar ?? '',
+  student_code: auth.user?.student_code ?? '',
+  class_name: auth.user?.class_name ?? '',
+  department: auth.user?.department ?? '',
 })
 const loading = ref(false)
 const success = ref('')
@@ -19,6 +22,9 @@ watch(
     if (!user) return
     form.name = user.name
     form.avatar = user.avatar ?? ''
+    form.student_code = user.student_code ?? ''
+    form.class_name = user.class_name ?? ''
+    form.department = user.department ?? ''
   },
   { immediate: true },
 )
@@ -28,7 +34,13 @@ async function handleSubmit() {
   success.value = ''
   error.value = ''
   try {
-    await auth.updateProfile({ name: form.name, avatar: form.avatar || null })
+    await auth.updateProfile({ 
+      name: form.name, 
+      avatar: form.avatar || null,
+      student_code: form.student_code || null,
+      class_name: form.class_name || null,
+      department: form.department || null,
+    })
     success.value = 'Cập nhật hồ sơ thành công.'
   } catch (e: any) {
     error.value = e?.data?.message || 'Không thể cập nhật hồ sơ.'
@@ -43,6 +55,10 @@ async function handleSubmit() {
     <div class="grid gap-4 md:grid-cols-2">
       <UiInput v-model="form.name" label="Họ và tên" placeholder="Nguyễn Văn A" />
       <UiInput :model-value="auth.user?.email || ''" label="Email" type="email" disabled />
+      
+      <UiInput v-model="form.student_code" label="Mã sinh viên" placeholder="Ví dụ: CT123456" />
+      <UiInput v-model="form.class_name" label="Lớp học" placeholder="Ví dụ: D20CQCN01-N" />
+      <UiInput v-model="form.department" label="Khoa/Viện" placeholder="Ví dụ: Khoa CNTT" />
     </div>
 
     <div class="space-y-2">

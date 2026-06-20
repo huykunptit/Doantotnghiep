@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, Trash2, Star, BookOpen } from 'lucide-vue-next'
+import { Download, Trash2, Star, BookOpen, TrendingUp, ThumbsUp, ThumbsDown, BarChart2 } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useToast } from '~/composables/useToast'
 
@@ -31,6 +31,9 @@ const avgRating = computed(() => {
 })
 const positivePercent = computed(() =>
   allReviews.value.length ? Math.round((positiveCount.value / allReviews.value.length) * 100) : 0
+)
+const negativePercent = computed(() =>
+  allReviews.value.length ? Math.round((negativeCount.value / allReviews.value.length) * 100) : 0
 )
 
 async function fetchReviews(page = 1) {
@@ -86,14 +89,12 @@ const visiblePages = computed(() => {
   const maxVisible = 5
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
   let end = Math.min(totalPages.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-  for (let i = start; i <= end; i++) {
-    if (i >= 1) range.push(i)
-  }
+  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1)
+  for (let i = start; i <= end; i++) { if (i >= 1) range.push(i) }
   return range
 })
+
+const ratingTier = (r: number) => r >= 4 ? 'positive' : r <= 2 ? 'negative' : 'neutral'
 
 onMounted(() => fetchReviews(1))
 </script>
@@ -104,37 +105,37 @@ onMounted(() => fetchReviews(1))
     description="Quản lý chất lượng khoá học qua nhận xét của học viên. Gỡ bỏ đánh giá vi phạm tiêu chuẩn cộng đồng."
     :breadcrumb="['Trang chủ', 'Nội dung', 'Đánh giá']"
   >
-    <!-- KPI -->
-    <section class="dashboard-grid" style="margin-bottom: 24px;">
-      <article class="dashboard-card mini-card tone-green">
-        <p class="mini-title">Tổng đánh giá</p>
-        <div class="mini-head"><strong>{{ totalItems }}</strong><span>Trang hiện tại lọc</span></div>
-      </article>
-      <article class="dashboard-card mini-card tone-blue">
-        <p class="mini-title">Điểm trung bình</p>
-        <div class="mini-head">
-          <strong>{{ avgRating }}</strong>
-          <span>/ 5 sao</span>
-        </div>
-      </article>
-      <article class="dashboard-card mini-card tone-green">
-        <p class="mini-title">Tích cực (4-5★)</p>
-        <div class="mini-head">
-          <strong>{{ positivePercent }}%</strong>
-          <span>{{ positiveCount }} đánh giá</span>
-        </div>
-      </article>
-      <article class="dashboard-card mini-card tone-amber">
-        <p class="mini-title">Tiêu cực (1-2★)</p>
-        <div class="mini-head">
-          <strong>{{ allReviews.length ? Math.round((negativeCount / allReviews.length) * 100) : 0 }}%</strong>
-          <span>{{ negativeCount }} đánh giá</span>
-        </div>
-      </article>
-    </section>
+    <!-- KPI Strip -->
+    <div class="rv-stats">
+      <div class="rv-stat rv-stat--green">
+        <div class="rv-stat-icon"><BarChart2 :size="16" /></div>
+        <p class="rv-stat-label">Tổng đánh giá</p>
+        <strong class="rv-stat-value">{{ totalItems }}</strong>
+        <span class="rv-stat-sub">Trang hiện tại lọc</span>
+      </div>
+      <div class="rv-stat rv-stat--blue">
+        <div class="rv-stat-icon"><Star :size="16" /></div>
+        <p class="rv-stat-label">Điểm trung bình</p>
+        <strong class="rv-stat-value">{{ avgRating }}</strong>
+        <span class="rv-stat-sub">trên 5 sao</span>
+      </div>
+      <div class="rv-stat rv-stat--green">
+        <div class="rv-stat-icon"><ThumbsUp :size="16" /></div>
+        <p class="rv-stat-label">Tích cực (4-5★)</p>
+        <strong class="rv-stat-value">{{ positivePercent }}<small>%</small></strong>
+        <span class="rv-stat-sub">{{ positiveCount }} đánh giá</span>
+      </div>
+      <div class="rv-stat rv-stat--red">
+        <div class="rv-stat-icon"><ThumbsDown :size="16" /></div>
+        <p class="rv-stat-label">Tiêu cực (1-2★)</p>
+        <strong class="rv-stat-value">{{ negativePercent }}<small>%</small></strong>
+        <span class="rv-stat-sub">{{ negativeCount }} đánh giá</span>
+      </div>
+    </div>
 
-    <!-- Toolbar -->
+    <!-- Panel -->
     <section class="dashboard-card crud-panel">
+      <!-- Toolbar -->
       <div class="crud-toolbar">
         <div class="crud-toolbar-main">
           <input
@@ -146,24 +147,24 @@ onMounted(() => fetchReviews(1))
           >
           <select v-model="ratingFilter" class="crud-select" @change="fetchReviews(1)">
             <option value="">Tất cả sao</option>
-            <option value="5">5 sao ⭐⭐⭐⭐⭐</option>
-            <option value="4">4 sao ⭐⭐⭐⭐</option>
-            <option value="3">3 sao ⭐⭐⭐</option>
-            <option value="2">2 sao ⭐⭐</option>
-            <option value="1">1 sao ⭐</option>
+            <option value="5">5 sao ★★★★★</option>
+            <option value="4">4 sao ★★★★</option>
+            <option value="3">3 sao ★★★</option>
+            <option value="2">2 sao ★★</option>
+            <option value="1">1 sao ★</option>
           </select>
         </div>
         <div class="crud-toolbar-right">
           <button type="button" class="crud-export-btn" @click="exportCSV">
-            <Download :size="18" :stroke-width="1.75" />
-            Xuất Excel
+            <Download :size="16" :stroke-width="1.75" />
+            Xuất CSV
           </button>
         </div>
       </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="reviews-grid">
-        <div v-for="i in 6" :key="i" class="review-skeleton" />
+      <!-- Skeleton -->
+      <div v-if="loading" class="rv-grid">
+        <div v-for="i in 9" :key="i" class="rv-skeleton" />
       </div>
 
       <!-- Empty -->
@@ -171,71 +172,63 @@ onMounted(() => fetchReviews(1))
         Không có đánh giá nào khớp với bộ lọc.
       </div>
 
-      <!-- Reviews grid -->
-      <div v-else class="reviews-grid">
+      <!-- Grid -->
+      <div v-else class="rv-grid">
         <div
           v-for="review in reviews"
           :key="review.id"
-          class="review-card"
-          :class="{
-            'is-negative': review.rating <= 2,
-            'is-neutral': review.rating === 3,
-          }"
+          class="rv-card"
+          :class="`rv-card--${ratingTier(review.rating)}`"
         >
-          <!-- Delete button -->
-          <button type="button" class="review-delete-btn" @click="removeReview(review)">
-            <Trash2 :size="16" :stroke-width="1.75" />
-          </button>
-
-          <!-- User -->
-          <div class="review-user">
-            <div class="crud-avatar crud-avatar-fallback" style="width: 36px; height: 36px; font-size: 0.8rem;">
+          <!-- Top row: avatar + meta + delete -->
+          <div class="rv-top">
+            <div class="rv-avatar">
               {{ review.user?.name?.slice(0, 2).toUpperCase() || 'HV' }}
             </div>
-            <div style="min-width: 0;">
-              <strong style="font-size: 0.875rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                {{ review.user?.name || 'Ẩn danh' }}
-              </strong>
-              <span style="font-size: 0.7rem; color: var(--muted);">{{ formatDate(review.created_at) }}</span>
+            <div class="rv-meta">
+              <strong class="rv-name">{{ review.user?.name || 'Ẩn danh' }}</strong>
+              <span class="rv-date">{{ formatDate(review.created_at) }}</span>
             </div>
+            <button class="rv-del" type="button" title="Xoá" @click="removeReview(review)">
+              <Trash2 :size="14" />
+            </button>
           </div>
 
-          <!-- Stars -->
-          <div class="review-stars">
-            <Star
-              v-for="star in 5"
-              :key="star"
-              :size="15"
-              :stroke-width="1.75"
-              :style="{
-                color: star <= review.rating ? '#f59e0b' : 'rgba(17,17,17,0.12)',
-                fill: star <= review.rating ? '#f59e0b' : 'none',
-              }"
-            />
+          <!-- Stars + badge -->
+          <div class="rv-rating-row">
+            <div class="rv-stars">
+              <Star
+                v-for="star in 5"
+                :key="star"
+                :size="13"
+                :stroke-width="1.5"
+                :style="{
+                  color: star <= review.rating ? '#f59e0b' : 'var(--line-strong)',
+                  fill: star <= review.rating ? '#f59e0b' : 'none',
+                }"
+              />
+            </div>
+            <span class="rv-badge" :class="`rv-badge--${ratingTier(review.rating)}`">
+              {{ review.rating }}/5
+            </span>
           </div>
 
           <!-- Comment -->
-          <p class="review-comment">
-            "{{ review.comment || 'Không có nhận xét chi tiết.' }}"
-          </p>
+          <p class="rv-comment">{{ review.comment || 'Không có nhận xét chi tiết.' }}</p>
 
-          <!-- Course -->
-          <div class="review-course">
-            <BookOpen :size="14" :stroke-width="1.75" style="color: var(--muted);" />
-            <span style="font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-              {{ review.course?.title || 'Không rõ khoá học' }}
-            </span>
+          <!-- Course tag -->
+          <div class="rv-course">
+            <BookOpen :size="12" :stroke-width="1.75" />
+            <span>{{ review.course?.title || 'Không rõ khoá học' }}</span>
           </div>
         </div>
       </div>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="crud-pagination">
-        <p>Hiển thị trang {{ currentPage }} / {{ totalPages }} (Tổng số {{ totalItems }} đánh giá)</p>
+        <p>Trang {{ currentPage }} / {{ totalPages }} — {{ totalItems }} đánh giá</p>
         <div class="crud-pagination-actions">
-          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchReviews(currentPage - 1)">
-            Trước
-          </button>
+          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchReviews(currentPage - 1)">Trước</button>
           <div class="pagination-numbers">
             <button
               v-for="p in visiblePages"
@@ -244,13 +237,9 @@ onMounted(() => fetchReviews(1))
               :class="{ 'is-active': p === currentPage }"
               type="button"
               @click="fetchReviews(p)"
-            >
-              {{ p }}
-            </button>
+            >{{ p }}</button>
           </div>
-          <button class="pagination-num-btn" type="button" :disabled="currentPage >= totalPages" @click="fetchReviews(currentPage + 1)">
-            Sau
-          </button>
+          <button class="pagination-num-btn" type="button" :disabled="currentPage >= totalPages" @click="fetchReviews(currentPage + 1)">Sau</button>
         </div>
       </div>
     </section>
@@ -258,57 +247,221 @@ onMounted(() => fetchReviews(1))
 </template>
 
 <style scoped>
-.reviews-grid {
+/* ── KPI Stats ── */
+.rv-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
-  margin-top: 8px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.review-skeleton {
-  height: 160px;
-  background: rgba(17,17,17,0.05);
-  border-radius: 16px;
-  animation: pulse 1.5s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
 
-.review-card {
+.rv-stat {
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
+  border-radius: 14px;
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   position: relative;
+  overflow: hidden;
+}
+
+.rv-stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+
+.rv-stat--green::before { background: var(--green, #1d9e75); }
+.rv-stat--blue::before  { background: #378add; }
+.rv-stat--red::before   { background: #ef4444; }
+
+.rv-stat-icon {
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.rv-stat-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rv-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.rv-stat-value small {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.rv-stat-sub {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+/* ── Skeleton ── */
+.rv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.rv-skeleton {
+  height: 156px;
+  background: var(--bg, #eff2f0);
+  border-radius: 12px;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px;
-  background: rgba(255,255,255,0.7);
+  animation: rv-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes rv-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* ── Review Card ── */
+.rv-card {
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
+  border-left-width: 3px;
+  border-left-color: var(--line-strong, rgba(31,49,43,0.16));
+  border-radius: 12px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 160ms ease, transform 160ms ease;
 }
-.review-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-.review-card.is-negative { border-color: #fca5a5; background: #fff1f2; }
-.review-card.is-neutral { border-color: #fcd34d; background: #fffbeb; }
 
-.review-delete-btn {
-  position: absolute;
-  top: 12px; right: 12px;
-  width: 28px; height: 28px;
+.rv-card:hover {
+  box-shadow: 0 6px 20px rgba(31,49,43,0.08);
+  transform: translateY(-1px);
+}
+
+.rv-card--positive { border-left-color: var(--green, #1d9e75); }
+.rv-card--neutral  { border-left-color: #f59e0b; }
+.rv-card--negative { border-left-color: #ef4444; }
+
+/* ── Top row ── */
+.rv-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rv-avatar {
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  opacity: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: #ef4444;
-  transition: all 0.2s;
+  background: var(--green-soft, #e1f5ee);
+  border: 1.5px solid rgba(29,158,117,0.25);
+  color: var(--green-deep, #085041);
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
 }
-.review-card:hover .review-delete-btn { opacity: 1; }
-.review-delete-btn:hover { background: #fff1f2; }
 
-.review-user { display: flex; align-items: center; gap: 10px; padding-right: 32px; }
-.review-stars { display: flex; gap: 1px; }
-.review-comment {
-  font-size: 0.82rem;
+.rv-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rv-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.rv-date {
+  font-size: 0.7rem;
   color: var(--muted);
-  font-style: italic;
+}
+
+.rv-del {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 140ms, background 140ms, border-color 140ms;
+}
+
+.rv-del:hover {
+  color: #ef4444;
+  background: #fff1f2;
+  border-color: rgba(239,68,68,0.2);
+}
+
+/* ── Rating row ── */
+.rv-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rv-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.rv-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.rv-badge--positive {
+  background: rgba(29,158,117,0.1);
+  color: var(--green-deep, #085041);
+}
+
+.rv-badge--neutral {
+  background: rgba(245,158,11,0.12);
+  color: #92400e;
+}
+
+.rv-badge--negative {
+  background: rgba(239,68,68,0.1);
+  color: #b91c1c;
+}
+
+/* ── Comment ── */
+.rv-comment {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text);
   line-height: 1.6;
   flex: 1;
   display: -webkit-box;
@@ -316,13 +469,76 @@ onMounted(() => fetchReviews(1))
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.review-course {
+
+/* ── Course tag ── */
+.rv-course {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
-  background: rgba(17,17,17,0.04);
+  padding: 7px 10px;
+  background: var(--bg, #eff2f0);
+  border: 1px solid var(--line);
   border-radius: 8px;
+  color: var(--muted);
+  margin-top: auto;
+}
+
+.rv-course span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Dark Mode ── */
+[data-theme="dark"] .rv-stat {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] .rv-card {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] .rv-card--positive { border-left-color: #34d399; }
+[data-theme="dark"] .rv-card--neutral  { border-left-color: #fbbf24; }
+[data-theme="dark"] .rv-card--negative { border-left-color: #f87171; }
+
+[data-theme="dark"] .rv-skeleton {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .rv-course {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .rv-del:hover {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.25);
+}
+
+[data-theme="dark"] .rv-avatar {
+  background: rgba(29,158,117,0.2);
+  border-color: rgba(29,158,117,0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .rv-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .rv-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rv-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
