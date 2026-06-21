@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, Award, ZoomIn } from 'lucide-vue-next'
+import { Download, Award, ZoomIn, Settings2 } from 'lucide-vue-next'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
+import CertificateTemplateEditor from '~/components/certificate/CertificateTemplateEditor.vue'
 import { useExport } from '~/composables/useExport'
+import type { FieldConfig } from '~/components/certificate/CertificateTemplateEditor.vue'
 
 definePageMeta({ layout: 'admin' })
 
@@ -15,6 +17,7 @@ interface CertificateTemplate {
   id: number
   name: string
   background_image_url: string | null
+  fields_config: FieldConfig[] | null
   created_at: string
 }
 
@@ -27,6 +30,7 @@ interface IssuedCert {
   issued_at: string
 }
 
+// ── state ──────────────────────────────────────────────────────────────────
 const templates = ref<CertificateTemplate[]>([])
 const issued = ref<IssuedCert[]>([])
 const loading = ref(true)
@@ -42,18 +46,32 @@ const issuedLastPage = ref(1)
 const issuedTotal = ref(0)
 const issuedPerPage = ref(15)
 
+// create form
 const isCreating = ref(false)
 const formName = ref('')
 const formBackgroundUrl = ref<string | null>(null)
 const formBackgroundPath = ref<string | null>(null)
 
+// editor modal
+const editingTemplate = ref<CertificateTemplate | null>(null)
+const editorFields = ref<FieldConfig[]>([])
+const editorSaving = ref(false)
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+const DEFAULT_FIELDS: FieldConfig[] = [
+  { key: 'student_name', label: 'Tên học viên', x: 50, y: 42, font_size: 36, font_family: 'Georgia, serif', color: '#1a1a1a', font_weight: 'bold', text_align: 'center', visible: true },
+  { key: 'course_title', label: 'Tên khoá học', x: 50, y: 55, font_size: 18, font_family: 'Arial, sans-serif', color: '#444444', font_weight: 'normal', text_align: 'center', visible: true },
+  { key: 'issued_date',  label: 'Ngày cấp',    x: 50, y: 68, font_size: 13, font_family: 'Arial, sans-serif', color: '#666666', font_weight: 'normal', text_align: 'center', visible: true },
+  { key: 'credential_id', label: 'Mã xác nhận', x: 50, y: 78, font_size: 11, font_family: '"Courier New", monospace', color: '#888888', font_weight: 'normal', text_align: 'center', visible: true },
+]
+
+// ── API calls ────────────────────────────────────────────────────────────────
 async function fetchTemplates() {
   loading.value = true
   try {
     const res = await useApi<CertificateTemplate[]>('/admin/certificates', { headers: authHeaders() })
     templates.value = Array.isArray(res) ? res : (res as any).data || []
-  }
-  catch { error.value = 'Không thể tải danh sách mẫu chứng chỉ.' }
+  } catch { error.value = 'Không thể tải danh sách mẫu chứng chỉ.' }
   finally { loading.value = false }
 }
 
@@ -67,8 +85,7 @@ async function fetchIssued(page = 1) {
     issuedPage.value = res.current_page || 1
     issuedLastPage.value = res.last_page || 1
     issuedTotal.value = res.total || 0
-  }
-  catch { issued.value = [] }
+  } catch { issued.value = [] }
   finally { issuedLoading.value = false }
 }
 
@@ -88,8 +105,8 @@ async function createTemplate() {
     formBackgroundPath.value = null
     await fetchTemplates()
     success.value = 'Tạo mẫu chứng chỉ thành công.'
-  }
-  catch { error.value = 'Có lỗi xảy ra khi tạo mẫu chứng chỉ.' }
+    setTimeout(() => { success.value = '' }, 3000)
+  } catch { error.value = 'Có lỗi xảy ra khi tạo mẫu chứng chỉ.' }
   finally { saving.value = false }
 }
 
@@ -104,10 +121,42 @@ async function deleteTemplate(id: number) {
     await useApi(`/admin/certificates/${id}`, { method: 'DELETE', headers: authHeaders() })
     await fetchTemplates()
     success.value = 'Đã xoá mẫu chứng chỉ.'
-  }
-  catch { error.value = 'Không thể xoá mẫu chứng chỉ.' }
+    setTimeout(() => { success.value = '' }, 3000)
+  } catch { error.value = 'Không thể xoá mẫu chứng chỉ.' }
 }
 
+// ── editor ───────────────────────────────────────────────────────────────────
+function openEditor(t: CertificateTemplate) {
+  editingTemplate.value = t
+  editorFields.value = (t.fields_config && t.fields_config.length > 0)
+    ? t.fields_config.map(f => ({ ...f }))
+    : DEFAULT_FIELDS.map(f => ({ ...f }))
+}
+
+function closeEditor() {
+  editingTemplate.value = null
+  editorFields.value = []
+}
+
+async function saveEditorFields() {
+  if (!editingTemplate.value) return
+  editorSaving.value = true
+  try {
+    const updated = await useApi<CertificateTemplate>(`/admin/certificates/${editingTemplate.value.id}/fields`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: { fields_config: editorFields.value },
+    })
+    const idx = templates.value.findIndex(t => t.id === editingTemplate.value!.id)
+    if (idx !== -1) templates.value[idx] = (updated as any).template ?? updated
+    success.value = 'Đã lưu cấu hình trường dữ liệu.'
+    setTimeout(() => { success.value = '' }, 3000)
+    closeEditor()
+  } catch { error.value = 'Không thể lưu cấu hình.' }
+  finally { editorSaving.value = false }
+}
+
+// ── misc ─────────────────────────────────────────────────────────────────────
 function copyCredentialLink(credentialId: string) {
   const url = `${window.location.origin}/certificates/verify/${credentialId}`
   navigator.clipboard.writeText(url).then(() => {
@@ -121,7 +170,6 @@ function formatDate(d?: string) {
 }
 
 const templateCount = computed(() => templates.value.length)
-
 const { exportToCSV } = useExport()
 
 function exportIssuedData() {
@@ -160,7 +208,6 @@ onMounted(() => {
       </article>
     </section>
 
-    <!-- Alerts -->
     <div v-if="error" class="crud-alert is-error" style="margin-bottom: 16px;">{{ error }}</div>
     <div v-if="success" class="crud-alert is-success" style="margin-bottom: 16px;">{{ success }}</div>
 
@@ -174,7 +221,7 @@ onMounted(() => {
       </button>
     </div>
 
-    <!-- Tab: Templates -->
+    <!-- ─── Tab: Templates ─────────────────────────────────────────────────── -->
     <template v-if="tab === 'templates'">
       <section class="dashboard-card crud-panel">
         <div class="crud-toolbar">
@@ -194,7 +241,7 @@ onMounted(() => {
             <span class="crud-field-label">Phôi chứng chỉ (hình ảnh) <span style="color:#ef4444">*</span></span>
             <MediaUpload
               v-model="formBackgroundUrl"
-              folder="settings"
+              folder="certificates/templates"
               variant="banner"
               label="Phôi chứng chỉ"
               hint="JPG/PNG, tỉ lệ ngang 1600×1131. Tối đa 5MB."
@@ -217,12 +264,7 @@ onMounted(() => {
         <div v-else class="certs-grid">
           <div v-for="t in templates" :key="t.id" class="cert-card">
             <div class="cert-preview" @click="previewTemplate = t">
-              <img
-                v-if="t.background_image_url"
-                :src="t.background_image_url"
-                :alt="t.name"
-                class="cert-img"
-              >
+              <img v-if="t.background_image_url" :src="t.background_image_url" :alt="t.name" class="cert-img">
               <div v-else class="cert-no-img">
                 <Award :size="40" :stroke-width="1.75" style="opacity: 0.3;" />
               </div>
@@ -236,8 +278,11 @@ onMounted(() => {
               <p style="font-size: 0.75rem; color: var(--muted); margin: 4px 0 0;">
                 Tạo: {{ formatDate(t.created_at) }}
               </p>
-              <div style="display: flex; gap: 6px; margin-top: 12px;">
+              <div style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
                 <button type="button" class="action-btn is-view" @click="previewTemplate = t">Preview</button>
+                <button type="button" class="action-btn is-edit" @click="openEditor(t)">
+                  <Settings2 :size="13" style="margin-right:3px" />Thiết kế
+                </button>
                 <button type="button" class="action-btn is-danger" @click="deleteTemplate(t.id)">Xoá</button>
               </div>
             </div>
@@ -246,7 +291,7 @@ onMounted(() => {
       </section>
     </template>
 
-    <!-- Tab: Issued certs -->
+    <!-- ─── Tab: Issued ────────────────────────────────────────────────────── -->
     <template v-else-if="tab === 'issued'">
       <section class="dashboard-card crud-panel">
         <div class="crud-toolbar">
@@ -269,284 +314,155 @@ onMounted(() => {
 
         <div v-if="issuedLoading" class="crud-empty">Đang tải...</div>
         <div v-else-if="issued.length === 0" class="crud-empty">Chưa có chứng chỉ nào được cấp.</div>
-
         <div v-else class="crud-table-wrap">
           <table class="crud-table">
             <thead>
               <tr>
-                <th>Học viên</th>
-                <th>Khoá học</th>
-                <th>Mẫu chứng chỉ</th>
-                <th>Mã xác minh</th>
-                <th>Ngày cấp</th>
-                <th>Thao tác</th>
+                <th>Học viên</th><th>Khoá học</th><th>Mẫu chứng chỉ</th>
+                <th>Mã xác minh</th><th>Ngày cấp</th><th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="cert in issued" :key="cert.id">
                 <td>
                   <div class="crud-profile">
-                    <div class="crud-avatar crud-avatar-fallback">
-                      {{ cert.user?.name?.slice(0, 2).toUpperCase() || 'HV' }}
-                    </div>
-                    <div>
-                      <strong>{{ cert.user?.name || '—' }}</strong>
-                      <p>{{ cert.user?.email || '—' }}</p>
-                    </div>
+                    <div class="crud-avatar crud-avatar-fallback">{{ cert.user?.name?.slice(0,2).toUpperCase() || 'HV' }}</div>
+                    <div><strong>{{ cert.user?.name || '—' }}</strong><p>{{ cert.user?.email || '—' }}</p></div>
                   </div>
                 </td>
+                <td><strong style="font-size:0.875rem">{{ cert.course?.title || '—' }}</strong></td>
+                <td><span class="crud-badge role-instructor">{{ cert.template?.name || '—' }}</span></td>
+                <td><code style="font-size:0.75rem;background:rgba(17,17,17,.05);padding:2px 8px;border-radius:6px">{{ cert.credential_id }}</code></td>
+                <td style="font-size:0.82rem;color:var(--muted)">{{ formatDate(cert.issued_at) }}</td>
                 <td>
-                  <strong style="font-size: 0.875rem;">{{ cert.course?.title || '—' }}</strong>
-                </td>
-                <td>
-                  <span class="crud-badge role-instructor">{{ cert.template?.name || '—' }}</span>
-                </td>
-                <td>
-                  <code style="font-size: 0.75rem; background: rgba(17,17,17,.05); padding: 2px 8px; border-radius: 6px;">
-                    {{ cert.credential_id }}
-                  </code>
-                </td>
-                <td style="font-size: 0.82rem; color: var(--muted);">{{ formatDate(cert.issued_at) }}</td>
-                <td>
-                  <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    <NuxtLink
-                      :to="`/certificates/verify/${cert.credential_id}`"
-                      target="_blank"
-                      class="action-btn is-view"
-                    >
-                      Xem
-                    </NuxtLink>
-                    <button
-                      type="button"
-                      class="action-btn is-edit"
-                      @click="copyCredentialLink(cert.credential_id)"
-                    >
-                      Copy link
-                    </button>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <NuxtLink :to="`/certificates/verify/${cert.credential_id}`" target="_blank" class="action-btn is-view">Xem</NuxtLink>
+                    <button type="button" class="action-btn is-edit" @click="copyCredentialLink(cert.credential_id)">Copy link</button>
                   </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-
         <DataTableFooter
-          :current="issuedPage"
-          :last="issuedLastPage"
-          :total="issuedTotal"
-          :per-page="issuedPerPage"
-          @page="fetchIssued"
-          @update:per-page="issuedPerPage = $event; fetchIssued(1)"
+          :current="issuedPage" :last="issuedLastPage" :total="issuedTotal" :per-page="issuedPerPage"
+          @page="fetchIssued" @update:per-page="issuedPerPage = $event; fetchIssued(1)"
         />
       </section>
     </template>
 
-    <!-- Preview modal -->
+    <!-- ─── Preview modal ─────────────────────────────────────────────────── -->
     <div v-if="previewTemplate" class="modal-overlay" @click.self="previewTemplate = null">
       <div class="preview-modal dashboard-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
           <div>
-            <p class="section-kicker" style="margin-bottom: 4px;">Xem trước phôi</p>
-            <h3 style="margin: 0;">{{ previewTemplate.name }}</h3>
+            <p class="section-kicker" style="margin-bottom:4px">Xem trước phôi</p>
+            <h3 style="margin:0">{{ previewTemplate.name }}</h3>
           </div>
           <button type="button" class="crud-secondary-btn" @click="previewTemplate = null">✕ Đóng</button>
         </div>
-
-        <!-- Certificate preview frame -->
         <div class="cert-preview-frame">
-          <img
-            v-if="previewTemplate.background_image_url"
-            :src="previewTemplate.background_image_url"
-            :alt="previewTemplate.name"
-            class="cert-preview-bg"
-          >
-          <div v-else class="cert-preview-bg cert-preview-blank">
-            <Award :size="64" :stroke-width="1" style="opacity: 0.2;" />
-          </div>
-          <!-- Sample overlay text -->
-          <div class="cert-preview-overlay">
+          <img v-if="previewTemplate.background_image_url" :src="previewTemplate.background_image_url" :alt="previewTemplate.name" class="cert-preview-bg">
+          <div v-else class="cert-preview-bg cert-preview-blank"><Award :size="64" :stroke-width="1" style="opacity:0.2" /></div>
+          <!-- Render fields_config or fallback overlay -->
+          <template v-if="previewTemplate.fields_config?.length">
+            <div
+              v-for="field in previewTemplate.fields_config"
+              v-show="field.visible"
+              :key="field.key"
+              class="cert-preview-field"
+              :style="{
+                left: field.x + '%',
+                top: field.y + '%',
+                fontSize: field.font_size + 'px',
+                fontFamily: field.font_family,
+                color: field.color,
+                fontWeight: field.font_weight,
+                textAlign: field.text_align,
+                transform: field.text_align === 'center' ? 'translateX(-50%)' : field.text_align === 'right' ? 'translateX(-100%)' : 'none',
+              }"
+            >
+              {{ { student_name: 'Nguyễn Văn Mẫu', course_title: previewTemplate.name, issued_date: '20 tháng 06 năm 2026', credential_id: 'SYLVA-SAMPLE-000001' }[field.key] ?? field.label }}
+            </div>
+          </template>
+          <div v-else class="cert-preview-overlay">
             <div class="cert-preview-inner">
               <p class="prev-cert-label">CHỨNG CHỈ HOÀN THÀNH</p>
               <p class="prev-cert-name">Nguyễn Văn Mẫu</p>
               <p class="prev-cert-course">{{ previewTemplate.name }}</p>
-              <p class="prev-cert-date">Hà Nội, ngày 18 tháng 06 năm 2026</p>
+              <p class="prev-cert-date">Hà Nội, ngày 20 tháng 06 năm 2026</p>
               <code class="prev-cert-cred">SYLVA-SAMPLE-000001</code>
             </div>
           </div>
         </div>
-
-        <p style="text-align: center; font-size: 0.78rem; color: var(--muted); margin-top: 12px;">
+        <p style="text-align:center;font-size:0.78rem;color:var(--muted);margin-top:12px">
           Nội dung thực tế sẽ được điền tự động khi cấp cho học viên.
         </p>
+      </div>
+    </div>
+
+    <!-- ─── Editor modal ──────────────────────────────────────────────────── -->
+    <div v-if="editingTemplate" class="modal-overlay" @click.self="closeEditor">
+      <div class="editor-modal dashboard-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <div>
+            <p class="section-kicker" style="margin-bottom:4px">Thiết kế trường dữ liệu</p>
+            <h3 style="margin:0">{{ editingTemplate.name }}</h3>
+          </div>
+          <button type="button" class="crud-secondary-btn" @click="closeEditor">✕ Đóng</button>
+        </div>
+        <CertificateTemplateEditor
+          v-model="editorFields"
+          :background-url="editingTemplate.background_image_url"
+          :saving="editorSaving"
+          @save="saveEditorFields"
+        />
       </div>
     </div>
   </AdminWorkspaceShell>
 </template>
 
 <style scoped>
-.tab-bar {
-  display: flex;
-  gap: 4px;
-  background: rgba(17,17,17,0.04);
-  padding: 4px;
-  border-radius: 14px;
-  width: fit-content;
-}
-.tab-btn {
-  padding: 8px 20px;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.tab-btn.active {
-  background: #fff;
-  color: var(--text);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
+.tab-bar { display:flex;gap:4px;background:rgba(17,17,17,0.04);padding:4px;border-radius:14px;width:fit-content; }
+.tab-btn { padding:8px 20px;border:none;background:transparent;border-radius:10px;font-size:0.875rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all 0.2s; }
+.tab-btn.active { background:#fff;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.08); }
 
-.certs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: 8px;
-}
-.cert-card {
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: box-shadow 0.2s;
-}
-.cert-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-.cert-preview {
-  position: relative;
-  aspect-ratio: 16 / 11;
-  background: rgba(17,17,17,0.04);
-  cursor: pointer;
-  overflow: hidden;
-}
-.cert-img { width: 100%; height: 100%; object-fit: cover; }
-.cert-no-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-.cert-hover-overlay {
+.certs-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:8px; }
+.cert-card { border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:box-shadow 0.2s; }
+.cert-card:hover { box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+.cert-preview { position:relative;aspect-ratio:16/11;background:rgba(17,17,17,0.04);cursor:pointer;overflow:hidden; }
+.cert-img { width:100%;height:100%;object-fit:cover; }
+.cert-no-img { width:100%;height:100%;display:flex;align-items:center;justify-content:center; }
+.cert-hover-overlay { position:absolute;inset:0;background:rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;font-size:0.8rem;font-weight:700;opacity:0;transition:opacity 0.2s; }
+.cert-preview:hover .cert-hover-overlay { opacity:1; }
+.cert-info { padding:14px 16px; }
+
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px; }
+
+.preview-modal { max-width:900px;width:100%;padding:24px;max-height:90vh;overflow-y:auto; }
+.editor-modal { max-width:1200px;width:100%;padding:24px;max-height:92vh;overflow-y:auto; }
+
+.cert-preview-frame { position:relative;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.15);aspect-ratio:16/11; }
+.cert-preview-bg { width:100%;height:100%;object-fit:cover;display:block; }
+.cert-preview-blank { display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f0fdf4,#dcfce7); }
+
+.cert-preview-field {
   position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 700;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.cert-preview:hover .cert-hover-overlay { opacity: 1; }
-.cert-info { padding: 14px 16px; }
-
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.preview-modal {
-  max-width: 900px;
-  width: 100%;
-  padding: 24px;
-  max-height: 90vh;
-  overflow-y: auto;
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1.2;
 }
 
-.cert-preview-frame {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-  aspect-ratio: 16 / 11;
-}
+.cert-preview-overlay { position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.18); }
+.cert-preview-inner { text-align:center;background:rgba(255,255,255,0.88);backdrop-filter:blur(6px);border-radius:12px;padding:24px 36px;max-width:70%;box-shadow:0 4px 24px rgba(0,0,0,0.12); }
+.prev-cert-label { font-size:0.65rem;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;color:var(--green);margin:0 0 10px; }
+.prev-cert-name { font-size:1.6rem;font-weight:900;font-family:Georgia,serif;color:#111;margin:0 0 6px;letter-spacing:-0.02em; }
+.prev-cert-course { font-size:0.875rem;color:#555;margin:0 0 12px; }
+.prev-cert-date { font-size:0.72rem;color:#888;margin:0 0 10px; }
+.prev-cert-cred { display:inline-block;font-size:0.7rem;font-family:"Courier New",monospace;background:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.2);border-radius:6px;padding:3px 12px;color:var(--green-deep); }
 
-.cert-preview-bg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.cert-preview-blank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-}
-
-.cert-preview-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.18);
-}
-
-.cert-preview-inner {
-  text-align: center;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(6px);
-  border-radius: 12px;
-  padding: 24px 36px;
-  max-width: 70%;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-}
-
-.prev-cert-label {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--green);
-  margin: 0 0 10px;
-}
-.prev-cert-name {
-  font-size: 1.6rem;
-  font-weight: 900;
-  font-family: Georgia, serif;
-  color: #111;
-  margin: 0 0 6px;
-  letter-spacing: -0.02em;
-}
-.prev-cert-course {
-  font-size: 0.875rem;
-  color: #555;
-  margin: 0 0 12px;
-}
-.prev-cert-date {
-  font-size: 0.72rem;
-  color: #888;
-  margin: 0 0 10px;
-}
-.prev-cert-cred {
-  display: inline-block;
-  font-size: 0.7rem;
-  font-family: 'Courier New', monospace;
-  background: rgba(22,163,74,0.08);
-  border: 1px solid rgba(22,163,74,0.2);
-  border-radius: 6px;
-  padding: 3px 12px;
-  color: var(--green-deep);
-}
-
-/* ====== DARK MODE OVERRIDES ====== */
-[data-theme="dark"] .tab-btn.active { background: rgba(255, 255, 255, 0.1); color: var(--text); }
-[data-theme="dark"] .cert-preview-inner { background: rgba(0, 0, 0, 0.8); }
-[data-theme="dark"] .prev-cert-name { color: var(--text); }
-[data-theme="dark"] .prev-cert-course { color: var(--muted); }
+[data-theme="dark"] .tab-btn.active { background:rgba(255,255,255,0.1);color:var(--text); }
+[data-theme="dark"] .cert-preview-inner { background:rgba(0,0,0,0.8); }
+[data-theme="dark"] .prev-cert-name { color:var(--text); }
+[data-theme="dark"] .prev-cert-course { color:var(--muted); }
 </style>

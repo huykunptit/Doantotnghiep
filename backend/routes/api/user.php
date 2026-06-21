@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/certificates', [CertificateController::class, 'index']);
         Route::post('/certificates', [CertificateController::class, 'store']);
         Route::put('/certificates/{template}', [CertificateController::class, 'update']);
+        Route::put('/certificates/{template}/fields', [CertificateController::class, 'updateFields']);
         Route::delete('/certificates/{template}', [CertificateController::class, 'destroy']);
     });
 });

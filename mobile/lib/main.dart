@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/app/app.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'app/app.dart';
+import 'core/services/push_notification_service.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  await PushNotificationService.initialize();
+  runApp(const ProviderScope(child: MyApp()));
 }

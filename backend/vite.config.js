@@ -14,5 +14,6 @@ export default defineConfig({
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },
+        allowedHosts: ['dbc3-113-23-120-159.ngrok-free.app'],
     },
 });
