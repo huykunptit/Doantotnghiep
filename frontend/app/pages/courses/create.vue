@@ -55,92 +55,351 @@ async function handleSubmit() {
 
 <template>
   <section class="crud-page">
+    <!-- Page Header -->
     <header class="crud-page-header dashboard-card">
       <div>
-        <p class="section-kicker">Giảng viên</p>
+        <p class="section-kicker">Giảng viên / Studio sáng tạo</p>
         <h2>Tạo khoá học mới</h2>
-        <p>Điền thông tin cơ bản trước khi thêm section, bài học và tài nguyên học tập.</p>
+        <p>Phác thảo thông tin cơ bản trước khi xây dựng chương học và tải lên bài giảng.</p>
       </div>
-      <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Huỷ</NuxtLink>
+      <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Hủy thiết lập</NuxtLink>
     </header>
 
-    <div v-if="error" class="crud-alert is-error" style="margin-bottom: 16px;">{{ error }}</div>
+    <div v-if="error" class="crud-alert is-error" style="margin-bottom: 20px;">{{ error }}</div>
 
-    <section class="dashboard-card crud-panel">
-      <div class="card-head" style="margin-bottom: 24px;">
-        <h3>Thông tin khoá học</h3>
-      </div>
+    <!-- Dual Column Layout -->
+    <div class="create-layout-grid">
+      <!-- Main Form Column -->
+      <form class="create-form-main" @submit.prevent="handleSubmit">
+        <!-- Basic Info Section -->
+        <div class="dashboard-card form-section-card">
+          <div class="section-card-head">
+            <span class="material-symbols-outlined header-icon">info</span>
+            <h3>Thông tin cơ bản</h3>
+          </div>
+          <div class="fields-stack">
+            <!-- Title -->
+            <label class="premium-field">
+              <span class="field-label">Tên khoá học <span class="required-star">*</span></span>
+              <input
+                v-model="form.title"
+                type="text"
+                class="premium-input"
+                placeholder="Ví dụ: Lập trình Vue.js thực chiến từ cơ bản tới nâng cao"
+                required
+              >
+            </label>
 
-      <form @submit.prevent="handleSubmit">
-        <div class="crud-form-grid">
-          <!-- Title -->
-          <label class="crud-field crud-field-full">
-            <span>Tên khoá học <span style="color:#ef4444">*</span></span>
-            <input
-              v-model="form.title"
-              type="text"
-              placeholder="Ví dụ: Laravel thực chiến cho người mới bắt đầu"
-            >
-          </label>
+            <!-- Description -->
+            <label class="premium-field">
+              <span class="field-label">Mô tả tóm tắt</span>
+              <textarea
+                v-model="form.description"
+                rows="6"
+                class="premium-textarea"
+                placeholder="Mô tả ngắn gọn về mục tiêu, nội dung chính và đối tượng học viên hướng tới..."
+              />
+            </label>
+          </div>
+        </div>
 
-          <!-- Description -->
-          <label class="crud-field crud-field-full">
-            <span>Mô tả khoá học</span>
-            <textarea
-              v-model="form.description"
-              rows="5"
-              placeholder="Mô tả mục tiêu, nội dung chính và đối tượng học viên phù hợp..."
-            />
-          </label>
+        <!-- Pricing & Catalog Section -->
+        <div class="dashboard-card form-section-card">
+          <div class="section-card-head">
+            <span class="material-symbols-outlined header-icon">sell</span>
+            <h3>Phân mục & Học phí</h3>
+          </div>
+          <div class="form-row-grid">
+            <!-- Category -->
+            <label class="premium-field">
+              <span class="field-label">Danh mục</span>
+              <select v-model.number="form.category_id" class="premium-select">
+                <option :value="0" disabled>— Chọn danh mục học —</option>
+                <template v-for="cat in courseStore.categories" :key="cat.id">
+                  <option :value="cat.id">{{ cat.name }}</option>
+                  <option v-for="child in cat.children || []" :key="child.id" :value="child.id">└ {{ child.name }}</option>
+                </template>
+              </select>
+            </label>
 
-          <!-- Category -->
-          <label class="crud-field">
-            <span>Danh mục</span>
-            <select v-model.number="form.category_id" class="crud-select">
-              <option :value="0" disabled>— Chọn danh mục —</option>
-              <template v-for="cat in courseStore.categories" :key="cat.id">
-                <option :value="cat.id">{{ cat.name }}</option>
-                <option v-for="child in cat.children || []" :key="child.id" :value="child.id">└ {{ child.name }}</option>
-              </template>
-            </select>
-          </label>
+            <!-- Price -->
+            <label class="premium-field">
+              <span class="field-label">Học phí (VNĐ)</span>
+              <div class="price-input-wrapper">
+                <input
+                  v-model.number="form.price"
+                  type="number"
+                  min="0"
+                  class="premium-input price-input"
+                  placeholder="0 = Miễn phí"
+                >
+                <span class="currency-label">đ</span>
+              </div>
+            </label>
+          </div>
+        </div>
 
-          <!-- Price -->
-          <label class="crud-field">
-            <span>Giá (VNĐ)</span>
-            <input v-model.number="form.price" type="number" min="0" placeholder="0 = Miễn phí">
-          </label>
+        <!-- Certification Section -->
+        <div class="dashboard-card form-section-card">
+          <div class="section-card-head">
+            <span class="material-symbols-outlined header-icon">workspace_premium</span>
+            <h3>Chứng nhận hoàn thành</h3>
+          </div>
+          <div class="fields-stack">
+            <label class="premium-field">
+              <span class="field-label">Mẫu chứng chỉ</span>
+              <select v-model.number="form.certificate_template_id" class="premium-select">
+                <option :value="0">— Không cấp chứng chỉ —</option>
+                <option v-for="cert in certificates" :key="cert.id" :value="cert.id">{{ cert.name }}</option>
+              </select>
+            </label>
+          </div>
+        </div>
 
-          <!-- Certificate -->
-          <label class="crud-field">
-            <span>Chứng chỉ hoàn thành</span>
-            <select v-model.number="form.certificate_template_id" class="crud-select">
-              <option :value="0">— Không cấp chứng chỉ —</option>
-              <option v-for="cert in certificates" :key="cert.id" :value="cert.id">{{ cert.name }}</option>
-            </select>
-          </label>
+        <!-- Form Submit Actions -->
+        <div class="submit-actions-panel">
+          <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Quay lại</NuxtLink>
+          <button type="submit" class="crud-primary-btn px-6" :disabled="loading">
+            <span v-if="loading" class="material-symbols-outlined spin-icon">progress_activity</span>
+            {{ loading ? 'Đang khởi tạo...' : 'Tạo khóa học & Tiếp tục →' }}
+          </button>
+        </div>
+      </form>
 
-          <!-- Thumbnail -->
-          <div class="crud-field crud-field-full">
-            <span class="crud-field-label">Ảnh bìa khoá học</span>
+      <!-- Sidebar Media Upload Column -->
+      <div class="create-sidebar-column">
+        <!-- Thumbnail Section -->
+        <div class="dashboard-card form-section-card">
+          <div class="section-card-head">
+            <span class="material-symbols-outlined header-icon">image</span>
+            <h3>Ảnh bìa khóa học</h3>
+          </div>
+          <p class="sidebar-info-desc">Ảnh bìa sẽ được hiển thị ở catalog khóa học. Kích thước khuyến nghị: 1280x720 (tỷ lệ 16:9).</p>
+          <div class="thumbnail-uploader-wrapper">
             <MediaUpload
               v-model="form.thumbnail"
               folder="courses"
               variant="banner"
-              label="Ảnh bìa"
-              hint="JPG, PNG, WEBP — tối đa 5MB. Khuyến nghị 1280×720."
+              label="Tải lên ảnh bìa"
+              hint="Hỗ trợ JPG, PNG, WEBP. Tối đa 5MB."
             />
           </div>
         </div>
 
-        <!-- Submit -->
-        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line);">
-          <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Huỷ</NuxtLink>
-          <button type="submit" class="crud-primary-btn" :disabled="loading">
-            {{ loading ? 'Đang tạo...' : 'Tạo khoá học →' }}
-          </button>
+        <!-- Tips Section -->
+        <div class="dashboard-card form-section-card tips-card">
+          <div class="section-card-head">
+            <span class="material-symbols-outlined header-icon color-warning">lightbulb</span>
+            <h3>Lời khuyên thiết lập</h3>
+          </div>
+          <ul class="tips-list">
+            <li>
+              <strong>Tên khóa học rõ ràng:</strong> Tránh đặt tên chung chung. Nên nêu rõ công nghệ và đối tượng (VD: "Laravel Cơ Bản Cho Người Mới").
+            </li>
+            <li>
+              <strong>Định giá hợp lý:</strong> Các khóa học chất lượng có mức giá vừa phải thường thu hút nhiều lượt đăng ký hơn từ 30% - 50%.
+            </li>
+            <li>
+              <strong>Hình ảnh chất lượng:</strong> Thumbnail trực quan, đẹp mắt giúp tăng tỷ lệ nhấp chuột vào chi tiết khóa học.
+            </li>
+          </ul>
         </div>
-      </form>
-    </section>
+      </div>
+    </div>
   </section>
 </template>
+
+<style scoped>
+/* Responsive layout grid */
+.create-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 1024px) {
+  .create-layout-grid {
+    grid-template-columns: minmax(0, 2fr) 360px;
+  }
+}
+
+.form-section-card {
+  background: var(--color-neutral-0, #fff);
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(var(--green-rgb, 17, 51, 17), 0.05);
+  box-shadow: 0 4px 20px rgba(var(--green-rgb, 17, 51, 17), 0.02);
+  margin-bottom: 20px;
+}
+
+.section-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-neutral-200, #dde5e1);
+  padding-bottom: 12px;
+}
+.section-card-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-neutral-800, #1f312b);
+  font-family: 'Outfit', sans-serif;
+}
+.header-icon {
+  color: #1d9e75; /* primary-400 */
+  font-size: 20px;
+}
+.color-warning {
+  color: var(--color-warning, #e9a23b);
+}
+
+.fields-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.form-row-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 640px) {
+  .form-row-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Premium Form Elements */
+.premium-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.field-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-neutral-600, #4a6059);
+}
+.required-star {
+  color: var(--color-error, #e24b4a);
+}
+
+.premium-input,
+.premium-select,
+.premium-textarea {
+  background: var(--color-neutral-50, #f8faf9);
+  border: 1.5px solid var(--color-neutral-200, #dde5e1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--color-neutral-900, #0e1a16);
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.premium-input:focus,
+.premium-select:focus,
+.premium-textarea:focus {
+  border-color: #1d9e75;
+  background: var(--color-neutral-0, #fff);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.12);
+}
+
+.premium-textarea {
+  resize: vertical;
+}
+
+/* Price currency input wrapper */
+.price-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.price-input {
+  padding-right: 40px;
+  width: 100%;
+}
+.currency-label {
+  position: absolute;
+  right: 16px;
+  font-weight: 700;
+  color: var(--color-neutral-600, #4a6059);
+  pointer-events: none;
+}
+
+/* Sidebar Specifics */
+.sidebar-info-desc {
+  font-size: 0.8rem;
+  color: var(--color-neutral-600, #4a6059);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.thumbnail-uploader-wrapper {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tips-card {
+  background: #faece7; /* accent-50 background for warning/bulb card */
+  border-color: rgba(216, 90, 48, 0.15);
+}
+.tips-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 12px;
+}
+.tips-list li {
+  font-size: 0.8rem;
+  color: var(--color-neutral-600, #4a6059);
+  line-height: 1.6;
+}
+.tips-list li strong {
+  color: var(--color-neutral-800, #1f312b);
+}
+
+.submit-actions-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 16px 0;
+  border-top: 1px dashed var(--color-neutral-200, #dde5e1);
+}
+
+/* Spin animation */
+.spin-icon {
+  font-size: 16px;
+  margin-right: 6px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+[data-theme="dark"] .form-section-card {
+  background: var(--color-neutral-100, #142d1f);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark"] .section-card-head {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .premium-input,
+[data-theme="dark"] .premium-select,
+[data-theme="dark"] .premium-textarea {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+[data-theme="dark"] .premium-input:focus,
+[data-theme="dark"] .premium-select:focus,
+[data-theme="dark"] .premium-textarea:focus {
+  background: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .tips-card {
+  background: rgba(216, 90, 48, 0.06);
+}
+</style>

@@ -15,13 +15,13 @@ const emit = defineEmits<{
 
 /* ── Content type registry ── */
 const contentTypes = [
-  { key: LESSON_TYPES.VIDEO,        label: 'Bài học video',    kind: 'resource', icon: '🎬', help: 'Upload video hoặc gắn link YouTube, Drive.' },
-  { key: LESSON_TYPES.DOCUMENT,     label: 'Tài liệu / File',  kind: 'resource', icon: '📎', help: 'PDF, slide, biểu mẫu hoặc file đọc thêm.' },
-  { key: LESSON_TYPES.QUIZ,         label: 'Quiz / Kiểm tra',  kind: 'activity', icon: '📝', help: 'Bài kiểm tra trắc nghiệm, tự luận.' },
-  { key: LESSON_TYPES.SCORM,        label: 'Gói SCORM',        kind: 'resource', icon: '📦', help: 'Upload file .zip SCORM, hệ thống tự giải nén.' },
-  { key: 'h5p',                     label: 'H5P / Embed',      kind: 'resource', icon: '✨', help: 'Nhúng nội dung H5P, iframe, link embed.' },
-  { key: LESSON_TYPES.VIRTUAL_CLASS,label: 'Lớp trực tuyến',   kind: 'activity', icon: '📹', help: 'Zoom, Google Meet, Jitsi hoặc link họp khác.' },
-  { key: LESSON_TYPES.ASSIGNMENT,   label: 'Bài tập nộp file', kind: 'activity', icon: '📚', help: 'Bài tập có hạn nộp, nhận file từ học viên.' },
+  { key: LESSON_TYPES.VIDEO,        label: 'Bài học video',    kind: 'resource', icon: 'movie', help: 'Upload video hoặc gắn link YouTube, Drive.' },
+  { key: LESSON_TYPES.DOCUMENT,     label: 'Tài liệu / File',  kind: 'resource', icon: 'description', help: 'PDF, slide, biểu mẫu hoặc file đọc thêm.' },
+  { key: LESSON_TYPES.QUIZ,         label: 'Quiz / Kiểm tra',  kind: 'activity', icon: 'quiz', help: 'Bài kiểm tra trắc nghiệm, tự luận.' },
+  { key: LESSON_TYPES.SCORM,        label: 'Gói SCORM',        kind: 'resource', icon: 'deployed_code', help: 'Upload file .zip SCORM, hệ thống tự giải nén.' },
+  { key: 'h5p',                     label: 'H5P / Embed',      kind: 'resource', icon: 'extension', help: 'Nhúng nội dung H5P, iframe, link embed.' },
+  { key: LESSON_TYPES.VIRTUAL_CLASS,label: 'Lớp trực tuyến',   kind: 'activity', icon: 'video_camera_front', help: 'Zoom, Google Meet, Jitsi hoặc link họp khác.' },
+  { key: LESSON_TYPES.ASSIGNMENT,   label: 'Bài tập nộp file', kind: 'activity', icon: 'task', help: 'Bài tập có hạn nộp, nhận file từ học viên.' },
 ]
 
 function typeLabel(key: string) {
@@ -29,7 +29,7 @@ function typeLabel(key: string) {
 }
 
 function typeIcon(key: string) {
-  return contentTypes.find(t => t.key === key)?.icon || '📘'
+  return contentTypes.find(t => t.key === key)?.icon || 'book'
 }
 
 /* ── Step management: 'pick' | 'form' ── */
@@ -195,7 +195,9 @@ function handleSubmit() {
               class="content-picker-card"
               @click="pickType(item.key)"
             >
-              <span class="content-picker-icon">{{ item.icon }}</span>
+              <div class="content-picker-icon-wrapper">
+                <span class="material-symbols-outlined">{{ item.icon }}</span>
+              </div>
               <strong>{{ item.label }}</strong>
               <span>{{ item.kind === 'activity' ? 'Hoạt động' : 'Tài nguyên' }}</span>
             </button>
@@ -208,7 +210,9 @@ function handleSubmit() {
         <template v-else>
           <div class="crud-modal-head">
             <div style="display:flex; align-items:center; gap:14px;">
-              <span class="content-picker-icon" style="font-size:1.4rem; flex-shrink:0;">{{ typeIcon(form.type) }}</span>
+              <div class="content-picker-icon-wrapper" style="flex-shrink:0;">
+                <span class="material-symbols-outlined">{{ typeIcon(form.type) }}</span>
+              </div>
               <div>
                 <p class="section-kicker">{{ typeLabel(form.type) }}</p>
                 <h3>{{ lesson ? 'Cập nhật học liệu' : 'Tạo học liệu' }}</h3>
@@ -253,7 +257,9 @@ function handleSubmit() {
                   <span>Upload file video</span>
                   <label class="upload-dropzone upload-dropzone-compact">
                     <input class="upload-dropzone-input" type="file" accept="video/mp4,video/mov,video/avi,video/webm" @change="onVideoChange">
-                    <span class="upload-dropzone-icon">🎬</span>
+                    <div class="upload-dropzone-icon-wrapper">
+                      <span class="material-symbols-outlined">movie</span>
+                    </div>
                     <strong>{{ form.video_file ? form.video_file.name : (lesson?.video_url ? 'Đã có video hiện tại' : 'Chọn file video') }}</strong>
                     <span>MP4, WebM, MOV hoặc AVI</span>
                   </label>
@@ -289,7 +295,9 @@ function handleSubmit() {
               <p style="margin:4px 0 0; font-size:0.8rem; color:var(--muted);">Tải tài liệu ngay khi tạo bài học. Học viên sẽ xem ở tab tài liệu.</p>
               <label class="upload-dropzone upload-dropzone-compact">
                 <input class="upload-dropzone-input" type="file" multiple @change="onAttachmentChange">
-                <span class="upload-dropzone-icon">📎</span>
+                <div class="upload-dropzone-icon-wrapper">
+                  <span class="material-symbols-outlined">description</span>
+                </div>
                 <strong>{{ form.attachments.length ? `${form.attachments.length} file đã chọn` : 'Chọn file tài liệu' }}</strong>
                 <span>PDF, DOCX, PPTX, ZIP và nhiều định dạng khác.</span>
               </label>
@@ -404,7 +412,9 @@ function handleSubmit() {
                     <span>Upload file SCORM (.zip)</span>
                     <label class="upload-dropzone upload-dropzone-compact">
                       <input class="upload-dropzone-input" type="file" accept=".zip,application/zip" @change="onScormChange">
-                      <span class="upload-dropzone-icon">📦</span>
+                      <div class="upload-dropzone-icon-wrapper">
+                        <span class="material-symbols-outlined">deployed_code</span>
+                      </div>
                       <strong>{{ form.scorm_file ? form.scorm_file.name : 'Chọn file ZIP' }}</strong>
                       <span>Phiên bản 1.2 / 2004 tự nhận từ imsmanifest.xml.</span>
                     </label>
@@ -533,14 +543,18 @@ function handleSubmit() {
   font-size: 0.85rem;
 }
 
-.content-picker-icon {
+.content-picker-icon-wrapper {
   display: grid;
   place-items: center;
   width: 46px;
   height: 46px;
   border-radius: 14px;
   background: rgba(var(--green-rgb), 0.1);
-  font-size: 1.4rem;
+  color: var(--green-deep);
+}
+
+.content-picker-icon-wrapper span {
+  font-size: 22px;
 }
 
 /* ── Upload dropzone ── */
@@ -550,9 +564,9 @@ function handleSubmit() {
   justify-items: center;
   gap: 10px;
   padding: 28px 20px;
-  border: 2px dashed rgba(249, 115, 22, 0.85);
+  border: 2px dashed rgba(var(--green-rgb), 0.3);
   border-radius: 24px;
-  background: rgba(255, 247, 237, 0.75);
+  background: rgba(var(--green-rgb), 0.02);
   text-align: center;
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
@@ -560,8 +574,8 @@ function handleSubmit() {
 
 .upload-dropzone:hover {
   transform: translateY(-1px);
-  border-color: rgba(234, 88, 12, 0.95);
-  box-shadow: 0 20px 40px -28px rgba(249, 115, 22, 0.45);
+  border-color: var(--green-deep);
+  box-shadow: 0 20px 40px -28px rgba(var(--green-rgb), 0.2);
 }
 
 .upload-dropzone-compact {
@@ -578,15 +592,18 @@ function handleSubmit() {
   cursor: pointer;
 }
 
-.upload-dropzone-icon {
+.upload-dropzone-icon-wrapper {
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
   border-radius: 999px;
-  background: rgba(249, 115, 22, 0.12);
-  color: #ea580c;
-  font-size: 1.4rem;
+  background: rgba(var(--green-rgb), 0.12);
+  color: var(--green-deep);
+}
+
+.upload-dropzone-icon-wrapper span {
+  font-size: 24px;
 }
 
 .upload-dropzone strong {
