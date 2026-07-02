@@ -34,7 +34,7 @@
           <div class="flex-1 min-w-0">
             <span class="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded">Chương {{ index + 1 }}</span>
             <h4 class="font-headline font-bold text-lg text-on-surface mt-1 truncate">{{ section.title }}</h4>
-            <p v-if="section.description" class="text-xs text-on-surface-variant truncate">{{ section.description }}</p>
+            <p v-if="section.description" class="text-xs text-on-surface-variant truncate line-clamp-1" v-html="section.description.replace(/<[^>]*>/g, '')"></p>
             <div class="flex items-center gap-4 mt-2 text-xs font-medium text-outline">
               <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">format_list_bulleted</span> {{ section.lessons?.length || 0 }} Bài học</span>
               <span v-if="section.total_duration" class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">schedule</span> {{ formatDuration(section.total_duration) }}</span>
@@ -131,7 +131,7 @@
           </div>
           <div>
             <label class="block text-sm font-bold text-on-surface mb-2">Mô tả ngắn gọn (Tùy chọn)</label>
-            <textarea v-model="sectionForm.description" rows="3" class="w-full flex-1 rounded-xl border border-outline-variant bg-surface-lowest px-4 py-3 text-sm focus:border-primary focus:ring-1 focus:ring-primary shadow-sm outline-none transition-all placeholder-outline" placeholder="Tóm tắt về mục đích của chương này..."></textarea>
+            <RichTextEditor v-model="sectionForm.description" placeholder="Tóm tắt về mục đích của chương này..." />
           </div>
           
           <div class="sticky bottom-0 -mx-8 -mb-8 mt-6 flex flex-col gap-3 border-t border-surface-dim/30 bg-surface-lowest/95 px-8 py-5 backdrop-blur sm:flex-row sm:justify-end">
@@ -163,6 +163,7 @@
 import { onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
+import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
 
 const toast = useToast()
 

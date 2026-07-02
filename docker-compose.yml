@@ -111,6 +111,7 @@ services:
       MINIO_SECRET: minioadmin123
       MINIO_BUCKET: lms-videos
       MINIO_REGION: us-east-1
+      PHPRC: /var/www/dev-php.ini
     expose:
       - "8000"
     command: >
@@ -121,7 +122,8 @@ services:
       php artisan config:clear &&
       php artisan migrate --force &&
       (php artisan db:seed --force || true) &&
-      php artisan serve --host=0.0.0.0 --port=8000
+      (php artisan minio:setup || true) &&
+      php -d upload_max_filesize=200M -d post_max_size=210M -d memory_limit=512M -d max_execution_time=300 artisan serve --host=0.0.0.0 --port=8000
       "
     depends_on:
       mysql:

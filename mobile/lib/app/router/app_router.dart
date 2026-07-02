@@ -18,6 +18,8 @@ import '../../features/profile/presentation/profile_page.dart';
 import '../shell/main_shell.dart';
 import '../../features/quiz/presentation/screens/exam_workspace_screen.dart';
 import '../../features/dashboard/presentation/screens/transcript_screen.dart';
+import '../../features/dashboard/presentation/screens/learning_path_screen.dart';
+import '../../features/dashboard/presentation/screens/attendance_screen.dart';
 import '../../features/certificates/presentation/screens/certificates_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/career/presentation/screens/career_advisor_screen.dart';
@@ -136,6 +138,14 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/transcript',
         builder: (context, state) => const TranscriptScreen(),
+      ),
+      GoRoute(
+        path: '/learning-path',
+        builder: (context, state) => const LearningPathScreen(),
+      ),
+      GoRoute(
+        path: '/attendance',
+        builder: (context, state) => const AttendanceScreen(),
       ),
       GoRoute(
         path: '/certificates',

@@ -151,13 +151,13 @@
 }
 
 /* Semantic variants */
-.ds-badge--active   { background: rgba(29,158,117,0.1);  color: var(--green-deep, #085041); border-color: rgba(29,158,117,0.22); }
-.ds-badge--draft    { background: rgba(17,17,17,0.06);   color: var(--muted);               border-color: var(--line); }
-.ds-badge--pending  { background: rgba(245,158,11,0.1);  color: #92400e;                    border-color: rgba(245,158,11,0.22); }
-.ds-badge--closed   { background: rgba(239,68,68,0.1);   color: #b91c1c;                    border-color: rgba(239,68,68,0.22); }
-.ds-badge--info     { background: rgba(55,138,221,0.1);  color: #1a5fa8;                    border-color: rgba(55,138,221,0.22); }
-.ds-badge--archived { background: rgba(17,17,17,0.04);   color: var(--muted);               border-color: var(--line); }
-.ds-badge--violet   { background: rgba(124,58,237,0.1);  color: #5b21b6;                    border-color: rgba(124,58,237,0.22); }
+.ds-badge--active   { background: rgba(29,158,117,0.8);  color:  #ffffff; border-color: rgba(29,158,117,0.22); }
+.ds-badge--draft    { background: rgba(17,17,17,0.8);   color: #ffffff;               border-color: var(--line); }
+.ds-badge--pending  { background: rgba(245,158,11,0.8);  color: #ffffff;                    border-color: rgba(245,158,11,0.22); }
+.ds-badge--closed   { background: rgba(239,68,68,0.8);   color: #ffffff;                    border-color: rgba(239,68,68,0.22); }
+.ds-badge--info     { background: rgba(55,138,221,0.8);  color: #ffffff;                    border-color: rgba(55,138,221,0.22); }
+.ds-badge--archived { background: rgba(17,17,17,0.8);   color: #ffffff;               border-color: var(--line); }
+.ds-badge--violet   { background: rgba(124,58,237,0.8);  color: #ffffff;                    border-color: rgba(124,58,237,0.22); }
 
 /* ── Action buttons (compact, inside tables) ─────────────────── */
 

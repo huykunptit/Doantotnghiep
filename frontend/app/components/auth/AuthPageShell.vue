@@ -2,302 +2,307 @@
 import { useSiteSettings } from '~/composables/useSiteSettings'
 
 defineProps<{
-  panelKicker: string
+  panelKicker?: string
   panelTitle: string
   panelDescription: string
   footText?: string
   footLinkText?: string
   footLinkTo?: string
+  heroTitle?: string
+  heroSubtitle?: string
 }>()
 
-const { siteName, authPageImage } = useSiteSettings()
+const { siteName, brandLogo, authPageImage, siteTagline } = useSiteSettings()
 </script>
 
 <template>
   <main class="auth-shell">
-    <div class="auth-stage">
 
-      <!-- Left: form panel -->
-      <section class="auth-panel">
-        <!-- Brand -->
-        <NuxtLink to="/" class="auth-brand">
-          <div class="auth-brand-icon">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 22C12 22 22 12 22 2" /><path d="M12 12C12 8 16 4 22 2" /><path d="M12 12C8 12 4 16 2 22" />
-            </svg>
-          </div>
-          <span class="auth-brand-name">{{ siteName }}</span>
+    <!-- Left: background image with overlay -->
+    <div class="auth-bg" aria-hidden="true">
+      <img v-if="authPageImage" :src="authPageImage" alt="" class="auth-bg-img">
+      <div class="auth-bg-overlay" />
+      <div class="auth-bg-content">
+        <div class="auth-bg-card">
+          <h2 class="auth-bg-title">
+            {{ heroTitle || `Chào mừng bạn đến với hệ thống học tập trực tuyến ${siteName}` }}
+          </h2>
+          <p class="auth-bg-sub">
+            {{ heroSubtitle || siteTagline || 'Nền tảng học tập hiện đại, linh hoạt và hiệu quả.' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: form panel -->
+    <aside class="auth-panel">
+      <!-- Panel header: logo -->
+      <div class="auth-panel-head">
+        <NuxtLink to="/" class="auth-logo">
+          <img v-if="brandLogo" :src="brandLogo" alt="Logo" class="auth-logo-img">
+          <span v-else class="auth-logo-text">{{ siteName }}</span>
         </NuxtLink>
+      </div>
 
-        <!-- Heading -->
-        <div class="auth-head">
-          <p class="auth-kicker">{{ panelKicker }}</p>
-          <h1 class="auth-title">{{ panelTitle }}</h1>
-          <p class="auth-desc">{{ panelDescription }}</p>
-        </div>
+      <!-- Panel body: form -->
+      <div class="auth-panel-body">
+        <div class="auth-form-wrap">
+          <!-- Heading -->
+          <div class="auth-heading">
+            <p v-if="panelKicker" class="auth-kicker">{{ panelKicker }}</p>
+            <h1 class="auth-title">{{ panelTitle }}</h1>
+            <p class="auth-desc">{{ panelDescription }}</p>
+          </div>
 
-        <!-- Form slot -->
-        <div class="auth-body">
-          <slot />
-        </div>
+          <!-- Form slot -->
+          <div class="auth-body">
+            <slot />
+          </div>
 
-        <!-- Footer -->
-        <div v-if="footText && footLinkText && footLinkTo" class="auth-foot">
-          <span>{{ footText }}</span>
-          <NuxtLink :to="footLinkTo" class="auth-foot-link">{{ footLinkText }}</NuxtLink>
-        </div>
-      </section>
-
-      <!-- Right: visual panel -->
-      <div class="auth-visual" aria-hidden="true">
-        <img v-if="authPageImage" :src="authPageImage" alt="" class="auth-visual-img">
-        <div v-else class="auth-visual-placeholder">
-          <div class="auth-visual-content">
-            <div class="auth-visual-orb auth-visual-orb-1" />
-            <div class="auth-visual-orb auth-visual-orb-2" />
-            <div class="auth-visual-card">
-              <div class="auth-visual-quote">
-                <p>"Kiến thức là gốc rễ — hãy để Sylva nuôi dưỡng nó mỗi ngày."</p>
-                <span>— Sylva LMS</span>
-              </div>
-              <div class="auth-visual-stats">
-                <div class="auth-visual-stat"><strong>50+</strong><span>Khoá học</span></div>
-                <div class="auth-visual-stat"><strong>2K+</strong><span>Học viên</span></div>
-                <div class="auth-visual-stat"><strong>95%</strong><span>Hài lòng</span></div>
-              </div>
-            </div>
+          <!-- Footer link -->
+          <div v-if="footText && footLinkText && footLinkTo" class="auth-foot">
+            <span>{{ footText }}</span>
+            <NuxtLink :to="footLinkTo" class="auth-foot-link">{{ footLinkText }}</NuxtLink>
           </div>
         </div>
       </div>
 
-    </div>
+      <!-- Panel footer -->
+      <div class="auth-panel-footer">
+        <p>© 2026 <strong>{{ siteName }}</strong></p>
+      </div>
+    </aside>
+
   </main>
 </template>
 
 <style scoped>
 /* ── Shell ── */
 .auth-shell {
-  min-height: 100vh;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d1f1a;
+}
+
+/* ── Background (left) ── */
+.auth-bg {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.auth-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.auth-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(5, 30, 22, 0.72) 0%,
+    rgba(10, 40, 30, 0.55) 60%,
+    rgba(5, 25, 18, 0.65) 100%
+  );
+}
+
+.auth-bg-content {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: var(--bg);
+  padding: 56px 52px;
 }
 
-/* ── Stage ── */
-.auth-stage {
-  display: grid;
-  grid-template-columns: minmax(360px, 440px) minmax(360px, 1fr);
-  width: 100%;
-  max-width: 1060px;
-  min-height: 620px;
-  background: var(--surface-strong, #fff);
-  border-radius: 20px;
-  box-shadow: 0 24px 60px -20px rgba(31, 49, 43, 0.15);
-  border: 1px solid var(--line);
-  overflow: hidden;
+.auth-bg-card {
+  max-width: 520px;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 28px 32px;
 }
 
-/* ── Panel ── */
+.auth-bg-title {
+  margin: 0 0 10px;
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.auth-bg-sub {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.6;
+}
+
+/* ── Panel (right sidebar) ── */
 .auth-panel {
+  width: clamp(340px, 30vw, 460px);
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  padding: 40px 44px;
-  gap: 24px;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--surface-strong, #fff);
+  border-left: 1px solid var(--line, rgba(0,0,0,0.09));
+  position: relative;
+  z-index: 10;
 }
 
-/* ── Brand ── */
-.auth-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-
-.auth-brand-icon {
+/* ── Panel header ── */
+.auth-panel-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  background: var(--green);
-  color: #fff;
+  justify-content: space-between;
+  padding: 20px 32px 0;
   flex-shrink: 0;
 }
 
-.auth-brand-name {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 0.9375rem;
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.auth-logo-img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
+.auth-logo-text {
+  font-size: 1rem;
   font-weight: 700;
+  color: var(--text, #0d1f1a);
   letter-spacing: -0.02em;
-  color: var(--text);
+}
+
+/* ── Panel body ── */
+.auth-panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px 32px;
+  overflow: hidden;
+}
+
+.auth-form-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ── Heading ── */
-.auth-head { display: flex; flex-direction: column; gap: 6px; }
+.auth-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .auth-kicker {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  color: var(--green);
+  color: var(--green, #1D9E75);
 }
 
 .auth-title {
   margin: 0;
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 1.75rem;
+  font-size: 1.375rem;
   font-weight: 700;
-  letter-spacing: -0.04em;
-  color: var(--text);
-  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--text, #0d1f1a);
+  line-height: 1.25;
 }
 
 .auth-desc {
   margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.65;
-  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--muted, #6b7c73);
 }
 
 /* ── Body ── */
-.auth-body { flex: 1; }
+.auth-body {
+  display: flex;
+  flex-direction: column;
+}
 
-/* ── Foot ── */
+/* ── Foot link ── */
 .auth-foot {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  font-size: 0.875rem;
-  color: var(--muted);
+  padding-top: 12px;
+  border-top: 1px solid var(--line, rgba(0,0,0,0.09));
+  font-size: 0.8125rem;
+  color: var(--muted, #6b7c73);
 }
 
 .auth-foot-link {
   font-weight: 700;
-  color: var(--green-deep);
+  color: var(--green-deep, #085041);
   text-decoration: none;
 }
 
-.auth-foot-link:hover { text-decoration: underline; }
-
-/* ── Visual panel ── */
-.auth-visual {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(140deg, var(--green-deep) 0%, #0F6E56 50%, #1D9E75 100%);
+.auth-foot-link:hover {
+  text-decoration: underline;
 }
 
-.auth-visual-img {
-  position: absolute;
-  inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
+/* ── Panel footer ── */
+.auth-panel-footer {
+  padding: 12px 32px 16px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted, #6b7c73);
+  border-top: 1px solid var(--line, rgba(0,0,0,0.07));
+  flex-shrink: 0;
 }
 
-.auth-visual-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
-
-.auth-visual-content {
-  position: relative;
-  width: 100%;
-  max-width: 320px;
-}
-
-.auth-visual-orb {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.auth-visual-orb-1 {
-  width: 280px; height: 280px;
-  top: -80px; right: -80px;
-}
-
-.auth-visual-orb-2 {
-  width: 160px; height: 160px;
-  bottom: -40px; left: -60px;
-}
-
-.auth-visual-card {
-  position: relative;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  padding: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.auth-visual-quote p {
-  margin: 0 0 8px;
-  font-size: 1.0625rem;
-  font-weight: 500;
-  line-height: 1.55;
-  color: rgba(255, 255, 255, 0.9);
-  font-style: italic;
-}
-
-.auth-visual-quote span {
-  font-size: 0.8125rem;
-  color: #9FE1CB;
+.auth-panel-footer strong {
+  color: var(--green-deep, #085041);
   font-weight: 600;
-}
-
-.auth-visual-stats {
-  display: flex;
-  gap: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding-top: 18px;
-}
-
-.auth-visual-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.auth-visual-stat strong {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #9FE1CB;
-}
-
-.auth-visual-stat span {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
-  .auth-stage {
-    grid-template-columns: 1fr;
-    max-width: 480px;
+  .auth-bg { display: none; }
+  .auth-panel {
+    width: 100%;
+    height: 100vh;
+    border-left: none;
+    overflow-y: auto;
   }
-  .auth-visual { display: none; }
 }
 
 @media (max-width: 540px) {
-  .auth-shell { padding: 16px; align-items: flex-start; padding-top: 32px; }
-  .auth-panel { padding: 28px 24px; }
-  .auth-title { font-size: 1.5rem; }
+  .auth-panel-head { padding: 16px 20px 0; }
+  .auth-panel-body { padding: 16px 20px; }
+  .auth-panel-footer { padding: 10px 20px 14px; }
+  .auth-title { font-size: 1.25rem; }
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .auth-panel {
+  background: var(--surface-strong);
+  border-left-color: rgba(255, 255, 255, 0.08);
 }
 </style>

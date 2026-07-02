@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary — Mộc (Wood)
-  static const Color primary50 = Color(0xFFE1F5EE);
-  static const Color primary100 = Color(0xFF9FE1CB);
-  static const Color primary200 = Color(0xFF5DCAA5);
-  static const Color primary400 = Color(0xFF1D9E75);
-  static const Color primary600 = Color(0xFF0F6E56);
-  static const Color primary800 = Color(0xFF085041);
-  static const Color primary900 = Color(0xFF04342C);
+  // Primary — PTIT LMS (Teal/Blue)
+  static const Color primary50 = Color(0xFFE6F2F5);
+  static const Color primary100 = Color(0xFFB8D9E3);
+  static const Color primary200 = Color(0xFF86BCCB);
+  static const Color primary400 = Color(0xFF0F6E8C);
+  static const Color primary600 = Color(0xFF0B5167);
+  static const Color primary800 = Color(0xFF073A4B);
+  static const Color primary900 = Color(0xFF031F29);
 
   // Secondary — Thủy (Water)
   static const Color secondary50 = Color(0xFFE6F1FB);

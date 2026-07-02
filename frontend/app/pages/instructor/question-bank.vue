@@ -1,13 +1,12 @@
 <template>
-  <section class="crud-page">
-    <header class="crud-page-header dashboard-card">
-      <div>
-        <p class="section-kicker">Giảng viên</p>
-        <h2>Ngân hàng câu hỏi</h2>
-        <p>Quản lý câu hỏi và bộ đề theo từng khóa học.</p>
-      </div>
+  <InstructorWorkspaceShell
+    title="Ngân hàng câu hỏi"
+    description="Quản lý câu hỏi và bộ đề theo từng khóa học."
+    :breadcrumb="['Trang chủ', 'Ngân hàng câu hỏi']"
+  >
+    <template #actions>
       <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Xem khóa học</NuxtLink>
-    </header>
+    </template>
 
     <section class="dashboard-card crud-panel">
       <div class="crud-toolbar">
@@ -67,11 +66,12 @@
         @update:per-page="qbPerPage = $event; qbPage = 1"
       />
     </section>
-  </section>
+  </InstructorWorkspaceShell>
 </template>
 
 <script setup lang="ts">
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 

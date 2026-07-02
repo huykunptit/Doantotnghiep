@@ -11,6 +11,7 @@ use App\Http\Controllers\UserManagement\CurriculumBuilderController;
 use App\Http\Controllers\UserManagement\EnrollmentManagementController;
 use App\Http\Controllers\UserManagement\GradebookController;
 use App\Http\Controllers\UserManagement\InstructorController;
+use App\Http\Controllers\UserManagement\OfflineSessionController;
 use App\Http\Controllers\UserManagement\InstructorDashboardController;
 use App\Http\Controllers\UserManagement\LessonProgressController;
 use App\Http\Controllers\UserManagement\StudentDashboardController;
@@ -75,8 +76,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/instructor/dashboard', [InstructorDashboardController::class, 'dashboard']);
     Route::get('/instructor/sections/{classSection}/grades', [GradebookController::class, 'show']);
     Route::put('/instructor/sections/{classSection}/grades', [GradebookController::class, 'update']);
+    Route::get('/instructor/sections/{classSection}/grade-report', [GradebookController::class, 'sectionGpaReport']);
     Route::get('/instructor/courses/{course}/grade-components', [GradebookController::class, 'listComponents']);
     Route::put('/instructor/courses/{course}/grade-components', [GradebookController::class, 'upsertComponents']);
+    Route::post('/instructor/courses/{course}/grade-components/preset', [GradebookController::class, 'presetComponents']);
+
+    // ─── Offline Sessions ───
+    Route::get('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'index']);
+    Route::post('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'store']);
+    Route::put('/instructor/sessions/{session}', [OfflineSessionController::class, 'update']);
+    Route::delete('/instructor/sessions/{session}', [OfflineSessionController::class, 'destroy']);
+    Route::post('/instructor/sessions/{session}/qr', [OfflineSessionController::class, 'generateQr']);
+    Route::get('/instructor/sessions/{session}/attendance', [OfflineSessionController::class, 'attendanceReport']);
+    Route::get('/instructor/sections/{classSection}/attendance-stats', [OfflineSessionController::class, 'sectionStats']);
 
     // ─── Advisor ───
     Route::get('/advisor/advisees', [AdvisorController::class, 'advisees']);
@@ -84,8 +96,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ─── Student-facing /me ───
     Route::get('/me/dashboard', [StudentDashboardController::class, 'dashboard']);
+    Route::get('/me/learning-path', [StudentDashboardController::class, 'learningPath']);
     Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    Route::get('/me/exams', [StudentDashboardController::class, 'exams']);
+    Route::get('/me/tasks', [StudentDashboardController::class, 'tasks']);
     Route::get('/me/recommendations/extensions', [StudentDashboardController::class, 'recommendations']);
+    Route::get('/me/attendance', [StudentDashboardController::class, 'attendanceHistory']);
+    Route::post('/me/attendance/check-in', [StudentDashboardController::class, 'checkIn']);
 
     // ─── Admin ───
     Route::prefix('admin')->group(function () {
@@ -137,7 +154,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'updateClassSection']);
         Route::delete('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'destroyClassSection']);
         Route::get('/academic/cohorts/{cohort}/students', [EnrollmentManagementController::class, 'students']);
+        Route::get('/academic/lnd/reports/class-progress', [EnrollmentManagementController::class, 'classProgressReport']);
         Route::post('/academic/cohorts/{cohort}/enroll-core', [EnrollmentManagementController::class, 'bulkEnrollCore']);
+        Route::post('/academic/enrollments/manual', [EnrollmentManagementController::class, 'enrollManual']);
+        Route::post('/academic/enrollments/import-preview', [EnrollmentManagementController::class, 'importPreview']);
+        Route::post('/academic/enrollments/import-execute', [EnrollmentManagementController::class, 'importExecute']);
+        Route::post('/academic/enrollments/delete', [EnrollmentManagementController::class, 'destroyEnrollment']);
+        Route::post('/academic/enrollments/delete-import-preview', [EnrollmentManagementController::class, 'importDeletePreview']);
+        Route::post('/academic/enrollments/delete-import-execute', [EnrollmentManagementController::class, 'importDeleteExecute']);
 
         Route::get('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'index']);
         Route::post('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'attach']);

@@ -19,12 +19,18 @@ class AdministrativeClass extends Model
         'major_id',
         'cohort_id',
         'advisor_id',
+        'curriculum_id',
         'code',
         'name',
         'expected_graduation_year',
         'capacity',
         'status',
         'description',
+    ];
+
+    protected $attributes = [
+        'capacity' => 0,
+        'status'   => 'active',
     ];
 
     protected $casts = [
@@ -60,6 +66,11 @@ class AdministrativeClass extends Model
     public function advisor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'advisor_id');
+    }
+
+    public function curriculum(): BelongsTo
+    {
+        return $this->belongsTo(Curriculum::class);
     }
 
     public function students(): HasMany

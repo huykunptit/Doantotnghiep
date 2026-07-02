@@ -352,73 +352,101 @@ onMounted(() => {
     </template>
 
     <!-- ─── Preview modal ─────────────────────────────────────────────────── -->
-    <div v-if="previewTemplate" class="modal-overlay" @click.self="previewTemplate = null">
-      <div class="preview-modal dashboard-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-          <div>
-            <p class="section-kicker" style="margin-bottom:4px">Xem trước phôi</p>
-            <h3 style="margin:0">{{ previewTemplate.name }}</h3>
-          </div>
-          <button type="button" class="crud-secondary-btn" @click="previewTemplate = null">✕ Đóng</button>
-        </div>
-        <div class="cert-preview-frame">
-          <img v-if="previewTemplate.background_image_url" :src="previewTemplate.background_image_url" :alt="previewTemplate.name" class="cert-preview-bg">
-          <div v-else class="cert-preview-bg cert-preview-blank"><Award :size="64" :stroke-width="1" style="opacity:0.2" /></div>
-          <!-- Render fields_config or fallback overlay -->
-          <template v-if="previewTemplate.fields_config?.length">
-            <div
-              v-for="field in previewTemplate.fields_config"
-              v-show="field.visible"
-              :key="field.key"
-              class="cert-preview-field"
-              :style="{
-                left: field.x + '%',
-                top: field.y + '%',
-                fontSize: field.font_size + 'px',
-                fontFamily: field.font_family,
-                color: field.color,
-                fontWeight: field.font_weight,
-                textAlign: field.text_align,
-                transform: field.text_align === 'center' ? 'translateX(-50%)' : field.text_align === 'right' ? 'translateX(-100%)' : 'none',
-              }"
-            >
-              {{ { student_name: 'Nguyễn Văn Mẫu', course_title: previewTemplate.name, issued_date: '20 tháng 06 năm 2026', credential_id: 'SYLVA-SAMPLE-000001' }[field.key] ?? field.label }}
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="previewTemplate" class="crud-modal-backdrop" @click.self="previewTemplate = null">
+          <div class="crud-modal crud-modal-wide">
+            <!-- Header -->
+            <div class="crud-modal-head is-neutral">
+              <div>
+                <p class="section-kicker">Xem trước phôi</p>
+                <h3>{{ previewTemplate.name }}</h3>
+              </div>
+              <button class="topbar-ghost" type="button" @click="previewTemplate = null">✕</button>
             </div>
-          </template>
-          <div v-else class="cert-preview-overlay">
-            <div class="cert-preview-inner">
-              <p class="prev-cert-label">CHỨNG CHỈ HOÀN THÀNH</p>
-              <p class="prev-cert-name">Nguyễn Văn Mẫu</p>
-              <p class="prev-cert-course">{{ previewTemplate.name }}</p>
-              <p class="prev-cert-date">Hà Nội, ngày 20 tháng 06 năm 2026</p>
-              <code class="prev-cert-cred">SYLVA-SAMPLE-000001</code>
+
+            <!-- Body -->
+            <div style="padding: 24px;">
+              <div class="cert-preview-frame">
+                <img v-if="previewTemplate.background_image_url" :src="previewTemplate.background_image_url" :alt="previewTemplate.name" class="cert-preview-bg">
+                <div v-else class="cert-preview-bg cert-preview-blank"><Award :size="64" :stroke-width="1" style="opacity:0.2" /></div>
+                <!-- Render fields_config or fallback overlay -->
+                <template v-if="previewTemplate.fields_config?.length">
+                  <div
+                    v-for="field in previewTemplate.fields_config"
+                    v-show="field.visible"
+                    :key="field.key"
+                    class="cert-preview-field"
+                    :style="{
+                      left: field.x + '%',
+                      top: field.y + '%',
+                      fontSize: field.font_size + 'px',
+                      fontFamily: field.font_family,
+                      color: field.color,
+                      fontWeight: field.font_weight,
+                      textAlign: field.text_align,
+                      transform: field.text_align === 'center' ? 'translateX(-50%)' : field.text_align === 'right' ? 'translateX(-100%)' : 'none',
+                    }"
+                  >
+                    {{ { student_name: 'Nguyễn Văn Mẫu', course_title: previewTemplate.name, issued_date: '20 tháng 06 năm 2026', credential_id: 'SYLVA-SAMPLE-000001' }[field.key] ?? field.label }}
+                  </div>
+                </template>
+                <div v-else class="cert-preview-overlay">
+                  <div class="cert-preview-inner">
+                    <p class="prev-cert-label">CHỨNG CHỈ HOÀN THÀNH</p>
+                    <p class="prev-cert-name">Nguyễn Văn Mẫu</p>
+                    <p class="prev-cert-course">{{ previewTemplate.name }}</p>
+                    <p class="prev-cert-date">Hà Nội, ngày 20 tháng 06 năm 2026</p>
+                    <code class="prev-cert-cred">SYLVA-SAMPLE-000001</code>
+                  </div>
+                </div>
+              </div>
+              <p style="text-align:center;font-size:0.78rem;color:var(--muted);margin-top:16px;margin-bottom:0">
+                Nội dung thực tế sẽ được điền tự động khi cấp cho học viên.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="crud-modal-foot">
+              <button class="crud-secondary-btn" type="button" @click="previewTemplate = null">Đóng</button>
             </div>
           </div>
         </div>
-        <p style="text-align:center;font-size:0.78rem;color:var(--muted);margin-top:12px">
-          Nội dung thực tế sẽ được điền tự động khi cấp cho học viên.
-        </p>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
 
     <!-- ─── Editor modal ──────────────────────────────────────────────────── -->
-    <div v-if="editingTemplate" class="modal-overlay" @click.self="closeEditor">
-      <div class="editor-modal dashboard-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-          <div>
-            <p class="section-kicker" style="margin-bottom:4px">Thiết kế trường dữ liệu</p>
-            <h3 style="margin:0">{{ editingTemplate.name }}</h3>
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="editingTemplate" class="crud-modal-backdrop" @click.self="closeEditor">
+          <div class="crud-modal crud-modal-wide">
+            <!-- Header -->
+            <div class="crud-modal-head">
+              <div>
+                <p class="section-kicker">Thiết kế trường dữ liệu</p>
+                <h3>{{ editingTemplate.name }}</h3>
+              </div>
+              <button class="topbar-ghost" type="button" @click="closeEditor">✕</button>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 24px; max-height: 70vh; overflow-y: auto;">
+              <CertificateTemplateEditor
+                v-model="editorFields"
+                :background-url="editingTemplate.background_image_url"
+                :saving="editorSaving"
+                @save="saveEditorFields"
+              />
+            </div>
+
+            <!-- Footer -->
+            <div class="crud-modal-foot">
+              <button class="crud-secondary-btn" type="button" @click="closeEditor">Đóng</button>
+            </div>
           </div>
-          <button type="button" class="crud-secondary-btn" @click="closeEditor">✕ Đóng</button>
         </div>
-        <CertificateTemplateEditor
-          v-model="editorFields"
-          :background-url="editingTemplate.background_image_url"
-          :saving="editorSaving"
-          @save="saveEditorFields"
-        />
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </AdminWorkspaceShell>
 </template>
 
@@ -437,10 +465,6 @@ onMounted(() => {
 .cert-preview:hover .cert-hover-overlay { opacity:1; }
 .cert-info { padding:14px 16px; }
 
-.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px; }
-
-.preview-modal { max-width:900px;width:100%;padding:24px;max-height:90vh;overflow-y:auto; }
-.editor-modal { max-width:1200px;width:100%;padding:24px;max-height:92vh;overflow-y:auto; }
 
 .cert-preview-frame { position:relative;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.15);aspect-ratio:16/11; }
 .cert-preview-bg { width:100%;height:100%;object-fit:cover;display:block; }

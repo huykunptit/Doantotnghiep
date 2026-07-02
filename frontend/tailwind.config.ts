@@ -38,10 +38,10 @@ export default {
         },
         // Tertiary (Emerald/Mint)
         tertiary: {
-          DEFAULT: '#10b981',
-          dark: '#059669',
-          50: '#f0fdf4',
-          100: '#dcfce7',
+          DEFAULT: '#1D9E75',
+          dark: '#0F6E8C',
+          50: '#F0FAF7',
+          100: '#D9F1EA',
         },
         // Warning / Orange
         warning: {

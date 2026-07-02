@@ -12,19 +12,20 @@
       <p>Hệ thống chưa tải được bài thi.</p>
     </div>
 
-    <div v-else-if="result" class="exam-result-fullscreen" :class="{ passed: result?.passed }">
-      <div class="exam-result-content">
-        <div class="exam-result-icon-wrap" :class="{ passed: result?.passed }">
-          <span class="material-symbols-outlined">{{ result?.passed ? 'workspace_premium' : 'task_alt' }}</span>
-        </div>
+    <div v-else-if="result" class="exam-result-layout" :class="{ passed: result?.passed }">
+      <!-- Left: Result Card -->
+      <div class="exam-result-card">
         <p class="exam-kicker">Kết quả bài thi</p>
-        <h1 class="exam-result-title">{{ result?.passed ? 'Chúc mừng, bạn đã đạt!' : 'Bạn chưa đạt điểm tối thiểu' }}</h1>
-        <div v-if="result?.score !== undefined" class="exam-score-wrap">
-          <div class="exam-score-ring" :class="{ passed: result?.passed }">
+        <h1 class="exam-result-heading">
+          {{ result?.passed ? 'Chúc mừng, bạn đã đạt!' : 'Bạn chưa đạt điểm tối thiểu' }}
+        </h1>
+
+        <div v-if="result?.score !== undefined" class="exam-score-container">
+          <div class="exam-score-circle" :class="{ passed: result?.passed }">
             <svg viewBox="0 0 120 120" aria-hidden="true">
-              <circle class="ring-bg" cx="60" cy="60" r="52" />
+              <circle class="circle-bg" cx="60" cy="60" r="52" />
               <circle
-                class="ring-fg"
+                class="circle-fill"
                 cx="60"
                 cy="60"
                 r="52"
@@ -32,21 +33,119 @@
                 :stroke-dashoffset="326.7 - (Math.min(Math.max(Number(result.score) || 0, 0), 100) / 100) * 326.7"
               />
             </svg>
-            <div class="exam-score" :class="{ passed: result?.passed }">{{ result.score }}<span>%</span></div>
+            <div class="score-text" :class="{ passed: result?.passed }">{{ result.score }}<span>%</span></div>
           </div>
         </div>
-        <div class="exam-result-stats">
-          <div class="exam-result-stat">
-            <span class="material-symbols-outlined">check_circle</span>
-            <div>
-              <strong>{{ answeredCount }}/{{ questions.length }}</strong>
-              <span>Câu đã trả lời</span>
+
+        <div class="result-info-grid">
+          <div class="result-info-item">
+            <div class="info-icon" :class="{ passed: result?.passed }">
+              <span class="material-symbols-outlined">check_circle</span>
+            </div>
+            <div class="info-content">
+              <div class="info-value">{{ answeredCount }}/{{ questions.length }}</div>
+              <div class="info-label">Câu đã trả lời</div>
+            </div>
+          </div>
+          <div class="result-info-item">
+            <div class="info-icon">
+              <span class="material-symbols-outlined">school</span>
+            </div>
+            <div class="info-content">
+              <div class="info-value">{{ quiz?.pass_score || 80 }}%</div>
+              <div class="info-label">Điểm cần đạt</div>
             </div>
           </div>
         </div>
-        <button @click="resetQuiz" class="exam-submit-btn exam-link-btn" style="margin-top: 2rem;">
-          <span class="material-symbols-outlined">replay</span> Làm lại bài thi
+
+        <button @click="resetQuiz" class="result-action-btn">
+          <span class="material-symbols-outlined">replay</span>
+          Làm lại bài thi
         </button>
+      </div>
+
+      <!-- Right: Attempts History Sidebar -->
+      <div class="exam-result-sidebar">
+        <div class="sidebar-header">
+          <h3>Lượt làm bài</h3>
+          <p class="sidebar-subtitle">Xem lại các lượt làm trước đây</p>
+        </div>
+
+        <div v-if="showReviewDetails && reviewAttempt" class="review-detail-view">
+          <button class="review-back-btn" @click="showReviewDetails = false">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Quay lại danh sách
+          </button>
+
+          <div class="review-attempt-info">
+            <div class="review-info-row">
+              <span>Điểm:</span>
+              <strong :class="{ 'text-green': reviewAttempt.score >= (quiz?.pass_score || 80) }">
+                {{ reviewAttempt.score }}%
+              </strong>
+            </div>
+            <div class="review-info-row">
+              <span>Ngày làm:</span>
+              <span>{{ new Date(reviewAttempt.created_at).toLocaleDateString('vi-VN') }}</span>
+            </div>
+            <div class="review-info-row">
+              <span>Trạng thái:</span>
+              <span :class="{ 'text-green': reviewAttempt.score >= (quiz?.pass_score || 80), 'text-red': reviewAttempt.score < (quiz?.pass_score || 80) }">
+                {{ reviewAttempt.score >= (quiz?.pass_score || 80) ? 'Đạt' : 'Chưa đạt' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="review-content-toggle">
+            <label class="toggle-option">
+              <input type="checkbox" v-model="reviewAnswers" true-value="show-user" false-value="">
+              <span>Xem bài làm của tôi</span>
+            </label>
+            <label class="toggle-option">
+              <input type="checkbox" v-model="reviewAnswers" true-value="show-correct" false-value="">
+              <span>Xem đáp án</span>
+            </label>
+          </div>
+
+          <div class="review-questions-list">
+            <div v-for="(q, idx) in questions" :key="q.id" class="review-question-item">
+              <div class="review-q-header">
+                <span class="q-number">{{ idx + 1 }}</span>
+                <span class="q-title">{{ q.content.substring(0, 60) }}...</span>
+                <span :class="['q-result', { correct: reviewAttempt.correct_answers?.includes(q.id) }]">
+                  {{ reviewAttempt.correct_answers?.includes(q.id) ? '✓' : '✗' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="attempts-list">
+          <div class="attempt-item" :class="{ current: !result?.attempt_id }">
+            <div class="attempt-header">
+              <span class="attempt-badge">Lần làm {{ 1 }}</span>
+              <span class="attempt-score" :class="{ passed: result?.score >= (quiz?.pass_score || 80) }">
+                {{ result?.score }}%
+              </span>
+            </div>
+            <div class="attempt-meta">
+              <span>Hôm nay - {{ new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }}</span>
+              <span :class="{ 'text-green': result?.score >= (quiz?.pass_score || 80) }">
+                {{ result?.score >= (quiz?.pass_score || 80) ? '✓ Đạt' : '✗ Chưa đạt' }}
+              </span>
+            </div>
+            <button class="attempt-review-btn" @click="openReview">
+              <span class="material-symbols-outlined">visibility</span>
+              Xem chi tiết
+            </button>
+          </div>
+
+          <!-- Previous attempts (if any) -->
+          <!-- This would populate from API if quiz allows multiple attempts -->
+          <p class="no-more-attempts" style="text-align: center; color: #64748b; font-size: 0.9rem; margin-top: 1rem;">
+            Đây là lần làm đầu tiên
+          </p>
+        </div>
       </div>
     </div>
 
@@ -255,6 +354,12 @@ const timeRemaining = ref(0)
 const timerInterval = ref<any>(null)
 const warnings = ref(0)
 
+// Review mode state
+const reviewMode = ref(false)
+const reviewAttempt = ref<any>(null)
+const reviewAnswers = ref<Record<string, any>>({})
+const showReviewDetails = ref(false)
+
 const currentQuestion = computed(() => questions.value[currentIndex.value] || null)
 
 const formattedTime = computed(() => {
@@ -342,6 +447,12 @@ function stopTimer() {
   if (timerInterval.value) clearInterval(timerInterval.value)
 }
 
+function openReview() {
+  reviewAttempt.value = result.value
+  reviewAnswers.value = {}
+  showReviewDetails.value = true
+}
+
 function handleVisibilityChange() {
   if (document.hidden && !result.value && quiz.value) {
     warnings.value++
@@ -416,6 +527,9 @@ async function submitQuiz(auto = false) {
 function resetQuiz() {
   stopTimer()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  result.value = null
+  showReviewDetails.value = false
+  reviewMode.value = false
   loadQuiz()
 }
 
@@ -544,9 +658,96 @@ watch(() => props.lessonId, loadQuiz)
 .exam-result-stat span { font-size: 0.8rem; color: #64748b; }
 .exam-link-btn { text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
 
+/* New 2-column result layout */
+.exam-result-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem; padding: 2rem; align-items: start; height: 100%; overflow: auto; background: linear-gradient(135deg, #fff5f5 0%, #fef9f9 100%); }
+.exam-result-layout.passed { background: linear-gradient(135deg, #f0fdf4 0%, #f9ffef 100%); }
+
+.exam-result-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.5rem; padding: 2.5rem; background: #fff; border-radius: 28px; box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08); }
+
+.exam-result-heading { margin: 0; font-size: 1.75rem; font-weight: 900; line-height: 1.3; color: #0f172a; }
+.exam-result-layout.passed .exam-result-heading { color: var(--green-deep); }
+
+.exam-score-container { width: 100%; display: flex; justify-content: center; }
+.exam-score-circle { position: relative; width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; }
+.exam-score-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.exam-score-circle .circle-bg { fill: none; stroke: rgba(215, 25, 32, 0.15); stroke-width: 14; }
+.exam-score-circle .circle-fill { fill: none; stroke: #d71920; stroke-width: 14; stroke-linecap: round; transition: stroke-dashoffset 1.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.exam-score-circle.passed .circle-bg { stroke: rgba(21, 128, 61, 0.18); }
+.exam-score-circle.passed .circle-fill { stroke: var(--green-deep); }
+
+.score-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 4.2rem; font-weight: 900; color: #d71920; letter-spacing: -0.03em; margin: 0; }
+.score-text span { font-size: 1.4rem; font-weight: 700; margin-left: 4px; }
+.score-text.passed { color: var(--green-deep); }
+
+.result-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%; margin: 0.5rem 0; }
+.result-info-item { display: flex; align-items: flex-start; gap: 0.85rem; padding: 1rem; border-radius: 16px; background: #f8f9fa; }
+.info-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(215, 25, 32, 0.1); flex-shrink: 0; }
+.info-icon.passed { background: rgba(21, 128, 61, 0.12); }
+.info-icon .material-symbols-outlined { font-size: 24px; color: #d71920; }
+.info-icon.passed .material-symbols-outlined { color: var(--green-deep); }
+.info-content { text-align: left; }
+.info-value { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0; }
+.info-label { font-size: 0.8rem; color: #64748b; margin: 0.2rem 0 0; }
+
+.result-action-btn { display: inline-flex; align-items: center; gap: 0.6rem; padding: 1rem 1.8rem; border: none; border-radius: 14px; background: var(--green); color: #fff; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s ease; box-shadow: 0 8px 20px rgba(var(--green-rgb), 0.25); }
+.result-action-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(var(--green-rgb), 0.35); }
+.result-action-btn:active { transform: translateY(0); }
+
+.exam-result-sidebar { display: flex; flex-direction: column; gap: 1.25rem; max-height: 600px; overflow-y: auto; }
+.sidebar-header { padding: 1.5rem; background: #fff; border-radius: 20px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06); }
+.sidebar-header h3 { margin: 0 0 0.5rem; font-size: 1.1rem; color: #0f172a; }
+.sidebar-subtitle { margin: 0; font-size: 0.9rem; color: #64748b; line-height: 1.5; }
+.sidebar-content { padding: 1.5rem; background: #fff; border-radius: 20px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06); flex: 1; overflow-y: auto; }
+
+/* Attempts list styles */
+.attempts-list { display: flex; flex-direction: column; gap: 0.75rem; padding: 0 0.25rem; }
+.attempt-item { padding: 1rem; border: 1.5px solid #e2e8f0; border-radius: 14px; background: #fff; cursor: pointer; transition: all 0.2s ease; }
+.attempt-item:hover { border-color: var(--green); box-shadow: 0 4px 12px rgba(var(--green-rgb), 0.12); }
+.attempt-item.current { border-color: var(--green); background: rgba(var(--green-rgb), 0.02); }
+
+.attempt-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
+.attempt-badge { font-size: 0.85rem; font-weight: 700; color: #64748b; }
+.attempt-score { font-size: 1.3rem; font-weight: 900; color: #d71920; }
+.attempt-score.passed { color: var(--green-deep); }
+
+.attempt-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 0.75rem; gap: 0.5rem; }
+.attempt-meta .text-green { color: var(--green-deep); font-weight: 700; }
+
+.attempt-review-btn { display: flex; align-items: center; gap: 0.4rem; width: 100%; padding: 0.65rem; border: 1px solid #dbe6f5; border-radius: 10px; background: #f8fbff; color: #1558b0; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: 0.2s ease; }
+.attempt-review-btn:hover { background: #dbeafe; border-color: #60a5fa; }
+
+.no-more-attempts { margin: 0; }
+
+/* Review detail view */
+.review-detail-view { display: flex; flex-direction: column; gap: 1rem; }
+
+.review-back-btn { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 0.9rem; border: none; background: transparent; color: var(--green); font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: 0.2s ease; margin-bottom: 0.5rem; }
+.review-back-btn:hover { transform: translateX(-2px); }
+
+.review-attempt-info { padding: 1rem; background: #f8fbff; border-radius: 12px; border-left: 4px solid var(--green); }
+.review-info-row { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.9rem; }
+.review-info-row span:first-child { color: #64748b; font-weight: 600; }
+.review-info-row strong { font-weight: 800; }
+.review-info-row .text-green { color: var(--green-deep); }
+.review-info-row .text-red { color: #d71920; }
+
+.review-content-toggle { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+.toggle-option { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; color: #475569; cursor: pointer; }
+.toggle-option input { accent-color: var(--green); cursor: pointer; }
+
+.review-questions-list { display: flex; flex-direction: column; gap: 0.65rem; max-height: 400px; overflow-y: auto; }
+.review-question-item { padding: 0.85rem; background: #f8f9fa; border-radius: 10px; border-left: 3px solid #dbe6f5; }
+.review-q-header { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
+.q-number { min-width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(var(--green-rgb), 0.1); color: var(--green); font-weight: 700; }
+.q-title { flex: 1; color: #475569; font-weight: 600; }
+.q-result { font-weight: 800; color: #d71920; }
+.q-result.correct { color: var(--green-deep); }
+
 @media (max-width: 1024px) {
   .exam-layout { grid-template-columns: 1fr; }
   .exam-sidebar__card { position: static; }
+  .exam-result-layout { grid-template-columns: 1fr; max-height: none; }
+  .exam-result-sidebar { max-height: none; }
 }
 
 /* Dark mode fix with :global() */

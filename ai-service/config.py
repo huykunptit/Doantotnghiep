@@ -17,11 +17,13 @@ class Settings:
     DEFAULT_OPENAI_MODEL: str = "gpt-4o-mini"
     DEFAULT_GEMINI_MODEL: str = "gemini-2.0-flash"
     DEFAULT_OPENROUTER_MODEL: str = "deepseek/deepseek-chat:free"
+    DEFAULT_CLAUDE_MODEL: str = "claude-3-5-haiku-20241022"
 
     # --- Timeouts (seconds) ---
-    OPENAI_TIMEOUT: int = 20
-    GEMINI_TIMEOUT: int = 20
-    OPENROUTER_TIMEOUT: int = 30
+    OPENAI_TIMEOUT: int = 60
+    GEMINI_TIMEOUT: int = 60
+    OPENROUTER_TIMEOUT: int = 60
+    CLAUDE_TIMEOUT: int = 60
 
     # --- Generation defaults ---
     DEFAULT_TEMPERATURE: float = 0.4
@@ -36,6 +38,8 @@ class Settings:
     OPENAI_API_URL: str = "https://api.openai.com/v1/chat/completions"
     GEMINI_API_URL: str = "https://generativelanguage.googleapis.com/v1beta/models"
     OPENROUTER_API_URL: str = "https://openrouter.ai/api/v1/chat/completions"
+    CLAUDE_API_URL: str = "https://api.anthropic.com/v1/messages"
+    CLAUDE_API_VERSION: str = "2023-06-01"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -45,6 +49,7 @@ class Settings:
             "DEFAULT_OPENAI_MODEL",
             "DEFAULT_GEMINI_MODEL",
             "DEFAULT_OPENROUTER_MODEL",
+            "DEFAULT_CLAUDE_MODEL",
         ]:
             env_val = os.getenv(key)
             if env_val:

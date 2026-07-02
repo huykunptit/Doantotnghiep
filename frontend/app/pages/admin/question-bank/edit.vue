@@ -2,6 +2,7 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'admin' })
 
@@ -36,8 +37,7 @@ interface QuestionForm {
 const bank = ref<BankDetail | null>(null)
 const loading = ref(false)
 const saving = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+const toast = useToast()
 const existingAttachments = ref<AttachmentItem[]>([])
 const pendingFiles = ref<File[]>([])
 const uploadingFiles = ref(false)
@@ -136,7 +136,7 @@ async function deleteAttachment(att: AttachmentItem) {
   try {
     await useApi(`/courses/${courseId}/question-banks/${bankId}/questions/${questionId}/attachments/${att.id}`, { method: 'DELETE', headers: authHeaders() })
     existingAttachments.value = existingAttachments.value.filter(a => a.id !== att.id)
-  } catch { errorMessage.value = 'Không thể xóa file đính kèm.' }
+  } catch { toast.error('Không thể xóa file đính kèm.') }
 }
 
 async function fetchData() {
@@ -176,10 +176,10 @@ async function fetchData() {
         }
       }
     } else {
-      errorMessage.value = 'Không tìm thấy câu hỏi trong ngân hàng này.'
+      toast.error('Không tìm thấy câu hỏi trong ngân hàng này.')
     }
   } catch {
-    errorMessage.value = 'Không thể tải dữ liệu câu hỏi.'
+    toast.error('Không thể tải dữ liệu câu hỏi.')
   } finally {
     loading.value = false
   }
@@ -187,11 +187,10 @@ async function fetchData() {
 
 async function save() {
   if (!courseId || !bankId || !questionId || !form.content.trim()) {
-    errorMessage.value = 'Vui lòng nhập nội dung câu hỏi.'
+    toast.error('Vui lòng nhập nội dung câu hỏi.')
     return
   }
   saving.value = true
-  errorMessage.value = ''
   try {
     const body: any = { ...form }
     if (isTrueFalse.value) {
@@ -219,12 +218,12 @@ async function save() {
       }
       uploadingFiles.value = false
     }
-    successMessage.value = 'Đã cập nhật câu hỏi thành công!'
+    toast.success('Đã cập nhật câu hỏi thành công!')
     setTimeout(() => {
       router.push(`/admin/question-bank?courseId=${courseId}&bankId=${bankId}`)
     }, 800)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể cập nhật câu hỏi.'
+    toast.error(error?.data?.message || 'Không thể cập nhật câu hỏi.')
   } finally {
     saving.value = false
     uploadingFiles.value = false
@@ -255,8 +254,7 @@ onMounted(fetchData)
     <div v-if="loading" style="padding: 40px; text-align: center; color: var(--muted);">Đang tải dữ liệu câu hỏi...</div>
 
     <template v-else>
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+
 
       <div class="qf-grid">
         <!-- LEFT: Main content -->

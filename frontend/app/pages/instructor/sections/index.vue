@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useApi } from '~/composables/useApi'
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
+
+const openMenuId = ref<number | null>(null)
+function toggleMenu(id: number) {
+  openMenuId.value = openMenuId.value === id ? null : id
+}
+function closeMenus() {
+  openMenuId.value = null
+}
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -46,92 +55,132 @@ async function load() {
 const totals = computed(() => data.value?.totals || { sections: 0, students: 0, pending_grading: 0 })
 const term = computed(() => data.value?.current_term)
 
-onMounted(load)
+onMounted(() => {
+  load()
+  document.addEventListener('click', closeMenus)
+})
+
+import { onUnmounted } from 'vue'
+onUnmounted(() => document.removeEventListener('click', closeMenus))
 </script>
 
 <template>
-  <section class="space-y-6 p-6">
-    <header class="space-y-1">
-      <p class="text-sm font-semibold text-on-surface-variant">Học vụ · Giảng viên</p>
-      <h1 class="text-2xl font-bold">Lớp học phần & điểm</h1>
-      <p v-if="term" class="text-sm text-muted">Kỳ hiện hành: <strong>{{ term.name }}</strong> ({{ term.code }})</p>
-    </header>
+  <InstructorWorkspaceShell
+    title="Lớp học phần & điểm"
+    description="Quản lý các lớp học phần, sổ điểm và điểm danh trong kỳ hiện hành."
+    :breadcrumb="['Trang chủ', 'Học vụ', 'Lớp học phần']"
+  >
+    <template v-if="term" #actions>
+      <span class="ds-term-badge">
+        <span class="material-symbols-outlined">calendar_today</span>
+        {{ term.name }} ({{ term.code }})
+      </span>
+    </template>
 
-    <div class="grid gap-4 md:grid-cols-3">
-      <article class="dashboard-card stat-card">
-        <p class="stat-label">Lớp đang phụ trách</p>
-        <strong class="stat-value">{{ totals.sections }}</strong>
-      </article>
-      <article class="dashboard-card stat-card">
-        <p class="stat-label">Tổng sinh viên</p>
-        <strong class="stat-value">{{ totals.students }}</strong>
-      </article>
-      <article class="dashboard-card stat-card stat-pending">
-        <p class="stat-label">Chờ chấm điểm</p>
-        <strong class="stat-value">{{ totals.pending_grading }}</strong>
-      </article>
+    <!-- KPI -->
+    <div class="ds-stats mb-0">
+      <div class="ds-stat ds-stat--blue">
+        <div class="ds-stat-icon"><span class="material-symbols-outlined">class</span></div>
+        <p class="ds-stat-label">Lớp đang phụ trách</p>
+        <strong class="ds-stat-value">{{ totals.sections }}</strong>
+        <span class="ds-stat-sub">lớp học phần</span>
+      </div>
+      <div class="ds-stat ds-stat--green">
+        <div class="ds-stat-icon"><span class="material-symbols-outlined">group</span></div>
+        <p class="ds-stat-label">Tổng sinh viên</p>
+        <strong class="ds-stat-value">{{ totals.students }}</strong>
+        <span class="ds-stat-sub">đang học</span>
+      </div>
+      <div class="ds-stat ds-stat--amber">
+        <div class="ds-stat-icon"><span class="material-symbols-outlined">pending_actions</span></div>
+        <p class="ds-stat-label">Chờ chấm điểm</p>
+        <strong class="ds-stat-value">{{ totals.pending_grading }}</strong>
+        <span class="ds-stat-sub">bản ghi</span>
+      </div>
     </div>
 
-    <section class="dashboard-card">
-      <header class="mb-3 flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Danh sách lớp học phần</h2>
+    <div class="dashboard-card crud-panel">
+      <div class="crud-toolbar">
+        <div>
+          <p class="section-kicker">Kỳ hiện hành</p>
+          <h3 class="ds-section-title">Danh sách lớp học phần</h3>
+        </div>
         <button class="crud-secondary-btn" type="button" :disabled="loading" @click="load">
           <span class="material-symbols-outlined">refresh</span>
           <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
         </button>
-      </header>
+      </div>
 
       <div v-if="error" class="crud-alert is-error">{{ error }}</div>
 
-      <table class="crud-table">
-        <thead>
-          <tr>
-            <th>Mã lớp</th>
-            <th>Học phần</th>
-            <th>Khóa</th>
-            <th class="text-center">SV</th>
-            <th class="text-center">Đã chấm</th>
-            <th class="text-center">Chờ chấm</th>
-            <th class="text-right">Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="loading">
-            <td colspan="7" class="crud-empty">Đang tải...</td>
-          </tr>
-          <tr v-else-if="!data?.sections.length">
-            <td colspan="7" class="crud-empty">Bạn chưa được phân lớp nào trong kỳ này.</td>
-          </tr>
-          <tr v-for="row in data?.sections || []" :key="row.section.id">
-            <td><code>{{ row.section.code }}</code></td>
-            <td>
-              <strong>{{ row.section.course?.title || '--' }}</strong>
-              <p class="text-xs text-muted">{{ row.section.term?.name }} · {{ row.section.cohort?.code }}</p>
-            </td>
-            <td>{{ row.section.cohort?.name || '--' }}</td>
-            <td class="text-center">{{ row.enrollments }}</td>
-            <td class="text-center">{{ row.graded }}</td>
-            <td class="text-center">
-              <span :class="row.pending > 0 ? 'badge-warning' : 'badge-ok'">{{ row.pending }}</span>
-            </td>
-            <td class="text-right">
-              <NuxtLink :to="`/instructor/sections/${row.section.id}/grades`" class="crud-primary-btn-sm">
-                <span class="material-symbols-outlined">grading</span>
-                <span>Vào sổ điểm</span>
-              </NuxtLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-  </section>
+      <div class="crud-table-wrap">
+        <table class="crud-table">
+          <thead>
+            <tr>
+              <th>Mã lớp</th>
+              <th>Học phần</th>
+              <th>Khóa</th>
+              <th class="text-center">SV</th>
+              <th class="text-center">Đã chấm</th>
+              <th class="text-center">Chờ chấm</th>
+              <th class="text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="7" class="crud-empty">Đang tải...</td>
+            </tr>
+            <tr v-else-if="!data?.sections.length">
+              <td colspan="7" class="crud-empty">Bạn chưa được phân lớp nào trong kỳ này.</td>
+            </tr>
+            <tr v-for="row in data?.sections || []" :key="row.section.id">
+              <td><code>{{ row.section.code }}</code></td>
+              <td>
+                <strong>{{ row.section.course?.title || '--' }}</strong>
+                <p class="text-xs text-muted">{{ row.section.term?.name }} · {{ row.section.cohort?.code }}</p>
+              </td>
+              <td>{{ row.section.cohort?.name || '--' }}</td>
+              <td class="text-center">{{ row.enrollments }}</td>
+              <td class="text-center">{{ row.graded }}</td>
+              <td class="text-center">
+                <span :class="row.pending > 0 ? 'badge-warning' : 'badge-ok'">{{ row.pending }}</span>
+              </td>
+              <td class="text-right">
+                <div class="action-wrap" @click.stop>
+                  <NuxtLink :to="`/instructor/sections/${row.section.id}/grades`" class="crud-primary-btn-sm">
+                    <span class="material-symbols-outlined">grading</span>
+                    <span>Sổ điểm</span>
+                  </NuxtLink>
+                  <div class="menu-wrap">
+                    <button type="button" class="more-btn" @click="toggleMenu(row.section.id)">
+                      <span class="material-symbols-outlined">more_vert</span>
+                    </button>
+                    <div v-if="openMenuId === row.section.id" class="dropdown-menu">
+                      <NuxtLink :to="`/instructor/sections/${row.section.id}/sessions`" class="menu-item" @click="closeMenus">
+                        <span class="material-symbols-outlined">qr_code_2</span>
+                        Điểm danh QR
+                      </NuxtLink>
+                      <NuxtLink :to="`/instructor/sections/${row.section.id}/attendance-stats`" class="menu-item" @click="closeMenus">
+                        <span class="material-symbols-outlined">bar_chart</span>
+                        Thống kê điểm danh
+                      </NuxtLink>
+                      <NuxtLink :to="`/instructor/sections/${row.section.id}/grade-report`" class="menu-item" @click="closeMenus">
+                        <span class="material-symbols-outlined">assessment</span>
+                        Báo cáo điểm & GPA
+                      </NuxtLink>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </InstructorWorkspaceShell>
 </template>
 
 <style scoped>
-.stat-card { padding: 18px 20px; }
-.stat-label { color: var(--muted); font-size: 0.85rem; margin: 0; }
-.stat-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
-.stat-pending .stat-value { color: #d97706; }
 
 .crud-primary-btn-sm {
   display: inline-flex;
@@ -159,7 +208,62 @@ onMounted(load)
   font-size: 0.85rem;
 }
 
-.text-right { text-align: right; }
-.text-center { text-align: center; }
-.text-muted { color: var(--muted); }
+.action-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.menu-wrap {
+  position: relative;
+}
+
+.more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+.more-btn:hover { background: rgba(0,0,0,0.06); color: var(--on-surface); }
+.more-btn .material-symbols-outlined { font-size: 20px; }
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  min-width: 200px;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--on-surface);
+  text-decoration: none;
+  transition: background 120ms;
+  white-space: nowrap;
+}
+.menu-item:hover { background: rgba(var(--green-rgb), 0.08); color: var(--green-deep); }
+.menu-item .material-symbols-outlined { font-size: 18px; color: var(--muted); }
+.menu-item:hover .material-symbols-outlined { color: var(--green-deep); }
 </style>

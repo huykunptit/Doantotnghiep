@@ -1,6 +1,22 @@
 <script setup lang="ts">
 import { LESSON_TYPE_LABELS } from '~/constants/lesson-types'
-import { ChevronUp, ChevronDown, Clock, RefreshCw, CircleCheckBig, Pencil, CloudUpload, FileQuestion, Trash2 } from 'lucide-vue-next'
+import { 
+  ChevronUp, 
+  ChevronDown, 
+  Clock, 
+  RefreshCw, 
+  CircleCheckBig, 
+  Pencil, 
+  CloudUpload, 
+  FileQuestion, 
+  Trash2, 
+  ClipboardList,
+  Film, 
+  BookOpen, 
+  Package, 
+  Cpu, 
+  MonitorPlay
+} from 'lucide-vue-next'
 
 const props = defineProps<{
   lesson: any
@@ -16,6 +32,7 @@ const emit = defineEmits<{
   uploadVideo: [lesson: any]
   moveUp: [lesson: any]
   moveDown: [lesson: any]
+  viewSubmissions: [lesson: any]
 }>()
 
 function formatDuration(seconds: number) {
@@ -25,18 +42,18 @@ function formatDuration(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-function lessonIcon(lesson: any) {
+function getLessonIconComponent(lesson: any) {
   const type = lesson.type || 'video'
-  const map: Record<string, string> = {
-    video: lesson.video_url || lesson.video_status === 'ready' ? 'play-circle' : 'video',
-    document: 'file-text',
-    assignment: 'clipboard-list',
-    virtual_class: 'video',
-    scorm: 'layers',
-    h5p: 'puzzle',
-    quiz: 'file-question',
+  const map: Record<string, any> = {
+    video: Film,
+    document: BookOpen,
+    assignment: ClipboardList,
+    virtual_class: MonitorPlay,
+    scorm: Package,
+    h5p: Cpu,
+    quiz: FileQuestion,
   }
-  return map[type] || 'file'
+  return map[type] || BookOpen
 }
 
 function lessonChip(lesson: any) {
@@ -44,117 +61,344 @@ function lessonChip(lesson: any) {
 }
 
 function lessonSummary(lesson: any) {
-  if (lesson.type === 'video') return lesson.video_url ? 'Đã gắn video hoặc link video' : 'Chưa có nguồn video'
-  if (lesson.type === 'document') return lesson.attachments?.length ? `${lesson.attachments.length} tài liệu đính kèm` : 'Chưa có tài liệu'
-  if (lesson.type === 'assignment') return lesson.assignment?.instructions ? 'Đã cấu hình bài tập về nhà' : 'Chưa cấu hình bài tập'
-  if (lesson.type === 'virtual_class') return lesson.virtual_class?.join_url ? 'Đã gắn link lớp trực tuyến' : 'Chưa gắn link họp'
-  if (lesson.type === 'scorm') return lesson.scorm_package?.entry_url ? 'Đã tải package SCORM' : 'Chưa tải package SCORM'
-  if (lesson.type === 'h5p') return lesson.scorm_package?.entry_url ? 'Đã gắn embed H5P' : 'Chưa gắn link H5P'
-  if (lesson.type === 'quiz') return 'Quản lý câu hỏi ở trang quiz của bài học'
-  return 'Chưa cấu hình nội dung'
+  if (lesson.type === 'video') return lesson.video_url || lesson.video_status === 'ready' ? 'Video bài giảng đã sẵn sàng' : 'Chưa có nguồn video tải lên'
+  if (lesson.type === 'document') return lesson.attachments?.length ? `${lesson.attachments.length} tài liệu đính kèm` : 'Không có tài liệu đính kèm'
+  if (lesson.type === 'assignment') return lesson.assignment?.instructions ? 'Đã cấu hình bài tập thực hành' : 'Chưa cấu hình yêu cầu bài tập'
+  if (lesson.type === 'virtual_class') return lesson.virtual_class?.join_url ? 'Đã liên kết phòng trực tuyến' : 'Chưa gắn link họp trực tuyến'
+  if (lesson.type === 'scorm') return lesson.scorm_package?.entry_url ? 'Đã tích hợp gói SCORM' : 'Chưa tải lên gói SCORM'
+  if (lesson.type === 'h5p') return lesson.scorm_package?.entry_url ? 'Đã tích hợp nội dung H5P' : 'Chưa liên kết nội dung H5P'
+  if (lesson.type === 'quiz') return 'Câu hỏi kiểm tra trắc nghiệm đánh giá'
+  return 'Chưa cấu hình nội dung chi tiết'
 }
 
 function typeIconStyle(lesson: any) {
   const type = lesson.type || 'video'
   const map: Record<string, string> = {
-    assignment: 'background:rgba(217,119,6,0.12);color:#b45309;',
-    virtual_class: 'background:rgba(14,165,233,0.12);color:#0284c7;',
-    document: 'background:rgba(124,58,237,0.12);color:#7c3aed;',
-    scorm: 'background:rgba(234,88,12,0.12);color:#ea580c;',
-    h5p: 'background:rgba(236,72,153,0.12);color:#db2777;',
-    quiz: 'background:rgba(124,58,237,0.12);color:#7c3aed;',
+    assignment: 'background: rgba(245, 158, 11, 0.08); color: #D97706; border-color: rgba(245, 158, 11, 0.15);',
+    virtual_class: 'background: rgba(14, 165, 233, 0.08); color: #0EA5E9; border-color: rgba(14, 165, 233, 0.15);',
+    document: 'background: rgba(139, 92, 246, 0.08); color: #8B5CF6; border-color: rgba(139, 92, 246, 0.15);',
+    scorm: 'background: rgba(234, 88, 12, 0.08); color: #EA580C; border-color: rgba(234, 88, 12, 0.15);',
+    h5p: 'background: rgba(236, 72, 153, 0.08); color: #EC4899; border-color: rgba(236, 72, 153, 0.15);',
+    quiz: 'background: rgba(139, 92, 246, 0.08); color: #8B5CF6; border-color: rgba(139, 92, 246, 0.15);',
   }
   if (type === 'video') {
     return lesson.video_url || lesson.video_status === 'ready'
-      ? 'background:rgba(var(--green-rgb),0.12);color:var(--green-deep);'
-      : 'background:rgba(var(--green-rgb),0.06);color:var(--green-deep);'
+      ? 'background: rgba(16, 185, 129, 0.08); color: #10B981; border-color: rgba(16, 185, 129, 0.15);'
+      : 'background: rgba(107, 114, 128, 0.08); color: #6B7280; border-color: rgba(107, 114, 128, 0.15);'
   }
-  return map[type] || 'background:rgba(var(--green-rgb),0.06);color:var(--green-deep);'
+  return map[type] || 'background: rgba(16, 185, 129, 0.08); color: #10B981; border-color: rgba(16, 185, 129, 0.15);'
 }
 </script>
 
 <template>
-  <div class="curriculum-lesson">
-    <!-- Order buttons -->
-    <div style="display:flex; flex-direction:column; gap:3px; flex-shrink:0;">
-      <button class="curriculum-order-btn" :disabled="isFirst" @click="emit('moveUp', lesson)">
-        <ChevronUp :size="14" :stroke-width="1.75" />
+  <div class="studio-lesson-row">
+    <!-- Reorder handle controls -->
+    <div class="reorder-controls">
+      <button class="order-arrow-btn" :disabled="isFirst" @click="emit('moveUp', lesson)" title="Di chuyển lên">
+        <ChevronUp :size="13" />
       </button>
-      <button class="curriculum-order-btn" :disabled="isLast" @click="emit('moveDown', lesson)">
-        <ChevronDown :size="14" :stroke-width="1.75" />
+      <button class="order-arrow-btn" :disabled="isLast" @click="emit('moveDown', lesson)" title="Di chuyển xuống">
+        <ChevronDown :size="13" />
       </button>
     </div>
 
-    <!-- Type icon -->
-    <div class="curriculum-type-icon" :style="typeIconStyle(lesson)">
-      <SylvaIcon :name="lessonIcon(lesson)" :size="20" />
+    <!-- Visual Type Icon -->
+    <div class="lesson-type-icon-box" :style="typeIconStyle(lesson)">
+      <component :is="getLessonIconComponent(lesson)" :size="18" />
     </div>
 
-    <!-- Info -->
-    <div style="min-width:0; flex:1;">
-      <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px; flex-wrap:wrap;">
-        <strong style="font-size:0.9rem; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;">
-          {{ lesson.title }}
-        </strong>
-        <span
-          v-if="lesson.is_preview"
-          style="font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; padding:2px 6px; border-radius:6px; background:rgba(var(--green-rgb),0.12); color:var(--green-deep); flex-shrink:0;"
-        >
-          PREVIEW
-        </span>
-        <span style="font-size:0.62rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; padding:2px 6px; border-radius:6px; background:rgba(17,17,17,0.06); color:var(--muted); flex-shrink:0;">
-          {{ lessonChip(lesson) }}
-        </span>
+    <!-- Main Content Info -->
+    <div class="lesson-main-info">
+      <div class="lesson-title-badges">
+        <strong class="lesson-title">{{ lesson.title }}</strong>
+        <span v-if="lesson.is_preview" class="preview-badge">PREVIEW</span>
+        <span class="type-badge">{{ lessonChip(lesson) }}</span>
       </div>
-      <p style="margin:0 0 4px; font-size:0.77rem; color:var(--muted);">{{ lessonSummary(lesson) }}</p>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); display:flex; align-items:center; gap:3px;">
-          <Clock :size="13" :stroke-width="1.75" />
+      <p class="lesson-meta-desc">{{ lessonSummary(lesson) }}</p>
+      
+      <div class="lesson-meta-footer">
+        <span class="meta-tag">
+          <Clock :size="12" />
           {{ formatDuration(lesson.duration) }}
         </span>
-        <span
-          v-if="lesson.video_status === 'processing'"
-          style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#b45309; display:flex; align-items:center; gap:3px;"
-        >
-          <RefreshCw :size="13" :stroke-width="1.75" />
-          Đang xử lý
+        <span v-if="lesson.video_status === 'processing'" class="meta-tag is-processing">
+          <RefreshCw :size="12" class="spin-icon" />
+          Đang xử lý video...
         </span>
-        <span
-          v-else-if="lesson.video_status === 'ready' || lesson.video_url"
-          style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--green-deep); display:flex; align-items:center; gap:3px;"
-        >
-          <CircleCheckBig :size="13" :stroke-width="1.75" />
+        <span v-else-if="lesson.video_status === 'ready' || lesson.video_url" class="meta-tag is-success">
+          <CircleCheckBig :size="12" />
           Sẵn sàng
         </span>
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="crud-actions" style="flex-shrink:0; margin-left:auto;">
-      <button class="action-btn is-edit" type="button" @click="emit('edit', lesson)">
-        <Pencil :size="15" :stroke-width="1.75" style="margin-right:3px;" />
-        Sửa
+    <!-- Control Actions Panel -->
+    <div class="lesson-actions-panel">
+      <!-- Edit button -->
+      <button class="control-btn btn-edit" type="button" @click="emit('edit', lesson)" title="Chỉnh sửa bài giảng">
+        <Pencil :size="13" />
+        <span>Sửa</span>
       </button>
-      <button
-        v-if="lesson.type === 'video'"
-        class="action-btn is-view"
-        type="button"
+
+      <!-- Video upload trigger (only for video lesson type) -->
+      <button 
+        v-if="lesson.type === 'video'" 
+        class="control-btn btn-video" 
+        type="button" 
         @click="emit('uploadVideo', lesson)"
+        title="Tải lên video bài giảng"
       >
-        <CloudUpload :size="15" :stroke-width="1.75" style="margin-right:3px;" />
-        Video
+        <CloudUpload :size="13" />
+        <span>Video</span>
       </button>
-      <NuxtLink
-        :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/quiz`"
-        class="action-btn is-view"
-        title="Quản lý Quiz"
-        style="display:inline-flex; align-items:center;"
+
+      <!-- Submissions manager (only for assignments) -->
+      <button 
+        v-if="lesson.type === 'assignment'" 
+        class="control-btn btn-submissions" 
+        type="button" 
+        @click="emit('viewSubmissions', lesson)"
+        title="Xem danh sách học viên nộp bài"
       >
-        <FileQuestion :size="15" :stroke-width="1.75" />
+        <ClipboardList :size="13" />
+        <span>Bài nộp</span>
+      </button>
+
+      <!-- Quiz manager linkage -->
+      <NuxtLink 
+        :to="`/instructor/courses/${courseId}/lessons/${lesson.id}/quiz`" 
+        class="control-btn btn-quiz" 
+        title="Thiết lập Quiz trắc nghiệm"
+      >
+        <FileQuestion :size="13" />
+        <span>Quiz</span>
       </NuxtLink>
-      <button class="action-btn is-delete" type="button" @click="emit('delete', lesson)">
-        <Trash2 :size="15" :stroke-width="1.75" />
+
+      <!-- Delete button -->
+      <button class="control-btn btn-delete" type="button" @click="emit('delete', lesson)" title="Xóa bài học">
+        <Trash2 :size="13" />
       </button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.studio-lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  transition: all 200ms ease;
+}
+
+.studio-lesson-row:hover {
+  border-color: var(--green);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(2px);
+}
+
+/* Reorder controls */
+.reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.order-arrow-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.order-arrow-btn:hover:not(:disabled) {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.order-arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Visual Type Icon */
+.lesson-type-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+/* Info styling */
+.lesson-main-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lesson-title-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lesson-title {
+  font-size: 0.9rem;
+  font-weight: 750;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.preview-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.type-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.lesson-meta-desc {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.lesson-meta-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.meta-tag svg {
+  color: var(--muted);
+}
+
+.meta-tag.is-processing {
+  color: #D97706;
+}
+
+.meta-tag.is-success {
+  color: #10B981;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Actions Panel */
+.lesson-actions-panel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.control-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms;
+  text-decoration: none;
+}
+
+.control-btn:hover {
+  background: var(--surface-strong);
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.btn-edit:hover {
+  color: #0EA5E9;
+  background: rgba(14, 165, 233, 0.05);
+  border-color: rgba(14, 165, 233, 0.25);
+}
+
+.btn-video:hover {
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.btn-submissions:hover {
+  color: #D97706;
+  background: rgba(217, 119, 6, 0.05);
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+.btn-quiz:hover {
+  color: #8B5CF6;
+  background: rgba(139, 92, 246, 0.05);
+  border-color: rgba(139, 92, 246, 0.25);
+}
+
+.btn-delete {
+  padding: 0 8px;
+}
+
+.btn-delete:hover {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+</style>

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import RichTextContent from '~/components/dashboard/RichTextContent.vue'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'admin' })
 
@@ -19,8 +20,7 @@ interface BankDetail { id: number; name: string; description?: string | null; qu
 
 const bank = ref<BankDetail | null>(null)
 const loading = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+const toast = useToast()
 const confirmOpen = ref(false)
 const deletingQuestion = ref<QuestionItem | null>(null)
 
@@ -58,7 +58,7 @@ async function fetchBank() {
   try {
     bank.value = await useApi<BankDetail>(`/courses/${courseId}/question-banks/${bankId}`, { headers: authHeaders() })
   } catch {
-    errorMessage.value = 'Không thể tải thông tin ngân hàng câu hỏi.'
+    toast.error('Không thể tải thông tin ngân hàng câu hỏi.')
   } finally {
     loading.value = false
   }
@@ -76,12 +76,12 @@ async function deleteQuestion() {
   if (!deletingQuestion.value) return
   try {
     await useApi(`/courses/${courseId}/question-banks/${bankId}/questions/${deletingQuestion.value.id}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Đã xóa câu hỏi.'
+    toast.success('Đã xóa câu hỏi.')
     confirmOpen.value = false
     deletingQuestion.value = null
     await fetchBank()
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể xóa câu hỏi.'
+    toast.error(error?.data?.message || 'Không thể xóa câu hỏi.')
   }
 }
 
@@ -110,8 +110,7 @@ onMounted(fetchBank)
     <div v-if="loading" style="padding: 40px; text-align: center; color: var(--muted);">Đang tải dữ liệu...</div>
 
     <template v-else>
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+
 
       <section class="dashboard-card crud-panel">
         <div class="crud-toolbar">

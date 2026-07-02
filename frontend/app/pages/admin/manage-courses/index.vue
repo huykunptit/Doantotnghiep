@@ -3,6 +3,8 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import { useExport } from '~/composables/useExport'
+import { useToast } from '~/composables/useToast'
+import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học...' })
 interface CategoryItem { id: number; name: string; }
@@ -11,9 +13,11 @@ interface CourseListResponse { data: AdminCourse[]; current_page: number; last_p
 
 const user = useAuthUserCookie(); const token = useAuthTokenCookie(); if (!user.value || !token.value) await navigateTo('/login', { replace: true })
 
+const toast = useToast()
+
 const search = ref(''); const status = ref(''); const loading = ref(false); const saving = ref(false); const courses = ref<AdminCourse[]>([])
 const categories = ref<CategoryItem[]>([])
-const currentPage = ref(1); const lastPage = ref(1); const totalCourses = ref(0); const errorMessage = ref(''); const successMessage = ref('')
+const currentPage = ref(1); const lastPage = ref(1); const totalCourses = ref(0)
 
 const modalOpen = ref(false); const confirmOpen = ref(false); const selectedCourse = ref<AdminCourse | null>(null)
 const defaultForm = { title: '', description: '', price: 0, category_id: '' }
@@ -57,7 +61,7 @@ async function fetchCourses(page = 1) {
     const query = new URLSearchParams({ page: String(page), per_page: '12' }); if (search.value.trim()) query.set('search', search.value.trim()); if (status.value) query.set('status', status.value)
     const response = await useApi<CourseListResponse>(`/admin/courses?${query.toString()}`, { headers: authHeaders() })
     courses.value = response.data; currentPage.value = response.current_page; lastPage.value = response.last_page; totalCourses.value = response.total
-  } catch (error: any) { errorMessage.value = error?.data?.message || 'Không thể tải danh sách khóa học.' } finally { loading.value = false }
+  } catch (error: any) { toast.error(error?.data?.message || 'Không thể tải danh sách khóa học.') } finally { loading.value = false }
 }
 
 function openCreateModal() {
@@ -71,11 +75,11 @@ async function createCourse() {
   try {
     const body = { title: form.title, description: form.description, price: form.price, category_id: form.category_id ? Number(form.category_id) : null }
     await useApi('/courses', { method: 'POST', headers: authHeaders(), body })
-    successMessage.value = 'Đã tạo khóa học thành công.'
+    toast.success('Đã tạo khóa học thành công.')
     modalOpen.value = false
     await fetchCourses(1)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tạo khóa học.'
+    toast.error(error?.data?.message || 'Không thể tạo khóa học.')
   } finally {
     saving.value = false
   }
@@ -85,11 +89,11 @@ async function deleteCourse() {
   if (!selectedCourse.value) return
   try {
     await useApi(`/courses/${selectedCourse.value.id}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Đã xóa khóa học.'
+    toast.success('Đã xóa khóa học.')
     confirmOpen.value = false
     await fetchCourses(currentPage.value)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể xóa khóa học.'
+    toast.error(error?.data?.message || 'Không thể xóa khóa học.')
   }
 }
 
@@ -147,9 +151,6 @@ onMounted(() => {
           <button class="crud-primary-btn" type="button" @click="openCreateModal">Tạo khóa học</button>
         </div>
       </div>
-      
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
       
       <div class="crud-table-wrap">
         <table class="crud-table">
@@ -230,7 +231,7 @@ onMounted(() => {
           </div>
           <div class="crud-form-grid">
             <label class="crud-field crud-field-full"><span>Tên khóa học</span><input v-model="form.title" type="text" placeholder="Nhập tên khóa học"></label>
-            <label class="crud-field crud-field-full"><span>Mô tả</span><textarea v-model="form.description" class="crud-textarea" placeholder="Mô tả khóa học..."></textarea></label>
+            <div class="crud-field crud-field-full"><span>Mô tả</span><RichTextEditor v-model="form.description" placeholder="Mô tả khóa học..." /></div>
             <label class="crud-field"><span>Giá tiền (VNĐ)</span><input v-model="form.price" type="number" min="0"></label>
             <label class="crud-field">
               <span>Danh mục</span>

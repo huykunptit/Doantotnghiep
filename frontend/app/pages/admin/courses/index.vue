@@ -5,6 +5,7 @@ import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAdminUpload } from '~/composables/useAdminUpload'
 import { useExport } from '~/composables/useExport'
+import { useToast } from '~/composables/useToast'
 
 
 definePageMeta({ layout: 'admin' })
@@ -46,6 +47,7 @@ if (!user.value || !token.value) await navigateTo('/login', { replace: true })
 
 const { uploadImage } = useAdminUpload()
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+const toast = useToast()
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -60,8 +62,6 @@ const lastPage = ref(1)
 const totalCourses = ref(0)
 const perPage = ref(10)
 
-const errorMessage = ref('')
-const successMessage = ref('')
 
 // Modal visibility
 const approveOpen = ref(false)
@@ -136,7 +136,7 @@ async function fetchCourses(page = 1) {
     lastPage.value = response.last_page
     totalCourses.value = response.total
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải danh sách khóa học.'
+    toast.error(error?.data?.message || 'Không thể tải danh sách khóa học.')
   } finally {
     loading.value = false
   }
@@ -155,11 +155,11 @@ async function approveCourse() {
       method: 'PUT',
       headers: authHeaders(),
     })
-    successMessage.value = `Đã phê duyệt khóa học "${selectedCourse.value.title}".`
+    toast.success(`Đã phê duyệt khóa học "${selectedCourse.value.title}".`)
     approveOpen.value = false
     await fetchCourses(currentPage.value)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể phê duyệt khóa học.'
+    toast.error(error?.data?.message || 'Không thể phê duyệt khóa học.')
   }
 }
 
@@ -171,12 +171,12 @@ async function rejectCourse() {
       headers: authHeaders(),
       body: { reject_reason: rejectForm.reason },
     })
-    successMessage.value = `Đã từ chối khóa học "${selectedCourse.value.title}".`
+    toast.success(`Đã từ chối khóa học "${selectedCourse.value.title}".`)
     rejectOpen.value = false
     rejectForm.reason = ''
     await fetchCourses(currentPage.value)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể từ chối khóa học.'
+    toast.error(error?.data?.message || 'Không thể từ chối khóa học.')
   }
 }
 
@@ -206,13 +206,13 @@ async function createCourse() {
         thumbnail: createForm.thumbnail || null,
       },
     })
-    successMessage.value = 'Đã tạo khóa học mới ở trạng thái bản nháp.'
+    toast.success('Đã tạo khóa học mới ở trạng thái bản nháp.')
     createOpen.value = false
     Object.assign(createForm, { title: '', description: '', price: 0, category_id: '', thumbnail: '' })
     thumbnailFile.value = null
     await fetchCourses(1)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tạo khóa học.'
+    toast.error(error?.data?.message || 'Không thể tạo khóa học.')
   } finally {
     createSaving.value = false
   }
@@ -304,9 +304,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Alerts -->
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
 
       <!-- Table -->
       <div class="crud-table-wrap">

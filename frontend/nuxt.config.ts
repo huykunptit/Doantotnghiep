@@ -40,4 +40,9 @@ export default defineNuxtConfig({
       ],
     },
   },
+  vite: {
+    server: {
+      allowedHosts: ['maternity-craftwork-chess.ngrok-free.dev']
+    }
+  }
 })

@@ -1,7 +1,7 @@
 """
 AI Provider Abstraction Layer.
 
-Hỗ trợ 3 provider: OpenAI (ChatGPT), Google Gemini, OpenRouter.
+Hỗ trợ 4 provider: OpenAI (ChatGPT), Google Gemini, OpenRouter, Anthropic Claude.
 Sử dụng httpx async cho non-blocking I/O.
 """
 
@@ -35,7 +35,7 @@ async def call_provider(
     Gọi AI provider và trả về (reply_text, token_usage).
 
     Args:
-        provider: Tên provider ("chatgpt", "gemini", "openrouter")
+        provider: Tên provider ("chatgpt", "gemini", "openrouter", "claude")
         api_key: API key
         messages: Danh sách messages [{"role": "system"|"user", "content": "..."}]
         model: Tên model (nếu None sẽ dùng default)
@@ -54,6 +54,8 @@ async def call_provider(
             return await _call_gemini(api_key, messages, model, temp)
         if provider == "openrouter":
             return await _call_openrouter(api_key, messages, model, temp)
+        if provider == "claude":
+            return await _call_claude(api_key, messages, model, temp)
         raise HTTPException(
             status_code=400,
             detail=f"Provider không hỗ trợ: {provider}",
@@ -212,3 +214,64 @@ async def _call_openrouter(
         "total": usage.get("total_tokens", 0),
     }
     return reply, tokens
+
+
+# =============================================================================
+# Anthropic Claude
+# =============================================================================
+
+
+async def _call_claude(
+    api_key: str,
+    messages: list[dict[str, str]],
+    model: str | None,
+    temperature: float,
+) -> tuple[str | None, TokenUsage]:
+    """Gọi Anthropic Claude Messages API."""
+    system_text = ""
+    claude_messages: list[dict[str, str]] = []
+    for msg in messages:
+        if msg["role"] == "system":
+            system_text += msg["content"] + "\n"
+        else:
+            claude_messages.append({"role": msg["role"], "content": msg["content"]})
+
+    body: dict = {
+        "model": model or settings.DEFAULT_CLAUDE_MODEL,
+        "max_tokens": 2048,
+        "temperature": temperature,
+        "messages": claude_messages,
+    }
+    if system_text.strip():
+        body["system"] = system_text.strip()
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            settings.CLAUDE_API_URL,
+            json=body,
+            headers={
+                "Content-Type": "application/json",
+                "x-api-key": api_key,
+                "anthropic-version": settings.CLAUDE_API_VERSION,
+            },
+            timeout=settings.CLAUDE_TIMEOUT,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    content_blocks = data.get("content") or []
+    reply = "\n".join(
+        block.get("text", "").strip()
+        for block in content_blocks
+        if block.get("type") == "text"
+    ).strip()
+
+    usage = data.get("usage", {})
+    prompt_tokens = usage.get("input_tokens", 0)
+    completion_tokens = usage.get("output_tokens", 0)
+    tokens: TokenUsage = {
+        "prompt": prompt_tokens,
+        "completion": completion_tokens,
+        "total": prompt_tokens + completion_tokens,
+    }
+    return reply or None, tokens

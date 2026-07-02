@@ -42,5 +42,45 @@ final studentTranscriptProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef StudentTranscriptRef = AutoDisposeFutureProviderRef<TranscriptModel>;
+String _$studentLearningPathHash() =>
+    r'6f2623477d0be3b1e28bbcc79c275efdd6c6cdc3';
+
+/// See also [studentLearningPath].
+@ProviderFor(studentLearningPath)
+final studentLearningPathProvider =
+    AutoDisposeFutureProvider<LearningPathModel>.internal(
+      studentLearningPath,
+      name: r'studentLearningPathProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$studentLearningPathHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StudentLearningPathRef =
+    AutoDisposeFutureProviderRef<LearningPathModel>;
+String _$studentAttendanceHistoryHash() =>
+    r'adaae1c52cea4a764cbe2ffb682ff7ba0d5441f2';
+
+/// See also [studentAttendanceHistory].
+@ProviderFor(studentAttendanceHistory)
+final studentAttendanceHistoryProvider =
+    AutoDisposeFutureProvider<List<AttendanceHistoryItemModel>>.internal(
+      studentAttendanceHistory,
+      name: r'studentAttendanceHistoryProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$studentAttendanceHistoryHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StudentAttendanceHistoryRef =
+    AutoDisposeFutureProviderRef<List<AttendanceHistoryItemModel>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

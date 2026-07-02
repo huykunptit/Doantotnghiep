@@ -238,8 +238,8 @@ onMounted(fetchDashboard)
     :breadcrumb="['Admin', 'Quản lý AI']"
   >
     <!-- Alert -->
-    <div v-if="error"   class="ai-alert is-error"   >{{ error }}</div>
-    <div v-if="success" class="ai-alert is-success"  >{{ success }}</div>
+    <div v-if="error"   class="crud-alert is-error"   >{{ error }}</div>
+    <div v-if="success" class="crud-alert is-success"  >{{ success }}</div>
 
     <!-- Stats -->
     <div class="ai-stats-grid">
@@ -493,16 +493,6 @@ onMounted(fetchDashboard)
 </template>
 
 <style scoped>
-.ai-alert {
-  padding: 12px 16px;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  font-size: 0.88rem;
-  font-weight: 500;
-}
-.ai-alert.is-error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.ai-alert.is-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-
 /* Stats */
 .ai-stats-grid {
   display: grid;

@@ -2,6 +2,7 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'admin' })
 
@@ -26,8 +27,7 @@ interface QuestionForm {
 const bank = ref<BankDetail | null>(null)
 const loading = ref(false)
 const saving = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+const toast = useToast()
 
 const questionTypes = [
   { value: 'single_choice', label: 'Trắc nghiệm 1 đáp án', icon: '○' },
@@ -127,7 +127,7 @@ async function fetchBank() {
   try {
     bank.value = await useApi<BankDetail>(`/courses/${courseId}/question-banks/${bankId}`, { headers: authHeaders() })
   } catch {
-    errorMessage.value = 'Không thể tải thông tin ngân hàng câu hỏi.'
+    toast.error('Không thể tải thông tin ngân hàng câu hỏi.')
   } finally {
     loading.value = false
   }
@@ -135,11 +135,10 @@ async function fetchBank() {
 
 async function save() {
   if (!courseId || !bankId || !form.content.trim()) {
-    errorMessage.value = 'Vui lòng nhập nội dung câu hỏi.'
+    toast.error('Vui lòng nhập nội dung câu hỏi.')
     return
   }
   saving.value = true
-  errorMessage.value = ''
   try {
     const body: any = { ...form }
     if (isTrueFalse.value) {
@@ -171,12 +170,12 @@ async function save() {
       uploadingFiles.value = false
     }
 
-    successMessage.value = 'Đã tạo câu hỏi mới thành công!'
+    toast.success('Đã tạo câu hỏi mới thành công!')
     setTimeout(() => {
       router.push(`/admin/question-bank?courseId=${courseId}&bankId=${bankId}`)
     }, 800)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tạo câu hỏi.'
+    toast.error(error?.data?.message || 'Không thể tạo câu hỏi.')
   } finally {
     saving.value = false
     uploadingFiles.value = false
@@ -203,8 +202,7 @@ onMounted(fetchBank)
       </div>
     </div>
 
-    <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-    <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+
 
     <div class="qf-grid">
       <!-- LEFT: Main content -->

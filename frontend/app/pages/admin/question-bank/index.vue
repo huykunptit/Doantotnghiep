@@ -5,6 +5,7 @@ import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import RichTextContent from '~/components/dashboard/RichTextContent.vue'
 import SearchableCourseSelect from '~/components/dashboard/SearchableCourseSelect.vue'
 import { useExport } from '~/composables/useExport'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học để quản lý ngân hàng câu hỏi...' })
 interface CourseItem { id: number; title: string; thumbnail?: string | null; category?: { name: string } | null }
@@ -18,9 +19,7 @@ const banks = ref<BankItem[]>([])
 const selectedCourseId = ref<number | null>(null)
 const loadingCourses = ref(false)
 const loadingBanks = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
-
+const toast = useToast()
 // Create bank modal
 const createOpen = ref(false)
 const bankName = ref('')
@@ -43,7 +42,7 @@ async function fetchCourses() {
       await fetchBanks()
     }
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải danh sách khóa học.'
+    toast.error(error?.data?.message || 'Không thể tải danh sách khóa học.')
   } finally {
     loadingCourses.value = false
   }
@@ -56,7 +55,7 @@ async function fetchBanks() {
     const response = await useApi<{ banks: BankItem[] }>(`/courses/${selectedCourseId.value}/question-banks`, { headers: authHeaders() })
     banks.value = response.banks || []
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải ngân hàng câu hỏi.'
+    toast.error(error?.data?.message || 'Không thể tải ngân hàng câu hỏi.')
   } finally {
     loadingBanks.value = false
   }
@@ -72,10 +71,10 @@ async function createBank() {
     bankName.value = ''
     bankDescription.value = ''
     createOpen.value = false
-    successMessage.value = 'Đã tạo ngân hàng câu hỏi.'
+    toast.success('Đã tạo ngân hàng câu hỏi.')
     await fetchBanks()
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tạo ngân hàng câu hỏi.'
+    toast.error(error?.data?.message || 'Không thể tạo ngân hàng câu hỏi.')
   }
 }
 
@@ -83,12 +82,12 @@ async function deleteBank() {
   if (!selectedCourseId.value || !selectedBank.value) return
   try {
     await useApi(`/courses/${selectedCourseId.value}/question-banks/${selectedBank.value.id}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Đã xóa ngân hàng câu hỏi.'
+    toast.success('Đã xóa ngân hàng câu hỏi.')
     confirmOpen.value = false
     selectedBank.value = null
     await fetchBanks()
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể xóa ngân hàng câu hỏi.'
+    toast.error(error?.data?.message || 'Không thể xóa ngân hàng câu hỏi.')
   }
 }
 
@@ -150,8 +149,7 @@ onMounted(fetchCourses)
           <button class="crud-primary-btn" type="button" @click="createOpen = true">+ Thêm mới</button>
         </div>
       </div>
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+
       <div class="crud-table-wrap">
         <table class="crud-table">
           <thead>

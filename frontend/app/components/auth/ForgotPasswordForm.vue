@@ -78,7 +78,7 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.fpf { display: flex; flex-direction: column; gap: 18px; }
+.fpf { display: flex; flex-direction: column; gap: 12px; }
 
 /* ── Alert ── */
 .fpf-alert {
@@ -89,8 +89,8 @@ async function handleSubmit() {
 }
 
 /* ── Form ── */
-.fpf-form { display: flex; flex-direction: column; gap: 14px; }
-.fpf-field { display: flex; flex-direction: column; gap: 6px; }
+.fpf-form { display: flex; flex-direction: column; gap: 10px; }
+.fpf-field { display: flex; flex-direction: column; gap: 4px; }
 .fpf-label { font-size: 0.875rem; font-weight: 600; color: var(--text); }
 
 .fpf-input-wrap { position: relative; }

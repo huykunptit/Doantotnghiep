@@ -33,7 +33,13 @@ class LessonController extends Controller
         $isEnrolled = $user && Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
-        $lessons = $course->lessons()->orderBy('order')->get();
+        $lessons = $course->lessons()->orderBy('order');
+
+        if ($request->boolean('include_attachments')) {
+            $lessons->with('attachments');
+        }
+
+        $lessons = $lessons->get();
 
         // Public visitors: trả đủ meta nhưng ẩn video_url, đánh dấu locked
         if (!$isOwner && !$isEnrolled) {
@@ -124,6 +130,20 @@ class LessonController extends Controller
             $attachment->url = $this->mediaService->getUrl($attachment->file_path);
             return $attachment;
         });
+
+        // Resolve SCORM entry_url: MinIO keys → /minio/<bucket>/<key>, relative local → full URL.
+        if ($lesson->scormPackage && $lesson->scormPackage->entry_url) {
+            $url = $lesson->scormPackage->entry_url;
+            if (!str_starts_with($url, 'http') && !str_starts_with($url, '/minio/')) {
+                // Legacy local path — resolve via public storage URL
+                if (str_starts_with($url, 'scorm/')) {
+                    $bucket = config('filesystems.disks.minio.bucket', 'lms-videos');
+                    $lesson->scormPackage->entry_url = '/minio/' . $bucket . '/' . $url;
+                } else {
+                    $lesson->scormPackage->entry_url = \Illuminate\Support\Facades\Storage::disk('public')->url($url);
+                }
+            }
+        }
 
         return response()->json($lesson);
     }

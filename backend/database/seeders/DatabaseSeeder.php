@@ -138,38 +138,103 @@ class DatabaseSeeder extends Seeder
 
         // Ảnh bìa theo từng lĩnh vực: core + 3 extension (thực chiến / chuyên sâu / dự án)
         $thumbMap = [
-            'lap-trinh-cntt' => [
-                'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1200&q=80', // code editor
-                'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80', // laptop code
-                'https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=1200&q=80', // web design screen
-                'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80', // dev workspace
-            ],
-            'thiet-ke' => [
-                'https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1200&q=80', // design tablet
-                'https://images.unsplash.com/photo-1541462608143-67571c6738dd?auto=format&fit=crop&w=1200&q=80', // graphic design
-                'https://images.unsplash.com/photo-1558655146-364adaf1fcc9?auto=format&fit=crop&w=1200&q=80', // design tools
-                'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&w=1200&q=80', // UI mockup
-            ],
-            'kinh-doanh' => [
-                'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80', // business charts
-                'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80', // team marketing
-                'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80', // business meeting
-                'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80', // data analytics
-            ],
-            'ngoai-ngu' => [
-                'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=1200&q=80', // language study
-                'https://images.unsplash.com/photo-1434030216411-0b793f4b6b23?auto=format&fit=crop&w=1200&q=80', // studying
-                'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1200&q=80', // library books
-                'https://images.unsplash.com/photo-1528360983277-13d401cdc186?auto=format&fit=crop&w=1200&q=80', // japanese/language
-            ],
-        ];
+        'lap-trinh-cntt' => [
+            // Code editor, dev setup, programming
+            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&q=80',
+            'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&q=80',
+            'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=1200&q=80',
+            'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80',
+            'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=1200&q=80',
+            'https://images.unsplash.com/photo-1536148935331-408321065b18?w=1200&q=80',
+            'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80',
+            'https://images.unsplash.com/photo-1595675024853-0f3ec9098ac7?w=1200&q=80',
+        ],
+        'web-dev' => [
+            'https://images.unsplash.com/photo-1547658719-da2b51169166?w=1200&q=80',
+            'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=1200&q=80',
+            'https://images.unsplash.com/photo-1593720219276-0b1eacd0aef4?w=1200&q=80',
+            'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=1200&q=80',
+        ],
+        'database' => [
+            'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&q=80',
+            'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80',
+            'https://images.unsplash.com/photo-1599507593499-a3f7d7d97667?w=1200&q=80',
+            'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80',
+        ],
+        'devops' => [
+            'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=1200&q=80',
+            'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=1200&q=80',
+            'https://images.unsplash.com/photo-1600267204091-5c1ab8b10c02?w=1200&q=80',
+            'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80',
+        ],
+        'mobile-dev' => [
+            'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&q=80',
+            'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=80',
+            'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?w=1200&q=80',
+            'https://images.unsplash.com/photo-1601972599720-36938d4ecd31?w=1200&q=80',
+        ],
+        'thiet-ke' => [
+            'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&q=80',
+            'https://images.unsplash.com/photo-1558655146-364adaf1fcc9?w=1200&q=80',
+            'https://images.unsplash.com/photo-1541462608143-67571c6738dd?w=1200&q=80',
+            'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?w=1200&q=80',
+        ],
+        'ui-ux' => [
+            'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=1200&q=80',
+            'https://images.unsplash.com/photo-1559028012-481c04fa702d?w=1200&q=80',
+            'https://images.unsplash.com/photo-1621839673705-6617adf9e890?w=1200&q=80',
+            'https://images.unsplash.com/photo-1523726491678-bf852e717f6a?w=1200&q=80',
+        ],
+        'do-hoa' => [
+            'https://images.unsplash.com/photo-1572044162444-ad60f128bdea?w=1200&q=80',
+            'https://images.unsplash.com/photo-1626785774625-ddcddc3445e9?w=1200&q=80',
+            'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=1200&q=80',
+            'https://images.unsplash.com/photo-1615209853186-e4bd66602508?w=1200&q=80',
+        ],
+        'kinh-doanh' => [
+            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&q=80',
+            'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&q=80',
+            'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&q=80',
+            'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80',
+        ],
+        'marketing' => [
+            'https://images.unsplash.com/photo-1533750349088-cd871a92f312?w=1200&q=80',
+            'https://images.unsplash.com/photo-1611926653458-09294b3142bf?w=1200&q=80',
+            'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=80',
+            'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=1200&q=80',
+        ],
+        'quan-ly-du-an' => [
+            'https://images.unsplash.com/photo-1507925921958-8a62f3d1a50d?w=1200&q=80',
+            'https://images.unsplash.com/photo-1542626991-cbc4e32524cc?w=1200&q=80',
+            'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=1200&q=80',
+            'https://images.unsplash.com/photo-1531538606174-0f90ff5dce83?w=1200&q=80',
+        ],
+        'ngoai-ngu' => [
+            'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=1200&q=80',
+            'https://images.unsplash.com/photo-1434030216411-0b793f4b6b23?w=1200&q=80',
+            'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1200&q=80',
+            'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80',
+        ],
+        'tieng-anh' => [
+            'https://images.unsplash.com/photo-1543109740-4bdb38fda756?w=1200&q=80',
+            'https://images.unsplash.com/photo-1505664063603-28e48ca204eb?w=1200&q=80',
+            'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=1200&q=80',
+            'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e?w=1200&q=80',
+        ],
+        'tieng-nhat' => [
+            'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80',
+            'https://images.unsplash.com/photo-1490761668535-35497054e360?w=1200&q=80',
+            'https://images.unsplash.com/photo-1570521462033-3015e76e7432?w=1200&q=80',
+            'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=1200&q=80',
+        ],
+    ];
 
         $fallbackThumbs = [
-            'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
-            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
-        ];
+        'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?w=1200&q=80',
+        'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&q=80',
+        'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80',
+        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&q=80',
+    ];
 
         $extensionTemplates = [
             ['title' => 'Thực chiến', 'price' => 399000],

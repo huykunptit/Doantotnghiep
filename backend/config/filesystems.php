@@ -72,9 +72,9 @@ return [
         'minio' => [
             'driver' => 's3',
             'key' => env('MINIO_KEY', 'minioadmin'),
-            'secret' => env('MINIO_SECRET', 'minioadmin'),
+            'secret' => env('MINIO_SECRET', 'minioadmin123'),
             'region' => env('MINIO_REGION', 'us-east-1'),
-            'bucket' => env('MINIO_BUCKET', 'course-videos'),
+            'bucket' => env('MINIO_BUCKET', 'lms-videos'),
             'endpoint' => env('MINIO_ENDPOINT', 'http://minio:9000'),
             'use_path_style_endpoint' => true, // Required for MinIO
             'throw' => false,

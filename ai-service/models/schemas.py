@@ -70,6 +70,7 @@ class ChatRequest(BaseModel):
     provider: str | None = "chatgpt"
     model: str | None = "gpt-4o-mini"
     api_key: str | None = None
+    role: str | None = None
     context: ChatContext | None = None
     history: list[dict[str, str]] = Field(default_factory=list)
 

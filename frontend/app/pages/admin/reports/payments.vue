@@ -144,13 +144,13 @@ onMounted(fetchOrders)
     <section class="dashboard-card" style="margin-bottom: 24px; padding: 0; border: none; background: transparent; box-shadow: none;">
       <div class="crud-toolbar">
         <div class="crud-toolbar-main">
-          <div class="crud-field" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+          <div class="crud-field flex items-center gap-2" style="margin: 0; min-width: 160px;">
             <span style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Từ</span>
-            <input v-model="dateFrom" type="date" style="min-height: 48px; border-radius: 16px;">
+            <UiDatePicker v-model="dateFrom" placeholder="Từ ngày" size="md" />
           </div>
-          <div class="crud-field" style="margin: 0; display: flex; align-items: center; gap: 8px;">
+          <div class="crud-field flex items-center gap-2" style="margin: 0; min-width: 160px;">
             <span style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;">Đến</span>
-            <input v-model="dateTo" type="date" style="min-height: 48px; border-radius: 16px;">
+            <UiDatePicker v-model="dateTo" placeholder="Đến ngày" size="md" />
           </div>
           <button class="crud-secondary-btn" type="button" @click="dateFrom = ''; dateTo = ''">Đặt lại</button>
         </div>

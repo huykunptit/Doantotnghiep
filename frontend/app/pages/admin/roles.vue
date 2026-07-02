@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Save, RotateCcw, ShieldCheck, ShieldAlert } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
+import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
@@ -11,12 +12,11 @@ interface Permission { id: number; name: string }
 interface Role { id: number; name: string; permissions?: Permission[] }
 
 const auth = useAuthStore()
+const toast = useToast()
 const loading = ref(true)
 const saving = ref(false)
 const roles = ref<Role[]>([])
 const permissions = ref<Permission[]>([])
-const errorMessage = ref('')
-const successMessage = ref('')
 
 const original = ref<Record<number, Set<string>>>({})
 const current = ref<Record<number, Set<string>>>({})
@@ -117,13 +117,10 @@ const resetChanges = () => {
   const curr: Record<number, Set<string>> = {}
   Object.entries(original.value).forEach(([id, set]) => { curr[Number(id)] = new Set(set) })
   current.value = curr
-  successMessage.value = ''
-  errorMessage.value = ''
 }
 
 const loadData = async () => {
   loading.value = true
-  errorMessage.value = ''
   try {
     const res = await useApi<any>('/admin/roles', {
       headers: { Authorization: `Bearer ${auth.token}` },
@@ -132,7 +129,7 @@ const loadData = async () => {
     permissions.value = res.permissions || []
     snapshot(roles.value)
   } catch {
-    errorMessage.value = 'Không thể tải danh sách quyền. Vui lòng thử lại.'
+    toast.error('Không thể tải danh sách quyền. Vui lòng thử lại.')
   } finally {
     loading.value = false
   }
@@ -140,8 +137,6 @@ const loadData = async () => {
 
 const savePermissions = async () => {
   saving.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
   try {
     const targets = roles.value.filter((r) => r.name !== 'admin')
     await Promise.all(
@@ -153,10 +148,10 @@ const savePermissions = async () => {
         }),
       ),
     )
-    successMessage.value = 'Cập nhật phân quyền thành công.'
+    toast.success('Cập nhật phân quyền thành công.')
     await loadData()
   } catch (err: any) {
-    errorMessage.value = err?.data?.message || 'Có lỗi xảy ra khi lưu phân quyền.'
+    toast.error(err?.data?.message || 'Có lỗi xảy ra khi lưu phân quyền.')
   } finally {
     saving.value = false
   }
@@ -232,10 +227,6 @@ onMounted(loadData)
             </button>
           </div>
         </div>
-
-        <!-- Alerts -->
-        <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-        <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
 
         <!-- Permission groups -->
         <div

@@ -10,9 +10,30 @@ const route = useRoute()
 const { groups, supportItems } = useAdminNavigation()
 const { siteName, siteLogo } = useSiteSettings()
 
-function isActive(path: string) {
-  if (path === '/admin') return route.path === '/admin'
-  return route.path.startsWith(path)
+function isActive(to: string) {
+  const [toPath, toQueryStr] = to.split('?')
+  
+  if (toPath === '/admin') {
+    return route.path === '/admin'
+  }
+  
+  const pathMatches = route.path === toPath || route.path.startsWith(toPath + '/')
+  
+  if (!pathMatches) return false
+  
+  if (toQueryStr) {
+    const params = new URLSearchParams(toQueryStr)
+    for (const [key, val] of params.entries()) {
+      if (route.query[key] !== val) return false
+    }
+    return true
+  }
+  
+  if (route.path === toPath && Object.keys(route.query).length > 0) {
+    return false
+  }
+  
+  return true
 }
 
 async function handleLogout() {
@@ -100,16 +121,31 @@ async function handleLogout() {
   flex-direction: column;
   width: 240px;
   min-height: 100%;
-  background: #0b1329; /* Deep Dark Blue */
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, #064e3b 0%, #052e22 100%); /* Premium Deep Dark Forest Green Gradient */
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
   overflow-y: auto;
   overflow-x: hidden;
   flex-shrink: 0;
 }
 
+/* Scrollbar styling for a polished look */
+.sl::-webkit-scrollbar {
+  width: 5px;
+}
+.sl::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sl::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+}
+.sl::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 /* ── Brand ── */
 .sl-brand {
-  padding: 16px 14px 12px;
+  padding: 20px 16px 16px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -117,58 +153,62 @@ async function handleLogout() {
 .sl-brand-link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
-  padding: 6px 8px;
-  border-radius: 10px;
+  padding: 8px;
+  border-radius: 12px;
   transition: background 150ms;
 }
-.sl-brand-link:hover { background: rgba(255, 255, 255, 0.04); }
+.sl-brand-link:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
 
 .sl-brand-logo-wrap {
   flex-shrink: 0;
 }
 
 .sl-brand-img {
-  height: 32px;
-  width: 32px;
-  border-radius: 8px;
+  height: 36px;
+  width: 36px;
+  border-radius: 10px;
   object-fit: contain;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
 }
 
 .sl-brand-icon {
-  width: 32px; height: 32px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, var(--green) 0%, #0d7a5a 100%);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0F6E8C 0%, #1D9E75 100%);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(29,158,117,0.35);
+  box-shadow: 0 4px 12px rgba(15, 110, 140, 0.3);
 }
 
 .sl-brand-text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .sl-brand-name {
-  font-size: 0.9375rem;
+  font-size: 1.025rem;
   font-weight: 800;
-  letter-spacing: -0.025em;
-  color: #f8fafc; /* Slate 50 */
+  letter-spacing: -0.02em;
+  color: #ffffff;
   line-height: 1.2;
 }
 
 .sl-brand-badge {
-  font-size: 0.6rem;
+  font-size: 0.82rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: #5dcaa5;
+  letter-spacing: 0.12em;
+  color: #5DCAA5; /* Accent mint green */
   background: rgba(93, 202, 165, 0.12);
-  padding: 1px 6px;
+  padding: 1.5px 8px;
   border-radius: 999px;
   width: fit-content;
 }
@@ -176,78 +216,60 @@ async function handleLogout() {
 /* ── Navigation ── */
 .sl-nav {
   flex: 1;
-  padding: 12px 10px;
+  padding: 18px 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 16px;
   overflow-y: auto;
   min-height: 0;
 }
 
 .sl-group {
-  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.sl-group:last-child { margin-bottom: 0; }
-
 .sl-group-label {
-  margin: 0 0 4px 10px;
-  font-size: 0.6rem;
-  font-weight: 800;
+  margin: 0 0 6px 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: #64748b; /* Slate 500 */
-  opacity: 0.85;
+  letter-spacing: 0.16em;
+  color: #ffffff;
+ /* soft mint green */
 }
 
 .sl-group-items {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .sl-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  height: 37px;
-  padding: 0 10px;
+  gap: 10px;
+  height: 38px;
+  padding: 0 12px;
   border-radius: 10px;
   text-decoration: none;
-  color: #94a3b8; /* Slate 400 */
-  font-size: 0.84rem;
+  color: rgba(240, 250, 247, 0.65);
+  font-size: 0.85rem;
   font-weight: 500;
-  transition: background 120ms, color 120ms;
+  transition: all 150ms;
   position: relative;
-}
-
-.sl-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #f8fafc;
-}
-
-.sl-item.is-active {
-  background: rgba(29, 158, 117, 0.15);
-  color: #4ade80;
-  font-weight: 700;
-}
-
-.sl-item.is-active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 7px; bottom: 7px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: #22c55e;
 }
 
 .sl-item-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px; height: 20px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  color: inherit;
+  color: rgba(240, 250, 247, 0.5);
+  transition: color 150ms;
 }
 
 .sl-item-label {
@@ -261,61 +283,114 @@ async function handleLogout() {
 .sl-item-chevron {
   opacity: 0.5;
   flex-shrink: 0;
+  transition: transform 150ms, opacity 150ms;
+}
+
+/* Hover States */
+.sl-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+}
+
+.sl-item:hover .sl-item-icon {
+  color: #5DCAA5;
+}
+
+.sl-item:hover .sl-item-chevron {
+  opacity: 0.8;
+  transform: translateX(2px);
+}
+
+/* Active State */
+.sl-item.is-active {
+  background: linear-gradient(135deg, #0F6E8C 0%, #0a4f64 100%); /* Primary Teal Gradient */
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.sl-item.is-active .sl-item-icon {
+  color: #5DCAA5; /* Accent Mint Green */
+}
+
+.sl-item.is-active .sl-item-chevron {
+  opacity: 0.95;
+  color: #5DCAA5;
+}
+
+.sl-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3.5px;
+  border-radius: 0 4px 4px 0;
+  background: #5DCAA5;
+  box-shadow: 0 0 8px rgba(93, 202, 165, 0.8);
 }
 
 /* ── Footer ── */
 .sl-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 10px 10px;
+  padding: 12px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .sl-user {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 8px;
-  border-radius: 10px;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
   transition: background 150ms;
   cursor: default;
 }
-.sl-user:hover { background: rgba(255, 255, 255, 0.04); }
+.sl-user:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
 
 .sl-avatar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px; height: 34px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--green-soft) 0%, rgba(255, 255, 255, 0.08) 100%);
-  color: #4ade80;
-  font-size: 0.72rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1D9E75 0%, #0F6E8C 100%);
+  color: #ffffff;
+  font-size: 0.75rem;
   font-weight: 800;
   flex-shrink: 0;
   letter-spacing: 0.04em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .sl-avatar-dot {
   position: absolute;
-  bottom: 0; right: 0;
-  width: 9px; height: 9px;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #22c55e;
-  border: 2px solid #0b1329;
+  background: #5DCAA5;
+  border: 2px solid #031c15; /* matching footer background overlay */
 }
 
 .sl-user-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .sl-user-name {
   display: block;
-  font-size: 0.8125rem;
+  font-size: 0.825rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -323,30 +398,41 @@ async function handleLogout() {
 
 .sl-user-role {
   display: block;
-  font-size: 0.67rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #64748b;
+  color: rgba(240, 250, 247, 0.45);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
 }
 
 .sl-logout {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px; height: 30px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: rgba(240, 250, 247, 0.5);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 150ms, color 150ms;
+  transition: all 150ms;
 }
 
 .sl-logout:hover {
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  color: #F87171;
+}
+
+/* Ensure styling persists beautifully in dark mode too */
+:global([data-theme="dark"]) .sl {
+  background: linear-gradient(180deg, #031c15 0%, #03130e 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+:global([data-theme="dark"]) .sl-avatar-dot {
+  border-color: #03130e;
 }
 </style>
 

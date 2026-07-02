@@ -17,7 +17,9 @@
 
     <!-- Video Player -->
     <div v-else-if="isIframeSource && iframeUrl" class="player-container iframe-container">
+      <div v-if="isYouTube" :id="ytContainerId" class="iframe-element" />
       <iframe
+        v-else
         class="iframe-element"
         :src="iframeUrl"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -74,7 +76,9 @@ const emit = defineEmits<{
 
 const auth = useAuthStore()
 const isIframeSource = computed(() => ['youtube', 'gdrive', 'onedrive'].includes(detectProvider(videoUrl.value)))
+const isYouTube = computed(() => detectProvider(videoUrl.value) === 'youtube')
 const iframeUrl = computed(() => normalizeIframeUrl(videoUrl.value))
+const ytContainerId = computed(() => `yt-player-${props.lessonId}`)
 
 function detectProvider(url: string) {
   const normalized = url.toLowerCase()
@@ -92,7 +96,8 @@ function normalizeIframeUrl(url: string) {
     const longMatch = url.match(/[?&]v=([^?&/]+)/)
     const embedMatch = url.match(/youtube\.com\/embed\/([^?&/]+)/)
     const id = shortMatch?.[1] || longMatch?.[1] || embedMatch?.[1]
-    return id ? `https://www.youtube.com/embed/${id}` : url
+    // enablejsapi=1 là bắt buộc để YouTube IFrame API hoạt động
+    return id ? `https://www.youtube.com/embed/${id}?enablejsapi=1` : url
   }
   if (provider === 'gdrive') {
     const fileMatch = url.match(/\/file\/d\/([^/]+)/)
@@ -118,6 +123,117 @@ const lastProgressUpdate = ref(0)
 
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 let progressTimer: ReturnType<typeof setInterval> | null = null
+
+// ── YouTube IFrame API ──────────────────────────────────────────────────────
+declare global {
+  interface Window {
+    YT: any
+    onYouTubeIframeAPIReady: () => void
+  }
+}
+
+let ytPlayer: any = null
+let ytProgressTimer: ReturnType<typeof setInterval> | null = null
+let ytApiReady = false
+
+function loadYouTubeApi(): Promise<void> {
+  return new Promise(resolve => {
+    if (ytApiReady || window.YT?.Player) {
+      ytApiReady = true
+      resolve()
+      return
+    }
+    const prev = window.onYouTubeIframeAPIReady
+    window.onYouTubeIframeAPIReady = () => {
+      ytApiReady = true
+      prev?.()
+      resolve()
+    }
+    if (!document.getElementById('yt-iframe-api')) {
+      const tag = document.createElement('script')
+      tag.id = 'yt-iframe-api'
+      tag.src = 'https://www.youtube.com/iframe_api'
+      document.head.appendChild(tag)
+    }
+  })
+}
+
+async function initYouTubePlayer() {
+  if (!isYouTube.value) return
+  destroyYouTubePlayer()
+  await loadYouTubeApi()
+  await nextTick()
+
+  const videoId = extractYouTubeId(videoUrl.value)
+  if (!videoId) return
+
+  ytPlayer = new window.YT.Player(ytContainerId.value, {
+    videoId,
+    playerVars: {
+      autoplay: props.autoplay ? 1 : 0,
+      rel: 0,
+      modestbranding: 1,
+    },
+    events: {
+      onStateChange: onYtStateChange,
+    },
+  })
+}
+
+function onYtStateChange(event: any) {
+  const YT_PLAYING = 1
+  const YT_PAUSED  = 2
+  const YT_ENDED   = 0
+
+  if (event.data === YT_PLAYING) {
+    // Gửi progress mỗi 15 giây khi đang xem
+    if (ytProgressTimer) clearInterval(ytProgressTimer)
+    ytProgressTimer = setInterval(() => {
+      const watched = Math.floor(ytPlayer?.getCurrentTime?.() ?? 0)
+      sendYtProgress(watched, false)
+    }, 15000)
+  }
+
+  if (event.data === YT_PAUSED) {
+    if (ytProgressTimer) { clearInterval(ytProgressTimer); ytProgressTimer = null }
+    const watched = Math.floor(ytPlayer?.getCurrentTime?.() ?? 0)
+    sendYtProgress(watched, false)
+  }
+
+  if (event.data === YT_ENDED) {
+    if (ytProgressTimer) { clearInterval(ytProgressTimer); ytProgressTimer = null }
+    const duration = Math.floor(ytPlayer?.getDuration?.() ?? 0)
+    sendYtProgress(duration, true)
+    emit('ended')
+  }
+}
+
+async function sendYtProgress(watched_seconds: number, completed: boolean) {
+  try {
+    await useApi(`/courses/${props.courseId}/lessons/${props.lessonId}/progress`, {
+      method: 'PUT',
+      body: { watched_seconds, completed },
+      token: auth.token,
+    })
+    emit('progress', { watched_seconds, completed })
+  } catch {
+    // silent
+  }
+}
+
+function extractYouTubeId(url: string): string {
+  const short = url.match(/youtu\.be\/([^?&/]+)/)
+  const long  = url.match(/[?&]v=([^?&/]+)/)
+  const embed = url.match(/youtube\.com\/embed\/([^?&/]+)/)
+  return short?.[1] || long?.[1] || embed?.[1] || ''
+}
+
+function destroyYouTubePlayer() {
+  if (ytProgressTimer) { clearInterval(ytProgressTimer); ytProgressTimer = null }
+  ytPlayer?.destroy?.()
+  ytPlayer = null
+}
+// ───────────────────────────────────────────────────────────────────────────
 
 onMounted(() => {
   loadVideo()
@@ -151,8 +267,10 @@ const loadVideo = async () => {
     // Schedule URL refresh (2 phút trước khi hết hạn)
     scheduleRefresh()
 
-    // Auto-play nếu cần
-    if (props.autoplay) {
+    // Khởi tạo YouTube player sau khi có URL
+    if (detectProvider(response.url) === 'youtube') {
+      await initYouTubePlayer()
+    } else if (props.autoplay) {
       await nextTick()
       videoElement.value?.play()
     }
@@ -272,6 +390,7 @@ const cleanup = () => {
     clearInterval(progressTimer)
     progressTimer = null
   }
+  destroyYouTubePlayer()
 }
 </script>
 

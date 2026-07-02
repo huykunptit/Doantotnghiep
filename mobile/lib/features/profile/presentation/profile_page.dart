@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../providers/profile_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../app/theme/theme_provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -12,22 +14,10 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
-    final user = authState.valueOrNull;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hồ sơ'),
-        centerTitle: false,
-        actions: [
-          if (user != null)
-            TextButton.icon(
-              onPressed: () => _showEditDialog(context, ref, user.name, user.phone),
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Sửa'),
-            ),
-        ],
-      ),
       body: authState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(e.toString())),
@@ -36,125 +26,161 @@ class ProfilePage extends ConsumerWidget {
             WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/login'));
             return const SizedBox.shrink();
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Center(
-                child: CircleAvatar(
-                  radius: 48,
-                  backgroundImage: user.avatar != null
-                      ? CachedNetworkImageProvider(user.avatar!)
-                      : null,
-                  child: user.avatar == null
-                      ? Text(
-                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 36),
-                        )
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  user.name,
-                  style: theme.textTheme.headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Center(
-                child: Text(
-                  user.email,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+          return CustomScrollView(
+            slivers: [
+              // Header with avatar
+              SliverAppBar(
+                expandedHeight: 200,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [AppColors.primary900, AppColors.primary800]
+                            : [AppColors.primary600, AppColors.primary400],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: SafeArea(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppSpacing.h16,
+                          Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 44,
+                                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                backgroundImage: user.avatar != null
+                                    ? CachedNetworkImageProvider(user.avatar!)
+                                    : null,
+                                child: user.avatar == null
+                                    ? Text(
+                                        user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                        style: const TextStyle(
+                                          fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white),
+                                      )
+                                    : null,
+                              ),
+                              GestureDetector(
+                                onTap: () => _showEditDialog(context, ref, user.name, user.phone),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.edit_rounded, size: 14, color: AppColors.primary600),
+                                ),
+                              ),
+                            ],
+                          ),
+                          AppSpacing.h12,
+                          Text(user.name,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3)),
+                          AppSpacing.h4,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(_roleLabel(user.role),
+                                style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Card(
-                child: Column(
-                  children: [
-                    _InfoTile(
-                      icon: Icons.badge_outlined,
-                      label: 'Vai trò',
-                      value: _roleLabel(user.role),
+
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // Info card
+                    _SectionCard(
+                      children: [
+                        _InfoRow(icon: Icons.mail_outline_rounded, label: 'Email', value: user.email),
+                        if (user.studentCode != null)
+                          _InfoRow(icon: Icons.numbers_rounded, label: 'Mã sinh viên', value: user.studentCode!),
+                        if (user.phone != null)
+                          _InfoRow(icon: Icons.phone_outlined, label: 'Điện thoại', value: user.phone!),
+                      ],
                     ),
-                    if (user.studentCode != null)
-                      _InfoTile(
-                        icon: Icons.numbers,
-                        label: 'Mã sinh viên',
-                        value: user.studentCode!,
+                    AppSpacing.h12,
+
+                    // Academic section
+                    _SectionCard(
+                      children: [
+                        _NavTile(
+                          icon: Icons.receipt_long_outlined,
+                          iconColor: AppColors.secondary600,
+                          title: 'Bảng điểm học tập',
+                          onTap: () => context.push('/transcript'),
+                        ),
+                        _NavTile(
+                          icon: Icons.workspace_premium_outlined,
+                          iconColor: Colors.amber.shade700,
+                          title: 'Chứng chỉ của tôi',
+                          onTap: () => context.push('/certificates'),
+                        ),
+                        _NavTile(
+                          icon: Icons.psychology_outlined,
+                          iconColor: AppColors.accent600,
+                          title: 'Tư vấn nghề nghiệp AI',
+                          onTap: () => context.push('/career'),
+                          isLast: true,
+                        ),
+                      ],
+                    ),
+                    AppSpacing.h12,
+
+                    // Settings section
+                    _SectionCard(
+                      children: [
+                        _NavTile(
+                          icon: Icons.lock_outline_rounded,
+                          iconColor: AppColors.neutral600,
+                          title: 'Đổi mật khẩu',
+                          onTap: () => _showChangePasswordDialog(context, ref),
+                        ),
+                        _NavTile(
+                          icon: Icons.palette_outlined,
+                          iconColor: AppColors.primary400,
+                          title: 'Giao diện hiển thị',
+                          subtitle: _themeModeLabel(ref.watch(themeNotifierProvider)),
+                          onTap: () => _showThemeDialog(context, ref),
+                          isLast: true,
+                        ),
+                      ],
+                    ),
+                    AppSpacing.h20,
+
+                    // Logout
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final confirm = await _confirmLogout(context);
+                        if (confirm == true && context.mounted) {
+                          await ref.read(authNotifierProvider.notifier).logout();
+                          if (context.mounted) context.go('/login');
+                        }
+                      },
+                      icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 18),
+                      label: const Text('Đăng xuất', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: AppColors.error),
                       ),
-                    if (user.phone != null)
-                      _InfoTile(
-                        icon: Icons.phone_outlined,
-                        label: 'Số điện thoại',
-                        value: user.phone!,
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.receipt_long_outlined),
-                      title: const Text('Bảng điểm học tập'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/transcript'),
                     ),
-                    const Divider(height: 1, indent: 16, endIndent: 16),
-                    ListTile(
-                      leading: const Icon(Icons.workspace_premium_outlined),
-                      title: const Text('Chứng chỉ của tôi'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/certificates'),
-                    ),
-                    const Divider(height: 1, indent: 16, endIndent: 16),
-                    ListTile(
-                      leading: const Icon(Icons.psychology_outlined),
-                      title: const Text('Tư vấn nghề nghiệp AI'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/career'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.lock_outlined),
-                      title: const Text('Đổi mật khẩu'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showChangePasswordDialog(context, ref),
-                    ),
-                    const Divider(height: 1, indent: 16, endIndent: 16),
-                    ListTile(
-                      leading: const Icon(Icons.palette_outlined),
-                      title: const Text('Giao diện hiển thị'),
-                      subtitle: Text(_themeModeLabel(ref.watch(themeNotifierProvider))),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => _showThemeDialog(context, ref),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final confirm = await _confirmLogout(context);
-                  if (confirm == true && context.mounted) {
-                    await ref.read(authNotifierProvider.notifier).logout();
-                    if (context.mounted) context.go('/login');
-                  }
-                },
-                icon: const Icon(Icons.logout, color: Colors.red),
-                label: const Text('Đăng xuất', style: TextStyle(color: Colors.red)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                    AppSpacing.h8,
+                  ]),
                 ),
               ),
             ],
@@ -166,12 +192,17 @@ class ProfilePage extends ConsumerWidget {
 
   String _roleLabel(String role) {
     switch (role) {
-      case 'admin':
-        return 'Quản trị viên';
-      case 'instructor':
-        return 'Giảng viên';
-      default:
-        return 'Học viên';
+      case 'admin': return 'Quản trị viên';
+      case 'instructor': return 'Giảng viên';
+      default: return 'Học viên';
+    }
+  }
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light: return 'Giao diện sáng';
+      case ThemeMode.dark: return 'Giao diện tối';
+      default: return 'Theo hệ thống';
     }
   }
 
@@ -179,15 +210,16 @@ class ProfilePage extends ConsumerWidget {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Đăng xuất'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Bạn có chắc muốn đăng xuất không?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huỷ')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Huỷ')),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Đăng xuất')),
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Đăng xuất'),
+          ),
         ],
       ),
     );
@@ -199,26 +231,22 @@ class ProfilePage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sửa hồ sơ'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Sửa hồ sơ', style: TextStyle(fontWeight: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Họ tên', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Số điện thoại', border: OutlineInputBorder()),
-            ),
+            TextField(controller: nameCtrl,
+                decoration: InputDecoration(labelText: 'Họ tên',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+            AppSpacing.h12,
+            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone,
+                decoration: InputDecoration(labelText: 'Số điện thoại',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
           ],
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Huỷ')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Huỷ')),
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -240,38 +268,34 @@ class ProfilePage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Đổi mật khẩu'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Đổi mật khẩu', style: TextStyle(fontWeight: FontWeight.w700)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: currentCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Mật khẩu hiện tại', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: newCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Mật khẩu mới', border: OutlineInputBorder()),
-            ),
+            TextField(controller: currentCtrl, obscureText: true,
+                decoration: InputDecoration(labelText: 'Mật khẩu hiện tại',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+            AppSpacing.h12,
+            TextField(controller: newCtrl, obscureText: true,
+                decoration: InputDecoration(labelText: 'Mật khẩu mới',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
           ],
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Huỷ')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Huỷ')),
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
               final error = await ref.read(profileNotifierProvider.notifier).changePassword(
-                    currentPassword: currentCtrl.text,
-                    newPassword: newCtrl.text,
+                    currentPassword: currentCtrl.text, newPassword: newCtrl.text,
                   );
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(error ?? 'Đổi mật khẩu thành công'),
-                backgroundColor: error == null ? Colors.green : Colors.red,
+                backgroundColor: error == null ? AppColors.success : AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ));
             },
             child: const Text('Xác nhận'),
@@ -281,84 +305,149 @@ class ProfilePage extends ConsumerWidget {
     );
   }
 
-  String _themeModeLabel(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.light:
-        return 'Giao diện sáng';
-      case ThemeMode.dark:
-        return 'Giao diện tối (Rừng về đêm)';
-      default:
-        return 'Theo hệ thống';
-    }
-  }
-
   void _showThemeDialog(BuildContext context, WidgetRef ref) {
     final currentMode = ref.read(themeNotifierProvider);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Chọn giao diện hiển thị'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<ThemeMode>(
-              title: const Text('Sáng'),
-              value: ThemeMode.light,
-              groupValue: currentMode,
-              onChanged: (mode) {
-                if (mode != null) {
-                  ref.read(themeNotifierProvider.notifier).setThemeMode(mode);
-                  Navigator.pop(ctx);
-                }
-              },
-            ),
-            RadioListTile<ThemeMode>(
-              title: const Text('Tối (Rừng về đêm)'),
-              value: ThemeMode.dark,
-              groupValue: currentMode,
-              onChanged: (mode) {
-                if (mode != null) {
-                  ref.read(themeNotifierProvider.notifier).setThemeMode(mode);
-                  Navigator.pop(ctx);
-                }
-              },
-            ),
-            RadioListTile<ThemeMode>(
-              title: const Text('Theo mặc định hệ thống'),
-              value: ThemeMode.system,
-              groupValue: currentMode,
-              onChanged: (mode) {
-                if (mode != null) {
-                  ref.read(themeNotifierProvider.notifier).setThemeMode(mode);
-                  Navigator.pop(ctx);
-                }
-              },
-            ),
-          ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Giao diện hiển thị', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: RadioGroup<ThemeMode>(
+          groupValue: currentMode,
+          onChanged: (mode) {
+            if (mode != null) {
+              ref.read(themeNotifierProvider.notifier).setThemeMode(mode);
+              Navigator.pop(ctx);
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<ThemeMode>(title: const Text('Sáng'), value: ThemeMode.light),
+              RadioListTile<ThemeMode>(title: const Text('Tối (Rừng về đêm)'), value: ThemeMode.dark),
+              RadioListTile<ThemeMode>(title: const Text('Theo mặc định hệ thống'), value: ThemeMode.system),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.children});
+  final List<Widget> children;
 
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
+        boxShadow: isDark ? [] : [
+          BoxShadow(color: AppColors.neutral800.withValues(alpha: 0.05),
+              blurRadius: 10, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.icon, required this.label, required this.value});
   final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label, style: Theme.of(context).textTheme.bodySmall),
-      subtitle: Text(value, style: Theme.of(context).textTheme.bodyMedium),
-      dense: true,
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(color: AppColors.neutral100, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 18, color: AppColors.neutral600),
+          ),
+          AppSpacing.w12,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant, fontSize: 11)),
+                Text(value, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavTile extends StatelessWidget {
+  const _NavTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.isLast = false,
+  });
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        InkWell(
+          borderRadius: isLast
+              ? const BorderRadius.vertical(bottom: Radius.circular(16))
+              : BorderRadius.zero,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                AppSpacing.w12,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      if (subtitle != null)
+                        Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant, fontSize: 11)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+        if (!isLast) Divider(height: 1, indent: 64, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ],
     );
   }
 }

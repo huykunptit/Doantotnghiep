@@ -273,7 +273,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
   gap: 10px;
   height: 60px;
   padding: 0 20px;
-  background: rgba(255,255,255,0.85);
+  background: rgba(240, 250, 247, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
@@ -281,7 +281,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 }
 
 [data-theme="dark"] .tb {
-  background: rgba(12, 29, 21, 0.88);
+  background: rgba(9, 26, 21, 0.85);
   border-bottom-color: rgba(255,255,255,0.07);
 }
 

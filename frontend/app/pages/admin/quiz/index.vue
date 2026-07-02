@@ -7,6 +7,7 @@ import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 import SearchableCourseSelect from '~/components/dashboard/SearchableCourseSelect.vue'
 import { useExport } from '~/composables/useExport'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học để quản lý quiz / đề thi...' })
 
@@ -25,6 +26,7 @@ const STATUS_MAP: Record<string, string> = {
 const user = useAuthUserCookie(); const token = useAuthTokenCookie()
 if (!user.value || !token.value) await navigateTo('/login', { replace: true })
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+const toast = useToast()
 
 const activeTab = ref<'course' | 'standalone'>('standalone')
 const courses = ref<CourseItem[]>([])
@@ -33,8 +35,6 @@ const standaloneExams = ref<ExamItem[]>([])
 const selectedCourseId = ref<number | null>(null)
 const loadingCourses = ref(false)
 const loadingExams = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
 const confirmOpen = ref(false)
 const selectedExam = ref<ExamItem | null>(null)
 const examPage = ref(1)
@@ -53,7 +53,7 @@ async function fetchCourses() {
   try {
     const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=100', { headers: authHeaders() })
     courses.value = res.data || []
-  } catch { errorMessage.value = 'Không thể tải danh sách khóa học.' }
+  } catch { toast.error('Không thể tải danh sách khóa học.') }
   finally { loadingCourses.value = false }
 }
 
@@ -62,7 +62,7 @@ async function fetchExams() {
   loadingExams.value = true
   try {
     exams.value = await useApi<ExamItem[]>(`/courses/${selectedCourseId.value}/exams`, { headers: authHeaders() })
-  } catch { errorMessage.value = 'Không thể tải danh sách đề thi.' }
+  } catch { toast.error('Không thể tải danh sách đề thi.') }
   finally { loadingExams.value = false }
 }
 
@@ -70,7 +70,7 @@ async function fetchStandaloneExams() {
   loadingExams.value = true
   try {
     standaloneExams.value = await useApi<ExamItem[]>('/exams/standalone', { headers: authHeaders() })
-  } catch { errorMessage.value = 'Không thể tải kỳ thi độc lập.' }
+  } catch { toast.error('Không thể tải kỳ thi độc lập.') }
   finally { loadingExams.value = false }
 }
 
@@ -84,13 +84,13 @@ async function deleteExam() {
       await useApi(`/courses/${selectedCourseId.value}/exams/${selectedExam.value.id}`, { method: 'DELETE', headers: authHeaders() })
       await fetchExams()
     }
-    successMessage.value = 'Đã xóa đề thi.'
+    toast.success('Đã xóa đề thi.')
     confirmOpen.value = false; selectedExam.value = null
-  } catch (e: any) { errorMessage.value = e?.data?.message || 'Không thể xóa đề thi.' }
+  } catch (e: any) { toast.error(e?.data?.message || 'Không thể xóa đề thi.') }
 }
 
 function onTabChange(tab: 'course' | 'standalone') {
-  activeTab.value = tab; errorMessage.value = ''; successMessage.value = ''
+  activeTab.value = tab
   examPage.value = 1
   if (tab === 'standalone') fetchStandaloneExams()
   else if (selectedCourseId.value) fetchExams()
@@ -167,7 +167,7 @@ onMounted(async () => {
       <div class="crud-toolbar">
         <div>
           <p class="section-kicker">{{ activeTab === 'standalone' ? 'Kỳ thi độc lập' : 'Đề thi khóa học' }}</p>
-          <h3 style="margin:0;font-size:1.25rem;">
+          <h3 class="ds-section-title">
             {{ activeTab === 'standalone' ? 'Danh sách kỳ thi' : (selectedCourse?.title || 'Chưa chọn khóa học') }}
           </h3>
         </div>
@@ -180,9 +180,6 @@ onMounted(async () => {
           </button>
         </div>
       </div>
-
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
 
       <!-- Table -->
       <div class="crud-table-wrap">

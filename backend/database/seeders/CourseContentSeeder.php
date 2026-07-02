@@ -37,6 +37,80 @@ class CourseContentSeeder extends Seeder
 
     private function seedCourse(Course $course): void
     {
+        $videoMap = [
+                // --- Lập trình & CNTT (web-dev, database, devops, mobile-dev) ---
+                'intro-overview' => [
+                    'lap-trinh-cntt' => 'https://www.youtube.com/watch?v=zOjov-2OZ0E', // Roadmap Web Dev
+                    'web-dev'        => 'https://www.youtube.com/watch?v=zOjov-2OZ0E',
+                    'database'       => 'https://www.youtube.com/watch?v=HXV3zeQKqGY', // SQL Tutorial
+                    'devops'         => 'https://www.youtube.com/watch?v=a-8MPGzrChQ', // DevOps Overview
+                    'mobile-dev'     => 'https://www.youtube.com/watch?v=0-S5a0eXPoc', // Flutter Intro
+                    'thiet-ke'       => 'https://www.youtube.com/watch?v=c9Wg6Cb_YlU', // UI/UX Intro
+                    'ui-ux'          => 'https://www.youtube.com/watch?v=c9Wg6Cb_YlU',
+                    'do-hoa'         => 'https://www.youtube.com/watch?v=3_PnuDQ4pNg', // Graphic Design
+                    'kinh-doanh'     => 'https://www.youtube.com/watch?v=Vbn3fNPP0Hk', // Business Intro
+                    'marketing'      => 'https://www.youtube.com/watch?v=bixR-KIJKYM', // Digital Marketing
+                    'quan-ly-du-an'  => 'https://www.youtube.com/watch?v=gT5BBwi8aTk', // Project Mgmt
+                    'ngoai-ngu'      => 'https://www.youtube.com/watch?v=1MVKjd_FVG4', // English Learning
+                    'tieng-anh'      => 'https://www.youtube.com/watch?v=1MVKjd_FVG4',
+                    'tieng-nhat'     => 'https://www.youtube.com/watch?v=rGrBHiuPlT0', // Japanese Intro
+                    '_default'       => 'https://www.youtube.com/watch?v=zOjov-2OZ0E',
+                ],
+                'setup-environment' => [
+                    'lap-trinh-cntt' => 'https://www.youtube.com/watch?v=bMknfKXIFA8', // VS Code Setup
+                    'web-dev'        => 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+                    'database'       => 'https://www.youtube.com/watch?v=uj4OYk5nKCg', // MySQL Setup
+                    'devops'         => 'https://www.youtube.com/watch?v=pg19Z8LL06w', // Docker Setup
+                    'mobile-dev'     => 'https://www.youtube.com/watch?v=1ukSR1GRtMU', // Flutter Setup
+                    'thiet-ke'       => 'https://www.youtube.com/watch?v=Cx2dkpBxst8', // Figma Setup
+                    'ui-ux'          => 'https://www.youtube.com/watch?v=Cx2dkpBxst8',
+                    'do-hoa'         => 'https://www.youtube.com/watch?v=ysz5S6PUM-U', // Photoshop Setup
+                    'kinh-doanh'     => 'https://www.youtube.com/watch?v=qz0aGYrrlhU', // Excel/Tools Setup
+                    'ngoai-ngu'      => 'https://www.youtube.com/watch?v=WNSRFTbAAPk', // Anki Setup
+                    '_default'       => 'https://www.youtube.com/watch?v=bMknfKXIFA8',
+                ],
+                'core-concepts' => [
+                    'lap-trinh-cntt' => 'https://www.youtube.com/watch?v=SqcY0GlETPk', // HTML/CSS Basics
+                    'web-dev'        => 'https://www.youtube.com/watch?v=SqcY0GlETPk',
+                    'database'       => 'https://www.youtube.com/watch?v=p3qvj9hO_Bo', // SQL Core Concepts
+                    'devops'         => 'https://www.youtube.com/watch?v=kTp5xUtcalw', // CI/CD Concepts
+                    'mobile-dev'     => 'https://www.youtube.com/watch?v=x0uinJvhNxI', // Flutter Widgets
+                    'thiet-ke'       => 'https://www.youtube.com/watch?v=II-6dDzc-80', // Design Principles
+                    'ui-ux'          => 'https://www.youtube.com/watch?v=II-6dDzc-80',
+                    'do-hoa'         => 'https://www.youtube.com/watch?v=x3zJ0DqKJtQ', // Color Theory
+                    'kinh-doanh'     => 'https://www.youtube.com/watch?v=mEqu4S5FP_Y', // Business Fundamentals
+                    'marketing'      => 'https://www.youtube.com/watch?v=bixR-KIJKYM',
+                    'ngoai-ngu'      => 'https://www.youtube.com/watch?v=V_TnqZoHkFM', // English Grammar
+                    'tieng-anh'      => 'https://www.youtube.com/watch?v=V_TnqZoHkFM',
+                    'tieng-nhat'     => 'https://www.youtube.com/watch?v=6p9Il_j0zjc', // Hiragana
+                    '_default'       => 'https://www.youtube.com/watch?v=SqcY0GlETPk',
+                ],
+                'practice-walkthrough' => [
+                    'lap-trinh-cntt' => 'https://www.youtube.com/watch?v=G3e-cpL7ofc', // Build a website
+                    'web-dev'        => 'https://www.youtube.com/watch?v=G3e-cpL7ofc',
+                    'database'       => 'https://www.youtube.com/watch?v=7S_tz1z_5bA', // SQL Practice
+                    'devops'         => 'https://www.youtube.com/watch?v=fqMOX6JJhGo', // Docker Walkthrough
+                    'mobile-dev'     => 'https://www.youtube.com/watch?v=tye0zhHMl5A', // Flutter App Build
+                    'thiet-ke'       => 'https://www.youtube.com/watch?v=4W4LvJnNegA', // Figma Prototype
+                    'ui-ux'          => 'https://www.youtube.com/watch?v=4W4LvJnNegA',
+                    'do-hoa'         => 'https://www.youtube.com/watch?v=r9sVwRVCDC8', // Design Practice
+                    'kinh-doanh'     => 'https://www.youtube.com/watch?v=XB5OUQO6O_k', // Business Plan Practice
+                    'ngoai-ngu'      => 'https://www.youtube.com/watch?v=HMq2BvAoFns', // English Practice
+                    'tieng-nhat'     => 'https://www.youtube.com/watch?v=6p9Il_j0zjc',
+                    '_default'       => 'https://www.youtube.com/watch?v=G3e-cpL7ofc',
+                ],
+                'live-workshop' => [
+                    'lap-trinh-cntt' => 'https://www.youtube.com/watch?v=PlxWf493en4', // Live coding
+                    'web-dev'        => 'https://www.youtube.com/watch?v=PlxWf493en4',
+                    'database'       => 'https://www.youtube.com/watch?v=9GIbChqqMT0', // SQL Live
+                    'devops'         => 'https://www.youtube.com/watch?v=LFJfC73g2RE', // K8s Live
+                    'mobile-dev'     => 'https://www.youtube.com/watch?v=CDhaS04_kkk', // Flutter Live
+                    'thiet-ke'       => 'https://www.youtube.com/watch?v=Oi9ciYM3Rk8', // Design Workshop
+                    'kinh-doanh'     => 'https://www.youtube.com/watch?v=v80TV8XBOBE', // Business Workshop
+                    'ngoai-ngu'      => 'https://www.youtube.com/watch?v=bCBd_M4aIfA', // Speaking Practice
+                    '_default'       => 'https://www.youtube.com/watch?v=PlxWf493en4',
+                ],
+            ];
         $sectionBlueprints = [
             ['title' => 'Khởi động và định hướng', 'description' => 'Nhìn toàn cảnh khóa học, thiết lập công cụ và đặt mục tiêu học tập rõ ràng.'],
             ['title' => 'Nội dung trọng tâm', 'description' => 'Đi sâu vào các kiến thức cốt lõi qua video, bài thực hành và quiz kiểm tra.'],
@@ -71,13 +145,47 @@ class CourseContentSeeder extends Seeder
             $section = $sections[$blueprint['section']] ?? $sections[1];
             $type = $blueprint['type'];
 
+        $youtubeUrl = null;
+        if (in_array($type, ['video', 'live'], true)) {
+            $catSlug = $course->category?->slug ?? '';
+            $rootSlug = $course->category?->parent?->slug ?? $catSlug;
+            
+            $assetMap = $videoMap[$blueprint['asset']] ?? null;
+            if ($assetMap) {
+                $youtubeUrl = $assetMap[$catSlug] ?? $assetMap[$rootSlug] ?? $assetMap['_default'] ?? null;
+            }
+            
+            if (!$youtubeUrl) {
+                $titleLower = \Illuminate\Support\Str::lower($blueprint['title']);
+                $keywordMap = [
+                    ['keys' => ['tổng quan', 'giới thiệu', 'intro', 'overview'],  'url' => 'https://www.youtube.com/watch?v=zOjov-2OZ0E'],
+                    ['keys' => ['thiết lập', 'cài đặt', 'setup', 'môi trường'],   'url' => 'https://www.youtube.com/watch?v=bMknfKXIFA8'],
+                    ['keys' => ['kiến thức', 'nền tảng', 'core', 'concepts'],     'url' => 'https://www.youtube.com/watch?v=SqcY0GlETPk'],
+                    ['keys' => ['thực hành', 'walkthrough', 'ví dụ mẫu'],          'url' => 'https://www.youtube.com/watch?v=G3e-cpL7ofc'],
+                    ['keys' => ['live', 'workshop', 'chia sẻ'],                    'url' => 'https://www.youtube.com/watch?v=PlxWf493en4'],
+                ];
+                foreach ($keywordMap as $entry) {
+                    foreach ($entry['keys'] as $key) {
+                        if (\Illuminate\Support\Str::contains($titleLower, $key)) {
+                            $youtubeUrl = $entry['url'];
+                            break 2;
+                        }
+                    }
+                }
+                if (!$youtubeUrl) {
+                    $youtubeUrl = 'https://www.youtube.com/watch?v=zOjov-2OZ0E';
+                }
+            }
+        }
+
+
             $payload = [
                 'title' => $blueprint['title'],
                 'description' => $blueprint['description'],
                 'duration' => $blueprint['duration'],
                 'order' => $order,
                 'is_preview' => (bool) ($blueprint['is_preview'] ?? false),
-                'video_url' => in_array($type, ['video', 'live'], true) ? "demo/{$course->slug}/{$blueprint['asset']}.mp4" : null,
+                'video_url' => $youtubeUrl,
                 'section_id' => $section->id,
                 'type' => $type,
                 'video_size' => in_array($type, ['video', 'live'], true) ? (180 + $order * 14) . ' MB' : null,

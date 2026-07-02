@@ -1,0 +1,173 @@
+{
+  "sidebar": {
+    "total_groups": 14,
+    "total_items": 75,
+    "groups": [
+      { "name": "Trang chủ", "url": "/admin", "items": [] },
+      {
+        "name": "Người dùng & Tổ chức",
+        "items": [
+          { "name": "Học viên", "url": "/admin/users" },
+          { "name": "Giảng viên", "url": "/admin/instructors" },
+          { "name": "Sơ đồ tổ chức", "url": "/admin/organization-chart-list" },
+          { "name": "Vị trí chức danh", "url": "/admin/positions" },
+          { "name": "Phân quyền Giảng viên", "url": "/admin/permissions" },
+          { "name": "Tài khoản quản trị", "url": "/admin/admins" },
+          { "name": "Tổ chức & Học vụ", "url": "/admin/academic" },
+          { "name": "Xếp lớp & Ghi danh", "url": "/admin/enrollments" }
+        ]
+      },
+      {
+        "name": "Nội dung & Khóa học",
+        "items": [
+          { "name": "Quản trị nguồn học liệu", "url": "/admin/materials" },
+          { "name": "Quản trị tài liệu tham khảo", "url": "/admin/reference-library" },
+          { "name": "Phân nhóm khóa học", "url": "/admin/categories" },
+          { "name": "Độ khó khóa học", "url": "/admin/course-levels" },
+          { "name": "Danh sách khóa học", "url": "/admin/courses" },
+          { "name": "Xem bài tập đã nộp", "url": "/admin/course-submission" },
+          { "name": "Thuộc tính khóa học", "url": "/admin/rubric-management" }
+        ]
+      },
+      {
+        "name": "Quản trị L&D",
+        "items": [
+          { "name": "Quản lý lớp học", "url": "/admin/lnd/classes" },
+          { "name": "Quản lý lộ trình", "url": "/admin/lnd/learning-paths" },
+          { "name": "Ghi danh lớp/lộ trình", "url": "/admin/lnd/class-path-enrollment" },
+          { "name": "Ghi danh lớp/lộ trình bằng tệp", "url": "/admin/lnd/file-based-enrollment" },
+          { "name": "Quy tắc ghi danh", "url": "/admin/lnd/enrollment-rules" },
+          { "name": "KPI Coaching", "url": "/admin/coaching/kpis" },
+          { "name": "Quản lý Câu hỏi Khảo sát", "url": "/admin/coaching/survey-questions" }
+        ]
+      },
+      {
+        "name": "Chi phí Đào tạo",
+        "items": [
+          { "name": "Kế hoạch Chi phí", "url": "/admin/training-expense/plans" },
+          { "name": "Danh mục Chi phí", "url": "/admin/training-expense/categories" },
+          { "name": "Công thức Bồi hoàn", "url": "/admin/training-expense/formulas" },
+          { "name": "Cam kết Phục vụ", "url": "/admin/training-expense/commitments" },
+          { "name": "Báo cáo Chi phí", "url": "/admin/training-expense/reports" }
+        ]
+      },
+      {
+        "name": "Khảo thí",
+        "items": [
+          { "name": "Cấp độ câu hỏi", "url": "/admin/question-levels" },
+          { "name": "Nhóm câu hỏi", "url": "/admin/question-groups" },
+          { "name": "Ngân hàng câu hỏi", "url": "/admin/question-banks" },
+          { "name": "Danh sách phần thi", "url": "/admin/sections" },
+          { "name": "Danh sách đề thi", "url": "/admin/quizzes" },
+          { "name": "Danh sách kì thi", "url": "/admin/exam-courses" },
+          { "name": "Ca thi", "url": "/admin/exam-sessions" },
+          { "name": "Lịch sử làm bài", "url": "/admin/quizzes/history" }
+        ]
+      },
+      {
+        "name": "Khảo sát",
+        "items": [
+          { "name": "Danh mục khảo sát", "url": "/admin/survey-groups" },
+          { "name": "Danh sách khảo sát", "url": "/admin/surveys" }
+        ]
+      },
+      {
+        "name": "Quản lý chứng chỉ",
+        "items": [
+          { "name": "Danh sách chứng chỉ", "url": "/admin/certificates" },
+          { "name": "Quản lý phông chữ", "url": "/admin/certificates/fonts" },
+          { "name": "Chứng chỉ đã cấp", "url": "/admin/certificates/records" }
+        ]
+      },
+      {
+        "name": "Phân tích & Báo cáo",
+        "items": [
+          { "name": "Cảnh báo sớm", "url": "/admin/learning-analytics" },
+          { "name": "Học viên có nguy cơ", "url": "/admin/learning-analytics/students" },
+          { "name": "Lịch sử can thiệp", "url": "/admin/learning-analytics/interventions" },
+          { "name": "Báo Cáo Khóa Học", "url": "/admin/reports/courses" },
+          { "name": "Báo cáo câu hỏi quiz", "url": "/admin/reports/quiz-questions" },
+          { "name": "Báo cáo nhiệm vụ giảng viên", "url": "/admin/teacher-missions/report" },
+          { "name": "Báo cáo Zoom", "url": "/admin/zoom-report" },
+          { "name": "Báo cáo Diễn đàn", "url": "/admin/reports/forum" }
+        ]
+      },
+      {
+        "name": "Năng lực & Nhân tài",
+        "items": [
+          { "name": "Khung Năng lực", "url": "/admin/competency/framework" },
+          { "name": "Kế hoạch Ứng dụng", "url": "/admin/competency/application-plans" }
+        ]
+      },
+      {
+        "name": "Truyền thông",
+        "items": [
+          { "name": "Quản lý hỗ trợ", "url": "/admin/helpdesk" },
+          { "name": "Phân nhóm tin tức", "url": "/admin/blog-categories" },
+          { "name": "Danh sách tin tức", "url": "/admin/blogs" },
+          { "name": "Gửi thông báo tùy chỉnh", "url": "/admin/send-custom-notification" },
+          { "name": "Cài đặt thông báo", "url": "/admin/notification-settings" },
+          { "name": "Mẫu thông báo", "url": "/admin/notification-templates" },
+          { "name": "Lịch sử Email", "url": "/admin/email-history" }
+        ]
+      },
+      {
+        "name": "Diễn đàn",
+        "items": [
+          { "name": "Xem diễn đàn", "url": "/admin/forum/topics" },
+          { "name": "FAQ diễn đàn", "url": "/admin/forum/faq" },
+          { "name": "Báo cáo FAQ diễn đàn", "url": "/admin/forum/faq/report" },
+          { "name": "Thùng rác", "url": "/admin/forum/deleted" }
+        ]
+      },
+      {
+        "name": "Cài đặt hệ thống",
+        "items": [
+          { "name": "Cài đặt chung", "url": "/admin/system/general-setting" },
+          { "name": "Thiết lập App Mobile", "url": "/admin/system/app-mobile-setup" },
+          { "name": "Cài đặt API", "url": "/admin/system/api-setting" },
+          { "name": "SEO Trang chủ", "url": "/admin/system/homepage-seo" },
+          { "name": "Trường đăng ký", "url": "/admin/system/registration-field" },
+          { "name": "Ngôn ngữ", "url": "/admin/system/language" },
+          { "name": "Địa điểm", "url": "/admin/system/state" },
+          { "name": "Tiền tệ", "url": "/admin/system/currency" },
+          { "name": "Múi giờ", "url": "/admin/system/timezone" },
+          { "name": "Cài đặt Cookie", "url": "/admin/system/cookie-settings" },
+          { "name": "Đăng nhập OAuth", "url": "/admin/system/oauth-settings" },
+          { "name": "Quản lý tệp", "url": "/admin/system/file-explorer" },
+          { "name": "Tác vụ định kỳ", "url": "/admin/scheduler" },
+          { "name": "Cấu hình nhắc nhở giảng viên", "url": "/admin/teacher-reminder/config" },
+          { "name": "Nhật ký nhắc nhở giảng viên", "url": "/admin/teacher-reminder/logs" },
+          { "name": "Nhật ký hệ thống", "url": "/admin/system/audit-logs" },
+          { "name": "Quản lý bộ nhớ đệm", "url": "/admin/system/cache-management" },
+          { "name": "Chính sách bản quyền", "url": "/admin/system/copyright-policy" },
+          { "name": "Quản Lý Riêng Tư", "url": "/admin/system/privacy-management" },
+          { "name": "Tên quyền", "url": "/admin/system/permission-names" },
+          { "name": "Cài đặt AI", "url": "/admin/ai-content/settings" },
+          { "name": "Lịch sử nội dung AI", "url": "/admin/ai-content/history" },
+          { "name": "Tạo bài học bằng AI", "url": "/admin/ai-content/generate-lesson" }
+        ]
+      },
+      {
+        "name": "Cài đặt Frontend",
+        "items": [
+          { "name": "Nội dung trang chủ", "url": "/admin/frontend/home-contents" },
+          { "name": "Danh sách Menu", "url": "/admin/frontend/menus" },
+          { "name": "Slider", "url": "/admin/frontend/sliders" },
+          { "name": "FAQ", "url": "/admin/frontend/faqs" },
+          { "name": "Cảm nhận học viên", "url": "/admin/frontend/testimonials" },
+          { "name": "Trang đăng nhập", "url": "/admin/frontend/login-page" },
+          { "name": "Header & Footer", "url": "/admin/frontend/header-footer" },
+          { "name": "Giao diện", "url": "/admin/frontend/theme" }
+        ]
+      },
+      {
+        "name": "Công việc của tôi",
+        "items": [
+          { "name": "Nhiệm vụ của tôi", "url": "/admin/my-missions" },
+          { "name": "Trò chuyện", "url": "/admin/chat" }
+        ]
+      }
+    ]
+  }
+}

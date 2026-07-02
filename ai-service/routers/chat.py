@@ -29,16 +29,13 @@ async def chat(payload: ChatRequest) -> AIResponse:
         )
 
     provider = (payload.provider or "chatgpt").strip().lower()
-    if provider not in {"chatgpt", "gemini", "openrouter"}:
+    if provider not in {"chatgpt", "gemini", "openrouter", "claude"}:
         raise HTTPException(
             status_code=400,
             detail=f"Provider không hỗ trợ: {provider}",
         )
 
-    # Xác định role dựa trên thông tin có thể có trong request
-    role = None  # Laravel sẽ truyền role trong tương lai
-
-    reply, tokens = await chat_service.chat(payload, role=role)
+    reply, tokens = await chat_service.chat(payload, role=payload.role)
     if not reply:
         raise HTTPException(
             status_code=502,

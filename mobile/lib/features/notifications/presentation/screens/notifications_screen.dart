@@ -70,19 +70,22 @@ class NotificationsScreen extends ConsumerWidget {
         title: const Text('Thông báo'),
         actions: [
           TextButton(
-            onPressed: () {
-              ref.read(studentNotificationsProvider.notifier).markAllAsRead().then((_) {
+            onPressed: () async {
+              try {
+                await ref.read(studentNotificationsProvider.notifier).markAllAsRead();
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Đã đánh dấu đọc tất cả thông báo!'),
                     backgroundColor: Colors.green,
                   ),
                 );
-              }).catchError((e) {
+              } catch (e) {
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
                 );
-              });
+              }
             },
             child: const Text('Đọc tất cả'),
           ),

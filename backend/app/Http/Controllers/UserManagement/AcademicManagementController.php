@@ -39,6 +39,7 @@ class AcademicManagementController extends Controller
         'plos' => ProgramLearningOutcome::class,
         'clos' => CourseLearningOutcome::class,
         'skills' => Skill::class,
+        'exam-enrollments' => \App\Models\ExamEnrollment::class,
     ];
 
     public function index(Request $request, string $resource): JsonResponse
@@ -49,7 +50,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -75,7 +76,13 @@ class AcademicManagementController extends Controller
                 'unit:id,code,name',
                 'cohort:id,code,name,start_year',
                 'advisor:id,name,email,staff_code',
+                'curriculum:id,name,code',
             ])->withCount('students'),
+            'exam-enrollments' => $query->with([
+                'exam:id,title,type',
+                'user:id,name,email,student_code',
+                'enrolledByUser:id,name',
+            ]),
             'cohorts' => $query->with(['program:id,code,name', 'major:id,code,name']),
             'majors' => $query->with(['program:id,code,name']),
             'programs' => $query->with(['unit:id,code,name', 'programType:id,code,name']),
@@ -117,11 +124,17 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $data = $request->validate($this->validationRules($resource, false));
+
+        // Normalize nullable integer fields that have NOT NULL + default in DB
+        if ($resource === 'administrative-classes') {
+            $data['capacity'] = $data['capacity'] ?? 0;
+        }
+
         /** @var Model $record */
         $record = $modelClass::query()->create($data);
 
@@ -136,7 +149,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -161,7 +174,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -318,12 +331,19 @@ class AcademicManagementController extends Controller
                 'major_id' => ['nullable', 'exists:majors,id'],
                 'cohort_id' => [$required, 'exists:cohorts,id'],
                 'advisor_id' => ['nullable', 'exists:users,id'],
+                'curriculum_id' => ['nullable', 'exists:curricula,id'],
                 'code' => [$required, 'string', 'max:100'],
                 'name' => [$required, 'string', 'max:255'],
                 'expected_graduation_year' => ['nullable', 'integer', 'min:2000'],
                 'capacity' => ['nullable', 'integer', 'min:1'],
                 'status' => ['sometimes', 'string', 'max:50'],
                 'description' => ['nullable', 'string'],
+            ],
+            'exam-enrollments' => [
+                'exam_id' => [$required, 'exists:exams,id'],
+                'user_id' => [$required, 'exists:users,id'],
+                'enrolled_by' => ['nullable', 'exists:users,id'],
+                'enrolled_at' => ['nullable', 'date'],
             ],
             'plos' => [
                 'program_id' => [$required, 'exists:programs,id'],

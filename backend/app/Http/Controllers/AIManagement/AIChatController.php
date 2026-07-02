@@ -22,20 +22,33 @@ class AIChatController extends Controller
         $request->validate([
             'message' => 'required|string|max:1000',
             'course_id' => 'nullable|integer',
+            'history' => 'nullable|array|max:20',
+            'history.*.role' => 'required_with:history|string|in:user,assistant',
+            'history.*.content' => 'required_with:history|string|max:2000',
         ]);
 
         $aiSettings = AiSetting::current();
         $aiServiceUrl = config('services.ai_service.url') . '/chat';
         $startTime = microtime(true);
 
+        $user = $request->user();
+        $role = 'student';
+        if ($user->hasRole('admin')) {
+            $role = 'admin';
+        } elseif ($user->hasRole('instructor')) {
+            $role = 'instructor';
+        }
+
         try {
-            $response = Http::timeout(10)->post($aiServiceUrl, [
+            $response = Http::timeout(60)->post($aiServiceUrl, [
                 'message' => $request->message,
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'course_id' => $request->course_id,
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
                 'api_key' => $aiSettings->api_key,
+                'role' => $role,
+                'history' => $request->input('history', []),
                 'context' => $this->buildChatContext($request),
             ]);
 
@@ -46,8 +59,7 @@ class AIChatController extends Controller
                 : 0;
 
             AiRequestLog::create([
-                'user_id' => $request->user()->id,
-                'endpoint' => '/chat',
+                'user_id' => $user->id,                'endpoint' => '/chat',
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
                 'tokens_used' => $tokensUsed,
@@ -72,8 +84,7 @@ class AIChatController extends Controller
             $elapsed = (int) ((microtime(true) - $startTime) * 1000);
 
             AiRequestLog::create([
-                'user_id' => $request->user()->id,
-                'endpoint' => '/chat',
+                'user_id' => $user->id,                'endpoint' => '/chat',
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
                 'tokens_used' => 0,

@@ -454,7 +454,7 @@ onMounted(() => {
     <div class="ds-stack">
 
       <!-- KPI strip -->
-      <div class="ds-stats" style="grid-template-columns: repeat(4, 1fr)">
+      <div class="ds-stats">
         <div class="ds-stat ds-stat--green">
           <p class="ds-stat-label">Tổng người dùng</p>
           <strong class="ds-stat-value">{{ totalUsers }}</strong>

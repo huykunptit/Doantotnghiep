@@ -1,23 +1,42 @@
 :root {
   color-scheme: light;
-  --bg: #EFF2F0;
-  --surface: rgba(240, 244, 242, 0.88);
+
+  /* ── Surfaces ── */
+  --bg: #F0FAF7;
+  --surface: rgba(255, 255, 255, 0.85);
   --surface-strong: #FFFFFF;
-  --text: #1F312B;
-  --muted: #4A6059;
-  --line: #DDE5E1;
-  --line-strong: rgba(31, 49, 43, 0.16);
-  --green: #1D9E75;
-  --primary-rgb: 29, 158, 117;
-  --green-deep: #085041;
-  --green-soft: #E1F5EE;
-  --danger: #E24B4A;
-  --danger-soft: rgba(226, 75, 74, 0.1);
-  --accent: #D85A30;
-  --accent-soft: #FAECE7;
-  --secondary: #378ADD;
-  --secondary-soft: #E6F1FB;
-  --shadow: 0 24px 60px -30px rgba(31, 49, 43, 0.12);
+  --surface-elevated: #FFFFFF;
+
+  /* ── Text ── */
+  --text: #052E22;
+  --text-secondary: #1a4237;
+  --muted: #4e7368;
+
+  /* ── Borders ── */
+  --line: rgba(29, 158, 117, 0.15);
+  --line-strong: rgba(5, 46, 34, 0.15);
+
+  /* ── Brand green ── */
+  --green: #0F6E8C;
+  --green-rgb: 15, 110, 140;
+  --primary-rgb: 15, 110, 140;
+  --green-deep: #0b5167;
+  --green-soft: #D9F1EA;
+  --green-mid: #1D9E75;
+
+  /* ── Semantic ── */
+  --danger: #EF4444;
+  --danger-soft: rgba(239, 68, 68, 0.08);
+  --accent: #F59E0B;
+  --accent-soft: #FEF3C7;
+  --secondary: #6366F1;
+  --secondary-soft: #EEF2FF;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 20px 48px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.06);
+
   accent-color: var(--green);
 }
 
@@ -35,13 +54,13 @@ body,
 
 body {
   margin: 0;
-  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Be Vietnam Pro', system-ui, sans-serif;
   font-weight: 600;
   color: var(--text);
 }
@@ -984,8 +1003,8 @@ input {
 }
 
 .dashboard-card {
-  border-radius: 30px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 18px 20px;
 }
 
 .hero-card {
@@ -1427,16 +1446,41 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px 20px !important;
 }
 
-.crud-page-header h2,
+.crud-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.crud-page-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
 .crud-modal-head h3 {
   margin: 0;
-  font-size: 2rem;
-  letter-spacing: -0.05em;
+  font-size: 1.25rem;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
-.crud-page-header p,
+.crud-page-header p {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
 .crud-breadcrumb,
 .crud-meta,
 .crud-profile p,
@@ -1445,6 +1489,31 @@ input {
 .crud-alert,
 .crud-modal-head p {
   color: var(--muted);
+}
+
+/* Breadcrumbs compact styling */
+.crud-page-header nav {
+  font-size: 0.76rem !important;
+  font-weight: 600;
+}
+
+.crud-page-header nav a {
+  color: var(--muted) !important;
+  transition: color 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crud-page-header nav a:hover {
+  color: var(--green) !important;
+}
+
+.crud-page-header nav svg,
+.crud-page-header nav img {
+  width: 13px !important;
+  height: 13px !important;
+  vertical-align: middle;
 }
 
 .crud-breadcrumb {
@@ -1543,6 +1612,7 @@ input {
   padding: 0 18px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
 
@@ -1786,11 +1856,11 @@ input {
   z-index: 800;
   display: grid;
   place-items: center;
-  background: rgba(10, 20, 15, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(8, 18, 14, 0.55);
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
   padding: 20px;
-  animation: backdrop-in 220ms ease;
+  animation: backdrop-in 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes backdrop-in {
@@ -1802,26 +1872,29 @@ input {
   position: relative;
   z-index: 801;
   width: min(100%, 760px);
-  border-radius: 20px;
+  border-radius: 24px;
   background: var(--surface-strong, #fff);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    0 0 0 1px rgba(0,0,0,0.06),
-    0 8px 16px -4px rgba(0,0,0,0.08),
-    0 32px 72px -16px rgba(0,0,0,0.18);
+    0 12px 30px -10px rgba(8, 20, 15, 0.1),
+    0 30px 65px -15px rgba(8, 20, 15, 0.2),
+    0 0 0 1px rgba(8, 20, 15, 0.04);
   overflow: hidden;
-  animation: modal-in 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* Keep legacy padding so body content stays padded */
-  padding: 0 0 0 0;
+  animation: modal-in 280ms cubic-bezier(0.34, 1.45, 0.64, 1);
+  padding: 0;
 }
 
 @keyframes modal-in {
-  from { opacity: 0; transform: scale(0.95) translateY(12px); }
+  from { opacity: 0; transform: scale(0.96) translateY(16px); }
   to   { opacity: 1; transform: scale(1)    translateY(0); }
 }
 
 [data-theme="dark"] .crud-modal {
-  background: #0f1f17;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.07), 0 32px 72px rgba(0,0,0,0.5);
+  background: var(--surface-strong);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.07);
 }
 
 .crud-modal-wide {
@@ -1829,21 +1902,21 @@ input {
 }
 
 .crud-confirm-modal {
-  width: min(100%, 520px);
+  width: min(100%, 500px);
 }
 
 /* ── Modal header ── */
 .crud-modal-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 24px 18px;
+  padding: 22px 28px;
   background: linear-gradient(135deg,
-    rgba(var(--green-rgb, 29,158,117), 0.07) 0%,
-    rgba(var(--green-rgb, 29,158,117), 0.02) 60%,
+    rgba(29, 158, 117, 0.05) 0%,
+    rgba(29, 158, 117, 0.015) 60%,
     transparent 100%);
-  border-bottom: 1px solid rgba(var(--green-rgb, 29,158,117), 0.12);
+  border-bottom: 1px solid rgba(29, 158, 117, 0.12);
 }
 
 /* Danger variant: add .crud-modal-head.is-danger on the element */
@@ -1852,57 +1925,67 @@ input {
     rgba(226, 75, 74, 0.08) 0%,
     rgba(226, 75, 74, 0.02) 60%,
     transparent 100%);
-  border-bottom-color: rgba(226,75,74,0.15);
+  border-bottom-color: rgba(226, 75, 74, 0.15);
 }
 
 /* Neutral / view variant */
 .crud-modal-head.is-neutral {
   background: linear-gradient(135deg,
-    rgba(var(--primary-rgb), 0.04) 0%, transparent 100%);
+    rgba(29, 158, 117, 0.02) 0%, transparent 100%);
   border-bottom-color: var(--line);
 }
 
-/* ── Modal head typographic reset (override main selector) ── */
+/* ── Modal head typographic reset ── */
 .crud-modal-head h3 {
   margin: 0;
-  font-size: 1.05rem !important;
+  font-size: 1.15rem !important;
   letter-spacing: -0.025em;
-  font-weight: 800;
+  font-weight: 750;
   color: var(--text);
+  line-height: 1.3;
 }
 
 .crud-modal-head p {
   margin: 4px 0 0;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--muted);
 }
 
-/* Close button inside modal head */
-.crud-modal-head .modal-close-btn {
+/* Close button inside modal head & topbar ghost close */
+.crud-modal-head .modal-close-btn,
+.crud-modal-head .topbar-ghost {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--surface-strong);
+  width: 32px; height: 32px;
+  border-radius: 50% !important;
+  border: 1px solid var(--line, rgba(17,17,17,0.08)) !important;
+  background: var(--surface-strong, #ffffff) !important;
   color: var(--muted);
   cursor: pointer;
-  transition: background 150ms, color 150ms, border-color 150ms;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
   flex-shrink: 0;
 }
 
-.crud-modal-head .modal-close-btn:hover {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border-color: rgba(226,75,74,0.2);
+.crud-modal-head .modal-close-btn:hover,
+.crud-modal-head .topbar-ghost:hover {
+  background: var(--danger-soft, rgba(226, 75, 74, 0.1)) !important;
+  color: var(--danger, #E24B4A) !important;
+  border-color: rgba(226, 75, 74, 0.25) !important;
+  transform: rotate(90deg) scale(1.05);
+}
+
+[data-theme="dark"] .crud-modal-head .modal-close-btn,
+[data-theme="dark"] .crud-modal-head .topbar-ghost {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .crud-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  padding: 20px 24px 0;
+  gap: 18px;
+  padding: 24px 28px 4px;
 }
 
 .crud-field {
@@ -1923,14 +2006,14 @@ input {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 24px 20px;
+  gap: 12px;
+  padding: 20px 28px 24px;
   border-top: 1px solid var(--line);
-  margin-top: 20px;
-  background: rgba(var(--green-rgb), 0.018);
+  margin-top: 24px;
+  background: rgba(29, 158, 117, 0.02);
 }
 
-[data-theme="dark"] .crud-modal-foot { border-top-color: rgba(255,255,255,0.07); background: rgba(255,255,255,0.025); }
+[data-theme="dark"] .crud-modal-foot { border-top-color: rgba(255,255,255,0.07); background: rgba(255,255,255,0.02); }
 
 .crud-danger-btn {
   background: var(--danger, #E24B4A);
@@ -2553,36 +2636,41 @@ input {
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Base surfaces */
-  --bg: #0A1A14;
-  --surface: #0F2219;
-  --surface-strong: #142D1F;
-  --text: #E8F5F0;
-  --muted: #9FCFBB;
+  /* ── Surfaces ── */
+  --bg: #091a15;
+  --surface: #102620;
+  --surface-strong: #17332b;
+  --surface-elevated: #1e3f36;
 
-  /* Borders */
-  --line: #1E4030;
-  --line-strong: rgba(30, 64, 48, 0.6);
+  /* ── Text ── */
+  --text: #F0FAF7;
+  --text-secondary: #c2ded6;
+  --muted: #8aa89f;
 
-  /* Brand colors */
+  /* ── Borders ── */
+  --line: rgba(93, 202, 165, 0.15);
+  --line-strong: rgba(255, 255, 255, 0.1);
+
+  /* ── Brand green ── */
   --green: #5DCAA5;
-  --green-deep: #9FE1CB;
-  --green-soft: rgba(93, 202, 165, 0.1);
   --green-rgb: 93, 202, 165;
   --primary-rgb: 93, 202, 165;
+  --green-deep: #3dfcd0;
+  --green-soft: rgba(93, 202, 165, 0.12);
+  --green-mid: #0F6E8C;
 
-  --accent: #F0997B;
-  --accent-soft: rgba(240, 153, 123, 0.1);
+  /* ── Semantic ── */
+  --danger: #F87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --accent: #FBBF24;
+  --accent-soft: rgba(251, 191, 36, 0.12);
+  --secondary: #818CF8;
+  --secondary-soft: rgba(129, 140, 248, 0.12);
 
-  --secondary: #378ADD;
-  --secondary-soft: rgba(55, 138, 221, 0.1);
-
-  /* Danger */
-  --danger: #E24B4A;
-  --danger-soft: rgba(226, 75, 74, 0.12);
-
-  /* Shadow */
-  --shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.5);
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow: 0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4);
 }
 
 /* Dashboard cards in dark */
@@ -2592,15 +2680,14 @@ input {
 }
 
 /* Sidebar */
-[data-theme="dark"] .admin-sidebar,
 [data-theme="dark"] .instructor-sidebar {
-  background: #111613;
+  background: var(--surface-strong);
   border-right-color: rgba(255, 255, 255, 0.07);
 }
 
 /* Topbar */
 [data-theme="dark"] .dashboard-topbar {
-  background: rgba(15, 17, 16, 0.9);
+  background: rgba(30, 33, 40, 0.92);
   border-bottom-color: rgba(255, 255, 255, 0.07);
 }
 
@@ -2665,13 +2752,13 @@ input {
 }
 [data-theme="dark"] .cd-user-btn,
 [data-theme="dark"] .cd-dropdown {
-  background: rgba(26, 30, 27, 0.97);
+  background: var(--surface-elevated);
   border-color: rgba(255,255,255,0.1);
 }
 
 /* Auth forms */
 [data-theme="dark"] .auth-stage {
-  background: #1a1e1b;
+  background: var(--surface-strong);
   border-color: rgba(255, 255, 255, 0.08);
 }
 [data-theme="dark"] .primary-button {
@@ -3108,17 +3195,16 @@ input {
 }
 
 .crud-panel {
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(20px);
+  background: var(--surface-strong, #fff);
   padding: 24px;
-  border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: var(--shadow);
+  border-radius: 16px;
+  border: 1px solid var(--line-strong, rgba(31, 49, 43, 0.16));
+  box-shadow: 0 1px 4px rgba(31, 49, 43, 0.06), 0 4px 16px rgba(31, 49, 43, 0.04);
 }
 
 [data-theme="dark"] .crud-panel {
-  background: rgba(10, 26, 20, 0.25);
-  border-color: rgba(255, 255, 255, 0.05);
+  background: var(--surface-strong);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 /* ─── DataTable Footer (Bootstrap DataTable style) ──────────────────────────── */
@@ -3273,7 +3359,7 @@ input {
 [data-theme="dark"] .topbar-ghost { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); }
 [data-theme="dark"] .sidebar-icon { background: rgba(255, 255, 255, 0.05); }
 [data-theme="dark"] .bar-track { background: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .progress-ring { background: radial-gradient(circle at center, #142D1F 58%, transparent 59%), conic-gradient(var(--green-deep) 0 var(--progress), rgba(255, 255, 255, 0.08) var(--progress) 100%); }
+[data-theme="dark"] .progress-ring { background: radial-gradient(circle at center, var(--surface-strong) 58%, transparent 59%), conic-gradient(var(--green-deep) 0 var(--progress), rgba(255, 255, 255, 0.08) var(--progress) 100%); }
 [data-theme="dark"] .activity-item { background: rgba(255, 255, 255, 0.03); }
 [data-theme="dark"] .chart-gridlines span { border-top-color: rgba(255, 255, 255, 0.08); }
 [data-theme="dark"] .pill-button,
@@ -3299,3 +3385,210 @@ input {
 /* DataTable */
 [data-theme="dark"] .dt-per-page select { background-color: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
 [data-theme="dark"] .dt-page-btn { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+
+/* ── Premium System-wide Dropdown (Select) Styles ── */
+select,
+.crud-select,
+.crud-field select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234A6059' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 16px center !important;
+  background-size: 16px !important;
+  padding-right: 40px !important;
+  cursor: pointer;
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+select:hover,
+.crud-select:hover,
+.crud-field select:hover {
+  border-color: rgba(29, 158, 117, 0.4) !important;
+  background-color: rgba(255, 255, 255, 1) !important;
+}
+
+select:focus,
+.crud-select:focus,
+.crud-field select:focus {
+  outline: none !important;
+  border-color: var(--green, #1D9E75) !important;
+  background-color: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.18) !important;
+}
+
+/* Specific styling for CRUD elements to keep their border radius and heights */
+.crud-select,
+.crud-field select {
+  border-radius: 18px !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(17, 17, 17, 0.08) !important;
+}
+
+.crud-select:hover,
+.crud-field select:hover {
+  border-color: rgba(29, 158, 117, 0.4) !important;
+}
+
+.crud-select:focus,
+.crud-field select:focus {
+  border-color: var(--green, #1D9E75) !important;
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.15) !important;
+}
+
+/* Styling dropdown options */
+select option {
+  background-color: var(--surface-strong, #ffffff);
+  color: var(--text, #1F312B);
+  padding: 12px;
+  font-weight: 500;
+}
+
+/* Dark mode styles */
+[data-theme="dark"] select,
+[data-theme="dark"] .crud-select,
+[data-theme="dark"] .crud-field select {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: var(--text, #ffffff) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23DDE5E1' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+[data-theme="dark"] select:hover,
+[data-theme="dark"] .crud-select:hover,
+[data-theme="dark"] .crud-field select:hover {
+  border-color: rgba(29, 158, 117, 0.6) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] select:focus,
+[data-theme="dark"] .crud-select:focus,
+[data-theme="dark"] .crud-field select:focus {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--green, #1D9E75) !important;
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.3) !important;
+}
+
+[data-theme="dark"] select option {
+  background-color: #161a18;
+  color: #ffffff;
+}
+
+/* ── Premium Global Drag & Drop Upload Styles ── */
+.upload-dropzone {
+  border: 1.5px dashed var(--green, #1D9E75) !important;
+  background: var(--green-soft, #E1F5EE) !important;
+  border-radius: 16px !important;
+  padding: 24px 20px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 1px 2px rgba(31, 49, 43, 0.05) !important;
+  position: relative !important;
+  display: grid !important;
+  justify-items: center !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  gap: 8px !important;
+}
+
+.upload-dropzone:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--green-deep, #085041) !important;
+  background: #d4f0e6 !important;
+  box-shadow: 0 8px 16px -4px rgba(29, 158, 117, 0.15), 0 4px 6px -2px rgba(29, 158, 117, 0.05) !important;
+}
+
+.upload-dropzone-icon {
+  background: rgba(29, 158, 117, 0.12) !important;
+  color: var(--green-deep, #085041) !important;
+  border: 1px solid rgba(29, 158, 117, 0.15) !important;
+  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 1.25rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.upload-dropzone:hover .upload-dropzone-icon {
+  transform: scale(1.05) !important;
+  background: rgba(29, 158, 117, 0.2) !important;
+}
+
+.upload-dropzone strong {
+  font-weight: 600 !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .upload-dropzone {
+  border-color: rgba(29, 158, 117, 0.4) !important;
+  background: rgba(29, 158, 117, 0.06) !important;
+}
+
+[data-theme="dark"] .upload-dropzone:hover {
+  background: rgba(29, 158, 117, 0.1) !important;
+  border-color: var(--green, #1D9E75) !important;
+  box-shadow: 0 8px 16px -4px rgba(29, 158, 117, 0.3) !important;
+}
+
+[data-theme="dark"] .upload-dropzone-icon {
+  background: rgba(29, 158, 117, 0.2) !important;
+  color: #fff !important;
+  border-color: rgba(29, 158, 117, 0.3) !important;
+}
+
+/* Style standard file input buttons globally */
+input[type="file"]::file-selector-button {
+  background-color: var(--green-deep, #085041);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all 0.2s;
+  margin-right: 12px;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background-color: var(--green, #1D9E75);
+}
+
+[data-theme="dark"] input[type="file"]::file-selector-button {
+  background-color: var(--green, #1D9E75);
+}
+
+[data-theme="dark"] input[type="file"]::file-selector-button:hover {
+  background-color: #27c090;
+}
+
+
+/* ══════════════════════════════════════════════════════
+   FIX: UModal (Nuxt UI) centering
+   Tailwind classes used by UModal theme are purged because
+   they live in JS runtime, not scanned Vue templates.
+   We force the correct centering with plain CSS selectors.
+   ══════════════════════════════════════════════════════ */
+
+/* DialogOverlay — full-screen backdrop */
+[data-slot="overlay"] {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+}
+
+/* DialogContent — force center in viewport */
+[data-slot="content"] {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 9001;
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+}

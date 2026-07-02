@@ -96,3 +96,127 @@ async function onImageSelected(event: Event) {
   </ClientOnly>
 </template>
 
+<style scoped>
+.rich-editor {
+  border: 1px solid #dbe6f5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rich-editor__toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background: #f8fbff;
+  border-bottom: 1px solid #dbe6f5;
+  flex-wrap: wrap;
+}
+
+.rich-editor__toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #dbe6f5;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: 0.15s ease;
+}
+
+.rich-editor__toolbar button:hover:not(:disabled) {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.rich-editor__toolbar button.active {
+  background: var(--green, #1d9e75);
+  color: white;
+  border-color: var(--green, #1d9e75);
+}
+
+.rich-editor__toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rich-editor__content {
+  min-height: 200px;
+  padding: 12px;
+}
+
+.rich-editor__content :deep(.rich-editor__content-inner) {
+  outline: none;
+  word-wrap: break-word;
+  min-height: 200px;
+  padding: 8px;
+  line-height: 1.6;
+}
+
+.rich-editor__content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 8px 0;
+}
+
+.rich-editor__content :deep(p) {
+  margin: 8px 0;
+}
+
+.rich-editor__content :deep(h1) {
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin: 12px 0 8px;
+}
+
+.rich-editor__content :deep(h2) {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 12px 0 8px;
+}
+
+.rich-editor__content :deep(ul),
+.rich-editor__content :deep(ol) {
+  margin: 8px 0 8px 24px;
+}
+
+.rich-editor__content :deep(li) {
+  margin: 4px 0;
+}
+
+.rich-editor__content :deep(blockquote) {
+  border-left: 4px solid var(--green, #1d9e75);
+  padding-left: 12px;
+  color: #64748b;
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.rich-editor__content :deep(code) {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.rich-editor__content :deep(pre) {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.rich-editor__content :deep(a) {
+  color: var(--green, #1d9e75);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rich-editor__file-input {
+  display: none;
+}
+</style>

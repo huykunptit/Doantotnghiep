@@ -30,14 +30,18 @@ export function useAdminNavigation() {
         { label: 'Phân quyền', icon: 'shield-check', to: '/admin/roles' },
       ],
     },
-    /*
     {
-      label: 'Tổ chức & Học vụ',
+      label: 'Đào tạo & Học vụ',
       items: [
-        { label: 'Tổ chức & Học vụ', icon: 'building-2', to: '/admin/academic' },
+        { label: 'Danh mục đào tạo', icon: 'library', to: '/admin/academic' },
+        { label: 'Năm học & Học kỳ', icon: 'calendar-days', to: '/admin/lnd/academic-calendar' },
+        { label: 'Chương trình đào tạo', icon: 'layers', to: '/admin/lnd/learning-paths' },
+        { label: 'Lớp hành chính', icon: 'graduation-cap', to: '/admin/lnd/classes' },
+        { label: 'Lớp tín chỉ', icon: 'book-marked', to: '/admin/lnd/course-sections' },
+        { label: 'Ghi danh học phần', icon: 'user-check', to: '/admin/lnd/class-path-enrollment' },
+        { label: 'Báo cáo đào tạo', icon: 'trending-up', to: '/admin/lnd/reports' },
       ],
     },
-    */
     {
       label: 'Khóa học',
       items: [

@@ -106,30 +106,30 @@ onMounted(() => fetchReviews(1))
     :breadcrumb="['Trang chủ', 'Nội dung', 'Đánh giá']"
   >
     <!-- KPI Strip -->
-    <div class="rv-stats">
-      <div class="rv-stat rv-stat--green">
-        <div class="rv-stat-icon"><BarChart2 :size="16" /></div>
-        <p class="rv-stat-label">Tổng đánh giá</p>
-        <strong class="rv-stat-value">{{ totalItems }}</strong>
-        <span class="rv-stat-sub">Trang hiện tại lọc</span>
+    <div class="ds-stats mb-5">
+      <div class="ds-stat ds-stat--green">
+        <div class="ds-stat-icon"><BarChart2 :size="16" /></div>
+        <p class="ds-stat-label">Tổng đánh giá</p>
+        <strong class="ds-stat-value">{{ totalItems }}</strong>
+        <span class="ds-stat-sub">lượt đánh giá</span>
       </div>
-      <div class="rv-stat rv-stat--blue">
-        <div class="rv-stat-icon"><Star :size="16" /></div>
-        <p class="rv-stat-label">Điểm trung bình</p>
-        <strong class="rv-stat-value">{{ avgRating }}</strong>
-        <span class="rv-stat-sub">trên 5 sao</span>
+      <div class="ds-stat ds-stat--blue">
+        <div class="ds-stat-icon"><Star :size="16" /></div>
+        <p class="ds-stat-label">Điểm trung bình</p>
+        <strong class="ds-stat-value">{{ avgRating }}</strong>
+        <span class="ds-stat-sub">trên 5 sao</span>
       </div>
-      <div class="rv-stat rv-stat--green">
-        <div class="rv-stat-icon"><ThumbsUp :size="16" /></div>
-        <p class="rv-stat-label">Tích cực (4-5★)</p>
-        <strong class="rv-stat-value">{{ positivePercent }}<small>%</small></strong>
-        <span class="rv-stat-sub">{{ positiveCount }} đánh giá</span>
+      <div class="ds-stat ds-stat--green">
+        <div class="ds-stat-icon"><ThumbsUp :size="16" /></div>
+        <p class="ds-stat-label">Tích cực (4-5★)</p>
+        <strong class="ds-stat-value">{{ positivePercent }}<small>%</small></strong>
+        <span class="ds-stat-sub">{{ positiveCount }} đánh giá</span>
       </div>
-      <div class="rv-stat rv-stat--red">
-        <div class="rv-stat-icon"><ThumbsDown :size="16" /></div>
-        <p class="rv-stat-label">Tiêu cực (1-2★)</p>
-        <strong class="rv-stat-value">{{ negativePercent }}<small>%</small></strong>
-        <span class="rv-stat-sub">{{ negativeCount }} đánh giá</span>
+      <div class="ds-stat ds-stat--red">
+        <div class="ds-stat-icon"><ThumbsDown :size="16" /></div>
+        <p class="ds-stat-label">Tiêu cực (1-2★)</p>
+        <strong class="ds-stat-value">{{ negativePercent }}<small>%</small></strong>
+        <span class="ds-stat-sub">{{ negativeCount }} đánh giá</span>
       </div>
     </div>
 
@@ -247,73 +247,6 @@ onMounted(() => fetchReviews(1))
 </template>
 
 <style scoped>
-/* ── KPI Stats ── */
-.rv-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.rv-stat {
-  background: var(--surface-strong, #fff);
-  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
-  border-radius: 14px;
-  padding: 18px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  position: relative;
-  overflow: hidden;
-}
-
-.rv-stat::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 14px 14px 0 0;
-}
-
-.rv-stat--green::before { background: var(--green, #1d9e75); }
-.rv-stat--blue::before  { background: #378add; }
-.rv-stat--red::before   { background: #ef4444; }
-
-.rv-stat-icon {
-  display: flex;
-  align-items: center;
-  color: var(--muted);
-  margin-bottom: 4px;
-}
-
-.rv-stat-label {
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.rv-stat-value {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
-  line-height: 1;
-}
-
-.rv-stat-value small {
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.rv-stat-sub {
-  font-size: 0.76rem;
-  color: var(--muted);
-}
-
 /* ── Skeleton ── */
 .rv-grid {
   display: grid;
@@ -502,7 +435,7 @@ onMounted(() => fetchReviews(1))
   border-color: rgba(255,255,255,0.1);
 }
 
-[data-theme="dark"] .rv-card--positive { border-left-color: #34d399; }
+[data-theme="dark"] .rv-card--positive { border-left-color: #5DCAA5; }
 [data-theme="dark"] .rv-card--neutral  { border-left-color: #fbbf24; }
 [data-theme="dark"] .rv-card--negative { border-left-color: #f87171; }
 

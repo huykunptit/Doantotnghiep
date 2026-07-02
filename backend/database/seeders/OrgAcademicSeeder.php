@@ -114,6 +114,27 @@ class OrgAcademicSeeder extends Seeder
             ['name' => 'Chính quy', 'is_active' => true]
         );
 
+        ProgramType::query()->updateOrCreate(
+            ['code' => 'TU_XA'],
+            ['name' => 'Từ xa', 'is_active' => true]
+        );
+        ProgramType::query()->updateOrCreate(
+            ['code' => 'VHVL'],
+            ['name' => 'Vừa học vừa làm', 'is_active' => true]
+        );
+        ProgramType::query()->updateOrCreate(
+            ['code' => 'LIEN_KET_DN'],
+            ['name' => 'Liên kết doanh nghiệp', 'is_active' => true]
+        );
+        ProgramType::query()->updateOrCreate(
+            ['code' => 'LIEN_THONG'],
+            ['name' => 'Liên thông', 'is_active' => true]
+        );
+        ProgramType::query()->updateOrCreate(
+            ['code' => 'CHAT_LUONG_CAO'],
+            ['name' => 'Chất lượng cao', 'is_active' => true]
+        );
+
         // 3 chương trình + 9 chuyên ngành (khớp chuong_trinh_hoc.json)
         // Lưu ý: program code DTVT là alias của KTDTVT trong JSON
         $programDefs = [

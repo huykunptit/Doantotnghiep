@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import { Users, PlayCircle, PauseCircle, CheckCircle, XCircle } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'admin' })
 
@@ -144,28 +145,38 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
 
     <template v-else>
       <!-- Summary cards -->
-      <section v-if="monitorData" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1rem;">
-        <div class="dashboard-card" style="padding: 1rem; text-align: center;">
-          <div style="font-size: 2rem; font-weight: 800;">{{ monitorData.summary?.total || 0 }}</div>
-          <div style="font-size: 0.8rem; color: #666;">Tổng thí sinh</div>
+      <div v-if="monitorData" class="ds-stats mb-4">
+        <div class="ds-stat ds-stat--blue">
+          <div class="ds-stat-icon"><Users :size="16" /></div>
+          <p class="ds-stat-label">Tổng thí sinh</p>
+          <strong class="ds-stat-value">{{ monitorData.summary?.total || 0 }}</strong>
+          <span class="ds-stat-sub">đã đăng ký</span>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid var(--green);">
-          <div style="font-size: 2rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.in_progress || 0 }}</div>
-          <div style="font-size: 0.8rem; color: #666;">Đang thi</div>
+        <div class="ds-stat ds-stat--green">
+          <div class="ds-stat-icon"><PlayCircle :size="16" /></div>
+          <p class="ds-stat-label">Đang thi</p>
+          <strong class="ds-stat-value">{{ monitorData.summary?.in_progress || 0 }}</strong>
+          <span class="ds-stat-sub">thí sinh</span>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #ff9800;">
-          <div style="font-size: 2rem; font-weight: 800; color: #ff9800;">{{ monitorData.summary?.paused || 0 }}</div>
-          <div style="font-size: 0.8rem; color: #666;">Tạm dừng</div>
+        <div class="ds-stat ds-stat--amber">
+          <div class="ds-stat-icon"><PauseCircle :size="16" /></div>
+          <p class="ds-stat-label">Tạm dừng</p>
+          <strong class="ds-stat-value">{{ monitorData.summary?.paused || 0 }}</strong>
+          <span class="ds-stat-sub">thí sinh</span>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid var(--green);">
-          <div style="font-size: 2rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.submitted || 0 }}</div>
-          <div style="font-size: 0.8rem; color: #666;">Đã nộp</div>
+        <div class="ds-stat ds-stat--green">
+          <div class="ds-stat-icon"><CheckCircle :size="16" /></div>
+          <p class="ds-stat-label">Đã nộp</p>
+          <strong class="ds-stat-value">{{ monitorData.summary?.submitted || 0 }}</strong>
+          <span class="ds-stat-sub">thí sinh</span>
         </div>
-        <div class="dashboard-card" style="padding: 1rem; text-align: center; border-left: 3px solid #f44336;">
-          <div style="font-size: 2rem; font-weight: 800; color: #f44336;">{{ monitorData.summary?.force_stopped || 0 }}</div>
-          <div style="font-size: 0.8rem; color: #666;">Bị dừng</div>
+        <div class="ds-stat ds-stat--red">
+          <div class="ds-stat-icon"><XCircle :size="16" /></div>
+          <p class="ds-stat-label">Bị dừng</p>
+          <strong class="ds-stat-value">{{ monitorData.summary?.force_stopped || 0 }}</strong>
+          <span class="ds-stat-sub">thí sinh</span>
         </div>
-      </section>
+      </div>
 
       <!-- Attempts table -->
       <section class="dashboard-card crud-panel">

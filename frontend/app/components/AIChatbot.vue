@@ -157,9 +157,14 @@ async function sendMessage() {
   scrollToBottom()
 
   try {
+    const history = messages
+      .slice(1)  // bỏ tin nhắn chào đầu tiên
+      .slice(-10) // giữ tối đa 10 tin nhắn gần nhất
+      .map(m => ({ role: m.role, content: m.text }))
+
     const res = await useApi<any>('/ai/chat', {
       method: 'POST',
-      body: { message: text },
+      body: { message: text, history },
       token: auth.token,
     })
     messages.push({ role: 'assistant', text: res.reply || 'Hệ thống chưa có phản hồi cho yêu cầu này.' })

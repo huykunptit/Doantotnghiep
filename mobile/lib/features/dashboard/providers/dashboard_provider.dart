@@ -1,6 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/models/dashboard_model.dart';
 import '../data/models/transcript_model.dart';
+import '../data/models/learning_path_model.dart';
+import '../data/models/attendance_model.dart';
 import '../data/repositories/dashboard_repository.dart';
 
 part 'dashboard_provider.g.dart';
@@ -13,4 +15,14 @@ Future<DashboardModel> studentDashboard(StudentDashboardRef ref) {
 @riverpod
 Future<TranscriptModel> studentTranscript(StudentTranscriptRef ref) {
   return ref.read(dashboardRepositoryProvider).getTranscript();
+}
+
+@riverpod
+Future<LearningPathModel> studentLearningPath(StudentLearningPathRef ref) {
+  return ref.read(dashboardRepositoryProvider).getLearningPath();
+}
+
+@riverpod
+Future<List<AttendanceHistoryItemModel>> studentAttendanceHistory(StudentAttendanceHistoryRef ref) {
+  return ref.read(dashboardRepositoryProvider).getAttendanceHistory();
 }

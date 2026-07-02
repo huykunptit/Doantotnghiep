@@ -1,13 +1,12 @@
 <template>
-  <section class="crud-page">
-    <header class="crud-page-header dashboard-card">
-      <div>
-        <p class="section-kicker">Giảng viên</p>
-        <h2>Đợt thi & đánh giá</h2>
-        <p>Quản lý ngân hàng câu hỏi, đề kiểm tra và kỳ thi độc lập theo từng khóa học.</p>
-      </div>
+  <InstructorWorkspaceShell
+    title="Đợt thi & đánh giá"
+    description="Quản lý ngân hàng câu hỏi, đề kiểm tra và kỳ thi độc lập theo từng khóa học."
+    :breadcrumb="['Trang chủ', 'Đợt thi & đánh giá']"
+  >
+    <template #actions>
       <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Xem khóa học</NuxtLink>
-    </header>
+    </template>
 
     <section class="dashboard-card crud-panel">
       <div class="crud-toolbar">
@@ -59,10 +58,11 @@
         </table>
       </div>
     </section>
-  </section>
+  </InstructorWorkspaceShell>
 </template>
 
 <script setup lang="ts">
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
 const courseStore = useCourseStore()

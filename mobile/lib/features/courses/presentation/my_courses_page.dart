@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/my_courses_provider.dart';
 import '../data/models/enrollment_model.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_spacing.dart';
 
 class MyCoursesPage extends ConsumerWidget {
   const MyCoursesPage({super.key});
@@ -20,30 +22,70 @@ class MyCoursesPage extends ConsumerWidget {
       ),
       body: enrollmentsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorView(
-          message: e.toString(),
-          onRetry: () => ref.invalidate(myEnrollmentsProvider),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                AppSpacing.h12,
+                Text(e.toString(), textAlign: TextAlign.center),
+                AppSpacing.h16,
+                FilledButton.icon(
+                  onPressed: () => ref.invalidate(myEnrollmentsProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          ),
         ),
         data: (enrollments) {
           if (enrollments.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.school_outlined, size: 64, color: theme.colorScheme.outline),
-                  const SizedBox(height: 16),
-                  Text('Bạn chưa đăng ký khoá học nào', style: theme.textTheme.bodyLarge),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.school_outlined, size: 40, color: AppColors.primary400),
+                    ),
+                    AppSpacing.h20,
+                    Text('Chưa có khoá học nào',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    AppSpacing.h8,
+                    Text('Khám phá khoá học và bắt đầu hành trình học tập của bạn.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant, height: 1.5),
+                        textAlign: TextAlign.center),
+                    AppSpacing.h24,
+                    FilledButton.icon(
+                      onPressed: () => context.go('/catalog'),
+                      icon: const Icon(Icons.explore_outlined, size: 18),
+                      label: const Text('Khám phá khoá học'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary400,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               itemCount: enrollments.length,
-              itemBuilder: (context, index) =>
-                  _EnrollmentCard(enrollment: enrollments[index]),
+              itemBuilder: (context, index) => _EnrollmentCard(enrollment: enrollments[index]),
             ),
           );
         },
@@ -54,147 +96,116 @@ class MyCoursesPage extends ConsumerWidget {
 
 class _EnrollmentCard extends StatelessWidget {
   const _EnrollmentCard({required this.enrollment});
-
   final EnrollmentModel enrollment;
 
   @override
   Widget build(BuildContext context) {
     final course = enrollment.course;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final progress = enrollment.progress / 100;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
+        boxShadow: isDark ? [] : [
+          BoxShadow(color: AppColors.neutral800.withValues(alpha: 0.05),
+              blurRadius: 10, offset: const Offset(0, 2)),
+        ],
+      ),
       child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () => context.push('/courses/${course.id}'),
-        child: Row(
-          children: [
-            if (course.thumbnail != null)
-              CachedNetworkImage(
-                imageUrl: course.thumbnail!,
-                width: 100,
-                height: 80,
-                fit: BoxFit.cover,
-                errorWidget: (context, url, error) => _ThumbnailPlaceholder(),
-              )
-            else
-              _ThumbnailPlaceholder(),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Thumbnail
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 88, height: 72,
+                  child: course.thumbnail != null
+                      ? CachedNetworkImage(
+                          imageUrl: course.thumbnail!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => _placeholder(),
+                        )
+                      : _placeholder(),
+                ),
+              ),
+              AppSpacing.w12,
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      course.title,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
+                    Text(course.title,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700, height: 1.3),
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    AppSpacing.h8,
                     Row(
                       children: [
                         Icon(
                           course.courseMode == 'online'
-                              ? Icons.laptop_outlined
-                              : Icons.location_on_outlined,
-                          size: 14,
-                          color: theme.colorScheme.primary,
+                              ? Icons.wifi_rounded : Icons.location_on_outlined,
+                          size: 13, color: AppColors.primary400,
                         ),
-                        const SizedBox(width: 4),
+                        AppSpacing.w4,
                         Text(
                           course.courseMode == 'online' ? 'Online' : 'Offline',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                          ),
+                          style: TextStyle(fontSize: 11, color: AppColors.primary400, fontWeight: FontWeight.w600),
                         ),
                         if (course.creditValue != null) ...[
-                          const SizedBox(width: 12),
-                          Text(
-                            '${course.creditValue} tín chỉ',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
+                          AppSpacing.w8,
+                          Text('• ${course.creditValue} TC',
+                              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11,
+                                  color: theme.colorScheme.onSurfaceVariant)),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    AppSpacing.h8,
                     Row(
                       children: [
                         Expanded(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
-                              value: enrollment.progress / 100,
-                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                              valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
-                              minHeight: 6,
+                              value: progress,
+                              backgroundColor: AppColors.neutral100,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  progress >= 1.0 ? AppColors.success : AppColors.primary400),
+                              minHeight: 5,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${enrollment.progress.toStringAsFixed(0)}%',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
+                        AppSpacing.w8,
+                        Text('${enrollment.progress.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w700,
+                              color: progress >= 1.0 ? AppColors.success : AppColors.primary400,
+                            )),
                       ],
                     ),
                   ],
                 ),
               ),
-            ),
-            const Icon(Icons.chevron_right),
-            const SizedBox(width: 8),
-          ],
+              const Icon(Icons.chevron_right, size: 18, color: AppColors.neutral400),
+            ],
+          ),
         ),
       ),
     );
   }
-}
 
-class _ThumbnailPlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
+  Widget _placeholder() {
     return Container(
-      width: 100,
-      height: 80,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Icon(Icons.play_circle_outline,
-          color: Theme.of(context).colorScheme.outline),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Thử lại'),
-            ),
-          ],
-        ),
-      ),
+      color: AppColors.primary50,
+      child: const Icon(Icons.play_circle_outline_rounded, color: AppColors.primary200, size: 28),
     );
   }
 }

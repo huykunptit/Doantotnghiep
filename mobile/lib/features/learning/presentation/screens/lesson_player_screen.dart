@@ -463,7 +463,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                               .read(lessonNotesProvider(widget.courseId, widget.lessonId).notifier)
                               .removeNote(note.id);
                         } catch (e) {
-                          if (mounted) {
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
                             );

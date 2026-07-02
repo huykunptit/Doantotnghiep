@@ -155,7 +155,7 @@ async function loadFilterData() {
       selectedProgramId.value = programs.value[0].id
     }
   } catch (e: any) {
-    toast.error('Không thể tải thông tin hệ đào tạo/ngành.')
+    toast.error('Không thể tải thông tin chương trình đào tạo/ngành.')
   } finally {
     loading.value = false
   }
@@ -405,9 +405,9 @@ async function removeCourseFromCurriculum(ccId: Id) {
 
 <template>
   <AdminWorkspaceShell
-    title="Quản Lý Lộ Trình Đào Tạo"
-    description="Thiết kế và chuẩn hóa khung chương trình học theo kỳ cho học viên"
-    :breadcrumb="['Trang chủ', 'Đào tạo', 'Lộ Trình Đào Tạo']"
+    title="Chương Trình Đào Tạo"
+    description="Thiết kế và chuẩn hóa khung chương trình học theo học kỳ cho từng ngành."
+    :breadcrumb="['Trang chủ', 'Đào tạo & Học vụ', 'Chương Trình Đào Tạo']"
   >
     <template #actions>
       <button class="crud-primary-btn" @click="openCreateModal">
@@ -419,7 +419,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
     <div class="lnd-filters dashboard-card">
       <div class="filter-group">
         <label class="crud-field">
-          <span>Hệ đào tạo</span>
+          <span>Chương trình đào tạo</span>
           <select v-model="selectedProgramId" :disabled="loading">
             <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }} ({{ p.code }})</option>
           </select>
@@ -594,7 +594,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
 
               <div class="um-vp-grid" style="margin-top: 24px;">
                 <div class="um-vp-field">
-                  <label>Hệ đào tạo</label>
+                  <label>Chương trình đào tạo</label>
                   <p>{{ selectedCurriculum?.program?.name || '—' }}</p>
                 </div>
                 <div class="um-vp-field">
@@ -631,9 +631,9 @@ async function removeCourseFromCurriculum(ccId: Id) {
                   <input v-model="curriculumForm.code" placeholder="Ví dụ: CNTT_2026" v-else>
                 </label>
               <label class="crud-field crud-field-full">
-                <span>Hệ đào tạo *</span>
+                <span>Chương trình đào tạo *</span>
                 <select v-model="curriculumForm.program_id">
-                  <option value="">-- Chọn hệ đào tạo --</option>
+                  <option value="">-- Chọn chương trình đào tạo --</option>
                   <option v-for="p in programs" :key="p.id" :value="p.id">{{ p.name }}</option>
                 </select>
               </label>

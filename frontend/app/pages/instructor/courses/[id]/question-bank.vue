@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
+
 const route = useRoute()
 const courseId = route.params.id
 
@@ -9,18 +11,18 @@ definePageMeta({
 </script>
 
 <template>
-  <section class="crud-page">
-    <header class="crud-page-header dashboard-card">
-      <div>
-        <p class="section-kicker">Giảng viên</p>
-        <h2>Ngân hàng câu hỏi</h2>
-        <p>Quản lý bộ câu hỏi cho khoá học #{{ courseId }}</p>
-      </div>
+  <InstructorWorkspaceShell
+    title="Ngân hàng câu hỏi"
+    :description="`Quản lý bộ câu hỏi cho khoá học #${courseId}`"
+    :breadcrumb="['Trang chủ', 'Khóa học', 'Ngân hàng câu hỏi']"
+  >
+    <template #actions>
       <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="crud-secondary-btn">
-        ← Quay lại Curriculum
+        <span class="material-symbols-outlined">arrow_back</span>
+        Quay lại Curriculum
       </NuxtLink>
-    </header>
+    </template>
 
     <QuestionBankManager :course-id="Number(courseId)" />
-  </section>
+  </InstructorWorkspaceShell>
 </template>

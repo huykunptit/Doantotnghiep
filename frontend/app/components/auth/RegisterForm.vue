@@ -161,7 +161,7 @@ async function handleGoogleLogin() {
 </template>
 
 <style scoped>
-.rf { display: flex; flex-direction: column; gap: 16px; }
+.rf { display: flex; flex-direction: column; gap: 10px; }
 
 .rf-alert {
   padding: 12px 16px;
@@ -204,8 +204,8 @@ async function handleGoogleLogin() {
   text-transform: uppercase; letter-spacing: 0.12em;
 }
 
-.rf-form { display: flex; flex-direction: column; gap: 13px; }
-.rf-field { display: flex; flex-direction: column; gap: 6px; }
+.rf-form { display: flex; flex-direction: column; gap: 9px; }
+.rf-field { display: flex; flex-direction: column; gap: 4px; }
 .rf-label { font-size: 0.875rem; font-weight: 600; color: var(--text); }
 
 .rf-input {

@@ -1,112 +1,123 @@
 <template>
-  <section class="crud-page">
-    <!-- Page Header -->
-    <header class="crud-page-header dashboard-card">
-      <div>
-        <p class="section-kicker">Giảng viên / Studio Giáo trình</p>
-        <h2>{{ course?.title || 'Studio Giáo trình' }}</h2>
-        <p>Quản lý cấu trúc chương học, bài giảng và tài nguyên của khóa học.</p>
-        <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
-          <StatusBadge :value="course?.status || 'draft'" v-if="course" />
-        </div>
+  <InstructorWorkspaceShell
+    :title="course?.title || 'Studio Giáo trình'"
+    description="Quản lý cấu trúc chương học, bài giảng và tài nguyên của khóa học."
+    :breadcrumb="['Trang chủ', 'Khóa học', 'Giáo trình']"
+  >
+    <template #actions>
+      <StatusBadge v-if="course" :value="course.status || 'draft'" />
+      
+      <NuxtLink to="/instructor/courses" class="studio-topbar-btn is-secondary">
+        <ArrowLeft :size="15" />
+        <span>Quay lại</span>
+      </NuxtLink>
+      
+      <button class="studio-topbar-btn is-secondary" @click="previewCourse">
+        <Eye :size="15" />
+        <span>Xem trước</span>
+      </button>
+      
+      <button
+        v-if="course?.status === 'draft' || course?.status === 'rejected'"
+        :disabled="submitting"
+        class="studio-topbar-btn is-primary"
+        @click="submitForReview"
+      >
+        <Rocket :size="15" />
+        <span>{{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}</span>
+      </button>
+    </template>
+
+    <!-- Main Content Layout Grid -->
+    <div class="curriculum-workspace-grid">
+      <!-- Left side: Curriculum Studio Workspace -->
+      <div class="curriculum-studio-area">
+        <CurriculumStudio
+          ref="studioRef"
+          :course-id="courseId"
+          @upload-video="handleUploadTrigger"
+        />
       </div>
-      <div style="display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap;">
-        <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Quay lại</NuxtLink>
-        <button
-          class="crud-secondary-btn"
-          style="display:flex; align-items:center; gap:6px;"
-          @click="previewCourse"
-        >
-          <span class="material-symbols-outlined" style="font-size:18px;">visibility</span>
-          Xem trước
-        </button>
-        <button
-          v-if="course?.status === 'draft' || course?.status === 'rejected'"
-          :disabled="submitting"
-          class="crud-primary-btn"
-          style="display:flex; align-items:center; gap:6px;"
-          @click="submitForReview"
-        >
-          <span class="material-symbols-outlined" style="font-size:18px;">rocket_launch</span>
-          {{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}
-        </button>
-      </div>
-    </header>
 
-    <!-- Main Content Grid -->
-    <div style="display:grid; grid-template-columns:1fr; gap:20px;">
-      <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:20px;" class="curriculum-content-wrap">
-        <!-- Studio -->
-        <div>
-          <CurriculumStudio
-            ref="studioRef"
-            :course-id="courseId"
-            @upload-video="handleUploadTrigger"
-          />
-        </div>
+      <!-- Right side: Studio Guide Sidebar -->
+      <aside class="curriculum-guide-sidebar">
+        <div class="studio-guide-card">
+          <div class="guide-header">
+            <span class="guide-kicker">Studio Guide</span>
+            <h3 class="guide-title">Hướng dẫn nhanh</h3>
+          </div>
 
-        <!-- Guide Sidebar -->
-        <div>
-          <div class="dashboard-card" style="position:sticky; top:24px; display:grid; gap:18px;">
-            <div>
-              <p class="section-kicker">Studio Guide</p>
-              <h3 style="margin:4px 0 0; font-size:1.2rem; letter-spacing:-0.03em;">Hướng dẫn nhanh</h3>
-            </div>
-
-            <div style="display:grid; gap:12px;">
-              <div v-for="(tip, i) in tips" :key="i" class="week-one-item week-one-item is-static" style="flex-direction:column; align-items:flex-start; gap:10px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <div style="width:32px;height:32px;border-radius:10px;background:rgba(var(--green-rgb),0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <span class="material-symbols-outlined" style="font-size:16px;color:var(--green-deep);">{{ tip.icon }}</span>
-                  </div>
-                  <strong style="font-size:0.88rem;">{{ tip.title }}</strong>
+          <div class="guide-tips-list">
+            <div v-for="(tip, i) in tips" :key="i" class="guide-tip-item">
+              <div class="tip-header-row">
+                <div class="tip-icon-box">
+                  <component :is="tip.icon" :size="15" />
                 </div>
-                <p style="margin:0;font-size:0.8rem;color:var(--muted);line-height:1.6;">{{ tip.desc }}</p>
+                <strong class="tip-title-text">{{ tip.title }}</strong>
               </div>
-            </div>
-
-            <div style="padding:16px;background:rgba(var(--green-rgb),0.06);border-radius:16px;border:1px solid rgba(var(--green-rgb),0.12);">
-              <p class="sidebar-eyebrow" style="margin:0 0 6px;">Lời khuyên</p>
-              <p style="margin:0;font-size:0.8rem;color:var(--muted);line-height:1.7;font-style:italic;">"Một giáo trình tốt bắt đầu từ sự rõ ràng. Hãy chia nhỏ nội dung vào các Chương để học viên không bị ngợp."</p>
+              <p class="tip-desc-text">{{ tip.desc }}</p>
             </div>
           </div>
+
+          <div class="guide-quote-box">
+            <div class="quote-header">
+              <Lightbulb :size="14" />
+              <span class="quote-kicker-text">Lời khuyên sư phạm</span>
+            </div>
+            <p class="quote-paragraph">"Một giáo trình tốt bắt đầu từ sự rõ ràng và lộ trình hợp lý. Hãy chia nhỏ bài học thành các chương mục để học viên không bị quá tải kiến thức."</p>
+          </div>
         </div>
-      </div>
+      </aside>
     </div>
 
-    <!-- Video Upload Modal -->
+    <!-- Video Upload Modal (Teleport to Body) -->
     <Teleport to="body">
-      <div v-if="showUploadModal" class="crud-modal-backdrop" @click.self="closeUploadModal">
-        <div class="crud-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">Upload Video</p>
-              <h3>Tải lên Bài giảng</h3>
-              <p class="crud-meta" style="margin:4px 0 0; display:block;">{{ uploadingLesson?.title }}</p>
+      <Transition name="fade">
+        <div v-if="showUploadModal" class="studio-modal-backdrop" @click.self="closeUploadModal">
+          <div class="studio-modal-card is-uploader">
+            <div class="modal-header">
+              <div>
+                <span class="modal-subtitle-tag">Upload Video</span>
+                <h3 class="modal-title-text">Tải lên bài giảng</h3>
+                <span class="uploader-lesson-meta">{{ uploadingLesson?.title }}</span>
+              </div>
+              <button class="modal-close-x-btn" type="button" @click="closeUploadModal">✕</button>
             </div>
-            <button class="topbar-ghost" type="button" @click="closeUploadModal">✕</button>
+            
+            <div class="uploader-modal-body">
+              <VideoUploader
+                v-if="uploadingLesson"
+                :course-id="courseId"
+                :lesson-id="uploadingLesson.id"
+                :existing-video-url="uploadingLesson.video_url"
+                @uploaded="handleVideoUploaded"
+                @error="handleUploadError"
+              />
+            </div>
           </div>
-          <VideoUploader
-            v-if="uploadingLesson"
-            :course-id="courseId"
-            :lesson-id="uploadingLesson.id"
-            :existing-video-url="uploadingLesson.video_url"
-            @uploaded="handleVideoUploaded"
-            @error="handleUploadError"
-          />
         </div>
-      </div>
+      </Transition>
     </Teleport>
-  </section>
+  </InstructorWorkspaceShell>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { 
+  ArrowLeft, 
+  Eye, 
+  Rocket, 
+  PlayCircle, 
+  Zap, 
+  CheckSquare, 
+  Lightbulb 
+} from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import CurriculumStudio from '~/components/course/CurriculumStudio.vue'
 import VideoUploader from '~/components/VideoUploader.vue'
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -121,9 +132,9 @@ const uploadingLesson = ref<any>(null)
 const submitting = ref(false)
 
 const tips = [
-  { icon: 'play_lesson', title: 'Video Preview', desc: 'Chọn ít nhất 1-2 bài học miễn phí để học viên dễ dàng quyết định mua khóa học.' },
-  { icon: 'speed', title: 'Xử lý Media', desc: 'Hệ thống sẽ tự động nén và tối ưu hóa video sau khi tải lên. Vui lòng đợi trong giây lát.' },
-  { icon: 'checklist', title: 'Danh mục', desc: 'Phân chia bài học vào các chương (Section) một cách logic giúp tỷ lệ hoàn thành cao hơn.' },
+  { icon: PlayCircle, title: 'Video Preview', desc: 'Chọn ít nhất 1-2 bài học miễn phí để học viên dễ dàng xem thử trước khi quyết định đăng ký khóa học.' },
+  { icon: Zap, title: 'Xử lý Media', desc: 'Hệ thống tự động chuyển mã, nén và tối ưu hóa video sau khi tải lên để đảm bảo tốc độ tải mượt mà.' },
+  { icon: CheckSquare, title: 'Phân chia bài giảng', desc: 'Sắp xếp nội dung một cách khoa học theo cấu trúc chương mục tăng tỷ lệ hoàn thành học tập.' },
 ]
 
 const loadCourse = async () => {
@@ -168,9 +179,9 @@ async function submitForReview() {
       headers: { Authorization: `Bearer ${auth.token}` },
     })
     course.value = res.course
-    alert('Gửi duyệt thành công! Vui lòng đợi kết quả từ Admin.')
+    alert('Gửi duyệt thành công! Vui lòng đợi kết quả kiểm duyệt từ Admin.')
   } catch (error: any) {
-    alert(error?.data?.message || 'Có lỗi khi gửi duyệt.')
+    alert(error?.data?.message || 'Có lỗi xảy ra khi gửi yêu cầu kiểm duyệt.')
   } finally {
     submitting.value = false
   }
@@ -178,12 +189,201 @@ async function submitForReview() {
 </script>
 
 <style scoped>
-.curriculum-content-wrap {
+.curriculum-workspace-grid {
+  display: grid;
   grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
 }
+
 @media (min-width: 1280px) {
-  .curriculum-content-wrap {
-    grid-template-columns: minmax(0, 2fr) 360px;
+  .curriculum-workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 360px;
   }
+}
+
+/* Sidebar styling */
+.curriculum-guide-sidebar {
+  position: sticky;
+  top: 24px;
+}
+
+.studio-guide-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.guide-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guide-kicker {
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--green);
+}
+
+.guide-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 850;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.guide-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.guide-tip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+}
+
+.tip-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tip-icon-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tip-title-text {
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: var(--text);
+}
+
+.tip-desc-text {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* Quote box styling */
+.guide-quote-box {
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(29, 158, 117, 0.04), rgba(29, 158, 117, 0.01));
+  border: 1px solid rgba(29, 158, 117, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quote-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green);
+}
+
+.quote-kicker-text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quote-paragraph {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* Topbar Buttons */
+.studio-topbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 150ms;
+  text-decoration: none;
+  border: none;
+}
+
+.studio-topbar-btn.is-secondary {
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  color: var(--text-secondary);
+}
+
+.studio-topbar-btn.is-secondary:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.studio-topbar-btn.is-primary {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(29, 158, 117, 0.15);
+}
+
+.studio-topbar-btn.is-primary:hover {
+  background: var(--green-deep);
+  box-shadow: 0 6px 16px rgba(29, 158, 117, 0.25);
+}
+
+/* Upload Dialog Modal specific styles */
+.studio-modal-card.is-uploader {
+  max-width: 600px;
+}
+
+.uploader-lesson-meta {
+  font-size: 0.76rem;
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.uploader-modal-body {
+  padding: 24px;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

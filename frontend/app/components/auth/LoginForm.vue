@@ -134,7 +134,7 @@ async function handleGoogleLogin() {
 .lf {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
 }
 
 /* ── Alert ── */
@@ -206,9 +206,9 @@ async function handleGoogleLogin() {
 }
 
 /* ── Form ── */
-.lf-form { display: flex; flex-direction: column; gap: 14px; }
+.lf-form { display: flex; flex-direction: column; gap: 10px; }
 
-.lf-field { display: flex; flex-direction: column; gap: 6px; }
+.lf-field { display: flex; flex-direction: column; gap: 4px; }
 
 .lf-field-row {
   display: flex;

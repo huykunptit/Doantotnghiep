@@ -2,6 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -118,56 +119,54 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="space-y-6 p-6">
-    <header class="space-y-1">
-      <p class="text-sm font-semibold text-on-surface-variant">Sổ điểm · Lớp học phần</p>
-      <h1 class="text-2xl font-bold">{{ sectionTitle || 'Đang tải...' }}</h1>
-      <p v-if="data?.class_section" class="text-sm text-muted">
-        {{ data.class_section.term?.name }} · Khóa {{ data.class_section.cohort?.code }}
-      </p>
-    </header>
+  <InstructorWorkspaceShell
+    :title="sectionTitle || 'Đang tải...'"
+    :description="data?.class_section ? `${data.class_section.term?.name} · Khóa ${data.class_section.cohort?.code}` : ''"
+    :breadcrumb="['Trang chủ', 'Học vụ', 'Lớp học phần', 'Sổ điểm']"
+  >
+    <template #actions>
+      <NuxtLink to="/instructor/sections" class="crud-secondary-btn">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Danh sách lớp
+      </NuxtLink>
+      <button class="crud-primary-btn" :disabled="saving || loading" @click="save">
+        <span class="material-symbols-outlined">save</span>
+        {{ saving ? 'Đang lưu...' : 'Lưu điểm' }}
+      </button>
+    </template>
 
     <div v-if="error" class="crud-alert is-error">{{ error }}</div>
     <div v-if="message" class="crud-alert is-success">{{ message }}</div>
 
-    <section class="dashboard-card">
-      <header class="mb-3 flex items-center justify-between">
-        <h2 class="text-lg font-semibold">
-          Bảng điểm — {{ data?.students.length || 0 }} sinh viên
-        </h2>
-        <div class="flex items-center gap-2">
-          <NuxtLink to="/instructor/sections" class="crud-secondary-btn">
-            <span class="material-symbols-outlined">arrow_back</span>
-            <span>Danh sách lớp</span>
-          </NuxtLink>
-          <button class="crud-primary-btn" :disabled="saving || loading" @click="save">
-            <span class="material-symbols-outlined">save</span>
-            <span>{{ saving ? 'Đang lưu...' : 'Lưu điểm' }}</span>
-          </button>
+    <div class="dashboard-card crud-panel">
+      <div class="crud-toolbar">
+        <div>
+          <p class="section-kicker">Bảng điểm</p>
+          <h3 class="ds-section-title">{{ data?.students.length || 0 }} sinh viên</h3>
         </div>
-      </header>
+      </div>
 
-      <div v-if="loading" class="crud-empty">Đang tải bảng điểm...</div>
-      <div v-else-if="!data?.components.length" class="crud-empty">
+      <div v-if="loading" class="crud-empty" style="padding:3rem;">Đang tải bảng điểm...</div>
+      <div v-else-if="!data?.components.length" class="crud-empty" style="padding:3rem;">
         Học phần chưa có cấu trúc điểm. Liên hệ admin/khoa để khởi tạo grade_components.
       </div>
-      <div v-else class="overflow-x-auto">
+      <div v-else class="crud-table-wrap">
         <table class="crud-table gradebook-table">
           <thead>
             <tr>
-              <th style="min-width: 60px">STT</th>
-              <th style="min-width: 120px">Mã SV</th>
-              <th style="min-width: 220px">Họ tên</th>
+              <th style="min-width:60px">STT</th>
+              <th style="min-width:120px">Mã SV</th>
+              <th style="min-width:220px">Họ tên</th>
               <th
                 v-for="component in data.components"
                 :key="component.id"
                 class="text-center"
-                style="min-width: 120px"
+                style="min-width:120px"
               >
                 {{ component.name }}
                 <p class="text-xs font-normal text-muted">/{{ component.max_score }} ({{ component.weight }}%)</p>
               </th>
-              <th class="text-center" style="min-width: 110px">Tổng kết</th>
+              <th class="text-center" style="min-width:110px">Tổng kết</th>
             </tr>
           </thead>
           <tbody>
@@ -194,8 +193,8 @@ onMounted(load)
           </tbody>
         </table>
       </div>
-    </section>
-  </section>
+    </div>
+  </InstructorWorkspaceShell>
 </template>
 
 <style scoped>
@@ -214,10 +213,8 @@ onMounted(load)
   border-color: rgba(var(--green-rgb), 0.4);
   box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.1);
 }
-
 .final-pass { color: var(--green-deep); font-size: 1.05rem; }
 .final-fail { color: #b91c1c; font-size: 1.05rem; }
-
 .text-center { text-align: center; }
 .text-muted { color: var(--muted); }
 </style>

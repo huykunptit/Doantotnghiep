@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import AuthPageShell from '~/components/auth/AuthPageShell.vue'
 import { useAuthStore } from '~/stores/auth'
 import { type AuthResponse, getDashboardPath, setAuthSession, useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: false })
 
@@ -14,8 +15,7 @@ const form = reactive({
 const loading = ref(false)
 const googleLoading = ref(false)
 const passwordVisible = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+const toast = useToast()
 
 const token = useAuthTokenCookie()
 const currentUser = useAuthUserCookie()
@@ -31,8 +31,6 @@ const emailHint = computed(() => {
 })
 
 async function handleLogin() {
-  errorMessage.value = ''
-  successMessage.value = ''
   loading.value = true
 
   try {
@@ -46,28 +44,27 @@ async function handleLogin() {
     auth.setUser(data.user)
     auth.isReady = true
 
-    successMessage.value = `Chào mừng ${data.user.name}, bạn đã sẵn sàng tiếp tục học tập.`
+    toast.success(`Chào mừng ${data.user.name}, bạn đã sẵn sàng tiếp tục học tập.`)
     await navigateTo(getDashboardPath(data.user.role), { replace: true })
   } catch (error: any) {
     if (error?.statusCode === 403 && error?.data?.requires_verification && error?.data?.email) {
       await navigateTo(`/verify-email?email=${encodeURIComponent(error.data.email)}`)
       return
     }
-    errorMessage.value = error?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.'
+    toast.error(error?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra email và mật khẩu.')
   } finally {
     loading.value = false
   }
 }
 
 async function handleGoogleLogin() {
-  errorMessage.value = ''
   googleLoading.value = true
 
   try {
     const data = await useApi<{ url: string }>('/auth/google/url')
     await navigateTo(data.url, { external: true })
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể khởi tạo đăng nhập bằng Google.'
+    toast.error(error?.data?.message || 'Không thể khởi tạo đăng nhập bằng Google.')
     googleLoading.value = false
   }
 }
@@ -76,19 +73,13 @@ async function handleGoogleLogin() {
 <template>
   <AuthPageShell
     panel-kicker="Xin chào"
-    panel-title="Đăng nhập"
-    panel-description="Nhập thông tin tài khoản để tiếp tục vào khu vực học tập của bạn."
+    panel-title="Chào mừng trở lại"
+    panel-description="Vui lòng đăng nhập vào tài khoản của bạn."
     foot-text="Chưa có tài khoản?"
-    foot-link-text="Tạo tài khoản mới"
+    foot-link-text="Đăng ký"
     foot-link-to="/register"
+    hero-title="Chào mừng bạn đến với hệ thống học tập trực tuyến"
   >
-    <div v-if="errorMessage" class="feedback feedback-error">
-      {{ errorMessage }}
-    </div>
-    <div v-if="successMessage" class="feedback feedback-success">
-      {{ successMessage }}
-    </div>
-
     <button class="google-button" type="button" :disabled="googleLoading" @click="handleGoogleLogin">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path

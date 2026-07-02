@@ -5,6 +5,7 @@ import { LogOut, Menu, X } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
 import AdminFooter from '~/components/dashboard/AdminFooter.vue'
+import AppToast from '~/components/AppToast.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -52,6 +53,18 @@ const navGroups = [
     ],
   },
   {
+    label: 'Quản trị L&D',
+    items: [
+      { to: '/admin/lnd/classes', label: 'Quản lý lớp học', icon: 'graduation-cap' },
+      { to: '/admin/lnd/learning-paths', label: 'Quản lý lộ trình', icon: 'layers' },
+      { to: '/admin/lnd/class-path-enrollment', label: 'Ghi danh lớp/lộ trình', icon: 'user-check' },
+      { to: '/admin/lnd/class-path-enrollment?tab=enrollment-list', label: 'Danh sách ghi danh', icon: 'book-open' },
+      { to: '/admin/lnd/class-path-enrollment?tab=exam-registrations', label: 'Danh sách đăng ký thi', icon: 'file-text' },
+      { to: '/admin/lnd/file-based-enrollment', label: 'Ghi danh bằng tệp', icon: 'file-spreadsheet' },
+      { to: '/admin/lnd/reports', label: 'Báo cáo tiến độ L&D', icon: 'trending-up' },
+    ],
+  },
+  {
     label: 'Kinh doanh',
     items: [
       { to: '/instructor/students', label: 'Học viên', icon: 'users' },
@@ -60,8 +73,30 @@ const navGroups = [
   },
 ]
 
-function isActive(path: string) {
-  return path === '/instructor' ? route.path === '/instructor' : route.path.startsWith(path)
+function isActive(to: string) {
+  const [toPath, toQueryStr] = to.split('?')
+  
+  if (toPath === '/instructor') {
+    return route.path === '/instructor'
+  }
+  
+  const pathMatches = route.path === toPath || route.path.startsWith(toPath + '/')
+  
+  if (!pathMatches) return false
+  
+  if (toQueryStr) {
+    const params = new URLSearchParams(toQueryStr)
+    for (const [key, val] of params.entries()) {
+      if (route.query[key] !== val) return false
+    }
+    return true
+  }
+  
+  if (route.path === toPath && Object.keys(route.query).length > 0) {
+    return false
+  }
+  
+  return true
 }
 
 async function logout() {
@@ -154,6 +189,7 @@ const userInitials = computed(() => {
       <AdminFooter />
     </div>
   </div>
+  <AppToast />
 </template>
 
 <style scoped>
@@ -161,7 +197,7 @@ const userInitials = computed(() => {
 .ins-shell {
   display: flex;
   min-height: 100vh;
-  background: url('/body-bg.jpg') center/cover fixed, var(--bg);
+  background: linear-gradient(rgba(232, 237, 234, 0.75), rgba(232, 237, 234, 0.75)), url('/body-bg.jpg') center/cover fixed, var(--bg);
 }
 
 /* ── Sidebar ── */
@@ -171,8 +207,8 @@ const userInitials = computed(() => {
   width: 240px;
   display: flex;
   flex-direction: column;
-  background: var(--surface-strong, #fff);
-  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, #064e3b 0%, #052e22 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 200;
   overflow: hidden;
   transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -185,7 +221,7 @@ const userInitials = computed(() => {
   justify-content: space-between;
   padding: 0 16px;
   height: 64px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
@@ -199,7 +235,8 @@ const userInitials = computed(() => {
 .ins-logo-mark {
   display: flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 7px;
-  background: var(--green); color: #fff; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--green, #0F6E8C), var(--green-mid, #1D9E75));
+  color: #fff; flex-shrink: 0;
 }
 
 .ins-brand-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -207,22 +244,22 @@ const userInitials = computed(() => {
 .ins-brand-name {
   font-family: 'Be Vietnam Pro', sans-serif;
   font-size: 0.875rem; font-weight: 700;
-  letter-spacing: -0.02em; color: var(--text);
+  letter-spacing: -0.02em; color: #ffffff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .ins-brand-role {
   font-size: 0.6875rem; font-weight: 600;
-  color: var(--green); text-transform: uppercase; letter-spacing: 0.08em;
+  color: #5DCAA5; text-transform: uppercase; letter-spacing: 0.08em;
 }
 
 .ins-close-btn {
   display: none; align-items: center; justify-content: center;
   width: 28px; height: 28px; border: none; background: transparent;
-  color: var(--muted); cursor: pointer; border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5); cursor: pointer; border-radius: 6px;
   transition: color 150ms, background 150ms;
 }
-.ins-close-btn:hover { color: var(--text); background: var(--surface); }
+.ins-close-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.05); }
 
 /* ── Nav ── */
 .ins-nav {
@@ -232,7 +269,7 @@ const userInitials = computed(() => {
 
 .ins-nav::-webkit-scrollbar { width: 4px; }
 .ins-nav::-webkit-scrollbar-track { background: transparent; }
-.ins-nav::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+.ins-nav::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 4px; }
 
 .ins-nav-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
 
@@ -240,7 +277,8 @@ const userInitials = computed(() => {
   padding: 0 8px 4px;
   font-size: 0.6875rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted);
+  color: #ffffff;
+
 }
 
 .ins-nav-item {
@@ -248,66 +286,77 @@ const userInitials = computed(() => {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: 7px;
   text-decoration: none; font-size: 0.84rem; font-weight: 500;
-  color: var(--muted); transition: background 150ms, color 150ms;
+  color: rgba(240, 250, 247, 0.65); transition: background 150ms, color 150ms;
 }
 
-.ins-nav-item:hover { background: var(--surface); color: var(--text); }
+.ins-nav-item:hover { background: rgba(255, 255, 255, 0.04); color: #ffffff; }
+.ins-nav-item:hover .ins-nav-icon { color: #5DCAA5; }
 
 .ins-nav-item.is-active {
-  background: var(--green-soft); color: var(--green-deep); font-weight: 600;
+  background: linear-gradient(135deg, #0F6E8C 0%, #0a4f64 100%);
+  color: #ffffff; font-weight: 600;
 }
 
 .ins-nav-item.is-active::before {
   content: '';
   position: absolute; left: 0; top: 20%; bottom: 20%;
   width: 3px; border-radius: 0 3px 3px 0;
-  background: var(--green);
+  background: #5DCAA5;
 }
+.ins-nav-item.is-active .ins-nav-icon { color: #5DCAA5; }
 
-.ins-nav-icon { flex-shrink: 0; }
+.ins-nav-icon { flex-shrink: 0; color: inherit; }
 
 /* ── Sidebar footer ── */
 .ins-sidebar-foot {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; border-top: 1px solid var(--line);
-  flex-shrink: 0;
+  padding: 12px 14px; border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0; background: rgba(0, 0, 0, 0.15);
 }
 
 .ins-user-chip { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 
 .ins-avatar {
   width: 32px; height: 32px; border-radius: 50%;
-  background: var(--green-soft); color: var(--green-deep);
+  background: linear-gradient(135deg, var(--green, #0F6E8C), var(--green-mid, #1D9E75));
+  color: #ffffff;
   font-size: 0.72rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
+  flex-shrink: 0; border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .ins-user-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
 .ins-user-name {
-  font-size: 0.8125rem; font-weight: 600; color: var(--text);
+  font-size: 0.8125rem; font-weight: 600; color: #ffffff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.ins-user-role { font-size: 0.6875rem; color: var(--muted); }
+.ins-user-role { font-size: 0.6875rem; color: rgba(240, 250, 247, 0.45); }
 
 .ins-logout-btn {
   display: flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border: none; background: transparent;
-  color: var(--muted); cursor: pointer; border-radius: 6px;
-  flex-shrink: 0; transition: color 150ms, background 150ms;
+  color: rgba(240, 250, 247, 0.5); cursor: pointer; border-radius: 6px;
+  flex-shrink: 0; transition: all 150ms;
 }
-.ins-logout-btn:hover { color: var(--danger); background: var(--danger-soft); }
+.ins-logout-btn:hover { color: #F87171; background: rgba(239, 68, 68, 0.15); }
 
 /* ── Main ── */
 .ins-main {
   margin-left: 240px;
   display: flex; flex-direction: column;
   min-height: 100vh; flex: 1; min-width: 0;
+  background: var(--surface-strong, #fff);
 }
 
-.ins-content { padding: 24px; flex: 1; }
+.ins-content {
+  padding: 24px;
+  flex: 1;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
 
 /* ── Overlay ── */
 .ins-overlay {
@@ -331,7 +380,11 @@ const userInitials = computed(() => {
 }
 
 /* ── Dark mode ── */
-[data-theme="dark"] .ins-sidebar { background: #0F2219; border-color: rgba(255,255,255,0.07); }
-[data-theme="dark"] .ins-brand { border-color: rgba(255,255,255,0.07); }
-[data-theme="dark"] .ins-sidebar-foot { border-color: rgba(255,255,255,0.07); }
+[data-theme="dark"] .ins-main { background: var(--surface, #161920); }
+[data-theme="dark"] .ins-sidebar {
+  background: linear-gradient(180deg, #031c15 0%, #03130e 100%);
+  border-color: rgba(255, 255, 255, 0.04);
+}
+[data-theme="dark"] .ins-brand { border-color: rgba(255, 255, 255, 0.04); }
+[data-theme="dark"] .ins-sidebar-foot { border-color: rgba(255, 255, 255, 0.04); }
 </style>

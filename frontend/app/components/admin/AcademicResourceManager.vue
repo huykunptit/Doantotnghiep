@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import { useToast } from '~/composables/useToast'
 
 type ResourceKey =
   | 'institutions'
@@ -55,8 +56,7 @@ const rows = ref<Record<string, any>[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
+const toast = useToast()
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalRows = ref(0)
@@ -112,7 +112,7 @@ function isRequired(field: string) {
 const resourceOptions: ResourceOption[] = [
   { key: 'institutions', label: 'Trường', icon: 'domain', description: 'Đơn vị cấp trường', columns: [{ key: 'name', label: 'Tên' }, { key: 'code', label: 'Mã' }, { key: 'institution_type', label: 'Loại' }] },
   { key: 'units', label: 'Đơn vị', icon: 'account_tree', description: 'Viện, khoa, bộ môn', columns: [{ key: 'name', label: 'Tên' }, { key: 'code', label: 'Mã' }, { key: 'unit_type', label: 'Loại' }, { key: 'level', label: 'Cấp' }] },
-  { key: 'program-types', label: 'Loại chương trình', icon: 'category', description: 'Phân loại CTĐT', columns: [{ key: 'name', label: 'Tên' }, { key: 'code', label: 'Mã' }, { key: 'description', label: 'Mô tả' }] },
+  { key: 'program-types', label: 'Hệ đào tạo', icon: 'category', description: 'Chính quy, Từ xa, VHVL, Liên kết DN...', columns: [{ key: 'name', label: 'Tên' }, { key: 'code', label: 'Mã' }, { key: 'description', label: 'Mô tả' }] },
   { key: 'academic-years', label: 'Năm học', icon: 'event', description: 'Niên khóa toàn trường', columns: [{ key: 'name', label: 'Tên' }, { key: 'start_date', label: 'Bắt đầu' }, { key: 'end_date', label: 'Kết thúc' }, { key: 'status', label: 'Trạng thái' }] },
   { key: 'terms', label: 'Học kỳ', icon: 'calendar_month', description: 'Học kỳ trong năm học', columns: [{ key: 'name', label: 'Tên' }, { key: 'code', label: 'Mã' }, { key: 'start_date', label: 'Bắt đầu' }, { key: 'end_date', label: 'Kết thúc' }] },
   { key: 'programs', label: 'Chương trình đào tạo', icon: 'school', description: 'Chương trình theo khoa', columns: [{ key: 'name', label: 'Tên' }, { key: 'code', label: 'Mã' }, { key: 'program_type_id', label: 'Loại CT' }, { key: 'duration_months', label: 'Tháng' }] },
@@ -397,7 +397,6 @@ function resetForm() {
 
 async function fetchRows(page = 1) {
   loading.value = true
-  errorMessage.value = ''
   try {
     // Tree view fetches everything in one shot — pagination doesn't make
     // sense when rendering hierarchy.
@@ -415,7 +414,7 @@ async function fetchRows(page = 1) {
       expandedIds.value = new Set(rows.value.map((r) => Number(r.id)))
     }
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải dữ liệu học vụ.'
+    toast.error(error?.data?.message || 'Không thể tải dữ liệu học vụ.')
   } finally {
     loading.value = false
   }
@@ -474,7 +473,6 @@ function openCreate() {
   selectedRow.value = null
   resetForm()
   fieldErrors.value = {}
-  errorMessage.value = ''
   modalOpen.value = true
 }
 
@@ -486,7 +484,6 @@ function openEdit(row: Record<string, any>) {
     form[field] = row[field] ?? (field.includes('is_') ? false : '')
   })
   fieldErrors.value = {}
-  errorMessage.value = ''
   modalOpen.value = true
 }
 
@@ -515,8 +512,6 @@ function coerceFieldValue(field: string, value: any) {
 async function saveRow() {
   if (props.readonly) return
   saving.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
   fieldErrors.value = {}
   try {
     const body: Record<string, any> = {}
@@ -526,10 +521,10 @@ async function saveRow() {
     const wasCreate = mode.value === 'create'
     if (wasCreate) {
       await useApi(`/admin/academic/${currentResource.value}`, { method: 'POST', headers: headers.value, body })
-      successMessage.value = 'Đã tạo bản ghi mới.'
+      toast.success('Đã tạo bản ghi mới.')
     } else if (selectedRow.value?.id) {
       await useApi(`/admin/academic/${currentResource.value}/${selectedRow.value.id}`, { method: 'PUT', headers: headers.value, body })
-      successMessage.value = 'Đã cập nhật bản ghi.'
+      toast.success('Đã cập nhật bản ghi.')
     }
     modalOpen.value = false
     if (wasCreate) {
@@ -549,11 +544,11 @@ async function saveRow() {
       })
       fieldErrors.value = collected
       const firstMessages = Object.entries(collected).slice(0, 3).map(([k, v]) => `${labelForField(k)}: ${v}`)
-      errorMessage.value = firstMessages.join(' • ')
+      toast.error(firstMessages.join(' • ')
         || error?.data?.message
-        || 'Không thể lưu bản ghi.'
+        || 'Không thể lưu bản ghi.')
     } else {
-      errorMessage.value = error?.data?.message || 'Không thể lưu bản ghi.'
+      toast.error(error?.data?.message || 'Không thể lưu bản ghi.')
     }
   } finally {
     saving.value = false
@@ -563,15 +558,13 @@ async function saveRow() {
 async function confirmDelete() {
   if (props.readonly || !selectedRow.value?.id) return
   deleting.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
   try {
     await useApi(`/admin/academic/${currentResource.value}/${selectedRow.value.id}`, { method: 'DELETE', headers: headers.value })
-    successMessage.value = 'Đã xóa bản ghi.'
+    toast.success('Đã xóa bản ghi.')
     deleteModalOpen.value = false
     await fetchRows(currentPage.value)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể xóa bản ghi.'
+    toast.error(error?.data?.message || 'Không thể xóa bản ghi.')
   } finally {
     deleting.value = false
   }
@@ -612,8 +605,6 @@ async function loadResourceLookup(field: string, resource: ResourceKey) {
 async function submitEnroll() {
   if (props.readonly || !enrollCohort.value?.id || !enrollForm.term_id) return
   enrolling.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
   enrollResult.value = null
   try {
     const body: Record<string, any> = { term_id: Number(enrollForm.term_id) }
@@ -631,9 +622,9 @@ async function submitEnroll() {
       body,
     })
     enrollResult.value = result
-    successMessage.value = `Đã ghi danh ${result.created ?? 0} bản ghi mới (bỏ qua ${result.skipped ?? 0}).`
+    toast.success(`Đã ghi danh ${result.created ?? 0} bản ghi mới (bỏ qua ${result.skipped ?? 0}).`)
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể ghi danh hàng loạt.'
+    toast.error(error?.data?.message || 'Không thể ghi danh hàng loạt.')
   } finally {
     enrolling.value = false
   }
@@ -790,8 +781,7 @@ onMounted(async () => {
         </button>
       </div>
 
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+
 
       <div class="crud-meta academic-meta">
         <p>
@@ -975,7 +965,7 @@ onMounted(async () => {
             </button>
           </div>
 
-          <div v-if="errorMessage" class="crud-alert is-error academic-modal-error">{{ errorMessage }}</div>
+
 
           <div class="crud-form-grid">
             <label
@@ -992,7 +982,7 @@ onMounted(async () => {
                 <option value="">-- Chọn --</option>
                 <option v-for="opt in lookupOptions[field] || []" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
-              <input v-else-if="field.includes('date') || field.startsWith('effective_')" v-model="form[field]" type="date">
+              <UiDatePicker v-else-if="field.includes('date') || field.startsWith('effective_')" v-model="form[field]" />
               <select v-else-if="field.startsWith('is_')" v-model="form[field]">
                 <option :value="true">Có</option>
                 <option :value="false">Không</option>
@@ -1095,7 +1085,7 @@ onMounted(async () => {
             </ul>
           </div>
 
-          <div v-if="errorMessage" class="crud-alert is-error academic-modal-error">{{ errorMessage }}</div>
+
 
           <div class="crud-modal-foot">
             <button class="crud-secondary-btn" type="button" @click="enrollModalOpen = false">Đóng</button>

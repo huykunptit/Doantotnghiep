@@ -1161,9 +1161,9 @@ onMounted(() => {
   justify-items: center;
   gap: 10px;
   padding: 28px 20px;
-  border: 2px dashed rgba(249, 115, 22, 0.85);
+  border: 2px dashed rgba(16, 185, 129, 0.85);
   border-radius: 24px;
-  background: rgba(255, 247, 237, 0.75);
+  background: rgba(236, 253, 245, 0.75);
   text-align: center;
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
@@ -1171,8 +1171,8 @@ onMounted(() => {
 
 .upload-dropzone:hover {
   transform: translateY(-1px);
-  border-color: rgba(234, 88, 12, 0.95);
-  box-shadow: 0 20px 40px -28px rgba(249, 115, 22, 0.45);
+  border-color: rgba(5, 150, 105, 0.95);
+  box-shadow: 0 20px 40px -28px rgba(16, 185, 129, 0.45);
 }
 
 .upload-dropzone-compact {
@@ -1195,8 +1195,8 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: 999px;
-  background: rgba(249, 115, 22, 0.12);
-  color: #ea580c;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
   font-size: 1.6rem;
 }
 
@@ -1310,8 +1310,8 @@ onMounted(() => {
 .assignment-timeline {
   padding: 18px;
   border-radius: 18px;
-  background: rgba(248, 250, 252, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
 }
 
 .assignment-timeline-title {
@@ -1369,8 +1369,8 @@ onMounted(() => {
   opacity: 0.85;
 }
 
-.assignment-date-card--open   { color: var(--green); }
-.assignment-date-card--submit { color: var(--green); }
+.assignment-date-card--open   { color: #10b981; }
+.assignment-date-card--submit { color: #10b981; }
 .assignment-date-card--close  { color: #dc2626; }
 
 .assignment-date-card-head {
@@ -1394,9 +1394,9 @@ onMounted(() => {
   width: 100%;
   min-height: 40px;
   padding: 0 12px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.15);
   border-radius: 10px;
-  background: #fafafa;
+  background: #ffffff;
   font: inherit;
   font-size: 0.88rem;
   color: #0f172a;
@@ -1524,8 +1524,8 @@ onMounted(() => {
 }
 .preview-resource-icon {
   font-size: 56px;
-  color: #f97316;
-  background: #fff7ed;
+  color: #059669;
+  background: #ecfdf5;
   border-radius: 16px;
   padding: 14px;
 }
@@ -1538,7 +1538,7 @@ onMounted(() => {
   gap: 6px;
   padding: 9px 16px;
   border-radius: 999px;
-  background: var(--green);
+  background: #10b981;
   color: #fff;
   text-decoration: none;
   font-weight: 700;
@@ -1568,7 +1568,7 @@ onMounted(() => {
   color: #cbd5e1;
   text-align: center;
 }
-.preview-state .material-symbols-outlined { font-size: 44px; color: #f97316; }
+.preview-state .material-symbols-outlined { font-size: 44px; color: #059669; }
 .preview-state-spin { animation: preview-spin 1.2s linear infinite; }
 .preview-state--error .material-symbols-outlined { color: #ef4444; }
 
@@ -1579,11 +1579,64 @@ onMounted(() => {
 /* ====== DARK MODE OVERRIDES ====== */
 [data-theme="dark"] .course-builder-shell { background: var(--bg); }
 [data-theme="dark"] .cb-sidebar, [data-theme="dark"] .cb-main, [data-theme="dark"] .course-header, [data-theme="dark"] .course-tab-panel, [data-theme="dark"] .course-info-panel, [data-theme="dark"] .preview-resource, [data-theme="dark"] .preview-scroll { background: var(--surface-strong); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .cb-sidebar-link:hover, [data-theme="dark"] .cb-sidebar-link.is-active { background: rgba(255, 255, 255, 0.05); color: var(--green); }
-[data-theme="dark"] .cb-form-field input, [data-theme="dark"] .cb-form-field textarea, [data-theme="dark"] .cb-form-field select { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .cb-sidebar-link:hover, [data-theme="dark"] .cb-sidebar-link.is-active { background: rgba(255, 255, 255, 0.05); color: #10b981; }
+[data-theme="dark"] .cb-form-field input, [data-theme="dark"] .cb-form-field textarea, [data-theme="dark"] .cb-form-field select { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--text); }
 [data-theme="dark"] .preview-resource h4, [data-theme="dark"] .preview-resource p, [data-theme="dark"] .preview-rich { color: var(--text); }
 [data-theme="dark"] .curriculum-section, [data-theme="dark"] .curriculum-lesson { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
-[data-theme="dark"] .action-btn { background: rgba(255, 255, 255, 0.06); }
+[data-theme="dark"] .action-btn { background: rgba(255, 255, 255, 0.06); color: var(--text); }
 [data-theme="dark"] .course-settings-panel { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
 [data-theme="dark"] .cb-topbar { background: rgba(15, 34, 25, 0.95); border-color: rgba(255, 255, 255, 0.08); }
+
+/* Dark mode for section cards */
+[data-theme="dark"] .section-card { background: rgba(255, 255, 255, 0.05); }
+[data-theme="dark"] .section-header { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .section-title, [data-theme="dark"] .section-title strong, [data-theme="dark"] .section-title span { color: var(--text); }
+
+/* Dark mode for lesson items */
+[data-theme="dark"] .lesson-item { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .lesson-item:hover { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+[data-theme="dark"] .lesson-name, [data-theme="dark"] .lesson-icon { color: var(--text); background: rgba(16, 185, 129, 0.12); }
+
+/* Dark mode for modals */
+[data-theme="dark"] .crud-modal-backdrop { background: rgba(0, 0, 0, 0.6); }
+[data-theme="dark"] .crud-modal { background: var(--surface-strong); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .crud-modal-head { background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .crud-form-grid input, [data-theme="dark"] .crud-form-grid textarea, [data-theme="dark"] .crud-form-grid select { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--text); }
+[data-theme="dark"] .crud-form-grid input:focus, [data-theme="dark"] .crud-form-grid textarea:focus, [data-theme="dark"] .crud-form-grid select:focus { background: rgba(255, 255, 255, 0.12); border-color: rgba(16, 185, 129, 0.4); }
+[data-theme="dark"] .crud-form-grid input::placeholder { color: rgba(255, 255, 255, 0.5); }
+
+/* Dark mode for picker tabs */
+[data-theme="dark"] .picker-tab { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
+[data-theme="dark"] .picker-tab.is-active { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.3); color: #a7f3d0; }
+
+/* Dark mode for content picker cards */
+[data-theme="dark"] .content-picker-card { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
+[data-theme="dark"] .content-picker-card:hover { border-color: rgba(16, 185, 129, 0.3); }
+
+/* Dark mode for helper boxes */
+[data-theme="dark"] .lesson-helper-box { background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.1); }
+
+/* Dark mode for assignment timeline */
+[data-theme="dark"] .assignment-timeline { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
+[data-theme="dark"] .assignment-date-card { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); }
+[data-theme="dark"] .assignment-date-card input[type="datetime-local"] { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--text); }
+[data-theme="dark"] .assignment-date-card input[type="datetime-local"]:hover { background: rgba(255, 255, 255, 0.12); }
+[data-theme="dark"] .assignment-date-card input[type="datetime-local"]:focus { background: rgba(255, 255, 255, 0.15); border-color: currentColor; }
+
+/* Dark mode for upload dropzone */
+[data-theme="dark"] .upload-dropzone { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3); }
+[data-theme="dark"] .upload-dropzone:hover { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 20px 40px -28px rgba(16, 185, 129, 0.3); }
+[data-theme="dark"] .upload-dropzone-icon { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
+[data-theme="dark"] .upload-dropzone strong { color: var(--text); }
+[data-theme="dark"] .upload-dropzone span:last-child { color: rgba(255, 255, 255, 0.6); }
+
+/* Dark mode for preview elements */
+[data-theme="dark"] .preview-modal-body { background: #1a1f2e; }
+[data-theme="dark"] .preview-scroll { background: #0f172a; color: var(--text); }
+[data-theme="dark"] .preview-resource { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+[data-theme="dark"] .preview-resource-icon { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
+[data-theme="dark"] .preview-link { background: #10b981; color: #fff; }
+[data-theme="dark"] .preview-link:hover { filter: brightness(1.2); }
+[data-theme="dark"] .preview-state { color: rgba(255, 255, 255, 0.7); }
+[data-theme="dark"] .preview-state .material-symbols-outlined { color: #10b981; }
 </style>

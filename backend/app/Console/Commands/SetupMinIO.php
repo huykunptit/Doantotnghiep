@@ -39,6 +39,19 @@ class SetupMinIO extends Command
                 $this->info("✅ Bucket '{$bucket}' created successfully!");
             }
 
+            // Ensure public read policy so SCORM/video files are browser-accessible
+            $policy = json_encode([
+                'Version' => '2012-10-17',
+                'Statement' => [[
+                    'Effect'    => 'Allow',
+                    'Principal' => ['AWS' => ['*']],
+                    'Action'    => ['s3:GetObject'],
+                    'Resource'  => ["arn:aws:s3:::{$bucket}/*"],
+                ]],
+            ]);
+            $client->putBucketPolicy(['Bucket' => $bucket, 'Policy' => $policy]);
+            $this->info("✅ Public read policy applied.");
+
             // Test upload
             $this->info("\nTesting upload...");
             $testFile = 'test.txt';

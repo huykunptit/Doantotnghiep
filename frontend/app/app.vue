@@ -5,15 +5,15 @@ import { useSiteSettings } from '~/composables/useSiteSettings'
 const { themeColorPrimary, themeColorDeep } = useSiteSettings()
 
 const hexToRgb = (hex: string) => {
-  if (!hex || typeof hex !== 'string') return '47, 122, 69'
+  if (!hex || typeof hex !== 'string') return '15, 110, 140'
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
-  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '47, 122, 69';
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '15, 110, 140';
 }
 
 if (import.meta.client) {
   watchEffect(() => {
-    const primary = themeColorPrimary.value || '#2f7a45'
-    const deep = themeColorDeep.value || '#1f5d33'
+    const primary = themeColorPrimary.value || '#0F6E8C'
+    const deep = themeColorDeep.value || '#0b5167'
     const primaryRgb = hexToRgb(primary)
     const deepRgb = hexToRgb(deep)
     

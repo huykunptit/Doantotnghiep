@@ -1,5 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+} from 'chart.js'
+
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+)
 
 const props = withDefaults(
   defineProps<{
@@ -10,109 +29,101 @@ const props = withDefaults(
     formatValue?: (n: number) => string
   }>(),
   {
-    color: 'var(--green)',
+    color: '#1D9E75', // Secondary color mid
     height: 200,
     formatValue: (n: number) => n.toLocaleString('vi-VN'),
-  },
+  }
 )
 
-const W = 600
-const PAD = { top: 18, right: 12, bottom: 28, left: 40 }
-
-const innerW = computed(() => W - PAD.left - PAD.right)
-const innerH = computed(() => props.height - PAD.top - PAD.bottom)
-const yMax = computed(() => Math.max(...props.values, 1))
-
-const bars = computed(() => {
-  const n = props.values.length
-  const slot = innerW.value / Math.max(n, 1)
-  const barW = Math.min(slot * 0.55, 44)
-  return props.values.map((v, i) => {
-    const cx = PAD.left + i * slot + slot / 2
-    const h = (v / yMax.value) * innerH.value
-    return {
-      x: cx - barW / 2,
-      y: PAD.top + innerH.value - h,
-      w: barW,
-      h,
-      v,
-      label: props.labels[i] ?? '',
-    }
-  })
+const chartData = computed(() => {
+  return {
+    labels: props.labels,
+    datasets: [{
+      data: props.values,
+      backgroundColor: props.color,
+      borderRadius: 6,
+      borderSkipped: false,
+      maxBarThickness: 36,
+    }]
+  }
 })
 
-const yTicks = computed(() => [0, yMax.value * 0.5, yMax.value].map((v) => Math.round(v)))
+const chartOptions = computed(() => {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        backgroundColor: 'rgba(17, 17, 17, 0.95)',
+        padding: 10,
+        titleFont: {
+          family: 'Inter, sans-serif',
+          size: 11,
+          weight: '700'
+        },
+        bodyFont: {
+          family: 'Inter, sans-serif',
+          size: 12
+        },
+        borderRadius: 10,
+        callbacks: {
+          label: (context: any) => {
+            const val = context.raw
+            return ` ${props.formatValue(val)}`
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          font: {
+            family: 'Inter, sans-serif',
+            size: 10,
+            weight: '600'
+          },
+          color: '#5f675f'
+        }
+      },
+      y: {
+        border: {
+          dash: [4, 4]
+        },
+        grid: {
+          color: 'rgba(17, 17, 17, 0.05)'
+        },
+        ticks: {
+          font: {
+            family: 'Inter, sans-serif',
+            size: 10,
+            weight: '600'
+          },
+          color: '#5f675f',
+          callback: (value: any) => props.formatValue(value)
+        }
+      }
+    }
+  }
+})
 </script>
 
 <template>
-  <svg :viewBox="`0 0 ${W} ${height}`" preserveAspectRatio="none" class="w-full block">
-    <!-- Y grid -->
-    <g>
-      <g v-for="(tick, i) in yTicks" :key="i">
-        <line
-          :x1="PAD.left"
-          :x2="PAD.left + innerW"
-          :y1="PAD.top + innerH - (tick / yMax) * innerH"
-          :y2="PAD.top + innerH - (tick / yMax) * innerH"
-          stroke="rgba(17,17,17,0.06)"
-          stroke-dasharray="3 3"
-        />
-        <text
-          :x="PAD.left - 8"
-          :y="PAD.top + innerH - (tick / yMax) * innerH + 4"
-          text-anchor="end"
-          class="axis-label"
-        >
-          {{ formatValue(tick) }}
-        </text>
-      </g>
-    </g>
-
-    <!-- Bars -->
-    <g>
-      <g v-for="(bar, i) in bars" :key="i" class="bar-group">
-        <rect
-          :x="bar.x"
-          :y="bar.y"
-          :width="bar.w"
-          :height="bar.h"
-          :fill="color"
-          rx="6"
-        />
-        <text
-          :x="bar.x + bar.w / 2"
-          :y="bar.y - 6"
-          text-anchor="middle"
-          class="bar-value"
-        >
-          {{ bar.v > 0 ? formatValue(bar.v) : '' }}
-        </text>
-        <text
-          :x="bar.x + bar.w / 2"
-          :y="height - 8"
-          text-anchor="middle"
-          class="axis-label"
-        >
-          {{ bar.label }}
-        </text>
-      </g>
-    </g>
-  </svg>
+  <div class="chart-container" :style="{ height: `${height}px` }">
+    <ClientOnly>
+      <Bar :data="chartData" :options="chartOptions" />
+    </ClientOnly>
+  </div>
 </template>
 
 <style scoped>
-.axis-label {
-  font-size: 11px;
-  fill: var(--on-surface-variant, #5f675f);
-  font-family: 'Manrope', sans-serif;
-  font-weight: 600;
+.chart-container {
+  width: 100%;
+  position: relative;
 }
-.bar-value {
-  font-size: 11px;
-  fill: var(--on-surface, #111);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.bar-group rect { transition: opacity 0.2s; }
-.bar-group:hover rect { opacity: 0.8; }
 </style>

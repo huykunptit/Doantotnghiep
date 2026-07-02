@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronRight, Edit2, Trash2 } from 'lucide-vue-next'
+import { ChevronRight, Edit2, Trash2, Eye } from 'lucide-vue-next'
 
 interface CategoryItem {
   id: number
@@ -20,6 +20,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'edit', cat: CategoryItem): void
   (e: 'delete', cat: CategoryItem): void
+  (e: 'view', cat: CategoryItem): void
 }>()
 
 const children = computed(() => props.childrenMap[props.category.id] || [])
@@ -39,6 +40,9 @@ const hasChildren = computed(() => children.value.length > 0)
           <span class="cat-order">Thứ tự: {{ category.sort_order || 0 }}</span>
           
           <div class="node-actions">
+            <button class="action-btn view-btn" type="button" @click.stop="emit('view', category)" title="Chi tiết">
+              <Eye :size="14" />
+            </button>
             <button class="action-btn edit-btn" type="button" @click.stop="emit('edit', category)" title="Sửa">
               <Edit2 :size="14" />
             </button>
@@ -58,6 +62,7 @@ const hasChildren = computed(() => children.value.length > 0)
           :depth="depth + 1"
           @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
+          @view="emit('view', $event)"
         />
       </div>
     </details>
@@ -71,6 +76,9 @@ const hasChildren = computed(() => children.value.length > 0)
       <span class="cat-order">Thứ tự: {{ category.sort_order || 0 }}</span>
       
       <div class="node-actions">
+        <button class="action-btn view-btn" type="button" @click.stop="emit('view', category)" title="Chi tiết">
+          <Eye :size="14" />
+        </button>
         <button class="action-btn edit-btn" type="button" @click="emit('edit', category)" title="Sửa">
           <Edit2 :size="14" />
         </button>
@@ -210,6 +218,11 @@ const hasChildren = computed(() => children.value.length > 0)
   background: var(--danger-soft);
   color: var(--danger);
   border-color: rgba(226, 75, 74, 0.3);
+}
+.view-btn:hover {
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+  border-color: rgba(2, 132, 199, 0.3);
 }
 
 .node-children {

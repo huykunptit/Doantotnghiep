@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
 import { useAuthUserCookie } from '~/composables/useAuthSession'
+import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm cài đặt...' })
 
@@ -87,8 +88,6 @@ const { refreshSettings } = useSiteSettings()
 const loading = ref(false)
 const saving = ref(false)
 const sendingTest = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
 const logoPreviewUrl = ref('')
 const authImagePreviewUrl = ref('')
 const faviconPreviewUrl = ref('')
@@ -96,12 +95,11 @@ const activeTab = ref<TabId>('branding')
 const testEmail = ref('')
 
 const form = reactive<FormState>({ ...FORM_DEFAULTS })
+const toast = useToast()
 
 const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
 const descriptionLength = computed(() => (form.site_description || '').length)
 const hasSmtpConfigured = computed(() => Boolean(form.smtp_host && form.smtp_port))
-
-function resetAlerts() { errorMessage.value = ''; successMessage.value = '' }
 
 function applySettings(data?: SiteSettings | { settings?: SiteSettings }) {
   const payload = data && 'settings' in (data as Record<string, unknown>)
@@ -129,11 +127,10 @@ function applySettings(data?: SiteSettings | { settings?: SiteSettings }) {
 
 async function fetchSettings() {
   loading.value = true
-  resetAlerts()
   try {
     applySettings(await useApi<SiteSettings>('/admin/settings', { headers: authHeaders() }))
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải cài đặt.'
+    toast.error(error?.data?.message || 'Không thể tải cài đặt.')
   } finally {
     loading.value = false
   }
@@ -141,7 +138,6 @@ async function fetchSettings() {
 
 async function saveSettings() {
   saving.value = true
-  resetAlerts()
   try {
     const payload: Record<string, string> = {}
     for (const key of Object.keys(FORM_DEFAULTS) as Array<keyof FormState>) {
@@ -162,9 +158,9 @@ async function saveSettings() {
     })
     applySettings(response)
     await refreshSettings()
-    successMessage.value = response?.message || 'Đã lưu cài đặt hệ thống.'
+    toast.success(response?.message || 'Đã lưu cài đặt hệ thống.')
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể lưu cài đặt.'
+    toast.error(error?.data?.message || 'Không thể lưu cài đặt.')
   } finally {
     saving.value = false
   }
@@ -173,29 +169,26 @@ async function saveSettings() {
 type UploadedPayload = { url: string; path: string }
 
 async function onLogoUploaded({ path }: UploadedPayload) {
-  resetAlerts()
   form.brand_logo = path
   form.site_logo = path
   await saveSettings()
-  successMessage.value = 'Đã cập nhật logo website.'
+  toast.success('Đã cập nhật logo website.')
 }
 
 async function onAuthUploaded({ path }: UploadedPayload) {
-  resetAlerts()
   form.auth_page_image = path
   await saveSettings()
-  successMessage.value = 'Đã cập nhật ảnh nền trang xác thực.'
+  toast.success('Đã cập nhật ảnh nền trang xác thực.')
 }
 
 async function onFaviconUploaded({ path }: UploadedPayload) {
-  resetAlerts()
   form.site_favicon = path
   await saveSettings()
-  successMessage.value = 'Đã cập nhật favicon.'
+  toast.success('Đã cập nhật favicon.')
 }
 
 function onUploadError(message: string) {
-  errorMessage.value = message
+  toast.error(message)
 }
 
 watch(logoPreviewUrl, async (val, prev) => {
@@ -222,11 +215,10 @@ watch(faviconPreviewUrl, async (val, prev) => {
 
 async function sendTestEmail() {
   if (!testEmail.value) {
-    errorMessage.value = 'Vui lòng nhập email nhận thử.'
+    toast.error('Vui lòng nhập email nhận thử.')
     return
   }
   sendingTest.value = true
-  resetAlerts()
   try {
     await saveSettings()
     const response = await useApi<{ message?: string }>('/admin/settings/test-smtp', {
@@ -234,9 +226,9 @@ async function sendTestEmail() {
       headers: authHeaders(),
       body: { to: testEmail.value },
     })
-    successMessage.value = response?.message || 'Đã gửi email kiểm tra.'
+    toast.success(response?.message || 'Đã gửi email kiểm tra.')
   } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể gửi email kiểm tra.'
+    toast.error(error?.data?.message || 'Không thể gửi email kiểm tra.')
   } finally {
     sendingTest.value = false
   }
@@ -306,8 +298,6 @@ onMounted(fetchSettings)
         </button>
       </nav>
 
-      <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
       <div v-if="loading" class="crud-empty">Đang tải cài đặt...</div>
 
       <div v-else>

@@ -12,7 +12,7 @@ const auth = useAuthStore()
 if (!auth.isReady) auth.initFromStorage()
 if (auth.token && !auth.user) await auth.fetchMe()
 if (!auth.isLoggedIn || !auth.user) await navigateTo('/login', { replace: true })
-if (auth.user && !(auth.user.roles || []).includes('admin')) {
+if (auth.user && !(auth.user.roles || []).includes('admin') && !(auth.user.roles || []).includes('instructor')) {
   await navigateTo(getDashboardPath(auth.user.role), { replace: true })
 }
 
@@ -34,7 +34,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
     <!-- Sidebar -->
     <AdminSidebar
       :user-name="user?.name || 'Admin User'"
-      user-role="Admin"
+      :user-role="user?.role === 'admin' ? 'Quản trị viên' : 'Giảng viên'"
       class="admin-sidebar"
       :class="{ 'is-open': sidebarOpen }"
     />
@@ -56,7 +56,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
         :search-placeholder="searchPlaceholder"
         :user-name="user?.name || 'Admin User'"
         :user-avatar="user?.avatar"
-        user-role="Admin"
+        :user-role="user?.role === 'admin' ? 'Quản trị viên' : 'Giảng viên'"
         @toggle-sidebar="sidebarOpen = !sidebarOpen"
       />
 
@@ -76,7 +76,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background: url('/body-bg.jpg') center/cover fixed, var(--bg);
+  background: linear-gradient(rgba(232, 237, 234, 0.75), rgba(232, 237, 234, 0.75)), url('/body-bg.jpg') center/cover fixed, var(--bg);
 }
 
 .admin-sidebar {
@@ -102,6 +102,9 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
   flex: 1;
   padding: 28px;
   min-width: 0;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .admin-overlay {

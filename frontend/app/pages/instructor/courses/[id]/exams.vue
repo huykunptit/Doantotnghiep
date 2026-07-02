@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -16,6 +18,7 @@ const exams = ref<any[]>([])
 const editingExam = ref<any | null>(null)
 const showForm = ref(false)
 const deleteTarget = ref<any | null>(null)
+const deleting = ref(false)
 
 const form = reactive({
   title: '',
@@ -97,6 +100,7 @@ async function saveExam() {
 
 async function confirmDelete() {
   if (!deleteTarget.value) return
+  deleting.value = true
   try {
     await useApi(`/courses/${courseId}/exams/${deleteTarget.value.id}`, {
       method: 'DELETE',
@@ -108,6 +112,9 @@ async function confirmDelete() {
   catch (e: any) {
     error.value = e?.data?.message || 'Không thể xoá kỳ thi.'
     deleteTarget.value = null
+  }
+  finally {
+    deleting.value = false
   }
 }
 
@@ -128,19 +135,25 @@ onMounted(loadExams)
 </script>
 
 <template>
-  <section class="crud-page">
-    <header class="crud-page-header dashboard-card">
-      <div>
-        <p class="section-kicker">Giảng viên / Kỳ thi</p>
-        <h2>Kỳ thi độc lập</h2>
-        <p>Quản lý các kỳ thi riêng biệt ngoài bài học cho khoá học này.</p>
-      </div>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <NuxtLink :to="`/instructor/courses/${courseId}/question-bank`" class="crud-secondary-btn">Ngân hàng câu hỏi</NuxtLink>
-        <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="crud-secondary-btn">Giáo trình</NuxtLink>
-        <button type="button" class="crud-primary-btn" @click="openCreate">+ Tạo kỳ thi mới</button>
-      </div>
-    </header>
+  <InstructorWorkspaceShell
+    title="Kỳ thi độc lập"
+    description="Quản lý các kỳ thi riêng biệt ngoài bài học cho khoá học này."
+    :breadcrumb="['Trang chủ', 'Khóa học', 'Kỳ thi']"
+  >
+    <template #actions>
+      <NuxtLink :to="`/instructor/courses/${courseId}/question-bank`" class="crud-secondary-btn">
+        <span class="material-symbols-outlined">database</span>
+        Ngân hàng câu hỏi
+      </NuxtLink>
+      <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="crud-secondary-btn">
+        <span class="material-symbols-outlined">auto_stories</span>
+        Giáo trình
+      </NuxtLink>
+      <button type="button" class="crud-primary-btn" @click="openCreate">
+        <span class="material-symbols-outlined">add_circle</span>
+        Tạo kỳ thi mới
+      </button>
+    </template>
 
     <div v-if="success" class="crud-alert is-success" style="margin-bottom: 16px;">{{ success }}</div>
     <div v-if="error && !showForm" class="crud-alert is-error" style="margin-bottom: 16px;">{{ error }}</div>
@@ -232,19 +245,17 @@ onMounted(loadExams)
     </section>
 
     <!-- Confirm delete modal -->
-    <div v-if="deleteTarget" class="modal-overlay" @click.self="deleteTarget = null">
-      <div class="dashboard-card" style="max-width: 420px; padding: 28px;">
-        <h3 style="margin: 0 0 12px;">Xác nhận xoá</h3>
-        <p style="color: var(--muted); font-size: 0.875rem; margin-bottom: 20px;">
-          Bạn có chắc muốn xoá kỳ thi <strong>{{ deleteTarget.title }}</strong>? Hành động này không thể hoàn tác.
-        </p>
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button type="button" class="crud-secondary-btn" @click="deleteTarget = null">Huỷ</button>
-          <button type="button" class="crud-danger-btn" @click="confirmDelete">Xoá</button>
-        </div>
-      </div>
-    </div>
-  </section>
+    <CrudConfirmModal
+      :open="deleteTarget !== null"
+      title="Xoá kỳ thi"
+      :description="`Bạn có chắc muốn xoá kỳ thi ${deleteTarget?.title}? Hành động này không thể hoàn tác.`"
+      confirm-text="Xoá kỳ thi"
+      tone="danger"
+      :loading="deleting"
+      @close="deleteTarget = null"
+      @confirm="confirmDelete"
+    />
+  </InstructorWorkspaceShell>
 </template>
 
 <style scoped>
@@ -269,5 +280,4 @@ onMounted(loadExams)
 .exam-title { font-size: 1rem; font-weight: 700; margin: 10px 0 6px; }
 .exam-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .exam-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; }
 </style>

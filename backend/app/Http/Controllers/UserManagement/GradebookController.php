@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\UserManagement;
 
 use App\Concerns\ScopesByUnit;
+use App\Helpers\GpaCalculator;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSection;
 use App\Models\Enrollment;
@@ -171,6 +172,105 @@ class GradebookController extends Controller
         return response()->json([
             'message' => 'Đã cập nhật cấu trúc điểm',
             'components' => GradeComponent::where('course_id', $courseId)->orderBy('position')->get(),
+        ]);
+    }
+
+    public function presetComponents(Request $request, int $courseId): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        // Only apply preset if no components exist yet
+        $existing = GradeComponent::where('course_id', $courseId)->count();
+        if ($existing > 0) {
+            return response()->json([
+                'message'    => 'Khóa học đã có cấu trúc điểm, dùng API upsert để chỉnh sửa.',
+                'components' => GradeComponent::where('course_id', $courseId)->orderBy('position')->get(),
+            ], 422);
+        }
+
+        $presets = [
+            ['name' => 'Chuyên cần',    'weight' => 10, 'max_score' => 10, 'position' => 1],
+            ['name' => 'Giữa kỳ',       'weight' => 20, 'max_score' => 10, 'position' => 2],
+            ['name' => 'Kiểm tra/BTL',  'weight' => 20, 'max_score' => 10, 'position' => 3],
+            ['name' => 'Cuối kỳ',       'weight' => 50, 'max_score' => 10, 'position' => 4],
+        ];
+
+        DB::transaction(function () use ($courseId, $presets) {
+            foreach ($presets as $p) {
+                GradeComponent::create(['course_id' => $courseId, ...$p]);
+            }
+        });
+
+        return response()->json([
+            'message'    => 'Đã áp dụng cấu trúc điểm mặc định.',
+            'components' => GradeComponent::where('course_id', $courseId)->orderBy('position')->get(),
+        ], 201);
+    }
+
+    public function sectionGpaReport(Request $request, ClassSection $classSection): JsonResponse
+    {
+        $user = $request->user();
+        if (!$this->canAccess($user, $classSection)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $components = GradeComponent::where('course_id', $classSection->course_id)
+            ->orderBy('position')->get();
+
+        $enrollments = Enrollment::where('class_section_id', $classSection->id)
+            ->with([
+                'user:id,name,email,student_code',
+                'gradeEntries.component',
+            ])
+            ->orderBy('id')
+            ->get();
+
+        $rows = $enrollments->map(function (Enrollment $enrollment) use ($components) {
+            $finalScore = $enrollment->final_score;
+            $gradeInfo  = $finalScore !== null
+                ? GpaCalculator::gradeInfo((float) $finalScore)
+                : ['letter' => null, 'gpa4' => null];
+
+            $byComponent = $enrollment->gradeEntries->keyBy('grade_component_id');
+
+            return [
+                'enrollment_id' => $enrollment->id,
+                'student'       => $enrollment->user,
+                'entries'       => $components->map(fn ($c) => [
+                    'component_id'   => $c->id,
+                    'component_name' => $c->name,
+                    'weight'         => $c->weight,
+                    'max_score'      => $c->max_score,
+                    'score'          => $byComponent->get($c->id)?->score,
+                ])->values(),
+                'final_score'  => $finalScore,
+                'letter_grade' => $gradeInfo['letter'],
+                'gpa4'         => $gradeInfo['gpa4'],
+            ];
+        })->values();
+
+        $passCount = $rows->filter(fn ($r) => $r['gpa4'] !== null && $r['gpa4'] >= 1.0)->count();
+        $avg       = $rows->where('final_score', '!==', null)->avg('final_score');
+
+        return response()->json([
+            'class_section' => $classSection->load(['course:id,title', 'term:id,name,code']),
+            'components'    => $components,
+            'students'      => $rows,
+            'summary'       => [
+                'total'      => $rows->count(),
+                'passed'     => $passCount,
+                'failed'     => $rows->count() - $passCount,
+                'avg_score'  => $avg !== null ? round($avg, 2) : null,
+                'class_gpa'  => GpaCalculator::cumulativeGpa(
+                    $rows->map(fn ($r) => [
+                        'final_score'  => $r['final_score'],
+                        'credit_value' => $classSection->course->credit_value ?? 3,
+                    ])->all()
+                ),
+            ],
         ]);
     }
 

@@ -41,15 +41,15 @@ export function useSiteSettings() {
 
   const brandName = computed(() => settings.value?.brand_name?.trim() || settings.value?.site_name?.trim() || FALLBACK_NAME)
   const brandMark = computed(() => settings.value?.brand_mark?.trim() || brandName.value.slice(0, 1).toUpperCase())
-  const brandLogo = computed(() => settings.value?.brand_logo || settings.value?.site_logo || null)
+  const brandLogo = computed(() => settings.value?.brand_logo || settings.value?.site_logo || '/logo.png')
   const siteTitle = computed(() => settings.value?.site_title?.trim() || brandName.value)
   const siteName = computed(() => brandName.value)
   const siteLogo = computed(() => brandLogo.value)
-  const siteFavicon = computed(() => settings.value?.site_favicon || null)
+  const siteFavicon = computed(() => settings.value?.site_favicon || '/logo.png')
   const siteTagline = computed(() => settings.value?.site_tagline || null)
-  const authPageImage = computed(() => settings.value?.auth_page_image || null)
-  const themeColorPrimary = computed(() => settings.value?.theme_color_primary || '#1D9E75')
-  const themeColorDeep = computed(() => settings.value?.theme_color_deep || '#085041')
+  const authPageImage = computed(() => settings.value?.auth_page_image || '/hoc-vien-cong-nghe-buu-chinh-vien-thong.jpg')
+  const themeColorPrimary = computed(() => settings.value?.theme_color_primary || '#0F6E8C')
+  const themeColorDeep = computed(() => settings.value?.theme_color_deep || '#0b5167')
 
   async function refreshSettings() {
     try {

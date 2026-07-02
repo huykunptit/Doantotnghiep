@@ -294,8 +294,8 @@ onMounted(fetchCategories)
       </div>
     </section>
 
-    <Teleport to="body">
-      <div v-if="modalOpen" class="crud-modal-backdrop" @click.self="modalOpen = false">
+    <UModal v-model:open="modalOpen" :ui="{ width: 'max-w-lg' }">
+      <template #content>
         <div class="crud-modal">
           <div class="crud-modal-head">
             <div>
@@ -305,7 +305,7 @@ onMounted(fetchCategories)
             <button class="topbar-ghost" type="button" @click="modalOpen = false">✕</button>
           </div>
 
-          <div class="crud-form-grid">
+          <div class="crud-form-grid" style="padding: 24px 28px;">
             <label class="crud-field">
               <span>Tên danh mục</span>
               <input v-model="form.name" type="text" placeholder="Ví dụ: Lập trình web">
@@ -338,8 +338,8 @@ onMounted(fetchCategories)
             </button>
           </div>
         </div>
-      </div>
-    </Teleport>
+      </template>
+    </UModal>
 
     <CrudConfirmModal
       :open="confirmOpen"

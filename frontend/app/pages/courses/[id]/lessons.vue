@@ -226,7 +226,7 @@ h1 { font-size: 24px; font-weight: 700; color: #111827; }
 .order-badge { background: #f3f4f6; color: #374151; font-weight: 700; font-size: 13px; padding: 4px 10px; border-radius: 6px; flex-shrink: 0; }
 .lesson-title { font-weight: 600; font-size: 15px; color: #111827; }
 .lesson-meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
-.has-video { color: #059669; font-weight: 600; }
+.has-video { color: var(--green-mid, #1D9E75); font-weight: 600; }
 .no-video { color: #d97706; }
 .lesson-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .upload-btn { background: rgba(var(--green-rgb), 0.05); color: #1d4ed8; border: 1px solid #bfdbfe; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }

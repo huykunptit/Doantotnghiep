@@ -1,109 +1,130 @@
 <template>
-  <section class="space-y-8">
-    <AppPageHeader eyebrow="Instructor" title="Doanh thu khóa học" description="Theo dõi doanh thu, đơn hàng đã thanh toán và giá trị trung bình của từng giao dịch.">
-      <template #actions>
-        <button type="button" class="inline-flex items-center gap-2 rounded-xl border border-surface-dim/60 bg-surface-lowest px-5 py-2.5 text-sm font-bold text-on-surface shadow-sm hover:bg-surface-low transition-all" @click="exportCSV">
-          <span class="material-symbols-outlined text-base">download</span> Xuất CSV
-        </button>
-        <UiButton to="/instructor/courses" variant="secondary">Quay lại</UiButton>
-      </template>
-    </AppPageHeader>
+  <InstructorWorkspaceShell
+    title="Doanh thu khóa học"
+    description="Theo dõi doanh thu, đơn hàng đã thanh toán và giá trị trung bình của từng giao dịch."
+    :breadcrumb="['Trang chủ', 'Khóa học', 'Doanh thu']"
+  >
+    <template #actions>
+      <button type="button" class="crud-secondary-btn" @click="exportCSV">
+        <span class="material-symbols-outlined">download</span>
+        Xuất CSV
+      </button>
+      <NuxtLink to="/instructor/courses" class="crud-secondary-btn">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Quay lại
+      </NuxtLink>
+    </template>
 
-    <!-- Date range filter -->
-    <UiCard>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div class="flex-1">
-          <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-outline">Từ ngày</label>
-          <input v-model="dateFrom" type="date" class="h-10 w-full rounded-xl border border-surface-dim/60 bg-surface-lowest px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
-        </div>
-        <div class="flex-1">
-          <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-outline">Đến ngày</label>
-          <input v-model="dateTo" type="date" class="h-10 w-full rounded-xl border border-surface-dim/60 bg-surface-lowest px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10">
-        </div>
-        <button type="button" class="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-white hover:bg-primary-dark transition-all" @click="loadData">
-          Lọc
-        </button>
-        <button type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-surface-dim/60 bg-surface-lowest px-5 text-sm font-bold text-on-surface hover:bg-surface-low transition-all" @click="resetFilter">
-          Đặt lại
-        </button>
+    <!-- Date filter -->
+    <div class="dashboard-card crud-panel">
+      <div class="crud-toolbar">
+        <form class="crud-toolbar-main" @submit.prevent="loadData">
+          <div class="filter-field">
+            <label>Từ ngày</label>
+            <input v-model="dateFrom" type="date" class="crud-search" style="max-width:180px;">
+          </div>
+          <div class="filter-field">
+            <label>Đến ngày</label>
+            <input v-model="dateTo" type="date" class="crud-search" style="max-width:180px;">
+          </div>
+          <button type="submit" class="crud-primary-btn">
+            <span class="material-symbols-outlined">filter_list</span>
+            Lọc
+          </button>
+          <button type="button" class="crud-secondary-btn" @click="resetFilter">Đặt lại</button>
+        </form>
       </div>
-    </UiCard>
-
-    <!-- KPI cards skeleton -->
-    <div v-if="loading" class="grid gap-4 md:grid-cols-3">
-      <div v-for="i in 3" :key="i" class="h-28 rounded-3xl border border-surface-dim bg-surface-lowest animate-pulse" />
     </div>
 
+    <!-- KPI -->
+    <div v-if="loading" class="ds-stats mb-0">
+      <div v-for="i in 3" :key="i" class="ds-stat" style="background:var(--bg);animation:pulse 1.5s infinite;" />
+    </div>
     <template v-else>
-      <!-- KPI cards -->
-      <div class="grid gap-4 md:grid-cols-3">
-        <UiCard>
-          <p class="text-xs font-semibold uppercase tracking-wide text-outline">Tổng doanh thu</p>
-          <p class="mt-2 text-2xl font-bold text-on-surface">{{ money(summary.total_revenue) }}</p>
-          <p class="mt-1 text-xs text-on-surface-variant">Từ {{ filteredOrders.length }} giao dịch</p>
-        </UiCard>
-        <UiCard>
-          <p class="text-xs font-semibold uppercase tracking-wide text-outline">Đơn đã thanh toán</p>
-          <p class="mt-2 text-2xl font-bold text-on-surface">{{ summary.paid_orders || 0 }}</p>
-          <p class="mt-1 text-xs text-on-surface-variant">Trạng thái: completed / paid</p>
-        </UiCard>
-        <UiCard>
-          <p class="text-xs font-semibold uppercase tracking-wide text-outline">Giá trị trung bình</p>
-          <p class="mt-2 text-2xl font-bold text-primary">{{ money(summary.average_order_value) }}</p>
-          <p class="mt-1 text-xs text-on-surface-variant">Mỗi đơn hàng thành công</p>
-        </UiCard>
+      <div class="ds-stats mb-0">
+        <div class="ds-stat ds-stat--green">
+          <div class="ds-stat-icon"><span class="material-symbols-outlined">payments</span></div>
+          <p class="ds-stat-label">Tổng doanh thu</p>
+          <strong class="ds-stat-value">{{ money(summary.total_revenue) }}</strong>
+          <span class="ds-stat-sub">{{ filteredOrders.length }} giao dịch</span>
+        </div>
+        <div class="ds-stat ds-stat--blue">
+          <div class="ds-stat-icon"><span class="material-symbols-outlined">receipt_long</span></div>
+          <p class="ds-stat-label">Đơn đã thanh toán</p>
+          <strong class="ds-stat-value">{{ summary.paid_orders || 0 }}</strong>
+          <span class="ds-stat-sub">đơn hàng</span>
+        </div>
+        <div class="ds-stat ds-stat--amber">
+          <div class="ds-stat-icon"><span class="material-symbols-outlined">bar_chart</span></div>
+          <p class="ds-stat-label">Giá trị trung bình</p>
+          <strong class="ds-stat-value">{{ money(summary.average_order_value) }}</strong>
+          <span class="ds-stat-sub">mỗi đơn</span>
+        </div>
       </div>
 
-      <!-- Monthly chart -->
-      <UiCard v-if="monthlyChart.length">
-        <h2 class="text-base font-semibold text-on-surface">Doanh thu theo tháng</h2>
-        <div class="mt-4 flex items-end justify-around gap-2" style="height: 160px;">
-          <div v-for="bar in monthlyChart" :key="bar.label" class="flex flex-1 flex-col items-center gap-2">
-            <span class="text-[10px] font-bold text-primary opacity-0 transition-opacity group-hover:opacity-100">{{ money(bar.value) }}</span>
-            <div
-              class="chart-bar w-full rounded-t-lg bg-primary/80 hover:bg-primary transition-all cursor-default"
-              :style="{ height: `${maxBarValue ? (bar.value / maxBarValue) * 120 : 0}px` }"
-              :title="money(bar.value)"
-            />
-            <span class="text-[10px] font-semibold text-on-surface-variant">{{ bar.label }}</span>
+      <!-- Monthly bar chart -->
+      <div v-if="monthlyChart.length" class="dashboard-card crud-panel">
+        <div class="crud-toolbar">
+          <div>
+            <p class="section-kicker">Thống kê</p>
+            <h3 class="ds-section-title">Doanh thu theo tháng</h3>
           </div>
         </div>
-      </UiCard>
+        <div class="rev-chart">
+          <div v-for="bar in monthlyChart" :key="bar.label" class="rev-bar-col">
+            <span class="rev-bar-val">{{ moneyShort(bar.value) }}</span>
+            <div class="rev-bar-track">
+              <div
+                class="rev-bar-fill"
+                :style="{ height: `${maxBarValue ? (bar.value / maxBarValue) * 100 : 0}%` }"
+                :title="money(bar.value)"
+              />
+            </div>
+            <span class="rev-bar-label">{{ bar.label }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- Orders table -->
-      <UiCard>
-        <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold text-on-surface">Danh sách đơn hàng</h2>
-          <p class="text-sm text-on-surface-variant">{{ totalOrders }} đơn</p>
+      <section class="dashboard-card crud-panel">
+        <div class="crud-toolbar">
+          <div>
+            <p class="section-kicker">Chi tiết</p>
+            <h3 class="ds-section-title">Danh sách đơn hàng ({{ totalOrders }})</h3>
+          </div>
         </div>
 
-        <div v-if="paginatedOrders.length === 0" class="mt-6">
-          <UiEmptyState title="Chưa có dữ liệu doanh thu" description="Doanh thu sẽ xuất hiện khi khóa học bắt đầu có giao dịch." />
+        <div v-if="paginatedOrders.length === 0" class="crud-empty">
+          <span class="material-symbols-outlined" style="font-size:48px;opacity:0.2;">receipt_long</span>
+          <div>
+            <strong>Chưa có dữ liệu doanh thu</strong>
+            <p>Doanh thu sẽ xuất hiện khi khóa học bắt đầu có giao dịch.</p>
+          </div>
         </div>
 
-        <div v-else class="mt-4 overflow-x-auto">
-          <table class="w-full text-sm">
+        <div v-else class="crud-table-wrap">
+          <table class="crud-table">
             <thead>
-              <tr class="border-b border-surface-dim">
-                <th class="pb-3 text-left text-xs font-semibold uppercase tracking-wide text-outline">Học viên</th>
-                <th class="pb-3 text-right text-xs font-semibold uppercase tracking-wide text-outline">Số tiền</th>
-                <th class="pb-3 text-center text-xs font-semibold uppercase tracking-wide text-outline">Trạng thái</th>
-                <th class="pb-3 text-right text-xs font-semibold uppercase tracking-wide text-outline">Ngày thanh toán</th>
+              <tr>
+                <th>Học viên</th>
+                <th style="text-align:right;">Số tiền</th>
+                <th style="text-align:center;">Trạng thái</th>
+                <th style="text-align:right;">Ngày thanh toán</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-surface-dim">
-              <tr v-for="order in paginatedOrders" :key="order.id" class="hover:bg-surface-low/40 transition-colors">
-                <td class="py-3 pr-4">
-                  <p class="font-semibold text-on-surface">{{ order.user?.name || '—' }}</p>
-                  <p class="text-xs text-on-surface-variant">{{ order.user?.email || '—' }}</p>
+            <tbody>
+              <tr v-for="order in paginatedOrders" :key="order.id">
+                <td>
+                  <strong style="display:block;">{{ order.user?.name || '—' }}</strong>
+                  <span style="font-size:0.78rem;color:var(--muted);">{{ order.user?.email || '—' }}</span>
                 </td>
-                <td class="py-3 text-right font-semibold text-on-surface">{{ money(order.amount) }}</td>
-                <td class="py-3 text-center">
-                  <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-bold" :class="statusClass(order.status)">
+                <td style="text-align:right;font-weight:700;">{{ money(order.amount) }}</td>
+                <td style="text-align:center;">
+                  <span class="rev-status-badge" :class="statusClass(order.status)">
                     {{ statusLabel(order.status) }}
                   </span>
                 </td>
-                <td class="py-3 text-right text-on-surface-variant">
+                <td style="text-align:right;color:var(--muted);font-size:0.85rem;">
                   {{ order.paid_at ? formatDate(order.paid_at) : '—' }}
                 </td>
               </tr>
@@ -111,21 +132,16 @@
           </table>
         </div>
 
-        <!-- Pagination -->
-        <div v-if="lastPage > 1" class="mt-4 flex items-center justify-between border-t border-surface-dim pt-4">
-          <p class="text-sm text-on-surface-variant">Trang {{ currentPage }} / {{ lastPage }}</p>
-          <div class="flex gap-2">
-            <button type="button" class="rounded-lg border border-surface-dim/60 bg-surface-lowest px-3 py-1.5 text-sm font-semibold disabled:opacity-40 hover:bg-surface-low transition-all" :disabled="currentPage <= 1" @click="currentPage--">
-              ← Trước
-            </button>
-            <button type="button" class="rounded-lg border border-surface-dim/60 bg-surface-lowest px-3 py-1.5 text-sm font-semibold disabled:opacity-40 hover:bg-surface-low transition-all" :disabled="currentPage >= lastPage" @click="currentPage++">
-              Sau →
-            </button>
+        <div v-if="lastPage > 1" class="crud-pagination">
+          <p>Trang <strong>{{ currentPage }}</strong> / {{ lastPage }}</p>
+          <div class="crud-pagination-btns">
+            <button type="button" class="crud-secondary-btn" :disabled="currentPage <= 1" @click="currentPage--">← Trước</button>
+            <button type="button" class="crud-secondary-btn" :disabled="currentPage >= lastPage" @click="currentPage++">Sau →</button>
           </div>
         </div>
-      </UiCard>
+      </section>
     </template>
-  </section>
+  </InstructorWorkspaceShell>
 </template>
 
 <script setup lang="ts">
@@ -134,6 +150,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
+import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -152,39 +169,37 @@ const perPage = 10
 const money = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value || 0)
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString('vi-VN')
+const moneyShort = (n: number) => {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  return String(n)
+}
+
+const formatDate = (value: string) => new Date(value).toLocaleDateString('vi-VN')
 
 function statusLabel(status: string) {
-  const map: Record<string, string> = {
-    completed: 'Đã thanh toán',
-    paid: 'Đã thanh toán',
-    pending: 'Đang xử lý',
-    failed: 'Thất bại',
-  }
+  const map: Record<string, string> = { completed: 'Đã thanh toán', paid: 'Đã thanh toán', pending: 'Đang xử lý', failed: 'Thất bại' }
   return map[status] || status
 }
 
 function statusClass(status: string) {
-  if (['completed', 'paid'].includes(status))
-    return 'bg-green-100 text-green-700'
-  if (status === 'pending')
-    return 'bg-amber-100 text-amber-700'
-  return 'bg-red-100 text-red-700'
+  if (['completed', 'paid'].includes(status)) return 'is-paid'
+  if (status === 'pending') return 'is-pending'
+  return 'is-failed'
 }
 
-const filteredOrders = computed(() => {
-  return allOrders.value.filter(o => {
+const filteredOrders = computed(() =>
+  allOrders.value.filter(o => {
     const date = new Date(o.paid_at || o.created_at)
     if (dateFrom.value && date < new Date(dateFrom.value)) return false
     if (dateTo.value && date > new Date(dateTo.value + 'T23:59:59')) return false
     return true
   })
-})
+)
 
 const totalOrders = computed(() => filteredOrders.value.length)
 const lastPage = computed(() => Math.max(1, Math.ceil(totalOrders.value / perPage)))
-
 const paginatedOrders = computed(() => {
   const start = (currentPage.value - 1) * perPage
   return filteredOrders.value.slice(start, start + perPage)
@@ -207,9 +222,7 @@ const monthlyChart = computed(() => {
     })
 })
 
-const maxBarValue = computed(() =>
-  Math.max(...monthlyChart.value.map(b => b.value), 1)
-)
+const maxBarValue = computed(() => Math.max(...monthlyChart.value.map(b => b.value), 1))
 
 async function loadData() {
   loading.value = true
@@ -219,9 +232,7 @@ async function loadData() {
     summary.value = res.summary || {}
     allOrders.value = res.orders?.data || []
   }
-  finally {
-    loading.value = false
-  }
+  finally { loading.value = false }
 }
 
 function resetFilter() {
@@ -232,10 +243,7 @@ function resetFilter() {
 
 function exportCSV() {
   const rows = filteredOrders.value.map(o => [
-    o.user?.name || '',
-    o.user?.email || '',
-    o.amount || 0,
-    statusLabel(o.status),
+    o.user?.name || '', o.user?.email || '', o.amount || 0, statusLabel(o.status),
     o.paid_at ? formatDate(o.paid_at) : '',
   ])
   const header = ['Học viên', 'Email', 'Số tiền (VND)', 'Trạng thái', 'Ngày thanh toán']
@@ -243,9 +251,7 @@ function exportCSV() {
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url
-  a.download = `doanh-thu-khoa-hoc-${courseId}.csv`
-  a.click()
+  a.href = url; a.download = `doanh-thu-khoa-hoc-${courseId}.csv`; a.click()
   URL.revokeObjectURL(url)
 }
 
@@ -253,8 +259,39 @@ onMounted(loadData)
 </script>
 
 <style scoped>
-.chart-bar {
-  min-height: 4px;
-  transition: height 0.4s ease;
+.filter-field { display: flex; flex-direction: column; gap: 4px; }
+.filter-field label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+/* Bar chart */
+.rev-chart {
+  display: flex; align-items: flex-end; gap: 12px; height: 160px; padding: 0 4px;
 }
+.rev-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; }
+.rev-bar-val { font-size: 0.7rem; font-weight: 700; color: var(--green-deep); white-space: nowrap; }
+.rev-bar-track {
+  flex: 1; width: 100%; display: flex; align-items: flex-end;
+  background: var(--bg); border-radius: 8px; overflow: hidden; border: 1px solid var(--line);
+}
+.rev-bar-fill {
+  width: 100%; background: var(--green); border-radius: 8px;
+  min-height: 4px; transition: height 0.4s ease;
+}
+.rev-bar-label { font-size: 0.72rem; font-weight: 600; color: var(--muted); }
+
+/* Status badges */
+.rev-status-badge {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 10px;
+  border-radius: 999px; font-size: 0.72rem; font-weight: 700; border: 1px solid transparent;
+}
+.is-paid    { background: rgba(29,158,117,0.1); color: var(--green-deep); border-color: rgba(29,158,117,0.2); }
+.is-pending { background: rgba(217,119,6,0.1);  color: #b45309;           border-color: rgba(217,119,6,0.2); }
+.is-failed  { background: rgba(239,68,68,0.1);  color: #b91c1c;           border-color: rgba(239,68,68,0.2); }
+
+/* Pagination */
+.crud-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 4px; font-size: 0.85rem; color: var(--muted);
+  border-top: 1px solid var(--line); margin-top: 8px;
+}
+.crud-pagination-btns { display: flex; gap: 8px; }
 </style>

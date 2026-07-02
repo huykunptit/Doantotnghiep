@@ -143,13 +143,18 @@ class QuestionDisplay extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Radio<int>(
-                  value: option.id,
-                  groupValue: selectedId,
-                  activeColor: theme.colorScheme.primary,
-                  onChanged: (val) {
-                    if (val != null) onAnswerChanged(val);
-                  },
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? theme.colorScheme.primary : theme.colorScheme.outline,
+                      width: isSelected ? 6 : 2,
+                    ),
+                    color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                  ),
                 ),
                 AppSpacing.w12,
                 Expanded(
