@@ -62,20 +62,23 @@ class QuestionBankSeeder extends Seeder
                 ],
             );
 
-            // Rebuild answers
-            $question->answers()->delete();
-
+            // Upsert answers — dùng updateOrInsert thay vì delete+insert
+            // để tránh phá FK nếu quiz_attempts đang giữ tham chiếu vào answers
             foreach (($seed['answers'] ?? []) as $index => $answer) {
-                DB::table('answers')->insert([
-                    'question_id' => $question->id,
-                    'content'     => $answer['content'],
-                    'is_correct'  => $answer['is_correct'],
-                    'sub_content' => $answer['sub_content'] ?? null,
-                    'sort_order'  => $index + 1,
-                    'order'       => $index + 1,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
+                DB::table('answers')->updateOrInsert(
+                    [
+                        'question_id' => $question->id,
+                        'content'     => $answer['content'],
+                    ],
+                    [
+                        'is_correct'  => $answer['is_correct'],
+                        'sub_content' => $answer['sub_content'] ?? null,
+                        'sort_order'  => $index + 1,
+                        'order'       => $index + 1,
+                        'updated_at'  => now(),
+                        'created_at'  => now(),
+                    ]
+                );
             }
         }
     }
