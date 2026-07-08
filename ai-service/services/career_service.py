@@ -104,3 +104,122 @@ def recommend(payload: RecommendRequest) -> RecommendResponse:
         recommended_keyword_topics=gaps[:3] if gaps else overlap[:3],
         summary=" ".join(summary_parts).strip(),
     )
+
+
+async def recommend_with_llm(
+    payload: CareerAdvisorRequest,
+) -> CareerAdvisorResponse:
+    """
+    Tư vấn nghề nghiệp thông minh sử dụng LLM kết hợp CV + Học liệu + Yêu cầu thị trường.
+    """
+    import json
+    from services.provider import call_provider
+
+    # Chuẩn bị thông tin học thuật
+    completed_courses_str = ", ".join(payload.completed_courses)
+    grade_transcript_str = "\n".join([
+        f"- {g.course_title}: Điểm {g.final_score} ({g.grade_letter or 'N/A'})"
+        for g in payload.grade_transcript
+    ])
+
+    prompt = f"""
+Bạn là chuyên gia tư vấn hướng nghiệp AI chuyên sâu về ngành CNTT & Viễn thông.
+Nhiệm vụ của bạn là phân tích CV, kỹ năng, kết quả học tập của sinh viên để đánh giá độ tương thích và xây dựng lộ trình chi tiết giúp sinh viên đạt được vị trí công việc mục tiêu.
+
+VỊ TRÍ MỤC TIÊU: {payload.target_job}
+
+HỒ SƠ SINH VIÊN:
+- Ngành học: {payload.major or "CNTТ"} ({payload.program or "Chính quy"})
+- Điểm trung bình GPA: {payload.gpa or "N/A"}/10.0
+- Các môn đã học: {completed_courses_str or "Chưa có"}
+- Chi tiết bảng điểm:
+{grade_transcript_str or "Chưa có"}
+
+KỸ NĂNG TRÍCH XUẤT TỪ CV:
+{", ".join(payload.skills) or "Chưa có"}
+
+KỸ NĂNG TÍCH LŨY TỪ CÁC KHÓA HỌC:
+{", ".join(payload.course_skills) or "Chưa có"}
+
+NỘI DUNG CV THÔ (TRÍCH XUẤT):
+{payload.cv_text[:3000] if payload.cv_text else "Không có nội dung CV thô."}
+
+YÊU CẦU PHÂN TÍCH:
+Hãy phân tích hồ sơ trên đối chiếu với xu hướng tuyển dụng thị trường hiện nay cho vị trí "{payload.target_job}". Trả về chuỗi JSON chính xác theo cấu trúc sau:
+{{
+  "match_score": 75, // Số nguyên từ 0 - 100 biểu thị mức độ sẵn sàng của hồ sơ
+  "market_analysis": "Phân tích xu hướng thị trường tuyển dụng hiện tại cho vị trí này, các công nghệ hot đang được săn đón.",
+  "profile_assessment": "Đánh giá chi tiết về hồ sơ của sinh viên, xem họ đang ở mức nào (Fresher/Internship) và cơ hội ứng tuyển.",
+  "strengths": [
+    "Điểm mạnh 1 về học thuật hoặc kỹ năng trong CV",
+    "Điểm mạnh 2..."
+  ],
+  "skill_gaps": [
+    "Kỹ năng/công nghệ quan trọng mà vị trí yêu cầu nhưng sinh viên còn thiếu hoặc yếu"
+  ],
+  "skill_roadmap": [
+    {{
+      "skill": "Tên kỹ năng cần học",
+      "timeline": "Thời gian (ví dụ: 1-2 tháng)",
+      "resources": ["Tài liệu/Khóa học đề xuất"],
+      "priority": 1 // 1 là cao nhất, tăng dần
+    }}
+  ],
+  "alternative_careers": [
+    "Nghề nghiệp thay thế/liên quan phù hợp với kỹ năng hiện tại nếu không ứng tuyển được vị trí mục tiêu"
+  ],
+  "recommended_keyword_topics": [
+    "Tên 3-5 môn học/chủ đề cốt lõi sinh viên nên đăng ký học tiếp trên hệ thống"
+  ],
+  "action_plan": [
+    "Bước hành động 1 (ví dụ: Cập nhật GitHub profile, tối ưu cấu trúc CV...)"
+  ],
+  "summary": "Lời khuyên, đúc kết ngắn gọn hướng đi tiếp theo."
+}}
+
+CHÚ Ý:
+- Chỉ trả về chuỗi JSON thô, không nằm trong block markdown (như ```json), không có khoảng trắng thừa đầu/cuối.
+- Các nội dung văn bản phải viết chi tiết, có chuyên môn sâu, bằng tiếng Việt.
+"""
+
+    messages = [
+        {
+            "role": "system",
+            "content": "Bạn là chuyên gia tư vấn hướng nghiệp AI. Bạn chỉ trả về định dạng JSON thuần túy theo cấu trúc được yêu cầu.",
+        },
+        {"role": "user", "content": prompt},
+    ]
+
+    # Gọi provider AI
+    reply, tokens = await call_provider(
+        provider=payload.provider or "chatgpt",
+        api_key=payload.api_key or "",
+        messages=messages,
+        model=payload.model,
+    )
+
+    if not reply:
+        logger.error("Career advisor AI response is empty")
+        return CareerAdvisorResponse(summary="Không thể tạo tư vấn nghề nghiệp lúc này.")
+
+    try:
+        # Làm sạch response đề phòng LLM tự ý thêm markdown code block
+        cleaned_reply = reply.strip()
+        if cleaned_reply.startswith("```json"):
+            cleaned_reply = cleaned_reply[7:]
+        if cleaned_reply.endswith("```"):
+            cleaned_reply = cleaned_reply[:-3]
+        cleaned_reply = cleaned_reply.strip()
+
+        data = json.loads(cleaned_reply)
+        return CareerAdvisorResponse(**data)
+
+    except Exception as e:
+        logger.error(f"Failed to parse Career Advisor JSON response: {e}. Raw reply: {reply}")
+        # Fallback return
+        return CareerAdvisorResponse(
+            match_score=50,
+            summary="Đã xảy ra lỗi khi phân tích hồ sơ nghề nghiệp: " + str(e),
+            profile_assessment="Hệ thống đang gặp sự cố khi trích xuất dữ liệu hướng nghiệp tự động từ LLM."
+        )
+

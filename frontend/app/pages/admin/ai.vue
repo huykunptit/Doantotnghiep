@@ -228,7 +228,103 @@ function formatDayLabel(str: string) {
   return `${d.getDate()}/${d.getMonth() + 1}`
 }
 
-onMounted(fetchDashboard)
+// ─── RAG State & Actions ───
+const activeTab = ref('general')
+const ragCollections = ref<any[]>([])
+const loadingCollections = ref(false)
+const uploadingRagFile = ref(false)
+const ingestingFromUrl = ref(false)
+
+const ragForm = ref({
+  subject_name: '',
+  course_id: '',
+  file_url: '',
+})
+
+async function fetchCollections() {
+  loadingCollections.value = true
+  try {
+    const res = await useApi<any>('/admin/ai/rag/collections', { headers: authHeaders() })
+    ragCollections.value = res ?? []
+  } catch (err) {
+    console.error('Failed to fetch RAG collections', err)
+  } finally {
+    loadingCollections.value = false
+  }
+}
+
+async function uploadRagFile(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('subject_name', ragForm.value.subject_name)
+  formData.append('course_id', ragForm.value.course_id)
+
+  uploadingRagFile.value = true
+  try {
+    await useApi<any>('/admin/ai/rag/ingest/upload', {
+      method: 'POST',
+      body: formData,
+      headers: authHeaders(),
+    })
+    alert('Ingest tài liệu thành công!')
+    fetchCollections()
+    ragForm.value.subject_name = ''
+    ragForm.value.course_id = ''
+  } catch (err) {
+    alert('Ingest thất bại. Vui lòng kiểm tra lại file.')
+  } finally {
+    uploadingRagFile.value = false
+    target.value = ''
+  }
+}
+
+async function ingestFromUrlSubmit() {
+  if (!ragForm.value.file_url.trim()) return
+  ingestingFromUrl.value = true
+  try {
+    await useApi<any>('/admin/ai/rag/ingest/url', {
+      method: 'POST',
+      body: {
+        file_url: ragForm.value.file_url,
+        subject_name: ragForm.value.subject_name,
+        course_id: ragForm.value.course_id ? Number(ragForm.value.course_id) : null,
+      },
+      headers: authHeaders(),
+    })
+    alert('Ingest tài liệu từ URL thành công!')
+    fetchCollections()
+    ragForm.value.file_url = ''
+    ragForm.value.subject_name = ''
+    ragForm.value.course_id = ''
+  } catch (err) {
+    alert('Ingest từ URL thất bại.')
+  } finally {
+    ingestingFromUrl.value = false
+  }
+}
+
+async function deleteCollection(name: string) {
+  if (!confirm(`Bạn có chắc chắn muốn xóa collection "${name}"? Thao tác này sẽ xóa sạch vector embeddings của tài liệu.`)) return
+  try {
+    await useApi<any>(`/admin/ai/rag/collections/${name}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    alert('Đã xóa thành công!')
+    fetchCollections()
+  } catch (err) {
+    alert('Xóa collection thất bại.')
+  }
+}
+
+onMounted(() => {
+  fetchDashboard()
+  fetchCollections()
+})
 </script>
 
 <template>
@@ -241,8 +337,29 @@ onMounted(fetchDashboard)
     <div v-if="error"   class="crud-alert is-error"   >{{ error }}</div>
     <div v-if="success" class="crud-alert is-success"  >{{ success }}</div>
 
-    <!-- Stats -->
-    <div class="ai-stats-grid">
+    <!-- Tabs Nav -->
+    <div class="ai-tabs-nav mb-6 flex gap-4 border-b border-line pb-2" style="margin-bottom: 24px; border-bottom: 1px solid var(--surface-dim); display: flex; gap: 16px;">
+      <button 
+        class="pb-2 font-bold transition flex items-center gap-2" 
+        :style="activeTab === 'general' ? { borderBottom: '2px solid var(--green)', color: 'var(--green)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' } : { color: 'var(--muted)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer' }"
+        type="button"
+        @click="activeTab = 'general'"
+      >
+        Cấu hình & Thống kê
+      </button>
+      <button 
+        class="pb-2 font-bold transition flex items-center gap-2" 
+        :style="activeTab === 'rag' ? { borderBottom: '2px solid var(--green)', color: 'var(--green)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' } : { color: 'var(--muted)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer' }"
+        type="button"
+        @click="activeTab = 'rag'"
+      >
+        Quản lý RAG (Knowledge Base)
+      </button>
+    </div>
+
+    <div v-if="activeTab === 'general'">
+      <!-- Stats -->
+      <div class="ai-stats-grid">
       <UiStatCard
         label="Token đã dùng"
         :value="formatK(settings?.tokens_used ?? 0)"
@@ -487,6 +604,109 @@ onMounted(fetchDashboard)
           @page="logPage = $event"
           @update:per-page="logPerPage = $event; logPage = 1"
         />
+      </div>
+    </div>
+  </div>
+
+    <!-- RAG Management Tab -->
+    <div v-else-if="activeTab === 'rag'" class="space-y-6">
+      <div class="ai-main-grid">
+        <!-- RAG Ingestion Controls -->
+        <div class="dashboard-card">
+          <h3 class="ai-card-title">
+            <span class="material-symbols-outlined">upload_file</span> Ingest tài liệu học phần
+          </h3>
+          
+          <!-- Ingest URL Form -->
+          <div class="space-y-4">
+            <p class="ai-field-label">Tên môn học</p>
+            <input 
+              v-model="ragForm.subject_name" 
+              type="text" 
+              class="ai-input" 
+              placeholder="Ví dụ: Cấu trúc dữ liệu và giải thuật" 
+              style="margin-bottom: 12px;"
+            />
+
+            <p class="ai-field-label">Course ID (Optional)</p>
+            <input 
+              v-model="ragForm.course_id" 
+              type="number" 
+              class="ai-input" 
+              placeholder="ID khóa học trên hệ thống" 
+              style="margin-bottom: 12px;"
+            />
+
+            <div class="my-4 pt-4" style="border-top: 1px solid var(--surface-dim); margin-top: 16px; padding-top: 16px;">
+              <h4 class="text-sm font-bold mb-2" style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">Cách 1: Nhập URL tài liệu từ GitHub (PDF/DOCX)</h4>
+              <input 
+                v-model="ragForm.file_url" 
+                type="text" 
+                class="ai-input" 
+                placeholder="Nhập URL tải tài liệu raw..." 
+                style="margin-bottom: 12px;"
+              />
+              <button 
+                class="ai-save-btn" 
+                style="background: var(--blue, #2563eb); margin-top: 4px;" 
+                :disabled="ingestingFromUrl || !ragForm.file_url.trim()"
+                @click="ingestFromUrlSubmit"
+              >
+                {{ ingestingFromUrl ? 'Đang tải & ingest...' : 'Ingest từ URL' }}
+              </button>
+            </div>
+
+            <div class="my-4 pt-4" style="border-top: 1px solid var(--surface-dim); margin-top: 16px; padding-top: 16px;">
+              <h4 class="text-sm font-bold mb-2" style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">Cách 2: Tải lên file PDF/DOCX trực tiếp</h4>
+              <input 
+                type="file" 
+                accept=".pdf,.docx" 
+                class="ai-input" 
+                :disabled="uploadingRagFile"
+                @change="uploadRagFile" 
+                style="margin-bottom: 8px;"
+              />
+              <p class="text-xs text-muted" v-if="uploadingRagFile" style="font-size: 0.75rem; color: var(--muted);">Đang tải lên và sinh embeddings vào vector database...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ChromaDB Collections list -->
+        <div class="dashboard-card">
+          <h3 class="ai-card-title">
+            <span class="material-symbols-outlined">database</span> Các học phần trong Vector DB
+          </h3>
+          
+          <div v-if="loadingCollections" class="ai-empty" style="text-align: center; padding: 24px; color: var(--muted);">Đang tải danh sách học phần...</div>
+          <div v-else-if="ragCollections.length === 0" class="ai-empty" style="text-align: center; padding: 24px; color: var(--muted);">Chưa có tài liệu môn học nào trong Vector DB.</div>
+          <div v-else class="ai-table-wrap">
+            <table class="ai-table">
+              <thead>
+                <tr>
+                  <th>Tên Collection</th>
+                  <th>Số lượng chunks</th>
+                  <th style="text-align: right;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="col in ragCollections" :key="col.name">
+                  <td><code class="ai-code" style="background: var(--surface-dim); padding: 2px 6px; border-radius: 4px;">{{ col.name }}</code></td>
+                  <td><strong>{{ col.document_count }}</strong> chunks</td>
+                  <td style="text-align: right;">
+                    <button 
+                      class="text-red font-bold hover:underline" 
+                      type="button" 
+                      style="color: var(--red, #ef4444); background: none; border: none; cursor: pointer; font-weight: bold;"
+                      @click="deleteCollection(col.name)"
+                    >
+                      Xóa
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </AdminWorkspaceShell>

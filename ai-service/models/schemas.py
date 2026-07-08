@@ -264,3 +264,204 @@ class TutoringResponse(BaseModel):
     weak_skills: list[str] = Field(default_factory=list)
     study_tips: list[str] = Field(default_factory=list)
     summary: str = ""
+
+
+# =============================================================================
+# RAG (Retrieval-Augmented Generation) — Phase 1-2
+# =============================================================================
+
+class RagIngestRequest(BaseModel):
+    """Request ingest tài liệu từ URL."""
+    file_url: str
+    subject_name: str | None = None
+    course_id: int | None = None
+    collection_name: str | None = None
+
+
+class RagIngestResponse(BaseModel):
+    """Response sau khi ingest tài liệu."""
+    success: bool
+    chunks_added: int = 0
+    collection_name: str = ""
+    message: str = ""
+
+
+class RagQueryRequest(BaseModel):
+    """Request truy vấn tài liệu liên quan."""
+    question: str
+    course_id: int | None = None
+    subject_name: str | None = None
+    collection_name: str | None = None
+    top_k: int = 5
+
+
+class RagSourceItem(BaseModel):
+    """Một nguồn tài liệu trả về từ RAG."""
+    content: str
+    source_file: str = ""
+    subject_name: str = ""
+    relevance_score: float = 0
+
+
+class RagQueryResponse(BaseModel):
+    """Response truy vấn RAG."""
+    chunks_found: int = 0
+    sources: list[dict] = Field(default_factory=list)
+    context_text: str = ""
+
+
+class RagCollectionInfo(BaseModel):
+    """Thông tin collection trong ChromaDB."""
+    name: str
+    document_count: int = 0
+
+
+# ChatRequest mở rộng với RAG context
+class ChatSource(BaseModel):
+    """Nguồn tài liệu được trích dẫn trong câu trả lời."""
+    source_file: str = ""
+    subject_name: str = ""
+    relevance_score: float = 0
+    content_preview: str = ""
+
+
+class ChatResponseWithSources(BaseModel):
+    """Chat response bao gồm cả nguồn tài liệu từ RAG."""
+    reply: str
+    sources: list[ChatSource] = Field(default_factory=list)
+    has_rag_context: bool = False
+    tokens_used: TokenUsage = Field(default_factory=lambda: {**EMPTY_TOKENS})
+
+
+# =============================================================================
+# AI Learning Advisor — Phase 3
+# =============================================================================
+
+class GradeRecord(BaseModel):
+    """Bản ghi điểm một môn học."""
+    course_id: int
+    course_title: str
+    final_score: float | None = None
+    grade_letter: str | None = None  # A, B, C, D, F
+    credits: int = 3
+    term_number: int | None = None
+
+
+class QuizPerformance(BaseModel):
+    """Kết quả quiz của sinh viên."""
+    quiz_title: str
+    score: float
+    passed: bool
+    attempts: int = 1
+
+
+class CurriculumGap(BaseModel):
+    """Môn học bắt buộc chưa hoàn thành."""
+    course_id: int
+    course_title: str
+    credits: int = 3
+    term_number: int | None = None
+    is_required: bool = True
+
+
+class LearningAdvisorRequest(BaseModel):
+    """Request phân tích học tập toàn diện."""
+    user_id: int
+    student_name: str | None = None
+    major: str | None = None
+    program: str | None = None
+    current_term: int | None = None
+
+    # Tiến độ khóa học marketplace
+    enrolled_courses: list[StudentProgress] = Field(default_factory=list)
+
+    # Bảng điểm học thuật
+    grade_transcript: list[GradeRecord] = Field(default_factory=list)
+
+    # Kết quả quiz
+    quiz_performance: list[QuizPerformance] = Field(default_factory=list)
+
+    # Môn chưa học trong chương trình đào tạo
+    curriculum_gaps: list[CurriculumGap] = Field(default_factory=list)
+
+    # Thống kê học tập
+    gpa: float | None = None
+    total_completed_courses: int = 0
+    total_credits_earned: int = 0
+
+    # AI provider
+    provider: str | None = "chatgpt"
+    model: str | None = None
+    api_key: str | None = None
+
+
+class StudyPlanItem(BaseModel):
+    """Một mục trong kế hoạch học tập."""
+    title: str
+    description: str = ""
+    priority: str = "medium"  # high, medium, low
+    type: str = "course"      # course, skill, review
+
+
+class LearningAdvisorResponse(BaseModel):
+    """Response khuyến nghị học tập từ AI."""
+    overall_assessment: str = ""
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    recommended_courses: list[str] = Field(default_factory=list)
+    skills_to_develop: list[str] = Field(default_factory=list)
+    study_plan: list[StudyPlanItem] = Field(default_factory=list)
+    next_term_suggestions: list[str] = Field(default_factory=list)
+    motivational_message: str = ""
+
+
+# =============================================================================
+# AI Career Advisor (LLM-powered) — Phase 4
+# =============================================================================
+
+class CareerAdvisorRequest(BaseModel):
+    """Request phân tích nghề nghiệp đầy đủ."""
+    # Thông tin cơ bản
+    user_id: int
+    target_job: str
+
+    # CV
+    skills: list[str] = Field(default_factory=list)
+    cv_text: str | None = None
+
+    # Thông tin học thuật (mới)
+    major: str | None = None
+    program: str | None = None
+    gpa: float | None = None
+    completed_courses: list[str] = Field(default_factory=list)  # Tên môn đã hoàn thành
+    grade_transcript: list[GradeRecord] = Field(default_factory=list)
+
+    # Kỹ năng từ khóa học đã học
+    course_skills: list[str] = Field(default_factory=list)
+
+    # AI provider
+    provider: str | None = "chatgpt"
+    model: str | None = None
+    api_key: str | None = None
+
+
+class SkillRoadmapStep(BaseModel):
+    """Một bước trong lộ trình kỹ năng."""
+    skill: str
+    timeline: str = "1-3 tháng"
+    resources: list[str] = Field(default_factory=list)
+    priority: int = 1
+
+
+class CareerAdvisorResponse(BaseModel):
+    """Response từ AI Career Advisor LLM-powered."""
+    match_score: int = 0
+    market_analysis: str = ""       # Phân tích yêu cầu thị trường
+    profile_assessment: str = ""    # Đánh giá hồ sơ hiện tại
+    strengths: list[str] = Field(default_factory=list)
+    skill_gaps: list[str] = Field(default_factory=list)
+    skill_roadmap: list[SkillRoadmapStep] = Field(default_factory=list)
+    alternative_careers: list[str] = Field(default_factory=list)  # Nghề nghiệp thay thế
+    recommended_keyword_topics: list[str] = Field(default_factory=list)
+    action_plan: list[str] = Field(default_factory=list)
+    summary: str = ""

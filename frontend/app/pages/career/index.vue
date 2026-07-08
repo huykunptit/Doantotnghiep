@@ -242,6 +242,64 @@
                   </div>
                 </div>
 
+                <!-- New Section 1: Market Analysis & Profile Assessment -->
+                <div v-if="expertAnalysis.market_analysis || expertAnalysis.profile_assessment" class="car-card">
+                  <p class="car-label">Phân tích chuyên sâu từ AI</p>
+                  <div class="car-analysis-grid">
+                    <div v-if="expertAnalysis.market_analysis" class="car-analysis-box">
+                      <h3 class="car-section-title-sm">
+                        <TrendingUp :size="16" class="car-title-icon" />
+                        Xu hướng tuyển dụng thị trường
+                      </h3>
+                      <p class="car-section-desc-light">{{ expertAnalysis.market_analysis }}</p>
+                    </div>
+                    <div v-if="expertAnalysis.profile_assessment" class="car-analysis-box">
+                      <h3 class="car-section-title-sm">
+                        <ShieldCheck :size="16" class="car-title-icon" />
+                        Đánh giá hồ sơ hiện tại
+                      </h3>
+                      <p class="car-section-desc-light">{{ expertAnalysis.profile_assessment }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- New Section 2: CV Improvements -->
+                <div v-if="expertAnalysis.cv_improvements?.length || expertAnalysis.cv_additions?.length" class="car-two-col">
+                  <div v-if="expertAnalysis.cv_improvements?.length" class="car-card">
+                    <p class="car-label">Gợi ý nâng cấp CV</p>
+                    <ul class="car-list car-list--improvements">
+                      <li v-for="item in expertAnalysis.cv_improvements" :key="item">
+                        <Sparkles :size="18" class="car-list-icon car-list-icon--green" style="color: var(--green);" />
+                        <span>{{ item }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div v-if="expertAnalysis.cv_additions?.length" class="car-card">
+                    <p class="car-label">Nội dung nên bổ sung</p>
+                    <ul class="car-list car-list--additions">
+                      <li v-for="item in expertAnalysis.cv_additions" :key="item">
+                        <CheckCircle :size="18" class="car-list-icon car-list-icon--green" style="color: var(--green);" />
+                        <span>{{ item }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- New Section 3: Skill Roadmap -->
+                <div v-if="expertAnalysis.learning_priorities?.length" class="car-card">
+                  <p class="car-label">Lộ trình nâng cao kỹ năng</p>
+                  <h2 class="car-section-title">Lộ trình kỹ năng ưu tiên</h2>
+                  <div class="car-roadmap">
+                    <div v-for="(item, idx) in expertAnalysis.learning_priorities" :key="item" class="car-roadmap-step">
+                      <div class="car-roadmap-badge">Bước {{ idx + 1 }}</div>
+                      <div class="car-roadmap-content">
+                        <strong class="car-roadmap-title-text">{{ item.split(':')[0] }}</strong>
+                        <p v-if="item.split(':')[1]" class="car-roadmap-time">{{ item.split(':')[1] }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 5. Suggested Courses -->
                 <div class="car-card">
                   <p class="car-label">Lộ trình học tập</p>
@@ -325,6 +383,11 @@ const expertAnalysis = computed(() => ({
   overview: analysis.value?.expert_analysis?.overview || '',
   strengths: analysis.value?.expert_analysis?.strengths || [],
   weaknesses: analysis.value?.expert_analysis?.weaknesses || [],
+  cv_additions: analysis.value?.expert_analysis?.cv_additions || [],
+  cv_improvements: analysis.value?.expert_analysis?.cv_improvements || [],
+  learning_priorities: analysis.value?.expert_analysis?.learning_priorities || [],
+  market_analysis: analysis.value?.expert_analysis?.market_analysis || '',
+  profile_assessment: analysis.value?.expert_analysis?.profile_assessment || '',
 }))
 
 const skillCoverage = computed(() => {
@@ -1359,6 +1422,92 @@ onMounted(loadInitialData)
   border-color: rgba(239, 68, 68, 0.18);
 }
 
+/* ── RAG advisor blocks ── */
+.car-analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 15px;
+}
+.car-analysis-box {
+  background: rgba(var(--green-rgb), 0.02);
+  border: 1px solid var(--line);
+  padding: 20px;
+  border-radius: 14px;
+}
+.car-section-title-sm {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.car-title-icon {
+  color: var(--green);
+}
+.car-section-desc-light {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.car-roadmap {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.car-roadmap-step {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border-left: 2px solid var(--green);
+  padding-left: 20px;
+  position: relative;
+}
+.car-roadmap-step::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.car-roadmap-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--green-soft);
+  color: var(--green-deep);
+  border: 1px solid rgba(var(--green-rgb), 0.25);
+  padding: 4px 12px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.car-roadmap-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.car-roadmap-title-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.car-roadmap-time {
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+[data-theme="dark"] .car-analysis-box {
+  background: rgba(255, 255, 255, 0.02);
+}
+
 /* ── Responsive ── */
 @media (max-width: 1000px) {
   .car-shell {
@@ -1413,6 +1562,10 @@ onMounted(loadInitialData)
   }
 
   .car-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .car-analysis-grid {
     grid-template-columns: 1fr;
   }
 

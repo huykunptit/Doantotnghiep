@@ -7,6 +7,7 @@ from __future__ import annotations
 from models.schemas import ChatContext, ChatRequest, TokenUsage
 from services.provider import call_provider
 from utils.context import build_context_summary
+from services.rag import retriever
 
 
 # =============================================================================
@@ -19,7 +20,9 @@ SYSTEM_PROMPTS = {
         "Nhiệm vụ là tư vấn khóa học, giải thích cách dùng hệ thống, gợi ý lộ trình học và trả lời ngắn gọn bằng tiếng Việt. "
         "Ưu tiên dùng dữ liệu thật trong phần context. Không bịa khóa học không có trong context. "
         "Nếu người dùng hỏi chung chung, hãy hỏi lại ngắn gọn hoặc gợi ý 3-4 hướng cụ thể. "
-        "Nếu có thể, hãy đề xuất tối đa 4 khóa học phù hợp và nêu ngắn lý do chọn."
+        "Nếu có thể, hãy đề xuất tối đa 4 khóa học phù hợp và nêu ngắn lý do chọn. "
+        "Khi trả lời về kiến thức học thuật, nếu được cung cấp TÀI LIỆU THAM KHẢO, hãy ưu tiên trả lời dựa trên tài liệu đó "
+        "và chỉ ra số nguồn tham khảo tương ứng (ví dụ: [1], [2])."
     ),
     "admin": (
         "Bạn là trợ lý AI của Sylva LMS, đang hỗ trợ quản trị viên. "
@@ -36,7 +39,9 @@ SYSTEM_PROMPTS = {
         "Bạn là trợ lý AI của Sylva LMS, đang hỗ trợ sinh viên. "
         "Nhiệm vụ là tư vấn khóa học phù hợp, giải đáp thắc mắc về bài học, và gợi ý lộ trình học tập. "
         "Trả lời thân thiện, dễ hiểu bằng tiếng Việt. "
-        "Ưu tiên gợi ý từ các khóa học có trong hệ thống."
+        "Ưu tiên gợi ý từ các khóa học có trong hệ thống. "
+        "Khi được cung cấp TÀI LIỆU THAM KHẢO học thuật bên dưới câu hỏi, hãy ưu tiên trả lời chính xác dựa theo tài liệu đó "
+        "và ghi rõ nguồn trích dẫn từ tài liệu (ví dụ: [1], [2])."
     ),
 }
 
@@ -48,6 +53,7 @@ def get_system_prompt(role: str | None = None) -> str:
 
 def build_ai_messages(
     payload: ChatRequest,
+    rag_context: str = "",
     role: str | None = None,
 ) -> list[dict[str, str]]:
     """
@@ -72,11 +78,15 @@ def build_ai_messages(
                 "content": msg["content"],
             })
 
-    # User message hiện tại + context
+    # User message hiện tại + context + RAG
     user_content = (
         f"Câu hỏi người dùng: {payload.message.strip()}\n\n"
-        f"Context hệ thống:\n{context_summary or 'Không có dữ liệu ngữ cảnh.'}"
     )
+    if rag_context:
+        user_content += f"{rag_context}\n\n"
+        
+    user_content += f"Context hệ thống:\n{context_summary or 'Không có dữ liệu ngữ cảnh.'}"
+    
     messages.append({"role": "user", "content": user_content})
 
     return messages
@@ -85,17 +95,57 @@ def build_ai_messages(
 async def chat(
     payload: ChatRequest,
     role: str | None = None,
-) -> tuple[str | None, TokenUsage]:
+) -> tuple[str | None, list[dict], bool, TokenUsage]:
     """
-    Xử lý chat request — build messages và gọi AI provider.
+    Xử lý chat request — truy xuất RAG context, build messages và gọi AI provider.
 
     Returns:
-        (reply_text, token_usage)
+        (reply_text, sources, has_rag_context, token_usage)
     """
-    messages = build_ai_messages(payload, role=role)
-    return await call_provider(
+    # 1. Truy xuất tài liệu từ RAG (nếu có môn học hoặc khóa học)
+    chunks = []
+    rag_context = ""
+    has_rag_context = False
+
+    try:
+        # Lấy tên môn học từ context hoặc khóa học hiện tại nếu có
+        subject_name = None
+        if payload.context and payload.context.current_course:
+            subject_name = payload.context.current_course.title
+
+        chunks = retriever.retrieve_for_chat(
+            question=payload.message,
+            course_id=payload.course_id,
+            subject_name=subject_name,
+            top_k=4
+        )
+        if chunks:
+            rag_context = retriever.format_context_for_prompt(chunks)
+            has_rag_context = True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Retrieve RAG context failed: {e}")
+
+    # 2. Build messages
+    messages = build_ai_messages(payload, rag_context=rag_context, role=role)
+
+    # 3. Call AI provider
+    reply, tokens = await call_provider(
         provider=payload.provider or "chatgpt",
         api_key=payload.api_key or "",
         messages=messages,
         model=payload.model,
     )
+
+    # Format sources trả về
+    sources_out = []
+    for c in chunks:
+        sources_out.append({
+            "source_file": c["metadata"].get("source_file", "Tài liệu"),
+            "subject_name": c["metadata"].get("subject_name", ""),
+            "relevance_score": c.get("relevance_score", 0.0),
+            "content_preview": c["content"][:300]
+        })
+
+    return reply, sources_out, has_rag_context, tokens
+

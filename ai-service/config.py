@@ -34,6 +34,10 @@ class Settings:
     MAX_CATEGORIES_IN_CONTEXT: int = 8
     MAX_CATEGORY_CHILDREN: int = 4
 
+    # --- ChromaDB settings ---
+    CHROMADB_HOST: str = os.getenv("CHROMADB_HOST", "chromadb")
+    CHROMADB_PORT: int = int(os.getenv("CHROMADB_PORT", "8000"))
+
     # --- Provider API URLs ---
     OPENAI_API_URL: str = "https://api.openai.com/v1/chat/completions"
     GEMINI_API_URL: str = "https://generativelanguage.googleapis.com/v1beta/models"

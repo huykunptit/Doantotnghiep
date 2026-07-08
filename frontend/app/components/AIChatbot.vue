@@ -49,6 +49,23 @@
             </div>
             <div class="cb-bubble" :class="msg.role === 'user' ? 'cb-bubble--user' : 'cb-bubble--bot'">
               <p class="cb-bubble-text">{{ msg.text }}</p>
+              
+              <!-- RAG Sources citations -->
+              <div v-if="msg.sources && msg.sources.length > 0" class="cb-sources-wrap">
+                <span class="cb-sources-title">Trích dẫn tài liệu tham khảo:</span>
+                <div class="cb-sources-list">
+                  <div 
+                    v-for="(src, sIdx) in msg.sources" 
+                    :key="sIdx" 
+                    class="cb-source-item" 
+                    :title="src.content_preview"
+                  >
+                    <BookOpen :size="10" />
+                    <span class="cb-source-file-name">[{{ sIdx + 1 }}] {{ src.source_file }}</span>
+                    <span class="cb-source-score">({{ Math.round(src.relevance_score) }}%)</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -104,7 +121,7 @@
 
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
-import { Bot, Sparkles, RotateCcw, X, ArrowUp } from 'lucide-vue-next'
+import { Bot, Sparkles, RotateCcw, X, ArrowUp, BookOpen } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -121,7 +138,14 @@ const quickQuestions = [
   'Cách sử dụng hệ thống',
 ]
 
-const messages = reactive<Array<{ role: 'user' | 'assistant'; text: string }>>([
+interface MessageItem {
+  role: 'user' | 'assistant'
+  text: string
+  sources?: Array<{ source_file: string; subject_name: string; relevance_score: number; content_preview: string }>
+  has_rag_context?: boolean
+}
+
+const messages = reactive<MessageItem[]>([
   { role: 'assistant', text: 'Xin chào! Tôi có thể giúp bạn tìm khóa học, tư vấn lộ trình học tập hoặc giải đáp thắc mắc về hệ thống. Bạn cần hỗ trợ gì?' },
 ])
 
@@ -162,12 +186,26 @@ async function sendMessage() {
       .slice(-10) // giữ tối đa 10 tin nhắn gần nhất
       .map(m => ({ role: m.role, content: m.text }))
 
+    // Detect if we are on a course page and fetch course ID
+    const route = useRoute()
+    const courseId = route.params.id ? Number(route.params.id) : null
+
     const res = await useApi<any>('/ai/chat', {
       method: 'POST',
-      body: { message: text, history },
+      body: { 
+        message: text, 
+        history,
+        course_id: courseId
+      },
       token: auth.token,
     })
-    messages.push({ role: 'assistant', text: res.reply || 'Hệ thống chưa có phản hồi cho yêu cầu này.' })
+    
+    messages.push({ 
+      role: 'assistant', 
+      text: res.reply || 'Hệ thống chưa có phản hồi cho yêu cầu này.',
+      sources: res.sources,
+      has_rag_context: res.has_rag_context
+    })
   } catch {
     messages.push({ role: 'assistant', text: 'Lỗi kết nối. Trợ lý AI hiện không khả dụng, vui lòng thử lại sau.' })
   } finally {
@@ -675,5 +713,60 @@ if (import.meta.client) {
 [data-theme="dark"] .cb-fab-tooltip {
   background: #e2ede9;
   color: #0f1f18;
+}
+
+/* ── RAG sources style ── */
+.cb-sources-wrap {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  font-size: 0.74rem;
+  color: var(--muted, #6b7280);
+  display: grid;
+  gap: 4px;
+}
+.cb-sources-title {
+  font-weight: 700;
+  color: var(--text, #111);
+  font-size: 0.72rem;
+}
+.cb-sources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cb-source-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: help;
+}
+.cb-source-file-name {
+  font-weight: 500;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cb-source-score {
+  font-size: 0.65rem;
+  color: var(--green, #1d9e75);
+}
+
+[data-theme="dark"] .cb-sources-wrap {
+  border-top-color: rgba(255, 255, 255, 0.08);
+  color: #a3b8b0;
+}
+[data-theme="dark"] .cb-sources-title {
+  color: #e2ede9;
+}
+[data-theme="dark"] .cb-source-item {
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark"] .cb-source-score {
+  color: #5ddfb4;
 }
 </style>

@@ -22,11 +22,16 @@ class CareerAdvisorController extends Controller
 {
     protected $mediaService;
     protected $cvAnalysisService;
+    protected $analyticsService;
 
-    public function __construct(MediaService $mediaService, CVAnalysisService $cvAnalysisService)
-    {
+    public function __construct(
+        MediaService $mediaService, 
+        CVAnalysisService $cvAnalysisService,
+        \App\Services\StudentAnalyticsService $analyticsService
+    ) {
         $this->mediaService = $mediaService;
         $this->cvAnalysisService = $cvAnalysisService;
+        $this->analyticsService = $analyticsService;
     }
 
     /**
@@ -39,7 +44,6 @@ class CareerAdvisorController extends Controller
         
         $latestCV = $user->latestCv;
         $recommendations = $user->careerRecommendations()
-            ->with('job')
             ->latest()
             ->take(5)
             ->get()
@@ -122,7 +126,10 @@ class CareerAdvisorController extends Controller
             'job_title' => 'required|string|max:255',
         ]);
 
-        $data = $this->getRecommendationPayload($cv, $request->job_title);
+        // Build academic and progress profile of the student
+        $profile = $this->analyticsService->buildStudentProfile($user);
+
+        $data = $this->getRecommendationPayload($cv, $request->job_title, $profile);
 
         // Find relevant courses in our database based on AI suggestions
         $suggestedCourseIds = $this->resolveSuggestedCourses($data)->values();
@@ -137,11 +144,11 @@ class CareerAdvisorController extends Controller
         ]);
 
         return response()->json([
-            'recommendation' => $this->serializeRecommendation($recommendation->load('job'))
+            'recommendation' => $this->serializeRecommendation($recommendation)
         ]);
     }
 
-    private function getRecommendationPayload(UserCV $cv, string $jobTitle): array
+    private function getRecommendationPayload(UserCV $cv, string $jobTitle, array $profile): array
     {
         $skills = $cv->skills ?? [];
         $aiSettings = AiSetting::current();
@@ -150,10 +157,24 @@ class CareerAdvisorController extends Controller
         if ($aiServiceUrl !== '') {
             try {
                 $startTime = microtime(true);
-                $response = Http::timeout(8)->post($aiServiceUrl . '/recommend', [
+
+                // Map student profile data to FastAPI fields
+                $completedCourses = collect($profile['grade_transcript'])
+                    ->where('final_score', '>=', 4.0)
+                    ->pluck('course_title')
+                    ->toArray();
+
+                $response = Http::timeout(30)->post($aiServiceUrl . '/career/advise', [
+                    'user_id' => $profile['user_id'],
+                    'target_job' => $jobTitle,
                     'skills' => $skills,
                     'cv_text' => $cv->parsed_text,
-                    'target_job' => $jobTitle,
+                    'major' => $profile['major'],
+                    'program' => $profile['program'],
+                    'gpa' => $profile['gpa'],
+                    'completed_courses' => $completedCourses,
+                    'grade_transcript' => $profile['grade_transcript'],
+                    'course_skills' => collect($profile['enrolled_courses'])->pluck('course_title')->toArray(),
                     'provider' => $aiSettings->provider,
                     'model' => $aiSettings->model,
                     'api_key' => $aiSettings->api_key,
@@ -162,7 +183,7 @@ class CareerAdvisorController extends Controller
 
                 AiRequestLog::create([
                     'user_id' => auth()->id(),
-                    'endpoint' => '/recommend',
+                    'endpoint' => '/career/advise',
                     'provider' => $aiSettings->provider,
                     'model' => $aiSettings->model,
                     'tokens_used' => mb_strlen($response->body()),
@@ -171,9 +192,25 @@ class CareerAdvisorController extends Controller
                 ]);
 
                 if ($response->successful()) {
-                    return $response->json();
+                    $res = $response->json();
+                    
+                    // Transform to the keys expected by buildExpertAnalysis
+                    return [
+                        'match_score' => $res['match_score'] ?? 50,
+                        'skill_gaps' => $res['skill_gaps'] ?? [],
+                        'summary' => $res['summary'] ?? '',
+                        'market_analysis' => $res['market_analysis'] ?? '',
+                        'profile_assessment' => $res['profile_assessment'] ?? '',
+                        'strengths' => $res['strengths'] ?? [],
+                        'weaknesses' => $res['weaknesses'] ?? [],
+                        'cv_additions' => $res['cv_additions'] ?? [],
+                        'cv_improvements' => $res['cv_improvements'] ?? [],
+                        'learning_priorities' => collect($res['skill_roadmap'] ?? [])->map(fn($item) => $item['skill'] . ': ' . $item['timeline'])->toArray(),
+                        'recommended_keyword_topics' => $res['recommended_keyword_topics'] ?? [],
+                    ];
                 }
             } catch (\Throwable $e) {
+                Log::error('AI career advisor request failed: ' . $e->getMessage());
                 // Fallback to local recommendation heuristics below.
             }
         }
@@ -201,6 +238,19 @@ class CareerAdvisorController extends Controller
 
     private function buildExpertAnalysis(UserCV $cv, string $jobTitle, array $data): array
     {
+        if (isset($data['strengths']) && is_array($data['strengths']) && count($data['strengths']) > 0) {
+            return [
+                'overview' => $data['summary'] ?? '',
+                'strengths' => $data['strengths'],
+                'weaknesses' => $data['weaknesses'] ?? [],
+                'cv_additions' => $data['cv_additions'] ?? [],
+                'cv_improvements' => $data['cv_improvements'] ?? [],
+                'learning_priorities' => $data['learning_priorities'] ?? [],
+                'market_analysis' => $data['market_analysis'] ?? '',
+                'profile_assessment' => $data['profile_assessment'] ?? '',
+            ];
+        }
+
         $skills = collect($cv->skills ?? [])
             ->filter(fn ($skill) => filled($skill))
             ->map(fn ($skill) => (string) $skill)

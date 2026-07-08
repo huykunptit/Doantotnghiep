@@ -11,6 +11,8 @@ from models.schemas import (
     ParseCVResponse,
     RecommendRequest,
     RecommendResponse,
+    CareerAdvisorRequest,
+    CareerAdvisorResponse,
 )
 from services import career_service
 
@@ -35,3 +37,11 @@ def recommend(payload: RecommendRequest) -> RecommendResponse:
     Phase 5: sẽ nâng lên AI-powered.
     """
     return career_service.recommend(payload)
+
+
+@router.post("/advise", response_model=CareerAdvisorResponse)
+async def advise(payload: CareerAdvisorRequest) -> CareerAdvisorResponse:
+    """
+    Tư vấn nghề nghiệp thông minh sử dụng LLM kết hợp CV + Học liệu + Yêu cầu thị trường.
+    """
+    return await career_service.recommend_with_llm(payload)
