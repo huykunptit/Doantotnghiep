@@ -139,11 +139,10 @@ def list_collections() -> list[dict]:
     result = []
     for col in collections:
         try:
-            c = client.get_collection(col.name)
             result.append({
                 "name": col.name,
-                "count": c.count(),
-                "metadata": col.metadata,
+                "count": col.count(),
+                "metadata": col.metadata or {},
             })
         except Exception:
             result.append({"name": col.name, "count": 0, "metadata": {}})

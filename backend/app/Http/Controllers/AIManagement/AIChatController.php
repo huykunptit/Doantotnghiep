@@ -59,7 +59,8 @@ class AIChatController extends Controller
                 : 0;
 
             AiRequestLog::create([
-                'user_id' => $user->id,                'endpoint' => '/chat',
+                'user_id'          => $user->id,
+                'endpoint'         => '/chat',
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
                 'tokens_used' => $tokensUsed,
@@ -84,7 +85,8 @@ class AIChatController extends Controller
             $elapsed = (int) ((microtime(true) - $startTime) * 1000);
 
             AiRequestLog::create([
-                'user_id' => $user->id,                'endpoint' => '/chat',
+                'user_id'          => $user->id,
+                'endpoint'         => '/chat',
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
                 'tokens_used' => 0,

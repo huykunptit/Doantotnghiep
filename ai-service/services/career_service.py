@@ -4,6 +4,7 @@ Career Service — phân tích CV và gợi ý nghề nghiệp.
 
 from __future__ import annotations
 
+import logging
 import re
 
 from models.schemas import (
@@ -11,7 +12,11 @@ from models.schemas import (
     ParseCVResponse,
     RecommendRequest,
     RecommendResponse,
+    CareerAdvisorRequest,
+    CareerAdvisorResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================

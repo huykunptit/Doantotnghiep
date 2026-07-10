@@ -338,18 +338,18 @@ onMounted(() => {
     <div v-if="success" class="crud-alert is-success"  >{{ success }}</div>
 
     <!-- Tabs Nav -->
-    <div class="ai-tabs-nav mb-6 flex gap-4 border-b border-line pb-2" style="margin-bottom: 24px; border-bottom: 1px solid var(--surface-dim); display: flex; gap: 16px;">
-      <button 
-        class="pb-2 font-bold transition flex items-center gap-2" 
-        :style="activeTab === 'general' ? { borderBottom: '2px solid var(--green)', color: 'var(--green)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' } : { color: 'var(--muted)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer' }"
+    <div class="ai-tabs-nav">
+      <button
+        class="ai-tab-btn"
+        :class="{ 'is-active': activeTab === 'general' }"
         type="button"
         @click="activeTab = 'general'"
       >
         Cấu hình & Thống kê
       </button>
-      <button 
-        class="pb-2 font-bold transition flex items-center gap-2" 
-        :style="activeTab === 'rag' ? { borderBottom: '2px solid var(--green)', color: 'var(--green)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' } : { color: 'var(--muted)', paddingBottom: '8px', background: 'none', border: 'none', cursor: 'pointer' }"
+      <button
+        class="ai-tab-btn"
+        :class="{ 'is-active': activeTab === 'rag' }"
         type="button"
         @click="activeTab = 'rag'"
       >
@@ -713,6 +713,37 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Tabs Nav */
+.ai-tabs-nav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--surface-dim, #e5e7eb);
+  margin-bottom: 24px;
+}
+
+.ai-tab-btn {
+  padding: 10px 18px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted, #6b7280);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.ai-tab-btn:hover {
+  color: var(--green, #1d9e75);
+}
+
+.ai-tab-btn.is-active {
+  color: var(--green, #1d9e75);
+  border-bottom-color: var(--green, #1d9e75);
+  font-weight: 700;
+}
+
 /* Stats */
 .ai-stats-grid {
   display: grid;
