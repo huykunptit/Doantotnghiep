@@ -16,6 +16,7 @@ class ClassSection extends Model
         'course_id',
         'term_id',
         'cohort_id',
+        'administrative_class_id',
         'lecturer_id',
         'code',
         'name',

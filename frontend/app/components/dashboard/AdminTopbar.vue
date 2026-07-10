@@ -4,6 +4,7 @@ import {
   Menu, Search, Bell, BellOff, Sun, Moon, ChevronDown,
   Settings, LayoutDashboard, LogOut, Loader,
   GraduationCap, ReceiptText, CircleCheckBig, XCircle, Star, Info, Zap,
+  Coins, Flame, Trophy, BookOpen, Medal, ShoppingBag, ClipboardList, CalendarCheck, ChevronRight, X,
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useDarkMode } from '~/composables/useDarkMode'
@@ -27,6 +28,41 @@ const notifLoading = ref(false)
 const notifications = ref<any[]>([])
 const unreadCount = ref(0)
 const userOpen = ref(false)
+
+// ── Points / Quests panel ────────────────────────────────────────────────────
+const questOpen = ref(false)
+const questLoading = ref(false)
+const questData = ref<any>(null)
+
+const questIconMap: Record<string, any> = {
+  'calendar-check': CalendarCheck,
+  'flame': Flame,
+  'trophy': Trophy,
+  'book-open-check': BookOpen,
+  'graduation-cap': GraduationCap,
+  'medal': Medal,
+  'shopping-bag': ShoppingBag,
+  'clipboard-list': ClipboardList,
+  'star': Star,
+}
+function questIcon(key: string) { return questIconMap[key] || Star }
+
+async function openQuestPanel() {
+  questOpen.value = !questOpen.value
+  notifOpen.value = false
+  userOpen.value = false
+  if (!questOpen.value || questData.value) return
+  questLoading.value = true
+  try {
+    questData.value = await useApi<any>('/points/quests', { headers: authHeaders() })
+  } catch {}
+  questLoading.value = false
+}
+
+const questCatLabel: Record<string, string> = {
+  daily: 'Hàng ngày', milestone: 'Cột mốc', learning: 'Học tập', engagement: 'Tương tác',
+}
+
 
 const authHeaders = () => ({ Authorization: `Bearer ${auth.token}` })
 
@@ -84,6 +120,7 @@ function relativeTime(date: string) {
 function closeAll() {
   notifOpen.value = false
   userOpen.value = false
+  questOpen.value = false
 }
 
 function openUser() {
@@ -144,6 +181,83 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
           <Moon v-else :key="'moon'" :size="17" :stroke-width="2" />
         </Transition>
       </button>
+
+      <!-- Quest / Points -->
+      <div class="tb-popover">
+        <button
+          type="button"
+          class="tb-icon-btn tb-quest-btn"
+          :class="{ 'is-active': questOpen }"
+          title="Nhiệm vụ tích điểm"
+          @click="openQuestPanel"
+        >
+          <Coins :size="17" :stroke-width="2" />
+          <span v-if="questData?.balance" class="tb-quest-pts">{{ questData.balance > 9999 ? '9999+' : questData.balance }}</span>
+        </button>
+
+        <Transition name="pop">
+          <div v-if="questOpen" class="tb-panel tb-quest-panel" @click.stop>
+            <div class="tb-panel-head">
+              <div class="tb-panel-head-left">
+                <Coins :size="15" style="color:#f59e0b" />
+                <span class="tb-panel-title">Điểm & Nhiệm vụ</span>
+              </div>
+              <button class="tb-close-panel" @click="questOpen = false"><X :size="14" /></button>
+            </div>
+
+            <!-- Balance bar -->
+            <div v-if="questData" class="tb-quest-balance">
+              <div class="tb-qbal-item">
+                <Coins :size="14" style="color:#f59e0b" />
+                <span><strong>{{ questData.balance.toLocaleString('vi-VN') }}</strong> điểm</span>
+              </div>
+              <div class="tb-qbal-item">
+                <Flame :size="14" style="color:#ea580c" />
+                <span>Streak <strong>{{ questData.streak_days }}</strong></span>
+              </div>
+            </div>
+
+            <div class="tb-quest-body">
+              <div v-if="questLoading" class="tb-notif-empty">
+                <Loader :size="20" class="tb-spin" />
+                <p>Đang tải...</p>
+              </div>
+              <template v-else-if="questData">
+                <template v-for="cat in ['daily','milestone','learning','engagement']" :key="cat">
+                  <template v-if="questData.quests.filter((q:any)=>q.category===cat).length">
+                    <p class="tb-quest-cat-label">{{ questCatLabel[cat] }}</p>
+                    <div
+                      v-for="q in questData.quests.filter((q:any)=>q.category===cat)"
+                      :key="q.key"
+                      class="tb-quest-row"
+                      :class="{ 'is-done': q.done_today }"
+                    >
+                      <div class="tb-quest-ico" :class="`qcat-${q.category}`">
+                        <component :is="questIcon(q.icon)" :size="13" />
+                      </div>
+                      <div class="tb-quest-info">
+                        <p class="tb-quest-name">{{ q.title }}</p>
+                        <div v-if="q.progress !== undefined" class="tb-qprog">
+                          <div class="tb-qprog-track"><div class="tb-qprog-fill" :style="{ width: `${Math.round((q.progress/q.target)*100)}%` }"/></div>
+                          <span>{{ q.progress }}/{{ q.target }}</span>
+                        </div>
+                      </div>
+                      <span class="tb-quest-pts">+{{ q.points }}</span>
+                      <span v-if="q.done_today" class="tb-quest-check">✓</span>
+                    </div>
+                  </template>
+                </template>
+              </template>
+            </div>
+
+            <div class="tb-quest-foot">
+              <NuxtLink to="/student/points" class="tb-quest-shop-link" @click="questOpen = false">
+                Xem shop đổi quà <ChevronRight :size="13" />
+              </NuxtLink>
+            </div>
+          </div>
+        </Transition>
+      </div>
 
       <!-- Notifications -->
       <div class="tb-popover">
@@ -647,6 +761,92 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 .mode-enter-active, .mode-leave-active { transition: opacity 150ms, transform 150ms; }
 .mode-enter-from, .mode-leave-to { opacity: 0; transform: rotate(20deg) scale(0.7); }
 
+/* ── Quest button ── */
+.tb-quest-btn { position: relative; }
+.tb-quest-pts {
+  position: absolute;
+  bottom: -5px; right: -6px;
+  min-width: 18px; height: 14px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 0.56rem;
+  font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+  border: 2px solid var(--surface-strong);
+}
+
+/* ── Quest panel ── */
+.tb-quest-panel { width: 320px; max-height: 480px; display: flex; flex-direction: column; }
+.tb-close-panel {
+  width: 24px; height: 24px; border-radius: 6px; border: none;
+  background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.tb-close-panel:hover { background: var(--surface); }
+
+.tb-quest-balance {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+.tb-qbal-item {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 8px; font-size: 0.75rem; color: var(--text);
+  border-right: 1px solid var(--line);
+}
+.tb-qbal-item:last-child { border-right: none; }
+.tb-qbal-item strong { font-weight: 800; }
+
+.tb-quest-body { flex: 1; overflow-y: auto; padding: 8px 12px; max-height: 320px; }
+.tb-quest-cat-label {
+  font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--muted); margin: 8px 0 4px;
+}
+.tb-quest-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 8px; margin-bottom: 3px;
+  border: 1px solid var(--line); background: var(--surface);
+}
+.tb-quest-row.is-done { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.8; }
+
+.tb-quest-ico {
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.qcat-daily { background: #dbeafe; color: #2563eb; }
+.qcat-milestone { background: #fef3c7; color: #d97706; }
+.qcat-learning { background: #d1fae5; color: #059669; }
+.qcat-engagement { background: #ede9fe; color: #7c3aed; }
+
+.tb-quest-info { flex: 1; min-width: 0; }
+.tb-quest-name { margin: 0; font-size: 0.76rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.tb-qprog { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.tb-qprog-track { flex: 1; height: 3px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.tb-qprog-fill { height: 100%; background: #f59e0b; }
+.tb-qprog span { font-size: 0.6rem; color: var(--muted); white-space: nowrap; }
+
+.tb-quest-pts {
+  font-size: 0.72rem; font-weight: 800; color: #f59e0b;
+  background: #fffbeb; padding: 1px 6px; border-radius: 999px; border: 1px solid #fde68a;
+  flex-shrink: 0;
+}
+.tb-quest-check { font-size: 0.7rem; font-weight: 800; color: #16a34a; flex-shrink: 0; }
+
+.tb-quest-foot {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+.tb-quest-shop-link {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 0.8rem; font-weight: 700;
+  padding: 8px; border-radius: 8px;
+  background: linear-gradient(135deg, #0F6E8C, #1D9E75);
+  color: #fff; text-decoration: none;
+  transition: opacity 150ms;
+}
+.tb-quest-shop-link:hover { opacity: 0.9; }
+
 /* ── Responsive ── */
 @media (max-width: 1080px) { .tb-search { max-width: none; } }
 @media (max-width: 640px) {
@@ -654,5 +854,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
   .tb-user-info { display: none; }
   .tb-search-kbd { display: none; }
   .tb-notif-panel { width: calc(100vw - 24px); right: -12px; }
+  .tb-quest-panel { width: calc(100vw - 24px); right: -12px; }
 }
 </style>

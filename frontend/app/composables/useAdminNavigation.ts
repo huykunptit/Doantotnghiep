@@ -76,6 +76,7 @@ export function useAdminNavigation() {
         { label: 'Đơn hàng', icon: 'receipt-text', to: '/admin/orders' },
         { label: 'Báo cáo thanh toán', icon: 'wallet', to: '/admin/reports/payments' },
         { label: 'Yêu cầu rút tiền', icon: 'banknote', to: '/admin/payouts' },
+        { label: 'Điểm & Phần thưởng', icon: 'coins', to: '/admin/points' },
       ],
     },
     {

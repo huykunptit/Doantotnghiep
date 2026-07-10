@@ -6,6 +6,7 @@ import { useAuthStore } from '~/stores/auth'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
 import AdminFooter from '~/components/dashboard/AdminFooter.vue'
 import AppToast from '~/components/AppToast.vue'
+import PointsQuestModal from '~/components/PointsQuestModal.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -190,6 +191,7 @@ const userInitials = computed(() => {
     </div>
   </div>
   <AppToast />
+  <PointsQuestModal />
 </template>
 
 <style scoped>

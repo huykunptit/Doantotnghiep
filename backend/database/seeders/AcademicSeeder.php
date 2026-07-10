@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AdministrativeClass;
 use App\Models\ClassSection;
 use App\Models\Cohort;
 use App\Models\Course;
@@ -85,6 +86,11 @@ class AcademicSeeder extends Seeder
                 continue;
             }
 
+            // Lấy tất cả lớp hành chính thuộc cohort này để phân bổ sinh viên theo lớp
+            $adminClassIds = AdministrativeClass::query()
+                ->where('cohort_id', $cohort->id)
+                ->pluck('id');
+
             $studentIds = User::query()
                 ->where('cohort_id', $cohort->id)
                 ->pluck('id');
@@ -94,6 +100,8 @@ class AcademicSeeder extends Seeder
                     ? null
                     : $lecturerPool[($cohort->id + $idx) % $lecturerPool->count()];
 
+                // Tạo 1 lớp tín chỉ per (course × term × cohort), gán lớp hành chính đầu tiên làm đại diện
+                $primaryAdminClassId = $adminClassIds->first();
                 $sectionCode = sprintf('%s-%s-%s', $course->id, $currentTerm->code, $cohort->code);
 
                 $section = ClassSection::query()->updateOrCreate(
@@ -104,6 +112,7 @@ class AcademicSeeder extends Seeder
                     ],
                     [
                         'cohort_id' => $cohort->id,
+                        'administrative_class_id' => $primaryAdminClassId,
                         'lecturer_id' => $lecturer?->id,
                         'name' => "{$course->title} - {$cohort->code}",
                         'capacity' => max(40, $studentIds->count()),

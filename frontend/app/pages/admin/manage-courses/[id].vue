@@ -29,18 +29,18 @@ const sectionForm = reactive({ title: '', id: null as number | null })
 const pickerModalOpen = ref(false)
 const selectedSectionId = ref<number | null>(null)
 const contentTypes = [
-  { key: 'video', label: 'Bài học video', kind: 'resource', icon: '🎬' },
-  { key: 'audio', label: 'Audio', kind: 'resource', icon: '🎧' },
-  { key: 'file', label: 'Tệp', kind: 'resource', icon: '📎' },
-  { key: 'page', label: 'Trang', kind: 'resource', icon: '📄' },
-  { key: 'scorm', label: 'Gói SCORM', kind: 'resource', icon: '📦' },
-  { key: 'h5p', label: 'H5P', kind: 'resource', icon: '✨' },
-  { key: 'quiz', label: 'Đề thi', kind: 'activity', icon: '📝' },
-  { key: 'assignment', label: 'Bài tập về nhà', kind: 'activity', icon: '📚' },
-  { key: 'forum', label: 'Diễn đàn', kind: 'activity', icon: '💬' },
-  { key: 'survey', label: 'Khảo sát', kind: 'activity', icon: '📊' },
-  { key: 'zoom', label: 'Zoom', kind: 'activity', icon: '📹' },
-  { key: 'meet', label: 'Google Meet', kind: 'activity', icon: '🟢' },
+  { key: 'video', label: 'Bài học video', kind: 'resource', icon: 'play_circle' },
+  { key: 'audio', label: 'Audio', kind: 'resource', icon: 'headphones' },
+  { key: 'file', label: 'Tệp', kind: 'resource', icon: 'description' },
+  { key: 'page', label: 'Trang', kind: 'resource', icon: 'article' },
+  { key: 'scorm', label: 'Gói SCORM', kind: 'resource', icon: 'deployed_code' },
+  { key: 'h5p', label: 'H5P', kind: 'resource', icon: 'extension' },
+  { key: 'quiz', label: 'Đề thi', kind: 'activity', icon: 'quiz' },
+  { key: 'assignment', label: 'Bài tập về nhà', kind: 'activity', icon: 'assignment' },
+  { key: 'forum', label: 'Diễn đàn', kind: 'activity', icon: 'forum' },
+  { key: 'survey', label: 'Khảo sát', kind: 'activity', icon: 'poll' },
+  { key: 'zoom', label: 'Zoom', kind: 'activity', icon: 'video_camera_front' },
+  { key: 'meet', label: 'Google Meet', kind: 'activity', icon: 'video_chat' },
 ]
 
 const pickerTab = ref<'all' | 'activity' | 'resource'>('all')
@@ -210,7 +210,7 @@ function lessonTypeLabel(type: string) {
 }
 
 function lessonTypeIcon(type: string) {
-  return contentTypes.find(item => item.key === type)?.icon || '📘'
+  return contentTypes.find(item => item.key === type)?.icon || 'book'
 }
 
 
@@ -561,8 +561,8 @@ onMounted(() => {
 
     <div class="crud-toolbar" style="margin-bottom: 24px;">
       <button class="crud-primary-btn" type="button" @click="openSectionModal()">+ Thêm Chương mới</button>
-      <button class="crud-secondary-btn" type="button" @click="openCoursePreview">
-        <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: -3px; margin-right: 4px;">open_in_new</span>
+      <button class="crud-secondary-btn" style="display:inline-flex;align-items:center;gap:6px;" type="button" @click="openCoursePreview">
+        <span class="material-symbols-outlined" style="font-size:16px;">open_in_new</span>
         Xem trang khóa học
       </button>
       <button class="crud-secondary-btn" type="button" @click="navigateTo('/admin/manage-courses')">← Quay lại danh sách</button>
@@ -586,7 +586,10 @@ onMounted(() => {
           <div class="section-actions">
             <button class="action-btn is-edit" type="button" @click="openSectionModal(section)">Sửa chương</button>
             <button class="action-btn is-delete" type="button" @click="deleteSection(section.id)">Xóa chương</button>
-            <button class="crud-secondary-btn" type="button" @click="openContentPicker(section.id)" style="margin-left: 8px;">+ Thêm hoạt động / tài nguyên</button>
+            <button class="action-btn is-add" type="button" @click="openContentPicker(section.id)">
+              <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
+              Thêm hoạt động / tài nguyên
+            </button>
           </div>
         </div>
 
@@ -596,7 +599,7 @@ onMounted(() => {
           </div>
           <div v-for="(lesson, lIndex) in section.lessons" :key="lesson.id" class="lesson-item">
             <div class="lesson-info">
-              <span class="lesson-icon">{{ lessonTypeIcon(lesson.type) }}</span>
+              <span class="lesson-icon material-symbols-outlined" style="font-size: 16px;">{{ lessonTypeIcon(lesson.type) }}</span>
               <div>
                 <span class="lesson-name">{{ lIndex + 1 }}. {{ lesson.title }}</span>
                 <div class="lesson-meta-row">
@@ -655,22 +658,31 @@ onMounted(() => {
             </div>
             <button class="topbar-ghost" type="button" @click="pickerModalOpen = false">✕</button>
           </div>
-          <div class="picker-toolbar">
-            <input v-model="pickerSearch" class="crud-search" type="text" placeholder="Tìm kiếm hoạt động hoặc tài nguyên...">
-            <div class="picker-tabs">
-              <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'all' }]" @click="pickerTab = 'all'">Tất cả</button>
-              <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'activity' }]" @click="pickerTab = 'activity'">Hoạt động</button>
-              <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'resource' }]" @click="pickerTab = 'resource'">Tài nguyên</button>
+          <div class="picker-body">
+            <div class="picker-toolbar">
+              <input v-model="pickerSearch" class="crud-search" type="text" placeholder="Tìm kiếm hoạt động hoặc tài nguyên...">
+              <div class="picker-tabs">
+                <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'all' }]" @click="pickerTab = 'all'">Tất cả</button>
+                <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'activity' }]" @click="pickerTab = 'activity'">Hoạt động</button>
+                <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'resource' }]" @click="pickerTab = 'resource'">Tài nguyên</button>
+              </div>
             </div>
+            <ul class="content-picker-list">
+              <li v-for="item in filteredContentTypes" :key="item.key" class="content-picker-item" @click="chooseContentType(item.key)">
+                <div class="item-icon-wrapper">
+                  <span class="material-symbols-outlined item-icon">{{ item.icon }}</span>
+                </div>
+                <div class="item-details">
+                  <strong class="item-title">{{ item.label }}</strong>
+                  <p class="item-desc">{{ typeHelperText(item.key) }}</p>
+                </div>
+                <div class="item-badge-container">
+                  <span :class="['item-badge', item.kind]">{{ item.kind === 'activity' ? 'Hoạt động' : 'Tài nguyên' }}</span>
+                </div>
+              </li>
+            </ul>
+            <div v-if="filteredContentTypes.length === 0" class="crud-empty">Không tìm thấy loại học liệu phù hợp.</div>
           </div>
-          <div class="content-picker-grid">
-            <button v-for="item in filteredContentTypes" :key="item.key" type="button" class="content-picker-card" @click="chooseContentType(item.key)">
-              <span class="content-picker-icon">{{ item.icon }}</span>
-              <strong>{{ item.label }}</strong>
-              <span>{{ item.kind === 'activity' ? 'Hoạt động' : 'Tài nguyên' }}</span>
-            </button>
-          </div>
-          <div v-if="filteredContentTypes.length === 0" class="crud-empty">Không tìm thấy loại học liệu phù hợp.</div>
         </div>
       </div>
     </Teleport>
@@ -704,7 +716,7 @@ onMounted(() => {
                 <span>Upload file video</span>
                 <label class="upload-dropzone">
                   <input class="upload-dropzone-input" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo" @change="onVideoFileSelected(($event.target as HTMLInputElement)?.files?.[0] || null)">
-                  <span class="upload-dropzone-icon">🎬</span>
+                  <span class="upload-dropzone-icon material-symbols-outlined">movie</span>
                   <strong>Tải video bài học</strong>
                   <span>{{ videoFile?.name || 'Chọn file MP4, WebM, MOV hoặc AVI để tải lên MinIO.' }}</span>
                 </label>
@@ -752,7 +764,7 @@ onMounted(() => {
               <span>Tải file thật</span>
               <label class="upload-dropzone upload-dropzone-compact">
                 <input class="upload-dropzone-input" type="file" @change="resourceFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                <span class="upload-dropzone-icon">📎</span>
+                <span class="upload-dropzone-icon material-symbols-outlined">upload_file</span>
                 <strong>{{ lessonForm.type === 'audio' ? 'Tải file audio' : 'Tải tài liệu đính kèm' }}</strong>
                 <span>{{ resourceFile?.name || 'Chọn file để đính kèm cho học viên.' }}</span>
               </label>
@@ -827,7 +839,7 @@ onMounted(() => {
                 <span>Upload gói SCORM (.zip)</span>
                 <label class="upload-dropzone upload-dropzone-compact">
                   <input class="upload-dropzone-input" type="file" accept=".zip,application/zip" @change="scormFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                  <span class="upload-dropzone-icon">📦</span>
+                  <span class="upload-dropzone-icon material-symbols-outlined">deployed_code</span>
                   <strong>Tải gói SCORM</strong>
                   <span>{{ scormFile?.name || 'Chọn file ZIP. Phiên bản (1.2 / 2004) sẽ tự nhận diện từ imsmanifest.xml.' }}</span>
                 </label>
@@ -1012,6 +1024,23 @@ onMounted(() => {
   border-bottom: 1px solid var(--border);
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn.is-add {
+  color: var(--green-deep);
+  background: rgba(var(--green-rgb), 0.08);
+  border-color: rgba(var(--green-rgb), 0.18);
+}
+
+.action-btn.is-add:hover {
+  background: rgba(var(--green-rgb), 0.15);
+  border-color: rgba(var(--green-rgb), 0.3);
+}
+
 .section-title {
   font-size: 1rem;
 }
@@ -1050,6 +1079,18 @@ onMounted(() => {
   transition: all 0.2s;
 }
 
+.lesson-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.lesson-actions .action-btn {
+  white-space: nowrap;
+}
+
 .lesson-meta-row {
   display: flex;
   align-items: center;
@@ -1085,49 +1126,104 @@ onMounted(() => {
   border-color: rgba(var(--green-rgb), 0.2);
 }
 
-.content-picker-grid {
+.picker-body {
+  padding: 24px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.content-picker-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .content-picker-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.content-picker-item {
+  display: flex;
+  align-items: center;
   gap: 16px;
-}
-
-.content-picker-card {
-  display: grid;
-  justify-items: start;
-  gap: 10px;
-  min-height: 150px;
-  padding: 18px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  border-radius: 18px;
-  background: #fff;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
   cursor: pointer;
-  text-align: left;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.content-picker-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(var(--green-rgb), 0.2);
-  box-shadow: 0 18px 40px -28px rgba(17, 17, 17, 0.3);
+.content-picker-item:hover {
+  border-color: rgba(var(--green-rgb), 0.3);
+  background: rgba(var(--green-rgb), 0.02);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  transform: translateY(-1px);
 }
 
-.content-picker-card strong {
-  font-size: 1rem;
+.item-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(var(--green-rgb), 0.08);
+  color: var(--green-deep);
+  flex-shrink: 0;
 }
 
-.content-picker-card span:last-child {
+.item-icon {
+  font-size: 24px;
+}
+
+.item-details {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.item-desc {
+  font-size: 0.8rem;
   color: var(--muted);
-  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.3;
 }
 
-.content-picker-icon {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: rgba(var(--green-rgb), 0.12);
-  font-size: 1.4rem;
+.item-badge-container {
+  flex-shrink: 0;
+}
+
+.item-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.item-badge.resource {
+  background: rgba(55, 138, 221, 0.08);
+  color: #1a5fa8;
+}
+
+.item-badge.activity {
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--green-deep);
 }
 
 .lesson-helper-box {
@@ -1584,6 +1680,15 @@ onMounted(() => {
 [data-theme="dark"] .preview-resource h4, [data-theme="dark"] .preview-resource p, [data-theme="dark"] .preview-rich { color: var(--text); }
 [data-theme="dark"] .curriculum-section, [data-theme="dark"] .curriculum-lesson { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
 [data-theme="dark"] .action-btn { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+[data-theme="dark"] .action-btn.is-add {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+[data-theme="dark"] .action-btn.is-add:hover {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.4);
+}
 [data-theme="dark"] .course-settings-panel { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
 [data-theme="dark"] .cb-topbar { background: rgba(15, 34, 25, 0.95); border-color: rgba(255, 255, 255, 0.08); }
 
@@ -1609,9 +1714,31 @@ onMounted(() => {
 [data-theme="dark"] .picker-tab { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
 [data-theme="dark"] .picker-tab.is-active { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.3); color: #a7f3d0; }
 
-/* Dark mode for content picker cards */
-[data-theme="dark"] .content-picker-card { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
-[data-theme="dark"] .content-picker-card:hover { border-color: rgba(16, 185, 129, 0.3); }
+/* Dark mode for content picker list items */
+[data-theme="dark"] .content-picker-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .content-picker-item:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .item-icon-wrapper {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .item-badge.resource {
+  background: rgba(55, 138, 221, 0.15);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .item-badge.activity {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+}
 
 /* Dark mode for helper boxes */
 [data-theme="dark"] .lesson-helper-box { background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.1); }

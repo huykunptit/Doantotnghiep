@@ -189,12 +189,12 @@ onMounted(fetchCourses)
             <h3>Tạo ngân hàng câu hỏi mới</h3>
             <button class="topbar-ghost" type="button" @click="createOpen = false">✕</button>
           </div>
-          <div class="crud-modal-body">
-            <label class="crud-field">
+          <div class="crud-form-grid">
+            <label class="crud-field crud-field-full">
               <span>Tên ngân hàng câu hỏi <span style="color: #ef4444">*</span></span>
               <input v-model="bankName" type="text" placeholder="Ví dụ: Bộ câu hỏi giữa kỳ">
             </label>
-            <label class="crud-field">
+            <label class="crud-field crud-field-full">
               <span>Mô tả ngắn</span>
               <textarea v-model="bankDescription" rows="3" placeholder="Mô tả phạm vi câu hỏi trong ngân hàng này..." />
             </label>

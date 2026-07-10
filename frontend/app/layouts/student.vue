@@ -6,6 +6,7 @@ import { useAuthStore } from '~/stores/auth'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
 import AdminFooter from '~/components/dashboard/AdminFooter.vue'
 import AppToast from '~/components/AppToast.vue'
+import PointsQuestModal from '~/components/PointsQuestModal.vue'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -45,6 +46,7 @@ const navGroups = [
       { to: '/student/certificates', label: 'Chứng chỉ', icon: 'award' },
       { to: '/student/tuition', label: 'Học phí', icon: 'credit-card' },
       { to: '/student/achievements', label: 'Thành tích', icon: 'trophy' },
+      { to: '/student/points', label: 'Điểm & Phần thưởng', icon: 'coins' },
     ],
   },
   {
@@ -167,6 +169,7 @@ const userInitials = computed(() => {
     </div>
   </div>
   <AppToast />
+  <PointsQuestModal />
 </template>
 
 <style scoped>

@@ -17,6 +17,7 @@ use App\Http\Controllers\UserManagement\LessonProgressController;
 use App\Http\Controllers\UserManagement\StudentDashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\PointsController;
 
 // ─── Auth ───
 Route::prefix('auth')->group(function () {
@@ -107,6 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Admin ───
     Route::prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
+        Route::get('/dashboard-extra', [AdminController::class, 'dashboardExtra']);
         Route::post('/upload', [AdminController::class, 'uploadAsset']);
 
         // Roles & Permissions
@@ -155,6 +157,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'destroyClassSection']);
         Route::get('/academic/cohorts/{cohort}/students', [EnrollmentManagementController::class, 'students']);
         Route::get('/academic/lnd/reports/class-progress', [EnrollmentManagementController::class, 'classProgressReport']);
+        Route::get('/academic/lnd/analytics/overview', [EnrollmentManagementController::class, 'analyticsOverview']);
+        Route::get('/academic/lnd/analytics/enrollment-by-cohort', [EnrollmentManagementController::class, 'analyticsEnrollmentByCohort']);
+        Route::get('/academic/lnd/analytics/at-risk', [EnrollmentManagementController::class, 'analyticsAtRisk']);
+        Route::get('/academic/lnd/analytics/completion-rate', [EnrollmentManagementController::class, 'analyticsCompletionRate']);
         Route::post('/academic/cohorts/{cohort}/enroll-core', [EnrollmentManagementController::class, 'bulkEnrollCore']);
         Route::post('/academic/enrollments/manual', [EnrollmentManagementController::class, 'enrollManual']);
         Route::post('/academic/enrollments/import-preview', [EnrollmentManagementController::class, 'importPreview']);
@@ -162,6 +168,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/academic/enrollments/delete', [EnrollmentManagementController::class, 'destroyEnrollment']);
         Route::post('/academic/enrollments/delete-import-preview', [EnrollmentManagementController::class, 'importDeletePreview']);
         Route::post('/academic/enrollments/delete-import-execute', [EnrollmentManagementController::class, 'importDeleteExecute']);
+        Route::post('/academic/administrative-classes/enroll-students', [EnrollmentManagementController::class, 'enrollStudentsToAdminClass']);
+        Route::post('/academic/administrative-classes/import-students-preview', [EnrollmentManagementController::class, 'importStudentsToAdminClassPreview']);
+        Route::post('/academic/administrative-classes/import-students-execute', [EnrollmentManagementController::class, 'importStudentsToAdminClassExecute']);
 
         Route::get('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'index']);
         Route::post('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'attach']);
@@ -184,4 +193,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/certificates/{template}/fields', [CertificateController::class, 'updateFields']);
         Route::delete('/certificates/{template}', [CertificateController::class, 'destroy']);
     });
+
+    // ── Points & Vouchers ──────────────────────────────────────────────────────
+    Route::get('/points/summary', [PointsController::class, 'summary']);
+    Route::get('/points/transactions', [PointsController::class, 'transactions']);
+    Route::post('/points/daily-login', [PointsController::class, 'dailyLogin']);
+    Route::get('/points/quests', [PointsController::class, 'quests']);
+    Route::get('/points/leaderboard', [PointsController::class, 'leaderboard']);
+    Route::get('/vouchers', [PointsController::class, 'shopIndex']);
+    Route::post('/vouchers/{voucher}/redeem', [PointsController::class, 'redeem']);
+    Route::get('/me/vouchers', [PointsController::class, 'myVouchers']);
+
+    // ── Admin / Instructor: Voucher management + Points stats ──────────────
+    Route::get('/admin/vouchers', [PointsController::class, 'adminVoucherIndex']);
+    Route::post('/admin/vouchers', [PointsController::class, 'adminVoucherStore']);
+    Route::put('/admin/vouchers/{voucher}', [PointsController::class, 'adminVoucherUpdate']);
+    Route::delete('/admin/vouchers/{voucher}', [PointsController::class, 'adminVoucherDestroy']);
+    Route::get('/admin/points/stats', [PointsController::class, 'adminStats']);
 });

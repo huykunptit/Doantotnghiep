@@ -43,14 +43,14 @@ const pendingFiles = ref<File[]>([])
 const uploadingFiles = ref(false)
 
 const questionTypes = [
-  { value: 'single_choice', label: 'Trắc nghiệm 1 đáp án', icon: '○' },
-  { value: 'multiple_choice', label: 'Trắc nghiệm nhiều đáp án', icon: '☑' },
-  { value: 'true_false', label: 'Đúng/Sai', icon: '✓✗' },
-  { value: 'short_answer', label: 'Trả lời ngắn', icon: '✎' },
-  { value: 'numerical', label: 'Số', icon: '#' },
-  { value: 'essay', label: 'Tự luận', icon: '📝' },
-  { value: 'matching', label: 'Ghép đôi', icon: '↔' },
-  { value: 'ordering', label: 'Sắp xếp', icon: '↕' },
+  { value: 'single_choice', label: 'Trắc nghiệm 1 đáp án', icon: 'radio_button_checked' },
+  { value: 'multiple_choice', label: 'Trắc nghiệm nhiều đáp án', icon: 'check_box' },
+  { value: 'true_false', label: 'Đúng/Sai', icon: 'toggle_on' },
+  { value: 'short_answer', label: 'Trả lời ngắn', icon: 'short_text' },
+  { value: 'numerical', label: 'Số', icon: 'numbers' },
+  { value: 'essay', label: 'Tự luận', icon: 'article' },
+  { value: 'matching', label: 'Ghép đôi', icon: 'compare_arrows' },
+  { value: 'ordering', label: 'Sắp xếp', icon: 'swap_vert' },
 ]
 
 const difficultyLevels = [
@@ -98,6 +98,12 @@ function onTypeChange() {
   } else {
     form.answers = []
   }
+}
+
+function setCorrectSingleChoice(selectedIndex: number) {
+  form.answers.forEach((ans, idx) => {
+    ans.is_correct = idx === selectedIndex
+  })
 }
 
 function addAnswer() {
@@ -273,12 +279,12 @@ onMounted(fetchData)
             <div class="qf-tf-options">
               <label class="qf-tf-option" :class="{ 'is-selected': form.correct_answer === true }">
                 <input v-model="form.correct_answer" type="radio" :value="true">
-                <span class="qf-tf-icon qf-tf-icon--true">✓</span>
+                <span class="qf-tf-icon qf-tf-icon--true material-symbols-outlined" style="font-size: 20px;">check</span>
                 <strong>Đúng</strong>
               </label>
               <label class="qf-tf-option" :class="{ 'is-selected': form.correct_answer === false }">
                 <input v-model="form.correct_answer" type="radio" :value="false">
-                <span class="qf-tf-icon qf-tf-icon--false">✗</span>
+                <span class="qf-tf-icon qf-tf-icon--false material-symbols-outlined" style="font-size: 20px;">close</span>
                 <strong>Sai</strong>
               </label>
             </div>
@@ -289,19 +295,22 @@ onMounted(fetchData)
               Đáp án
               <span v-if="form.type === 'matching'" class="qf-section-hint">(Nội dung trái ↔ Nội dung phải)</span>
             </h4>
-            <div class="qf-answers-list">
-              <div v-for="(answer, index) in form.answers" :key="index" class="qf-answer-row">
+            <ul class="qf-answers-list">
+              <li v-for="(answer, index) in form.answers" :key="index" class="qf-answer-row">
                 <span class="qf-answer-index">{{ String.fromCharCode(65 + index) }}</span>
                 <div class="qf-answer-fields">
                   <input v-model="answer.content" type="text" class="crud-input" :placeholder="form.type === 'numerical' ? 'Giá trị (VD: 3.14)' : 'Nội dung đáp án...'">
                   <input v-if="form.type === 'matching'" v-model="answer.sub_content" type="text" class="crud-input" placeholder="Nội dung ghép...">
                 </div>
-                <label v-if="form.type !== 'matching'" class="qf-answer-correct">
+                <label v-if="form.type === 'single_choice'" class="qf-answer-correct">
+                  <input type="radio" name="correct_answer_radio" :checked="answer.is_correct" @change="setCorrectSingleChoice(index)" class="crud-radio"> Đúng
+                </label>
+                <label v-else-if="form.type !== 'matching' && form.type !== 'ordering'" class="qf-answer-correct">
                   <input v-model="answer.is_correct" type="checkbox" class="crud-checkbox"> Đúng
                 </label>
                 <button type="button" class="qf-answer-remove" :disabled="form.answers.length <= 1" @click="removeAnswer(index)">✕</button>
-              </div>
-            </div>
+              </li>
+            </ul>
             <button type="button" class="crud-btn-outline qf-add-answer" @click="addAnswer">+ Thêm đáp án</button>
           </section>
 
@@ -327,32 +336,32 @@ onMounted(fetchData)
           <!-- Attachments section -->
           <section class="dashboard-card qf-section">
             <h4 class="qf-section-title">File đính kèm</h4>
-            <div v-if="existingAttachments.length > 0" class="qf-attachment-list" style="margin-bottom: 14px;">
-              <div v-for="att in existingAttachments" :key="att.id" class="qf-attachment-item">
-                <span class="qf-attachment-icon">{{ attachmentIcon(att.mime_type) }}</span>
+            <ul v-if="existingAttachments.length > 0" class="qf-attachment-list" style="margin-bottom: 14px;">
+              <li v-for="att in existingAttachments" :key="att.id" class="qf-attachment-item">
+                <span class="qf-attachment-icon material-symbols-outlined">{{ att.mime_type?.startsWith('image/') ? 'image' : att.mime_type?.startsWith('audio/') ? 'audiotrack' : 'description' }}</span>
                 <div class="qf-attachment-info">
                   <strong>{{ att.original_name }}</strong>
                   <span>{{ att.file_size || '—' }}</span>
                 </div>
                 <button type="button" class="qf-answer-remove" @click="deleteAttachment(att)">✕</button>
-              </div>
-            </div>
+              </li>
+            </ul>
             <label class="upload-dropzone upload-dropzone-compact">
               <input class="upload-dropzone-input" type="file" multiple accept="image/*,audio/*,.pdf,.doc,.docx,.zip" @change="onFilesSelected">
-              <span class="upload-dropzone-icon">📎</span>
+              <span class="upload-dropzone-icon material-symbols-outlined">upload_file</span>
               <strong>Tải thêm file đính kèm</strong>
               <span>Hỗ trợ hình ảnh, audio, PDF, Word, ZIP — tối đa 10MB mỗi file</span>
             </label>
-            <div v-if="pendingFiles.length > 0" class="qf-attachment-list">
-              <div v-for="(file, index) in pendingFiles" :key="'p'+index" class="qf-attachment-item">
-                <span class="qf-attachment-icon">{{ file.type.startsWith('image/') ? '🖼️' : file.type.startsWith('audio/') ? '🎵' : '📄' }}</span>
+            <ul v-if="pendingFiles.length > 0" class="qf-attachment-list">
+              <li v-for="(file, index) in pendingFiles" :key="'p'+index" class="qf-attachment-item">
+                <span class="qf-attachment-icon material-symbols-outlined">{{ file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audiotrack' : 'description' }}</span>
                 <div class="qf-attachment-info">
                   <strong>{{ file.name }}</strong>
                   <span>{{ formatSize(file.size) }} · <em>Chưa tải lên</em></span>
                 </div>
                 <button type="button" class="qf-answer-remove" @click="removePendingFile(index)">✕</button>
-              </div>
-            </div>
+              </li>
+            </ul>
           </section>
         </div>
 
@@ -366,18 +375,20 @@ onMounted(fetchData)
             </div>
             <div class="crud-field">
               <span>Loại câu hỏi</span>
-              <select v-model="form.type" class="crud-input" @change="onTypeChange">
-                <option v-for="qt in questionTypes" :key="qt.value" :value="qt.value">{{ qt.icon }} {{ qt.label }}</option>
-              </select>
+              <ul class="qf-type-list">
+                <li v-for="qt in questionTypes" :key="qt.value" :class="['qf-type-item', { 'is-active': form.type === qt.value }]" @click="form.type = qt.value; onTypeChange()">
+                  <span class="material-symbols-outlined qf-type-icon">{{ qt.icon }}</span>
+                  <span class="qf-type-label">{{ qt.label }}</span>
+                </li>
+              </ul>
             </div>
             <div class="crud-field">
               <span>Mức độ</span>
-              <select v-model.number="form.difficulty" class="crud-input">
-                <option v-for="d in difficultyLevels" :key="d.value" :value="d.value">{{ d.label }}</option>
-              </select>
-              <div class="qf-difficulty-indicator" :style="{ background: difficultyLevels.find(d => d.value === form.difficulty)?.color }">
-                {{ difficultyLevels.find(d => d.value === form.difficulty)?.label }}
-              </div>
+              <ul class="qf-difficulty-list">
+                <li v-for="d in difficultyLevels" :key="d.value" :class="['qf-difficulty-item', { 'is-active': form.difficulty === d.value }]" :style="{ '--active-color': d.color }" @click="form.difficulty = d.value">
+                  {{ d.label }}
+                </li>
+              </ul>
             </div>
             <div class="crud-field">
               <span>Điểm mặc định</span>
@@ -752,5 +763,133 @@ onMounted(fetchData)
 .qf-attachment-info span {
   font-size: 0.78rem;
   color: var(--muted);
+}
+/* Custom Question Type Selection List */
+.qf-type-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.qf-type-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  background: #fff;
+}
+
+.qf-type-item:hover {
+  background: rgba(16, 185, 129, 0.02);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.qf-type-item.is-active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: var(--green-deep);
+}
+
+.qf-type-icon {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.qf-type-item.is-active .qf-type-icon {
+  color: var(--green-deep);
+}
+
+/* Difficulty Selector segmented control */
+.qf-difficulty-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.qf-difficulty-item {
+  flex: 1;
+  min-width: 60px;
+  text-align: center;
+  padding: 5px 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.qf-difficulty-item:hover {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.qf-difficulty-item.is-active {
+  background: var(--active-color);
+  border-color: var(--active-color);
+  color: #fff;
+}
+
+/* List element tweaks */
+.qf-answers-list {
+  list-style: none;
+  padding: 0;
+}
+
+.qf-attachment-list {
+  list-style: none;
+  padding: 0;
+}
+
+.qf-attachment-icon {
+  color: var(--green-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="dark"] .qf-type-item,
+[data-theme="dark"] .qf-difficulty-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+[data-theme="dark"] .qf-type-item:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .qf-type-item.is-active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .qf-type-item.is-active .qf-type-icon {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .qf-difficulty-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .qf-difficulty-item.is-active {
+  background: var(--active-color);
+  border-color: var(--active-color);
+  color: #fff;
 }
 </style>

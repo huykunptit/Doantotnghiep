@@ -4,6 +4,7 @@ import AdminFooter from '~/components/dashboard/AdminFooter.vue'
 import AdminSidebar from '~/components/dashboard/AdminSidebar.vue'
 import AdminTopbar from '~/components/dashboard/AdminTopbar.vue'
 import AppToast from '~/components/AppToast.vue'
+import PointsQuestModal from '~/components/PointsQuestModal.vue'
 import { useAuthStore } from '~/stores/auth'
 import { getDashboardPath } from '~/composables/useAuthSession'
 
@@ -69,6 +70,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
 
     <!-- Global toast (outside main so z-index is not clipped) -->
     <AppToast />
+    <PointsQuestModal />
   </div>
 </template>
 

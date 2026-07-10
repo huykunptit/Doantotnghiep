@@ -98,6 +98,42 @@ sudo docker compose up -d
 
 ---
 
+## 📱 Hướng dẫn chạy ứng dụng Mobile (Flutter)
+
+Dự án bao gồm ứng dụng di động được xây dựng bằng **Flutter**, nằm trong thư mục `mobile`.
+
+### 1. Yêu cầu hệ thống:
+- Đã cài đặt [Flutter SDK](https://docs.flutter.dev/get-started/install).
+- Máy ảo (Android Emulator / iOS Simulator) hoặc thiết bị thật đã kết nối.
+- Các dịch vụ Backend & Database đang chạy bằng Docker.
+
+### 2. Cấu hình kết nối API:
+Theo mặc định, mã nguồn trỏ đến `http://10.0.2.2:8000/api` (địa chỉ mặc định của Android Emulator gọi về host). 
+Tuy nhiên, để chạy chính xác theo cấu hình hệ thống hiện tại hoặc trên thiết bị thật, bạn cần cấu hình lại IP Backend bằng cách tạo file `.env` trong thư mục `mobile`:
+
+1. Tạo file mới `mobile/.env`.
+2. Khai báo biến `API_URL` cho phù hợp với môi trường của bạn:
+   - **Sử dụng Ngrok (Khuyên dùng và Dễ nhất)**: Chạy script `./run_ngrok.sh` ở thư mục gốc dự án, copy đường dẫn ngrok frontend và thiết lập:
+     `API_URL=https://<your-ngrok-url>/api`
+   - **Android Emulator**: `API_URL=http://10.0.2.2/api` (kết nối qua cổng 80 của Nginx)
+   - **iOS Simulator**: `API_URL=http://localhost/api`
+   - **Thiết bị thật (chung mạng Wi-Fi)**: `API_URL=http://<IP_LAN_MÁY_TÍNH_CỦA_BẠN>/api` (Ví dụ: `http://192.168.1.15/api`)
+
+### 3. Chạy ứng dụng:
+Mở terminal, di chuyển vào thư mục `mobile` và chạy các lệnh sau:
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+### ⚠️ Các lỗi thường gặp và Lưu ý:
+- **Lỗi Network Error / Không thể gọi API**: Hãy chắc chắn `API_URL` trong file `.env` được cấu hình đúng. Lưu ý các dấu `/` ở cuối URL (không nên thừa).
+- **Khi kết nối bằng IP LAN**: Máy tính chạy Backend và điện thoại phải kết nối **cùng một mạng Wi-Fi**, và máy tính không bị tường lửa (Firewall) chặn cổng 80.
+- Nếu gặp lỗi bộ nhớ hoặc cache trong Flutter, hãy thử chạy lệnh `flutter clean` trước khi `flutter pub get` lại.
+
+---
+
 ## 🌐 Danh sách Services & Cổng truy cập
 
 | Service | Container | Cổng host | Truy cập | Ghi chú |

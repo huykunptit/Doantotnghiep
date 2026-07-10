@@ -5,6 +5,7 @@ namespace App\Http\Controllers\UserManagement;
 use App\Http\Controllers\Controller;
 
 use App\Models\Category;
+use App\Models\ClassSection;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Order;
@@ -177,7 +178,12 @@ class AdminController extends Controller
 
         foreach (['unit_id', 'program_id', 'major_id', 'cohort_id', 'administrative_class_id', 'advisor_id'] as $field) {
             if ($request->filled($field)) {
-                $query->where($field, (int) $request->integer($field));
+                $val = $request->get($field);
+                if ($field === 'administrative_class_id' && ($val === 'none' || $val === '0' || $val === 0)) {
+                    $query->whereNull('administrative_class_id');
+                } else {
+                    $query->where($field, (int) $val);
+                }
             }
         }
 
@@ -891,6 +897,80 @@ class AdminController extends Controller
             'default_locale' => $settings['default_locale'] ?? null,
             'default_currency' => $settings['default_currency'] ?? null,
             'timezone' => $settings['timezone'] ?? null,
+        ]);
+    }
+
+    public function dashboardExtra(Request $request): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        // ── 1. Enrollments by day (last 14 days) ──────────────────────────────
+        $days = collect(range(13, 0))->map(fn (int $i) => now()->subDays($i)->format('Y-m-d'));
+
+        $enrollRows = Enrollment::query()
+            ->selectRaw("DATE(enrolled_at) as day, COUNT(*) as total")
+            ->where('enrolled_at', '>=', now()->subDays(13)->startOfDay())
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $dailyEnrollments = $days->map(fn (string $day) => [
+            'date'  => $day,
+            'label' => \Carbon\Carbon::parse($day)->locale('vi')->isoFormat('D/M'),
+            'value' => (int) ($enrollRows[$day] ?? 0),
+        ])->values();
+
+        // ── 2. Class progress (top 6 lớp hành chính có nhiều SV nhất) ─────────
+        $topClasses = \App\Models\AdministrativeClass::query()
+            ->withCount('students')
+            ->orderByDesc('students_count')
+            ->limit(6)
+            ->get(['id', 'code', 'name']);
+
+        $classProgress = $topClasses->map(function ($cls) {
+            $total = $cls->students_count;
+            if ($total === 0) return ['label' => $cls->code, 'value' => 0];
+
+            // % SV đã có ít nhất 1 enrollment
+            $enrolled = Enrollment::query()
+                ->whereIn('user_id', function ($q) use ($cls) {
+                    $q->select('id')->from('users')->where('administrative_class_id', $cls->id);
+                })
+                ->distinct('user_id')
+                ->count('user_id');
+
+            return [
+                'label' => $cls->code,
+                'value' => $total > 0 ? (int) round(($enrolled / $total) * 100) : 0,
+            ];
+        })->values();
+
+        // ── 3. Upcoming class sections (current open sections) ────────────────
+        $upcomingSections = ClassSection::query()
+            ->with([
+                'course:id,title',
+                'term:id,name,code',
+                'cohort:id,name,code',
+                'lecturer:id,name',
+            ])
+            ->where('status', 'open')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'code', 'name', 'course_id', 'term_id', 'cohort_id', 'lecturer_id', 'enrolled_count', 'capacity']);
+
+        // ── 4. Latest notifications for admin ─────────────────────────────────
+        $notifications = \App\Models\Notification::query()
+            ->where('user_id', $request->user()->id)
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'title', 'message', 'type', 'created_at', 'read_at']);
+
+        return response()->json([
+            'daily_enrollments' => $dailyEnrollments,
+            'class_progress'    => $classProgress,
+            'upcoming_sections' => $upcomingSections,
+            'notifications'     => $notifications,
         ]);
     }
 }

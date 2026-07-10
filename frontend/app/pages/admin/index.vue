@@ -18,8 +18,6 @@ import {
   Layers,
   ArrowRight,
   RefreshCw,
-  Clock,
-  MapPin,
   CheckCircle,
   AlertTriangle,
   ChevronRight,
@@ -124,35 +122,50 @@ const engagement = computed(() => stats.value.engagement ?? {})
 const adminClassesCount = ref(0)
 const creditClassesCount = ref(0)
 
+// Extra dashboard data (replaces mock)
+const dailyEnrollments = ref<{ date: string; label: string; value: number }[]>([])
+const classProgressData = ref<{ label: string; value: number }[]>([])
+const upcomingSections = ref<any[]>([])
+const recentNotifications = ref<any[]>([])
+
 const loadStats = async () => {
   loading.value = true
   error.value = ''
   now.value = new Date()
   try {
-    stats.value = await useApi<StatsResponse>('/admin/stats', {
-      headers: { Authorization: `Bearer ${auth.token}` },
-    })
-
-    // Fetch Administrative Classes count
-    try {
-      const adminRes = await useApi<{ total?: number }>('/admin/academic/administrative-classes?per_page=1', {
+    const [statsRes, extraRes] = await Promise.all([
+      useApi<StatsResponse>('/admin/stats', {
         headers: { Authorization: `Bearer ${auth.token}` },
-      })
+      }),
+      useApi<any>('/admin/dashboard-extra', {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      }).catch(() => null),
+    ])
+
+    stats.value = statsRes
+
+    // Administrative & credit class counts
+    try {
+      const [adminRes, creditRes] = await Promise.all([
+        useApi<{ total?: number }>('/admin/academic/administrative-classes?per_page=1', {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        }),
+        useApi<{ total?: number }>('/admin/academic/class-sections?per_page=1', {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        }),
+      ])
       adminClassesCount.value = adminRes?.total ?? 0
-    } catch (err) {
-      console.warn('Failed to load administrative classes count', err)
-      adminClassesCount.value = 16
+      creditClassesCount.value = creditRes?.total ?? 0
+    } catch {
+      adminClassesCount.value = 0
+      creditClassesCount.value = 0
     }
 
-    // Fetch Class Sections count
-    try {
-      const creditRes = await useApi<{ total?: number }>('/admin/academic/class-sections?per_page=1', {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      })
-      creditClassesCount.value = creditRes?.total ?? 0
-    } catch (err) {
-      console.warn('Failed to load class sections count', err)
-      creditClassesCount.value = 42
+    if (extraRes) {
+      dailyEnrollments.value = extraRes.daily_enrollments ?? []
+      classProgressData.value = extraRes.class_progress ?? []
+      upcomingSections.value = extraRes.upcoming_sections ?? []
+      recentNotifications.value = extraRes.notifications ?? []
     }
 
   } catch (e: any) {
@@ -173,120 +186,11 @@ const quickActions = [
   { label: 'Cấu hình hệ thống', icon: Sliders, to: '/admin/settings' },
 ]
 
-// 14-day simulated traffic values for "Biểu đồ truy cập"
-const generateTrafficData = () => {
-  const labels: string[] = []
-  const values: number[] = []
-  const today = new Date()
-  
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(today)
-    d.setDate(today.getDate() - i)
-    labels.push(d.toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' }))
-    
-    // Simulate realistic daily hits: weekend drop + random fluctuation
-    const dayOfWeek = d.getDay()
-    const base = (dayOfWeek === 0 || dayOfWeek === 6) ? 1400 : 2500
-    const randomShift = Math.floor(Math.random() * 500) - 250
-    values.push(base + randomShift)
-  }
-  
-  return { labels, values }
-}
-
-const trafficData = ref(generateTrafficData())
-
-// Progress per class for "Biểu đồ tiến độ hoàn thành"
-const classProgressLabels = ref(['D22CQCN01-B', 'D22CQCN02-B', 'D22CQCN03-B', 'D22CQPT01-B', 'D22CQVT02-B', 'D22CQMR01-B'])
-const classProgressValues = ref([84, 78, 69, 73, 62, 81])
-
-interface UpcomingSchedule {
-  id: number
-  title: string
-  classCode: string
-  time: string
-  date: string
-  location: string
-  type: 'lecture' | 'exam' | 'meeting'
-}
-
-const upcomingSchedules = ref<UpcomingSchedule[]>([
-  {
-    id: 1,
-    title: 'Thi cuối kỳ môn Lập trình Web',
-    classCode: 'INT1405 - Lớp tín chỉ LTTW-01',
-    time: '08:00 - 10:00',
-    date: '27/06/2026',
-    location: 'Phòng 402 - A2',
-    type: 'exam'
-  },
-  {
-    id: 2,
-    title: 'Học phần: Lập trình Nuxt.js nâng cao',
-    classCode: 'D22CQCN01-B (Lớp hành chính)',
-    time: '13:30 - 15:30',
-    date: '28/06/2026',
-    location: 'Phòng máy 204 - A3',
-    type: 'lecture'
-  },
-  {
-    id: 3,
-    title: 'Họp cố vấn học tập định kỳ Khóa K22',
-    classCode: 'Khối CN & PT (K22)',
-    time: '16:00 - 17:30',
-    date: '29/06/2026',
-    location: 'Hội trường Tầng 5 - A1',
-    type: 'meeting'
-  },
-  {
-    id: 4,
-    title: 'Báo cáo chuyên đề AI & Data Science',
-    classCode: 'Lớp tín chỉ LTAI-02',
-    time: '09:00 - 11:30',
-    date: '02/07/2026',
-    location: 'Hội trường lớn A2',
-    type: 'lecture'
-  }
-])
-
-interface Announcement {
-  id: number
-  title: string
-  content: string
-  time: string
-  type: 'urgent' | 'info' | 'academic' | 'system'
-}
-
-const announcements = ref<Announcement[]>([
-  {
-    id: 1,
-    title: 'Thông báo xét duyệt học bổng kỳ 2 năm học 2025-2026',
-    content: 'Phòng đào tạo thông báo nộp hồ sơ xét học bổng khuyến khích học tập trước 30/06.',
-    time: 'Hôm nay, 10:24',
-    type: 'urgent'
-  },
-  {
-    id: 2,
-    title: 'Bảo trì hệ thống máy chủ LMS định kỳ',
-    content: 'Hệ thống sẽ tạm thời gián đoạn vào lúc 01:00 đến 03:00 sáng ngày Chủ Nhật 28/06 để nâng cấp phần cứng.',
-    time: 'Hôm qua, 15:30',
-    type: 'system'
-  },
-  {
-    id: 3,
-    title: 'Cập nhật tài liệu Lộ trình chuẩn đầu ra K22',
-    content: 'Tài liệu chi tiết các tín chỉ tự chọn và chuẩn Ngoại ngữ đầu ra của khóa K22 đã được ban hành mới.',
-    time: '2 ngày trước',
-    type: 'academic'
-  },
-  {
-    id: 4,
-    title: 'Báo cáo tổng kết doanh số & ghi danh tự động',
-    content: 'Đã hoàn thành đồng bộ doanh thu cổng thanh toán OnePay & VNPay của tuần thứ 3 tháng 6.',
-    time: '3 ngày trước',
-    type: 'info'
-  }
-])
+// Chart data from real API
+const trafficLabels = computed(() => dailyEnrollments.value.map(d => d.label))
+const trafficValues = computed(() => dailyEnrollments.value.map(d => d.value))
+const classProgressLabels = computed(() => classProgressData.value.map(d => d.label))
+const classProgressValues = computed(() => classProgressData.value.map(d => d.value))
 
 function sparklineLine(values: number[], w: number, h: number): string {
   if (!values.length) return ''
@@ -304,6 +208,34 @@ function sparklinePath(values: number[], w: number, h: number): string {
   if (!values.length) return ''
   const line = sparklineLine(values, w, h)
   return `${line} L ${w} ${h} L 0 ${h} Z`
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'Vừa xong'
+  if (mins < 60) return `${mins} phút trước`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} giờ trước`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return 'Hôm qua'
+  return `${days} ngày trước`
+}
+
+function notifTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    course_approved: 'Học vụ', course_rejected: 'Học vụ',
+    new_enrollment: 'Ghi danh', system: 'Hệ thống',
+    payment: 'Thanh toán', info: 'Tin tức',
+  }
+  return map[type] ?? 'Thông báo'
+}
+
+function notifTypeClass(type: string): string {
+  if (['payment', 'new_enrollment'].includes(type)) return 'priority-info'
+  if (type === 'system') return 'priority-system'
+  if (['course_approved', 'course_rejected'].includes(type)) return 'priority-academic'
+  return 'priority-urgent'
 }
 </script>
 
@@ -507,21 +439,24 @@ function sparklinePath(values: number[], w: number, h: number): string {
       <!-- COLUMN 1: ANALYTICS HUB (LEFT) -->
       <main class="workspace-main">
         
-        <!-- Graph 1: Biểu đồ truy cập (Area Chart) -->
+        <!-- Graph 1: Ghi danh theo ngày (14 ngày) -->
         <div class="workspace-card main-chart-card">
           <div class="card-header">
             <div class="card-info">
-              <h3 class="card-title">Biểu đồ truy cập hệ thống</h3>
-              <p class="card-desc">Lượt truy cập duy nhất (Unique Visits) trong 14 ngày gần đây</p>
+              <h3 class="card-title">Ghi danh theo ngày</h3>
+              <p class="card-desc">Số lượt ghi danh mới trong 14 ngày gần đây</p>
             </div>
-            <span class="chart-badge bg-orange-soft text-orange">Visits/Day</span>
+            <span class="chart-badge bg-orange-soft text-orange">Enrollments/Day</span>
           </div>
           <div class="card-body">
             <div class="skeleton-chart" v-if="loading" />
+            <div v-else-if="!trafficValues.length" class="chart-empty-state" style="height:260px;">
+              <Activity :size="32" /><span>Chưa có dữ liệu ghi danh</span>
+            </div>
             <UiAreaChart
               v-else
-              :series="[{ name: 'Lượt truy cập', values: trafficData.values, color: '#F59E0B' }]"
-              :labels="trafficData.labels"
+              :series="[{ name: 'Ghi danh', values: trafficValues, color: '#F59E0B' }]"
+              :labels="trafficLabels"
               :height="260"
             />
           </div>
@@ -538,6 +473,9 @@ function sparklinePath(values: number[], w: number, h: number): string {
           </div>
           <div class="card-body">
             <div class="skeleton-chart" v-if="loading" />
+            <div v-else-if="!classProgressValues.length" class="chart-empty-state" style="height:220px;">
+              <GraduationCap :size="32" /><span>Chưa có dữ liệu tiến độ</span>
+            </div>
             <UiBarChart
               v-else
               :values="classProgressValues"
@@ -549,50 +487,50 @@ function sparklinePath(values: number[], w: number, h: number): string {
           </div>
         </div>
 
-        <!-- Lịch mới: Lịch trình giảng dạy & thi cử (Upcoming Calendar/Schedules) -->
+        <!-- Lớp tín chỉ đang mở -->
         <div class="workspace-card">
           <div class="card-header">
             <div class="card-info">
-              <h3 class="card-title">Lịch trình & Lịch thi mới</h3>
-              <p class="card-desc">Các sự kiện đào tạo, bài thi cuối kỳ và lịch sinh hoạt học tập sắp diễn ra</p>
+              <h3 class="card-title">Lớp tín chỉ đang mở</h3>
+              <p class="card-desc">Các lớp học phần có trạng thái đang mở gần nhất</p>
             </div>
             <span class="calendar-indicator">
               <Calendar :size="14" />
-              <span>Sắp diễn ra</span>
+              <span>Đang mở</span>
             </span>
           </div>
           <div class="card-body is-nopad">
-            <div class="schedule-list">
-              <div 
-                v-for="sched in upcomingSchedules" 
-                :key="sched.id" 
-                class="schedule-item-row"
-                :class="`is-${sched.type}`"
+            <div v-if="loading" class="schedule-list">
+              <div v-for="i in 3" :key="i" style="padding:20px 24px; border-bottom:1px solid var(--line);">
+                <div style="height:14px; background:var(--line); border-radius:4px; width:60%; animation:pulse 1.4s infinite;"></div>
+                <div style="height:11px; background:var(--line); border-radius:4px; width:40%; margin-top:8px; animation:pulse 1.4s infinite;"></div>
+              </div>
+            </div>
+            <div v-else-if="!upcomingSections.length" class="chart-empty-state">
+              <BookOpen :size="32" /><span>Không có lớp tín chỉ đang mở</span>
+            </div>
+            <div v-else class="schedule-list">
+              <div
+                v-for="sec in upcomingSections"
+                :key="sec.id"
+                class="schedule-item-row is-lecture"
               >
                 <div class="schedule-type-badge">
                   <span class="type-dot"></span>
-                  <span class="type-text">
-                    {{ sched.type === 'exam' ? 'Lịch thi' : sched.type === 'lecture' ? 'Học phần' : 'Lịch họp' }}
-                  </span>
+                  <span class="type-text">Lớp tín chỉ</span>
                 </div>
-                
                 <div class="schedule-main-info">
-                  <h4 class="schedule-item-title">{{ sched.title }}</h4>
-                  <p class="schedule-item-class">{{ sched.classCode }}</p>
+                  <h4 class="schedule-item-title">{{ sec.course?.title ?? sec.name }}</h4>
+                  <p class="schedule-item-class">{{ sec.code }} · {{ sec.cohort?.name ?? sec.term?.name }}</p>
                 </div>
-
                 <div class="schedule-meta-cols">
                   <div class="schedule-meta-cell">
-                    <Clock :size="12" />
-                    <span>{{ sched.time }}</span>
+                    <Users :size="12" />
+                    <span>{{ sec.enrolled_count }}/{{ sec.capacity }}</span>
                   </div>
-                  <div class="schedule-meta-cell">
-                    <Calendar :size="12" />
-                    <span>{{ sched.date }}</span>
-                  </div>
-                  <div class="schedule-meta-cell">
-                    <MapPin :size="12" />
-                    <span>{{ sched.location }}</span>
+                  <div v-if="sec.lecturer" class="schedule-meta-cell">
+                    <GraduationCap :size="12" />
+                    <span>{{ sec.lecturer.name }}</span>
                   </div>
                 </div>
               </div>
@@ -618,24 +556,28 @@ function sparklinePath(values: number[], w: number, h: number): string {
           </div>
           <div class="card-body is-nopad">
             <div class="announcements-timeline">
-              <div 
-                v-for="announce in announcements" 
-                :key="announce.id" 
+              <div v-if="loading">
+                <div v-for="i in 3" :key="i" class="announcement-card-item">
+                  <div style="height:11px; background:var(--line); border-radius:4px; width:30%; animation:pulse 1.4s infinite;"></div>
+                  <div style="height:14px; background:var(--line); border-radius:4px; width:80%; margin-top:6px; animation:pulse 1.4s infinite;"></div>
+                </div>
+              </div>
+              <div v-else-if="!recentNotifications.length" class="chart-empty-state" style="padding:30px 0;">
+                <Bell :size="28" /><span>Chưa có thông báo nào</span>
+              </div>
+              <div
+                v-else
+                v-for="notif in recentNotifications"
+                :key="notif.id"
                 class="announcement-card-item"
-                :class="`priority-${announce.type}`"
+                :class="notifTypeClass(notif.type)"
               >
                 <div class="announce-header-row">
-                  <span class="announce-tag">
-                    {{ 
-                      announce.type === 'urgent' ? 'Khẩn cấp' : 
-                      announce.type === 'system' ? 'Hệ thống' : 
-                      announce.type === 'academic' ? 'Học vụ' : 'Tin tức'
-                    }}
-                  </span>
-                  <span class="announce-time">{{ announce.time }}</span>
+                  <span class="announce-tag">{{ notifTypeLabel(notif.type) }}</span>
+                  <span class="announce-time">{{ timeAgo(notif.created_at) }}</span>
                 </div>
-                <h4 class="announce-item-title">{{ announce.title }}</h4>
-                <p class="announce-item-desc">{{ announce.content }}</p>
+                <h4 class="announce-item-title">{{ notif.title }}</h4>
+                <p class="announce-item-desc">{{ notif.message }}</p>
               </div>
             </div>
           </div>

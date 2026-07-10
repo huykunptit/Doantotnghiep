@@ -1,11 +1,9 @@
 import 'package:dio/dio.dart';
+import '../../../../core/api/api_constants.dart';
 
 class AuthApi {
   AuthApi({Dio? dio})
-      : _dio = dio ?? Dio(BaseOptions(baseUrl: _baseUrl));
-
-  static const String _baseUrl = 'http://localhost:3000';
-  static const String _loginPath = '/auth/login';
+      : _dio = dio ?? Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
 
   final Dio _dio;
 
@@ -14,7 +12,7 @@ class AuthApi {
     required String password,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      _loginPath,
+      ApiConstants.loginPath,
       data: {
         'email': email,
         'password': password,

@@ -288,11 +288,19 @@ class OrgAcademicSeeder extends Seeder
             'qtkd' => 'QTKD',
             'dtvt' => 'DTVT',
         ];
+        // Curriculum đại diện cho từng program (major đầu tiên của mỗi ngành)
+        $progDefaultCurriculumKey = [
+            'cntt' => 'MMT',
+            'qtkd' => 'QTDN',
+            'dtvt' => 'MDI',
+        ];
 
         $result = [];
         foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
             $program = $programContext[$progKey];
             $faculty = $progToFaculty[$progKey];
+            $curriculumKey = $progDefaultCurriculumKey[$progKey];
+            $curriculum = $programContext['curricula'][$curriculumKey] ?? null;
 
             foreach ([2022, 2023, 2024, 2025] as $startYear) {
                 $cohort = $programContext['cohorts'][$progKey][$startYear];
@@ -309,6 +317,7 @@ class OrgAcademicSeeder extends Seeder
                             'major_id' => null, // LHC chứa multi-chuyên ngành
                             'cohort_id' => $cohort->id,
                             'advisor_id' => null,
+                            'curriculum_id' => $curriculum?->id,
                             'name' => 'Lớp ' . $code,
                             'expected_graduation_year' => $startYear + 4,
                             'capacity' => 40,
@@ -453,21 +462,6 @@ class OrgAcademicSeeder extends Seeder
             ]);
             $this->upsertAssignment($user->id, $adminClass->unit_id, $positions['student']->id, true);
         });
-
-        // Align seeded enrollments vào current term + cohort
-        \App\Models\Enrollment::query()
-            ->with('user')
-            ->get()
-            ->each(function (\App\Models\Enrollment $enrollment) use ($terms) {
-                if (!$enrollment->user) {
-                    return;
-                }
-                $enrollment->update([
-                    'term_id' => $terms['term1']->id,
-                    'cohort_id' => $enrollment->user->cohort_id,
-                    'enrollment_source' => $enrollment->order_id ? 'marketplace' : 'academic',
-                ]);
-            });
     }
 
     /**

@@ -39,6 +39,10 @@ const enrollmentsTotalPages = ref(1)
 const enrollmentsTotal = ref(0)
 const enrollListSearchQuery = ref('')
 const enrollListCourseId = ref<Id | ''>('')
+const enrollListCohortId = ref<Id | ''>('')
+const enrollListSource = ref('')
+const enrollListClassSectionId = ref<Id | ''>('')
+const classSectionsForFilter = ref<any[]>([])
 const selectedEnrollmentIds = ref<Id[]>([])
 
 const showBulkDeleteModal = ref(false)
@@ -50,17 +54,57 @@ const deleteStep = ref<1 | 2>(1)
 
 const route = useRoute()
 
+const defaultStudents = ref<any[]>([])
+
+async function loadDefaultStudents() {
+  try {
+    const res = await useApi<any>('/admin/users?user_type=student&per_page=50', { headers: headers() })
+    defaultStudents.value = res.data ?? res ?? []
+  } catch (error) {
+    console.error('load default students error', error)
+  }
+}
+
+const displayStudents = computed(() => {
+  if (searchStudentQuery.value.trim()) {
+    return searchedStudents.value
+  }
+  if (selectedClassId.value) {
+    return classStudents.value
+  }
+  return defaultStudents.value
+})
+
+function selectAllDisplayed() {
+  displayStudents.value.forEach((s: any) => {
+    if (!selectedDirectUserIds.value.includes(s.id)) {
+      selectedDirectUserIds.value.push(s.id)
+    }
+  })
+}
+
+function deselectAllDisplayed() {
+  displayStudents.value.forEach((s: any) => {
+    const idx = selectedDirectUserIds.value.indexOf(s.id)
+    if (idx > -1) {
+      selectedDirectUserIds.value.splice(idx, 1)
+    }
+  })
+}
+
 onMounted(async () => {
   if (route.query.tab && ['class-auto','direct-manual','enrollment-list'].includes(route.query.tab as string))
     activeTab.value = route.query.tab as any
   await bootstrapFilters()
   await loadCourses()
+  await loadDefaultStudents()
 })
 
 watch(selectedCohortId, () => loadAdminClasses())
 watch(selectedClassId, () => loadClassStudents())
 watch(selectedDirectCourseId, () => loadClassSections())
-watch(activeTab, async (t) => { if (t === 'enrollment-list') { enrollmentsPage.value = 1; await loadEnrollments() } })
+watch(activeTab, async (t) => { if (t === 'enrollment-list') { enrollmentsPage.value = 1; await Promise.all([loadEnrollments(), loadClassSectionsForFilter()]) } })
+watch(enrollListCourseId, () => { enrollListClassSectionId.value = ''; loadClassSectionsForFilter() })
 
 async function bootstrapFilters() {
   loading.value = true
@@ -135,17 +179,30 @@ function toggleDirectUser(id: Id) {
 async function loadEnrollments() {
   loading.value = true
   try {
-    let url = `/admin/academic/enrollments?page=${enrollmentsPage.value}&per_page=15`
-    if (enrollListCourseId.value) url += `&course_id=${enrollListCourseId.value}`
-    if (selectedTermId.value) url += `&term_id=${selectedTermId.value}`
-    if (enrollListSearchQuery.value.trim()) url += `&search=${encodeURIComponent(enrollListSearchQuery.value.trim())}`
-    const res = await useApi<any>(url, { headers: headers() })
+    const q = new URLSearchParams({ page: String(enrollmentsPage.value), per_page: '15' })
+    if (enrollListCourseId.value) q.set('course_id', String(enrollListCourseId.value))
+    if (selectedTermId.value) q.set('term_id', String(selectedTermId.value))
+    if (enrollListCohortId.value) q.set('cohort_id', String(enrollListCohortId.value))
+    if (enrollListSource.value) q.set('source', enrollListSource.value)
+    if (enrollListClassSectionId.value) q.set('class_section_id', String(enrollListClassSectionId.value))
+    if (enrollListSearchQuery.value.trim()) q.set('search', enrollListSearchQuery.value.trim())
+    const res = await useApi<any>(`/admin/academic/enrollments?${q}`, { headers: headers() })
     enrollments.value = res.data ?? []
     enrollmentsTotalPages.value = res.last_page ?? 1
     enrollmentsTotal.value = res.total ?? 0
     selectedEnrollmentIds.value = []
   } catch { toast.error('Không thể tải danh sách ghi danh.') }
   finally { loading.value = false }
+}
+
+async function loadClassSectionsForFilter() {
+  try {
+    const q = new URLSearchParams({ per_page: '200' })
+    if (enrollListCourseId.value) q.set('course_id', String(enrollListCourseId.value))
+    if (selectedTermId.value) q.set('term_id', String(selectedTermId.value))
+    const res = await useApi<any>(`/admin/academic/class-sections?${q}`, { headers: headers() })
+    classSectionsForFilter.value = res.data ?? res ?? []
+  } catch { /* ignore */ }
 }
 
 async function runAutoEnrollment() {
@@ -221,6 +278,15 @@ async function executeBulkDelete() {
   } catch (e: any) { toast.error(e?.data?.message || 'Không thể xóa.') }
   finally { deleteProcessing.value = false }
 }
+
+function formatSource(src: string) {
+  switch (src) {
+    case 'manual': return 'Thủ công'
+    case 'automatic': return 'Tự động'
+    case 'excel_import': return 'Excel Import'
+    default: return src
+  }
+}
 </script>
 
 <template>
@@ -244,29 +310,51 @@ async function executeBulkDelete() {
 
     <!-- TAB 1: AUTO -->
     <template v-if="activeTab === 'class-auto'">
-      <div class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <select v-model="selectedTermId" class="crud-search" style="max-width:220px;">
+      <div class="dashboard-card crud-panel" style="padding: 24px;">
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Cấu hình ghi danh tự động</h3>
+          <p style="font-size:0.85rem; color:var(--muted); margin:0;">
+            Hệ thống tự động quét tất cả sinh viên trong lớp hành chính đã chọn, đối chiếu với chương trình đào tạo (CTĐT) và ghi danh vào các học phần bắt buộc trong học kỳ này.
+          </p>
+        </div>
+
+        <div class="crud-form-grid" style="padding:0; margin-bottom:20px; gap:16px;">
+          <div class="crud-field">
+            <span>Học kỳ ghi danh</span>
+            <select v-model="selectedTermId" class="crud-select" style="width:100%;">
               <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
             </select>
-            <select v-model="selectedCohortId" class="crud-search" style="max-width:200px;">
+          </div>
+          <div class="crud-field">
+            <span>Khóa / Niên khóa</span>
+            <select v-model="selectedCohortId" class="crud-select" style="width:100%;">
               <option v-for="c in cohorts" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
-            <select v-model="selectedClassId" :disabled="!selectedCohortId" class="crud-search" style="max-width:220px;">
+          </div>
+          <div class="crud-field">
+            <span>Lớp hành chính</span>
+            <select v-model="selectedClassId" :disabled="!selectedCohortId" class="crud-select" style="width:100%;">
               <option value="">— Chọn lớp hành chính —</option>
               <option v-for="c in adminClasses" :key="c.id" :value="c.id">{{ c.code }} — {{ c.name }}</option>
             </select>
           </div>
-          <div v-if="selectedClassId" style="display:flex;align-items:center;gap:12px;">
-            <span v-if="adminClasses.find(c => c.id === selectedClassId)?.curriculum_id" class="has-ctdt-tag">
-              <GraduationCap :size="14" /> Đã gán CTĐT
-            </span>
-            <span v-else class="no-ctdt-tag"><GraduationCap :size="14" /> Chưa gán CTĐT</span>
-            <button class="crud-primary-btn" :disabled="processingEnrollment || !adminClasses.find(c => c.id === selectedClassId)?.curriculum_id" @click="runAutoEnrollment">
-              <Play :size="15" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Kích hoạt ghi danh' }}
-            </button>
+        </div>
+
+        <div v-if="selectedClassId" style="display:flex; align-items:center; justify-content:space-between; background:var(--bg-alt); padding:16px 20px; border-radius:12px; border:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <strong style="font-size:0.95rem;">Lớp: {{ adminClasses.find(c => c.id === selectedClassId)?.name }} ({{ adminClasses.find(c => c.id === selectedClassId)?.code }})</strong>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span v-if="adminClasses.find(c => c.id === selectedClassId)?.curriculum_id" class="has-ctdt-tag" style="margin:0;">
+                  <GraduationCap :size="14" /> Đã gán CTĐT
+                </span>
+                <span v-else class="no-ctdt-tag" style="margin:0;"><GraduationCap :size="14" /> Chưa gán CTĐT</span>
+              </div>
+            </div>
           </div>
+          <button class="crud-primary-btn" :disabled="processingEnrollment || !adminClasses.find(c => c.id === selectedClassId)?.curriculum_id" @click="runAutoEnrollment">
+            <Play :size="15" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Kích hoạt ghi danh' }}
+          </button>
         </div>
       </div>
 
@@ -296,50 +384,85 @@ async function executeBulkDelete() {
     <!-- TAB 2: MANUAL -->
     <template v-if="activeTab === 'direct-manual'">
       <div class="manual-grid">
-        <div class="dashboard-card crud-panel">
-          <div class="crud-toolbar"><div><p class="section-kicker">Cấu hình</p><h3 class="ds-section-title">Chọn học phần & học kỳ</h3></div></div>
-          <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
-            <div class="form-field">
-              <label>Học kỳ</label>
-              <select v-model="selectedTermId" class="crud-search" style="width:100%;">
+        <div class="dashboard-card crud-panel" style="padding: 24px;">
+          <div style="margin-bottom:18px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:4px;">1. Cấu hình lớp học</h3>
+            <p style="font-size:0.8rem; color:var(--muted); margin:0;">Chọn học phần và lớp tín chỉ đích để ghi danh học viên.</p>
+          </div>
+          
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="crud-field">
+              <span>Học kỳ</span>
+              <select v-model="selectedTermId" class="crud-select" style="width:100%;">
                 <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
               </select>
             </div>
-            <div class="form-field">
-              <label>Khóa học (Học phần) *</label>
-              <select v-model="selectedDirectCourseId" class="crud-search" style="width:100%;">
-                <option value="">— Chọn khóa học —</option>
+            <div class="crud-field">
+              <span>Học phần *</span>
+              <select v-model="selectedDirectCourseId" class="crud-select" style="width:100%;">
+                <option value="">— Chọn học phần —</option>
                 <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
               </select>
             </div>
-            <div class="form-field">
-              <label>Lớp tín chỉ (tuỳ chọn)</label>
-              <select v-model="selectedDirectSectionId" :disabled="!selectedDirectCourseId" class="crud-search" style="width:100%;">
+            <div class="crud-field">
+              <span>Lớp tín chỉ (Không bắt buộc)</span>
+              <select v-model="selectedDirectSectionId" :disabled="!selectedDirectCourseId" class="crud-select" style="width:100%;">
                 <option value="">— Không gán lớp tín chỉ —</option>
                 <option v-for="s in classSections" :key="s.id" :value="s.id">{{ s.code }}</option>
               </select>
             </div>
           </div>
-          <div style="margin-top:20px;padding-top:16px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:12px;">
-            <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--muted);">
+          
+          <div style="margin-top:24px; padding-top:20px; border-top:1px dashed var(--border); display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--muted);">
               <span>Đang chọn</span>
-              <strong style="color:var(--green-deep);">{{ selectedDirectUserIds.length }} sinh viên</strong>
+              <strong style="color:var(--green-deep); font-size:0.95rem;">{{ selectedDirectUserIds.length }} sinh viên</strong>
             </div>
-            <button class="crud-primary-btn" style="width:100%;" :disabled="!selectedDirectCourseId || !selectedDirectUserIds.length || processingEnrollment" @click="runDirectManualEnrollment">
+            <button class="crud-primary-btn" style="width:100%; justify-content:center;" :disabled="!selectedDirectCourseId || !selectedDirectUserIds.length || processingEnrollment" @click="runDirectManualEnrollment">
               <UserCheck :size="16" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Xác nhận ghi danh' }}
             </button>
           </div>
         </div>
+ 
+        <div class="dashboard-card crud-panel" style="padding: 24px;">
+          <div style="margin-bottom:18px;">
+            <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:4px;">2. Chọn học viên</h3>
+            <p style="font-size:0.8rem; color:var(--muted); margin:0;">Lọc theo lớp hành chính hoặc tìm kiếm học viên tự do.</p>
+          </div>
 
-        <div class="dashboard-card crud-panel">
-          <div class="crud-toolbar"><div><p class="section-kicker">Tìm kiếm</p><h3 class="ds-section-title">Chọn sinh viên</h3></div></div>
+          <div class="crud-form-grid" style="padding:0; margin-bottom:14px; gap:12px; grid-template-columns: 1fr 1fr;">
+            <div class="crud-field">
+              <span>Khóa học vụ</span>
+              <select v-model="selectedCohortId" class="crud-select" style="width:100%;">
+                <option value="">— Tất cả khóa —</option>
+                <option v-for="c in cohorts" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+            <div class="crud-field">
+              <span>Lớp hành chính</span>
+              <select v-model="selectedClassId" :disabled="!selectedCohortId" class="crud-select" style="width:100%;">
+                <option value="">— Tất cả lớp —</option>
+                <option v-for="c in adminClasses" :key="c.id" :value="c.id">{{ c.code }} — {{ c.name }}</option>
+              </select>
+            </div>
+          </div>
+
           <div class="search-wrap">
             <Search :size="15" class="search-ico" />
-            <input v-model="searchStudentQuery" type="text" placeholder="Mã SV hoặc tên..." class="crud-search" style="padding-left:34px;width:100%;" @input="searchStudents" />
+            <input v-model="searchStudentQuery" type="text" placeholder="Tìm theo mã SV hoặc tên học viên..." class="crud-search" style="padding-left:34px;width:100%;" @input="searchStudents" />
           </div>
-          <div class="picker-list">
-            <div v-if="!searchedStudents.length" class="crud-empty" style="padding:2rem;font-size:0.85rem;">Nhập mã hoặc tên để tìm sinh viên.</div>
-            <div v-else v-for="s in searchedStudents" :key="s.id" class="picker-row" :class="{ 'is-sel': selectedDirectUserIds.includes(s.id) }" @click="toggleDirectUser(s.id)">
+          
+          <div v-if="displayStudents.length > 0" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.8rem;">
+            <span style="color:var(--muted);">Danh sách hiển thị ({{ displayStudents.length }})</span>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="action-btn is-edit" style="height:24px; padding:0 8px; font-size:0.7rem;" @click="selectAllDisplayed">Chọn tất cả</button>
+              <button type="button" class="action-btn is-delete" style="height:24px; padding:0 8px; font-size:0.7rem;" @click="deselectAllDisplayed">Bỏ chọn tất cả</button>
+            </div>
+          </div>
+
+          <div class="picker-list" style="border: 1px solid var(--border); border-radius: 12px; max-height: 380px; overflow-y: auto; background: var(--bg-alt);">
+            <div v-if="!displayStudents.length" class="crud-empty" style="padding:2.5rem;font-size:0.85rem;">Không tìm thấy học viên phù hợp. Chọn lớp hành chính hoặc tìm kiếm ở trên.</div>
+            <div v-else v-for="s in displayStudents" :key="s.id" class="picker-row" :class="{ 'is-sel': selectedDirectUserIds.includes(s.id) }" style="margin: 6px; border-color: transparent;" @click="toggleDirectUser(s.id)">
               <div class="pick-check"><Check v-if="selectedDirectUserIds.includes(s.id)" :size="11" /></div>
               <div style="display:flex;flex-direction:column;gap:2px;">
                 <span class="mono-code" style="font-size:0.72rem;">{{ s.student_code }}</span>
@@ -354,61 +477,143 @@ async function executeBulkDelete() {
 
     <!-- TAB 3: LIST -->
     <template v-if="activeTab === 'enrollment-list'">
-      <div class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <input v-model="enrollListSearchQuery" type="text" placeholder="Tìm mã SV, tên..." class="crud-search" style="max-width:220px;" @keyup.enter="loadEnrollments" />
-            <select v-model="enrollListCourseId" class="crud-search" style="max-width:220px;">
-              <option value="">Tất cả học phần</option>
-              <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
-            </select>
-            <button class="crud-primary-btn" @click="loadEnrollments"><Search :size="14" /> Tìm</button>
+      <div class="dashboard-card crud-panel" style="padding: 24px;">
+        <!-- Header row -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin:0;">Danh sách ghi danh</h3>
+            <p style="font-size:0.8rem; color:var(--muted); margin:4px 0 0 0;">Tra cứu, lọc và quản lý danh sách sinh viên ghi danh học phần.</p>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button v-if="selectedEnrollmentIds.length" class="crud-danger-btn" @click="deleteSelectedEnrollments">
-              <Trash :size="14" /> Xoá {{ selectedEnrollmentIds.length }} đã chọn
+          
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button v-if="selectedEnrollmentIds.length" class="action-btn is-delete" style="padding: 0 16px; height: 36px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" @click="deleteSelectedEnrollments">
+              <Trash2 :size="15" /> Xóa {{ selectedEnrollmentIds.length }} dòng
             </button>
-            <button class="crud-secondary-btn" @click="openBulkDeleteModal">
-              <Upload :size="14" /> Xoá bằng CSV
+            <button class="action-btn is-edit" style="padding: 0 16px; height: 36px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" @click="openBulkDeleteModal">
+              <Upload :size="15" /> Xóa bằng CSV
             </button>
           </div>
         </div>
-      </div>
 
-      <div class="dashboard-card crud-panel">
-        <div v-if="loading" class="crud-empty" style="padding:2rem;">Đang tải...</div>
-        <div v-else-if="!enrollments.length" class="crud-empty">
-          <BookOpen :size="40" style="opacity:0.2;" /><div><strong>Không có dữ liệu</strong></div>
+        <!-- Filters row -->
+        <div class="enroll-filter-grid">
+          <div class="enroll-filter-search">
+            <input
+              v-model="enrollListSearchQuery"
+              type="text"
+              placeholder="Tìm theo mã SV, họ tên, email..."
+              class="crud-search"
+              style="width:100%;"
+              @keyup.enter="enrollmentsPage = 1; loadEnrollments()"
+            />
+          </div>
+          <select v-model="selectedTermId" class="crud-select" @change="enrollmentsPage = 1; loadEnrollments()">
+            <option value="">Tất cả học kỳ</option>
+            <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
+          </select>
+          <select v-model="enrollListCohortId" class="crud-select" @change="enrollmentsPage = 1; loadEnrollments()">
+            <option value="">Tất cả khóa</option>
+            <option v-for="c in cohorts" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+          <select v-model="enrollListCourseId" class="crud-select" @change="enrollmentsPage = 1; loadEnrollments()">
+            <option value="">Tất cả học phần</option>
+            <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
+          </select>
+          <select v-model="enrollListClassSectionId" class="crud-select" @change="enrollmentsPage = 1; loadEnrollments()">
+            <option value="">Tất cả lớp tín chỉ</option>
+            <option v-for="s in classSectionsForFilter" :key="s.id" :value="s.id">{{ s.code }}</option>
+          </select>
+          <select v-model="enrollListSource" class="crud-select" @change="enrollmentsPage = 1; loadEnrollments()">
+            <option value="">Tất cả nguồn</option>
+            <option value="academic">Học vụ</option>
+            <option value="manual">Thủ công</option>
+            <option value="automatic">Tự động</option>
+            <option value="excel_import">Excel Import</option>
+          </select>
+          <button class="crud-primary-btn" style="height:38px;" @click="enrollmentsPage = 1; loadEnrollments()">
+            <Search :size="15" /> Lọc
+          </button>
         </div>
-        <div v-else class="crud-table-wrap">
-          <table class="crud-table">
-            <thead>
-              <tr>
-                <th style="width:40px;"><input type="checkbox" :checked="selectedEnrollmentIds.length === enrollments.length && enrollments.length > 0" @change="toggleSelectAllEnrollments" /></th>
-                <th>Mã SV</th><th>Sinh viên</th><th>Học phần</th><th>Học kỳ</th><th>Lớp tín chỉ</th>
-                <th>Nguồn</th><th>Ngày</th><th style="text-align:right;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="e in enrollments" :key="e.id">
-                <td><input type="checkbox" :checked="selectedEnrollmentIds.includes(e.id)" @change="toggleSelectEnrollment(e.id)" /></td>
-                <td><span class="mono-code">{{ e.user?.student_code }}</span></td>
-                <td><strong>{{ e.user?.name }}</strong></td>
-                <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ e.course?.title }}</td>
-                <td>{{ e.term?.name || '—' }}</td>
-                <td>{{ e.class_section?.code || '—' }}</td>
-                <td><span class="source-tag" :class="`src-${e.enrollment_source}`">{{ e.enrollment_source }}</span></td>
-                <td style="color:var(--muted);font-size:0.82rem;">{{ new Date(e.enrolled_at).toLocaleDateString('vi-VN') }}</td>
-                <td style="text-align:right;"><button class="del-icon-btn" @click="deleteOneEnrollment(e.id)"><Trash2 :size="14" /></button></td>
-              </tr>
-            </tbody>
-          </table>
+
+        <!-- Table / Loader / Empty state -->
+        <div v-if="loading" class="crud-empty" style="padding:4rem;">
+          <div class="loader-spinner" style="border:3px solid var(--border); border-top-color:var(--green-deep); width:28px; height:28px; border-radius:50%; animation:spin 1s linear infinite; margin-bottom:12px;"></div>
+          <span>Đang tải danh sách ghi danh...</span>
         </div>
-        <div v-if="enrollmentsTotalPages > 1" class="crud-pagination">
-          <p>Tổng <strong>{{ enrollmentsTotal }}</strong> bản ghi — Trang <strong>{{ enrollmentsPage }}</strong> / {{ enrollmentsTotalPages }}</p>
-          <div class="crud-pagination-btns">
-            <button class="crud-secondary-btn" :disabled="enrollmentsPage <= 1" @click="enrollmentsPage--; loadEnrollments()"><ChevronLeft :size="15" /></button>
-            <button class="crud-secondary-btn" :disabled="enrollmentsPage >= enrollmentsTotalPages" @click="enrollmentsPage++; loadEnrollments()"><ChevronRight :size="15" /></button>
+        
+        <div v-else-if="!enrollments.length" class="crud-empty" style="padding:4rem;">
+          <BookOpen :size="40" style="opacity:0.2; margin-bottom:12px;" />
+          <div><strong>Không tìm thấy dữ liệu ghi danh</strong></div>
+          <span style="font-size:0.8rem; color:var(--muted); margin-top:4px;">Vui lòng đổi bộ lọc hoặc thực hiện ghi danh mới.</span>
+        </div>
+        
+        <div v-else>
+          <div class="crud-table-wrap" style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px;">
+            <table class="crud-table">
+              <thead>
+                <tr>
+                  <th style="width:48px; text-align:center;"><input type="checkbox" :checked="selectedEnrollmentIds.length === enrollments.length && enrollments.length > 0" @change="toggleSelectAllEnrollments" class="crud-checkbox" /></th>
+                  <th>Mã SV</th>
+                  <th>Sinh viên</th>
+                  <th>Học phần</th>
+                  <th>Học kỳ</th>
+                  <th>Lớp tín chỉ</th>
+                  <th>Nguồn</th>
+                  <th>Ngày ghi danh</th>
+                  <th style="text-align:right; width:60px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="e in enrollments" :key="e.id">
+                  <td style="text-align:center;"><input type="checkbox" :checked="selectedEnrollmentIds.includes(e.id)" @change="toggleSelectEnrollment(e.id)" class="crud-checkbox" /></td>
+                  <td><span class="mono-code">{{ e.user?.student_code }}</span></td>
+                  <td>
+                    <div style="display:flex; flex-direction:column;">
+                      <strong>{{ e.user?.name }}</strong>
+                      <span style="font-size:0.75rem; color:var(--muted);">{{ e.user?.email }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="font-weight: 500; max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" :title="e.course?.title">
+                      {{ e.course?.title }}
+                    </div>
+                  </td>
+                  <td><span style="font-size:0.85rem; font-weight:500;">{{ e.term?.name || '—' }}</span></td>
+                  <td>
+                    <span v-if="e.class_section?.code" class="mono-code" style="color:var(--text); background:var(--bg-alt); padding:2px 6px; border-radius:4px; font-size:0.75rem; border:1px solid var(--border);">
+                      {{ e.class_section?.code }}
+                    </span>
+                    <span v-else style="color:var(--muted);">—</span>
+                  </td>
+                  <td>
+                    <span class="source-badge" :class="`src-${e.enrollment_source}`">
+                      {{ formatSource(e.enrollment_source) }}
+                    </span>
+                  </td>
+                  <td style="color:var(--muted); font-size:0.8rem;">
+                    {{ new Date(e.enrolled_at).toLocaleDateString('vi-VN', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                  </td>
+                  <td style="text-align:right; padding-right:16px;">
+                    <button class="del-icon-btn" title="Hủy ghi danh học phần" @click="deleteOneEnrollment(e.id)">
+                      <Trash2 :size="15" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div class="crud-pagination" style="border:none; margin:0; padding: 4px 0 0 0;">
+            <p>Hiển thị <strong>{{ enrollments.length }}</strong>/<strong>{{ enrollmentsTotal }}</strong> bản ghi — Trang <strong>{{ enrollmentsPage }}</strong> / <strong>{{ enrollmentsTotalPages }}</strong></p>
+            <div class="crud-pagination-btns">
+              <button class="crud-secondary-btn" style="height:32px; width:36px; padding:0; justify-content:center;" :disabled="enrollmentsPage <= 1" @click="enrollmentsPage--; loadEnrollments()">
+                <ChevronLeft :size="16" />
+              </button>
+              <button class="crud-secondary-btn" style="height:32px; width:36px; padding:0; justify-content:center;" :disabled="enrollmentsPage >= enrollmentsTotalPages" @click="enrollmentsPage++; loadEnrollments()">
+                <ChevronRight :size="16" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -465,6 +670,22 @@ async function executeBulkDelete() {
 </template>
 
 <style scoped>
+.enroll-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr repeat(5, minmax(140px, 1fr)) auto;
+  gap: 10px;
+  align-items: center;
+  background: var(--bg-alt);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.enroll-filter-search { grid-column: 1 / 2; }
+@media (max-width: 1100px) {
+  .enroll-filter-grid { grid-template-columns: 1fr 1fr; }
+  .enroll-filter-search { grid-column: 1 / -1; }
+}
 .enroll-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 2px solid var(--line); padding-bottom: 2px; }
 .enroll-tab {
   display: inline-flex; align-items: center; gap: 7px;
@@ -496,10 +717,30 @@ async function executeBulkDelete() {
 .is-sel .pick-check { background:var(--green-deep);border-color:var(--green-deep);color:#fff; }
 
 .mono-code { font-family:monospace;font-weight:700;color:var(--green-deep);font-size:0.85rem; }
-.source-tag { font-size:0.7rem;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:5px; }
-.src-manual    { background:rgba(59,130,246,0.08);color:#3b82f6; }
-.src-automatic { background:rgba(var(--green-rgb),0.08);color:var(--green-deep); }
-.src-excel_import { background:rgba(139,92,246,0.08);color:#8b5cf6; }
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.source-badge.src-manual {
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+.source-badge.src-automatic {
+  background: rgba(16, 185, 129, 0.08);
+  color: var(--green-deep);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+.source-badge.src-excel_import {
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.15);
+}
 
 .del-icon-btn { width:28px;height:28px;border:none;background:none;color:#ef4444;cursor:pointer;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;transition:all 0.15s; }
 .del-icon-btn:hover { background:#fef2f2;color:#b91c1c; }
@@ -517,4 +758,11 @@ async function executeBulkDelete() {
 .pstat span { font-size:0.75rem;color:var(--muted); }
 .pstat strong { font-size:1.1rem;font-weight:800; }
 .preview-scroll { max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:10px; }
+.loader-spinner {
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 </style>

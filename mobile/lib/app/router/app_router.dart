@@ -23,6 +23,18 @@ import '../../features/dashboard/presentation/screens/attendance_screen.dart';
 import '../../features/certificates/presentation/screens/certificates_screen.dart';
 import '../../features/notifications/presentation/screens/notifications_screen.dart';
 import '../../features/career/presentation/screens/career_advisor_screen.dart';
+// Sprint 1
+import '../../features/exams/presentation/screens/exam_list_screen.dart';
+import '../../features/exams/presentation/screens/exam_result_screen.dart';
+import '../../features/exams/presentation/screens/order_history_screen.dart';
+// Sprint 2
+import '../../features/student/presentation/screens/tasks_screen.dart';
+import '../../features/student/presentation/screens/exam_calendar_screen.dart';
+import '../../features/student/presentation/screens/library_screen.dart';
+// Sprint 5 (points — wired early for routing)
+import '../../features/points/presentation/screens/points_screen.dart';
+import '../../features/points/presentation/screens/voucher_shop_screen.dart';
+import '../../features/points/presentation/screens/my_vouchers_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -123,6 +135,10 @@ GoRouter appRouter(Ref ref) {
             builder: (context, state) => const MyCoursesPage(),
           ),
           GoRoute(
+            path: '/exams',
+            builder: (context, state) => const ExamListScreen(),
+          ),
+          GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfilePage(),
           ),
@@ -158,6 +174,45 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/career',
         builder: (context, state) => const CareerAdvisorScreen(),
+      ),
+      // Sprint 1 routes
+      GoRoute(
+        path: '/exam-result/:attemptId',
+        builder: (context, state) {
+          final attemptId =
+              int.tryParse(state.pathParameters['attemptId'] ?? '') ?? 0;
+          return ExamResultScreen(attemptId: attemptId);
+        },
+      ),
+      GoRoute(
+        path: '/orders',
+        builder: (context, state) => const OrderHistoryScreen(),
+      ),
+      // Sprint 2 routes
+      GoRoute(
+        path: '/tasks',
+        builder: (context, state) => const TasksScreen(),
+      ),
+      GoRoute(
+        path: '/exam-calendar',
+        builder: (context, state) => const ExamCalendarScreen(),
+      ),
+      GoRoute(
+        path: '/library',
+        builder: (context, state) => const LibraryScreen(),
+      ),
+      // Sprint 5 routes
+      GoRoute(
+        path: '/points',
+        builder: (context, state) => const PointsScreen(),
+      ),
+      GoRoute(
+        path: '/voucher-shop',
+        builder: (context, state) => const VoucherShopScreen(),
+      ),
+      GoRoute(
+        path: '/my-vouchers',
+        builder: (context, state) => const MyVouchersScreen(),
       ),
     ],
   );

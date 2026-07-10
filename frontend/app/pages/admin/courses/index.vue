@@ -210,6 +210,7 @@ async function createCourse() {
     createOpen.value = false
     Object.assign(createForm, { title: '', description: '', price: 0, category_id: '', thumbnail: '' })
     thumbnailFile.value = null
+    status.value = 'draft'
     await fetchCourses(1)
   } catch (error: any) {
     toast.error(error?.data?.message || 'Không thể tạo khóa học.')
