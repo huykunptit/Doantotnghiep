@@ -196,6 +196,10 @@ CHÚ Ý:
     ]
 
     # Gọi provider AI
+    if not (payload.api_key or "").strip():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=502, detail="API key chưa được cấu hình. Sử dụng phân tích heuristic.")
+
     reply, tokens = await call_provider(
         provider=payload.provider or "chatgpt",
         api_key=payload.api_key or "",

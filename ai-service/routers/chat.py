@@ -24,9 +24,19 @@ async def chat(payload: ChatRequest) -> ChatResponseWithSources:
     - RAG: Tự động truy xuất tài liệu 160+ môn học PTIT và đính kèm nguồn
     """
     if not payload.api_key:
-        raise HTTPException(
-            status_code=400,
-            detail="Thiếu API key cho provider AI. Vui lòng cấu hình API key trong phần Cài đặt.",
+        return ChatResponseWithSources(
+            reply=(
+                "Xin chào! Tôi là trợ lý AI của ERIPT LMS.\n\n"
+                "⚠️ Hiện tại hệ thống chưa được cấu hình API key cho dịch vụ AI. "
+                "Vui lòng liên hệ **quản trị viên** để kích hoạt đầy đủ tính năng trợ lý AI.\n\n"
+                "Trong lúc chờ đợi, bạn có thể:\n"
+                "• Tìm kiếm khóa học trực tiếp trên trang chủ\n"
+                "• Xem danh sách khóa học đã đăng ký\n"
+                "• Liên hệ hỗ trợ qua email"
+            ),
+            sources=[],
+            has_rag_context=False,
+            tokens_used={"prompt": 0, "completion": 0, "total": 0},
         )
 
     provider = (payload.provider or "chatgpt").strip().lower()
