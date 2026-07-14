@@ -146,7 +146,7 @@ import { Bot, Sparkles, RotateCcw, ArrowUp, BookOpen } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
-definePageMeta({ layout: 'student', middleware: ['auth', 'student'] })
+definePageMeta({ layout: 'student' })
 useHead({ title: 'Chat với AI | Sylva LMS' })
 
 const auth = useAuthStore()
