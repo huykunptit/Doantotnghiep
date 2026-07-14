@@ -165,7 +165,7 @@ class CareerAdvisorController extends Controller
                     ->pluck('course_title')
                     ->toArray();
 
-                $response = Http::timeout(30)->post($aiServiceUrl . '/career/advise', [
+                $response = Http::timeout(30)->post($aiServiceUrl . '/advise', [
                     'user_id' => $profile['user_id'],
                     'target_job' => $jobTitle,
                     'skills' => $skills,
