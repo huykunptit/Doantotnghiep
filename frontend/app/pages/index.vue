@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import {
-  Compass, Briefcase, GraduationCap, Sparkles,
-  ArrowRight, BookOpen, User, PlayCircle, Users, UserPlus, Map,
-  Award, CheckCircle, ChevronRight, Zap, BarChart3,
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({
   layout: 'default',
@@ -200,7 +196,7 @@ const googleMapEmbedUrl = computed(() => {
 
         <div class="hero-checks">
           <span v-for="item in ['Miễn phí đăng ký', 'AI hỗ trợ 24/7', 'Chứng chỉ số']" :key="item" class="hero-check">
-            <CheckCircle :size="14" :stroke-width="2.5" />
+            <i class="pi pi-check-circle" style="font-size:0.875rem" />
             {{ item }}
           </span>
         </div>
@@ -209,7 +205,7 @@ const googleMapEmbedUrl = computed(() => {
           <NuxtLink to="/courses" class="btn-hero-primary">
             <Compass :size="18" :stroke-width="1.75" />
             Khám phá khoá học
-            <ChevronRight :size="16" :stroke-width="2.5" />
+            <i class="pi pi-chevron-right" style="font-size:1.0rem" />
           </NuxtLink>
           <NuxtLink to="/career" class="btn-hero-ghost">
             <Briefcase :size="17" :stroke-width="1.75" />
@@ -257,7 +253,7 @@ const googleMapEmbedUrl = computed(() => {
           <h3>{{ f.title }}</h3>
           <p>{{ f.desc }}</p>
           <div class="feature-bottom-link">
-            Tìm hiểu thêm <ArrowRight :size="14" :stroke-width="2" />
+            Tìm hiểu thêm <i class="pi pi-arrow-right" style="font-size:0.875rem" />
           </div>
         </article>
       </div>
@@ -271,7 +267,7 @@ const googleMapEmbedUrl = computed(() => {
           <h2 id="categories-title">Khám phá theo lĩnh vực</h2>
         </div>
         <NuxtLink to="/courses" class="section-link">
-          Xem tất cả <ArrowRight :size="15" :stroke-width="2" />
+          Xem tất cả <i class="pi pi-arrow-right" style="font-size:0.9375rem" />
         </NuxtLink>
       </header>
       <div class="categories-grid">
@@ -282,13 +278,13 @@ const googleMapEmbedUrl = computed(() => {
           class="category-card"
         >
           <div class="category-icon">
-            <Zap :size="18" :stroke-width="1.75" />
+            <i class="pi pi-bolt" style="font-size:1.125rem" />
           </div>
           <div class="category-body">
             <h3>{{ cat.name }}</h3>
             <p v-if="cat.courses_count">{{ cat.courses_count }} khoá học</p>
           </div>
-          <ArrowRight :size="15" :stroke-width="2" class="category-arrow" />
+          <i class="pi pi-arrow-right" style="font-size:0.9375rem" />
         </NuxtLink>
       </div>
     </section>
@@ -301,7 +297,7 @@ const googleMapEmbedUrl = computed(() => {
           <h2 id="courses-title">Bắt đầu học ngay hôm nay</h2>
         </div>
         <NuxtLink to="/courses" class="section-link">
-          Tất cả khoá học <ArrowRight :size="15" :stroke-width="2" />
+          Tất cả khoá học <i class="pi pi-arrow-right" style="font-size:0.9375rem" />
         </NuxtLink>
       </header>
 
@@ -325,11 +321,11 @@ const googleMapEmbedUrl = computed(() => {
               itemprop="image"
             />
             <div v-else class="course-thumb course-thumb-placeholder" aria-hidden="true">
-              <BookOpen :size="32" :stroke-width="1.5" />
+              <i class="pi pi-book" style="font-size:2.0rem" />
             </div>
             <div class="course-thumb-overlay">
               <div class="course-play-btn">
-                <PlayCircle :size="28" :stroke-width="1.5" />
+                <i class="pi pi-play-circle" style="font-size:1.75rem" />
               </div>
             </div>
           </NuxtLink>
@@ -342,17 +338,17 @@ const googleMapEmbedUrl = computed(() => {
             <meta itemprop="description" :content="course.description || course.title" />
 
             <p v-if="course.instructor" class="course-instructor" itemprop="provider" itemscope itemtype="https://schema.org/Person">
-              <User :size="13" :stroke-width="1.75" />
+              <i class="pi pi-user" style="font-size:0.8125rem" />
               <span itemprop="name">{{ course.instructor.name }}</span>
             </p>
 
             <footer class="course-foot">
               <span class="course-meta">
-                <PlayCircle :size="13" :stroke-width="1.75" />
+                <i class="pi pi-play-circle" style="font-size:0.8125rem" />
                 {{ course.lessons_count || 0 }} bài
               </span>
               <span class="course-meta">
-                <Users :size="13" :stroke-width="1.75" />
+                <i class="pi pi-users" style="font-size:0.8125rem" />
                 {{ (course.enrollments_count || 0).toLocaleString('vi-VN') }}
               </span>
               <strong class="course-price" :class="{ 'is-free': !course.price || course.price === 0 }">
@@ -398,7 +394,7 @@ const googleMapEmbedUrl = computed(() => {
         </div>
         <div class="cta-actions">
           <NuxtLink to="/register" class="btn-cta-primary">
-            <UserPlus :size="18" :stroke-width="1.75" />
+            <i class="pi pi-user-plus" style="font-size:1.125rem" />
             Tạo tài khoản miễn phí
           </NuxtLink>
           <NuxtLink to="/courses" class="btn-cta-ghost">

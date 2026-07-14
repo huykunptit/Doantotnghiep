@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { GraduationCap, Star } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useApi } from '~/composables/useApi'
 
 interface RecItem {
@@ -88,7 +88,7 @@ onMounted(load)
           <div class="rec-foot">
             <strong class="rec-price">{{ item.course.price > 0 ? formatPrice(item.course.price) : 'Miễn phí' }}</strong>
             <span class="rec-score" :title="`Điểm gợi ý: ${item.score}`">
-              <Star :size="14" :stroke-width="1.75" />
+              <i class="pi pi-star" style="font-size:0.875rem" />
               {{ item.score }}
             </span>
           </div>

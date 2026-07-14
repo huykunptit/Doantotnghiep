@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RefreshCw, CloudUpload, Trash2, CircleAlert } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAdminUpload } from '~/composables/useAdminUpload'
 
 type Folder = 'users' | 'settings' | 'courses'
@@ -173,13 +173,13 @@ function clear() {
             :disabled="disabled || isUploading"
             @click="clear"
           >
-            <Trash2 :size="18" :stroke-width="1.75" />
+            <i class="pi pi-trash" style="font-size:1.125rem" />
             <span>Xoá</span>
           </button>
         </div>
 
         <p v-if="errorMessage" class="media-upload-error">
-          <CircleAlert :size="16" :stroke-width="1.75" />
+          <i class="pi pi-exclamation-circle" style="font-size:1.0rem" />
           {{ errorMessage }}
         </p>
       </div>

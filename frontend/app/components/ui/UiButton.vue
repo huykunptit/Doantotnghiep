@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Loader } from 'lucide-vue-next'
 
 defineOptions({ inheritAttrs: true })
 
@@ -56,7 +55,7 @@ const buttonClass = computed(() => [
     :class="buttonClass"
     :aria-disabled="isButtonDisabled ? 'true' : undefined"
   >
-    <Loader v-if="props.loading" :size="15" :stroke-width="2" class="ui-btn-spinner" />
+    <i v-if="props.loading" class="pi pi-spin pi-spinner ui-btn-spinner" style="font-size:0.9375rem" />
     <slot />
   </NuxtLink>
 
@@ -68,7 +67,7 @@ const buttonClass = computed(() => [
     :class="buttonClass"
     :aria-disabled="isButtonDisabled ? 'true' : undefined"
   >
-    <Loader v-if="props.loading" :size="15" :stroke-width="2" class="ui-btn-spinner" />
+    <i v-if="props.loading" class="pi pi-spin pi-spinner ui-btn-spinner" style="font-size:0.9375rem" />
     <slot />
   </a>
 
@@ -78,7 +77,7 @@ const buttonClass = computed(() => [
     :disabled="isButtonDisabled"
     :class="buttonClass"
   >
-    <Loader v-if="props.loading" :size="15" :stroke-width="2" class="ui-btn-spinner" />
+    <i v-if="props.loading" class="pi pi-spin pi-spinner ui-btn-spinner" style="font-size:0.9375rem" />
     <slot />
   </button>
 </template>

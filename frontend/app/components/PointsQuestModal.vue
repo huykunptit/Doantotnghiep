@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
-import { X, Flame, Trophy, BookOpen, GraduationCap, Star, ShoppingBag, ClipboardList, Medal, CalendarCheck, Coins, ChevronRight } from 'lucide-vue-next'
 
 const STORAGE_KEY = 'quest_modal_snoozed_until'
 const SNOOZE_HOURS = 24
@@ -11,20 +10,20 @@ const visible = ref(false)
 const loading = ref(false)
 const questData = ref<any>(null)
 
-const iconMap: Record<string, any> = {
-  'calendar-check': CalendarCheck,
-  'flame': Flame,
-  'trophy': Trophy,
-  'book-open-check': BookOpen,
-  'graduation-cap': GraduationCap,
-  'medal': Medal,
-  'shopping-bag': ShoppingBag,
-  'clipboard-list': ClipboardList,
-  'star': Star,
+const piIconMap: Record<string, string> = {
+  'calendar-check': 'pi-calendar-check',
+  'flame': 'pi-bolt',
+  'trophy': 'pi-trophy',
+  'book-open-check': 'pi-book',
+  'graduation-cap': 'pi-graduation-cap',
+  'medal': 'pi-shield',
+  'shopping-bag': 'pi-shopping-bag',
+  'clipboard-list': 'pi-list-check',
+  'star': 'pi-star',
 }
 
-function getIcon(key: string) {
-  return iconMap[key] || Star
+function getPiIcon(key: string) {
+  return piIconMap[key] || 'pi-star'
 }
 
 onMounted(async () => {
@@ -84,27 +83,31 @@ const grouped = computed(() => {
           <!-- Header -->
           <div class="qm-head">
             <div class="qm-head-left">
-              <div class="qm-coin-icon"><Coins :size="22" /></div>
+              <div class="qm-coin-icon">
+                <i class="pi pi-star-fill" style="font-size: 1.25rem" />
+              </div>
               <div>
                 <h2 class="qm-title">Nhiệm vụ tích điểm</h2>
                 <p class="qm-subtitle">Hoàn thành nhiệm vụ để đổi quà hấp dẫn</p>
               </div>
             </div>
-            <button class="qm-close" @click="close" aria-label="Đóng"><X :size="18" /></button>
+            <button class="qm-close" aria-label="Đóng" @click="close">
+              <i class="pi pi-times" style="font-size: 1.125rem" />
+            </button>
           </div>
 
           <!-- Balance strip -->
           <div v-if="questData" class="qm-balance-strip">
             <div class="qm-balance-item">
-              <Coins :size="16" class="text-amber" />
+              <i class="pi pi-star-fill text-amber" style="font-size: 1rem" />
               <span><strong>{{ questData.balance.toLocaleString('vi-VN') }}</strong> điểm hiện có</span>
             </div>
             <div class="qm-balance-item">
-              <Flame :size="16" class="text-orange" />
+              <i class="pi pi-bolt text-orange" style="font-size: 1rem" />
               <span>Chuỗi <strong>{{ questData.streak_days }}</strong> ngày</span>
             </div>
             <div class="qm-balance-item">
-              <Trophy :size="16" class="text-gold" />
+              <i class="pi pi-trophy text-gold" style="font-size: 1rem" />
               <span>Đã nhận <strong>{{ questData.total_earned.toLocaleString('vi-VN') }}</strong> điểm</span>
             </div>
           </div>
@@ -116,7 +119,7 @@ const grouped = computed(() => {
               <div class="qm-quest-list">
                 <div v-for="q in quests" :key="q.key" class="qm-quest-item" :class="{ 'is-done': q.done_today }">
                   <div class="qm-quest-icon" :class="`cat-${q.category}`">
-                    <component :is="getIcon(q.icon)" :size="16" />
+                    <i :class="`pi ${getPiIcon(q.icon)}`" style="font-size: 0.9375rem" />
                   </div>
                   <div class="qm-quest-info">
                     <p class="qm-quest-title">{{ q.title }}</p>
@@ -145,7 +148,7 @@ const grouped = computed(() => {
               <button class="qm-btn-ghost qm-muted" @click="neverShow">Không nhắc lại</button>
             </div>
             <NuxtLink to="/student/points" class="qm-btn-primary" @click="close">
-              Xem shop đổi quà <ChevronRight :size="14" />
+              Xem shop đổi quà <i class="pi pi-chevron-right" style="font-size: 0.75rem" />
             </NuxtLink>
           </div>
         </div>

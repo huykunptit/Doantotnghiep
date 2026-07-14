@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { User, Lock, ReceiptText, LayoutDashboard } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ middleware: 'auth' })
@@ -69,11 +69,11 @@ const userInitials = computed(() => {
               <span>{{ tab.label }}</span>
             </button>
             <NuxtLink to="/orders" class="pf-nav-item">
-              <ReceiptText :size="16" :stroke-width="1.75" />
+              <i class="pi pi-receipt" style="font-size:1.0rem" />
               <span>Đơn hàng</span>
             </NuxtLink>
             <NuxtLink to="/student" class="pf-nav-item">
-              <LayoutDashboard :size="16" :stroke-width="1.75" />
+              <i class="pi pi-th-large" style="font-size:1.0rem" />
               <span>Bảng điều khiển</span>
             </NuxtLink>
           </nav>

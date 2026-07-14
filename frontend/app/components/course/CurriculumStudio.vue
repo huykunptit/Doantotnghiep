@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Plus, RefreshCw, FolderPlus, FolderOpen, Inbox, FileDown, Layers } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import SectionBlock from './SectionBlock.vue'
 import LessonFormModal from './LessonFormModal.vue'
 import { useAuthStore } from '~/stores/auth'
@@ -319,7 +319,7 @@ defineExpose({ loadSections })
       </div>
       
       <button class="add-section-action-btn" type="button" @click="handleAddSection">
-        <FolderPlus :size="16" />
+        <i class="pi pi-folder-plus" style="font-size:1.0rem" />
         <span>Tạo Chương mới</span>
       </button>
     </div>
@@ -334,12 +334,12 @@ defineExpose({ loadSections })
       <!-- Empty State Illustration -->
       <div v-else-if="sections.length === 0" class="curriculum-empty-state">
         <div class="empty-state-icon-box">
-          <Layers :size="32" />
+          <i class="pi pi-clone" style="font-size:2.0rem" />
         </div>
         <h3 class="empty-state-title">Chưa có nội dung giáo trình</h3>
         <p class="empty-state-desc">Hãy thiết lập chương học đầu tiên và tải lên các bài giảng để bắt đầu truyền tải tri thức cho học viên.</p>
         <button class="empty-state-btn" type="button" @click="handleAddSection">
-          <FolderPlus :size="15" />
+          <i class="pi pi-folder-plus" style="font-size:0.9375rem" />
           <span>Tạo Chương học đầu tiên</span>
         </button>
       </div>
@@ -473,7 +473,7 @@ defineExpose({ loadSections })
 
             <!-- Empty status -->
             <div v-else-if="submissions.length === 0" class="submissions-empty-box">
-              <Inbox :size="36" />
+              <i class="pi pi-inbox" style="font-size:2.25rem" />
               <p>Chưa có học viên nào nộp bài giải cho yêu cầu này.</p>
             </div>
 
@@ -511,7 +511,7 @@ defineExpose({ loadSections })
                         rel="noopener"
                         class="download-file-btn"
                       >
-                        <FileDown :size="14" />
+                        <i class="pi pi-download" style="font-size:0.875rem" />
                         <span>Tải bài nộp</span>
                       </a>
                       <span v-else class="no-file-text">Không đính kèm file</span>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Bell, BellOff, GraduationCap, ReceiptText, CircleCheckBig, XCircle, Star, Info } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
@@ -9,17 +8,17 @@ const loading = ref(false)
 const notifications = ref<any[]>([])
 const unreadCount = ref(0)
 
-const typeIconMap: Record<string, any> = {
-  enrollment: GraduationCap,
-  order: ReceiptText,
-  course_approved: CircleCheckBig,
-  course_rejected: XCircle,
-  review: Star,
-  system: Info,
+const piIconMap: Record<string, string> = {
+  enrollment: 'pi-graduation-cap',
+  order: 'pi-receipt',
+  course_approved: 'pi-check-circle',
+  course_rejected: 'pi-times-circle',
+  review: 'pi-star',
+  system: 'pi-info-circle',
 }
 
-function getTypeIcon(type: string) {
-  return typeIconMap[type] || Bell
+function getPiIcon(type: string) {
+  return piIconMap[type] || 'pi-bell'
 }
 
 const authHeaders = () => ({ Authorization: `Bearer ${auth.token}` })
@@ -77,7 +76,7 @@ if (import.meta.client) {
 <template>
   <div class="nb-wrap">
     <button class="nb-btn" :aria-label="`Thông báo${unreadCount > 0 ? ` (${unreadCount} chưa đọc)` : ''}`" @click="toggleDropdown">
-      <Bell :size="18" :stroke-width="1.75" />
+      <i class="pi pi-bell" style="font-size: 1.125rem" />
       <span v-if="unreadCount > 0" class="nb-badge">
         {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
@@ -96,7 +95,7 @@ if (import.meta.client) {
         <div class="nb-list">
           <div v-if="loading" class="nb-empty">Đang tải...</div>
           <div v-else-if="notifications.length === 0" class="nb-empty">
-            <BellOff :size="28" :stroke-width="1.5" class="nb-empty-icon" />
+            <i class="pi pi-bell-slash nb-empty-icon" style="font-size: 1.75rem" />
             <p>Chưa có thông báo nào</p>
           </div>
           <template v-else>
@@ -109,7 +108,7 @@ if (import.meta.client) {
               @click="open = false"
             >
               <div class="nb-icon-wrap" :class="{ 'is-unread-icon': !notif.read_at }">
-                <component :is="getTypeIcon(notif.type)" :size="15" :stroke-width="1.75" />
+                <i :class="`pi ${getPiIcon(notif.type)}`" style="font-size: 0.9375rem" />
               </div>
               <div class="nb-content">
                 <p class="nb-msg-title">{{ notif.title }}</p>
@@ -219,6 +218,6 @@ if (import.meta.client) {
 .nb-pop-leave-active { transition: opacity 130ms ease, transform 130ms ease; }
 .nb-pop-enter-from, .nb-pop-leave-to { opacity: 0; transform: translateY(-6px) scale(0.97); }
 
-[data-theme="dark"] .nb-dropdown { background: #0F2219; border-color: rgba(255,255,255,0.08); }
-[data-theme="dark"] .nb-header { background: rgba(255,255,255,0.04); }
+:global(.dark) .nb-dropdown { background: #0F2219; border-color: rgba(255,255,255,0.08); }
+:global(.dark) .nb-header { background: rgba(255,255,255,0.04); }
 </style>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import { Users, PlayCircle, PauseCircle, CheckCircle, XCircle } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'admin' })
 
@@ -147,31 +147,31 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
       <!-- Summary cards -->
       <div v-if="monitorData" class="ds-stats mb-4">
         <div class="ds-stat ds-stat--blue">
-          <div class="ds-stat-icon"><Users :size="16" /></div>
+          <div class="ds-stat-icon"><i class="pi pi-users" style="font-size:1.0rem" /></div>
           <p class="ds-stat-label">Tổng thí sinh</p>
           <strong class="ds-stat-value">{{ monitorData.summary?.total || 0 }}</strong>
           <span class="ds-stat-sub">đã đăng ký</span>
         </div>
         <div class="ds-stat ds-stat--green">
-          <div class="ds-stat-icon"><PlayCircle :size="16" /></div>
+          <div class="ds-stat-icon"><i class="pi pi-play-circle" style="font-size:1.0rem" /></div>
           <p class="ds-stat-label">Đang thi</p>
           <strong class="ds-stat-value">{{ monitorData.summary?.in_progress || 0 }}</strong>
           <span class="ds-stat-sub">thí sinh</span>
         </div>
         <div class="ds-stat ds-stat--amber">
-          <div class="ds-stat-icon"><PauseCircle :size="16" /></div>
+          <div class="ds-stat-icon"><i class="pi pi-pause-circle" style="font-size:1.0rem" /></div>
           <p class="ds-stat-label">Tạm dừng</p>
           <strong class="ds-stat-value">{{ monitorData.summary?.paused || 0 }}</strong>
           <span class="ds-stat-sub">thí sinh</span>
         </div>
         <div class="ds-stat ds-stat--green">
-          <div class="ds-stat-icon"><CheckCircle :size="16" /></div>
+          <div class="ds-stat-icon"><i class="pi pi-check-circle" style="font-size:1.0rem" /></div>
           <p class="ds-stat-label">Đã nộp</p>
           <strong class="ds-stat-value">{{ monitorData.summary?.submitted || 0 }}</strong>
           <span class="ds-stat-sub">thí sinh</span>
         </div>
         <div class="ds-stat ds-stat--red">
-          <div class="ds-stat-icon"><XCircle :size="16" /></div>
+          <div class="ds-stat-icon"><i class="pi pi-times-circle" style="font-size:1.0rem" /></div>
           <p class="ds-stat-label">Bị dừng</p>
           <strong class="ds-stat-value">{{ monitorData.summary?.force_stopped || 0 }}</strong>
           <span class="ds-stat-sub">thí sinh</span>

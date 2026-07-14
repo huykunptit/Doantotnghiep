@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { CircleAlert } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { type AuthResponse, getDashboardPath, setAuthSession } from '~/composables/useAuthSession'
 

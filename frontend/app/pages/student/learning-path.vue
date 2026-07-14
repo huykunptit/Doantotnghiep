@@ -2,18 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
-import { 
-  Layers, 
-  Award, 
-  BookOpen, 
-  CheckCircle2, 
-  HelpCircle, 
-  Clock, 
-  ChevronDown, 
-  ChevronUp,
-  Sparkles,
-  GraduationCap
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'student' })
 
@@ -97,7 +86,7 @@ function getStatusClass(status: string) {
         </p>
       </div>
       <NuxtLink to="/student/recommendations" class="lp-recommend-btn">
-        <Sparkles :size="14" /> Gợi ý học phần
+        <i class="pi pi-sparkles" style="font-size:0.875rem" /> Gợi ý học phần
       </NuxtLink>
     </div>
 
@@ -109,7 +98,7 @@ function getStatusClass(status: string) {
 
     <!-- Empty/No Curriculum Error -->
     <div v-else-if="!learningPathData?.has_curriculum" class="lp-empty-card dashboard-card">
-      <Layers :size="48" class="empty-icon" />
+      <i class="pi pi-clone" style="font-size:3.0rem" />
       <h3>Chưa gán Chương trình đào tạo</h3>
       <p>{{ learningPathData?.message || 'Tài khoản của bạn chưa được gán lộ trình hoặc lớp học hành chính.' }}</p>
       <NuxtLink to="/student/courses" class="primary-action-btn">Khám phá các khóa học</NuxtLink>

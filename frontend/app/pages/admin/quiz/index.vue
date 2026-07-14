@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, Plus, Eye, MonitorPlay, Trash2, BookOpen, Target } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
@@ -136,7 +136,7 @@ onMounted(async () => {
           class="qz-tab" :class="{ 'qz-tab--on': activeTab === 'standalone' }"
           type="button" @click="onTabChange('standalone')"
         >
-          <BookOpen :size="15" />
+          <i class="pi pi-book" style="font-size:0.9375rem" />
           Kỳ thi độc lập
           <span class="qz-count">{{ standaloneExams.length }}</span>
         </button>
@@ -144,7 +144,7 @@ onMounted(async () => {
           class="qz-tab" :class="{ 'qz-tab--on': activeTab === 'course' }"
           type="button" @click="onTabChange('course')"
         >
-          <Target :size="15" />
+          <i class="pi pi-circle" style="font-size:0.9375rem" />
           Đề thi khóa học
           <span class="qz-count">{{ exams.length }}</span>
         </button>
@@ -173,10 +173,10 @@ onMounted(async () => {
         </div>
         <div class="crud-toolbar-right">
           <button class="crud-export-btn" type="button" @click="exportData">
-            <Download :size="15" :stroke-width="1.75" /> Xuất CSV
+            <i class="pi pi-download" style="font-size:0.9375rem" /> Xuất CSV
           </button>
           <button class="crud-primary-btn" type="button" @click="goCreate">
-            <Plus :size="15" :stroke-width="2" /> Thêm đề thi
+            <i class="pi pi-plus" style="font-size:0.9375rem" /> Thêm đề thi
           </button>
         </div>
       </div>
@@ -205,11 +205,11 @@ onMounted(async () => {
             <tr v-else-if="allCurrentExams.length === 0">
               <td colspan="8">
                 <div class="qz-empty">
-                  <div class="qz-empty-icon"><BookOpen :size="24" /></div>
+                  <div class="qz-empty-icon"><i class="pi pi-book" style="font-size:1.5rem" /></div>
                   <strong>Chưa có đề thi nào</strong>
                   <p>{{ activeTab === 'course' && !selectedCourseId ? 'Chọn khóa học để xem danh sách.' : 'Tạo đề thi đầu tiên để bắt đầu.' }}</p>
                   <button v-if="activeTab === 'standalone' || selectedCourseId" class="crud-primary-btn" type="button" @click="goCreate">
-                    <Plus :size="14" /> Tạo đề thi
+                    <i class="pi pi-plus" style="font-size:0.875rem" /> Tạo đề thi
                   </button>
                 </div>
               </td>
@@ -232,13 +232,13 @@ onMounted(async () => {
               <td>
                 <div class="qz-actions">
                   <NuxtLink :to="`/exam/${exam.id}`" class="qz-btn qz-btn--view" target="_blank">
-                    <Eye :size="13" /> Thi thử
+                    <i class="pi pi-eye" style="font-size:0.8125rem" /> Thi thử
                   </NuxtLink>
                   <NuxtLink :to="`/admin/exam-monitor?exam=${exam.id}`" class="qz-btn qz-btn--monitor">
-                    <MonitorPlay :size="13" /> Giám sát
+                    <i class="pi pi-video" style="font-size:0.8125rem" /> Giám sát
                   </NuxtLink>
                   <button class="qz-btn qz-btn--del" type="button" @click="selectedExam = exam; confirmOpen = true">
-                    <Trash2 :size="13" />
+                    <i class="pi pi-trash" style="font-size:0.8125rem" />
                   </button>
                 </div>
               </td>

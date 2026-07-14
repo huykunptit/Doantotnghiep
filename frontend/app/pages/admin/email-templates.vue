@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Info } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
 definePageMeta({ layout: 'admin' })
@@ -193,7 +193,7 @@ selectTemplate('welcome')
   >
     <!-- Notice -->
     <div class="dashboard-card" style="margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #3b82f6; background: #eff6ff; display: flex; gap: 12px;">
-      <Info :size="18" :stroke-width="1.75" style="color: #3b82f6; flex-shrink: 0; margin-top: 2px;" />
+      <i class="pi pi-info-circle" style="font-size:1.125rem" />
       <p style="font-size: 0.875rem; color: #1e40af; margin: 0; line-height: 1.6;">
         Đây là các template email mặc định. Để chỉnh sửa nội dung thực tế, cần cấu hình template engine trong backend (Laravel Mail).
         Trang này cho phép <strong>xem trước</strong> và <strong>kiểm tra biến</strong> cho mỗi template.

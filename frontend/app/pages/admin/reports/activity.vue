@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, FileText } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useExport } from '~/composables/useExport'
 
@@ -161,11 +161,11 @@ onMounted(() => fetchActivity())
           </div>
           <div class="crud-toolbar-right">
             <button class="crud-export-btn" type="button" @click="exportCSV">
-              <Download :size="18" :stroke-width="1.75" />
+              <i class="pi pi-download" style="font-size:1.125rem" />
               Xuất Excel
             </button>
             <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <FileText :size="18" :stroke-width="1.75" />
+              <i class="pi pi-file" style="font-size:1.125rem" />
               Xuất PDF
             </button>
             <button class="crud-secondary-btn" type="button" :disabled="loading" @click="fetchActivity(currentPage)">

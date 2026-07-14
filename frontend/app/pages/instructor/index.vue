@@ -6,31 +6,7 @@ import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
 import DashboardSchedule from '~/components/dashboard/DashboardSchedule.vue'
-import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  GraduationCap,
-  BookOpen,
-  Calendar,
-  Activity,
-  Layers,
-  ArrowRight,
-  RefreshCw,
-  Clock,
-  MapPin,
-  CheckCircle,
-  AlertTriangle,
-  ChevronRight,
-  Award,
-  Zap,
-  BookMarked,
-  LayoutDashboard,
-  ShieldCheck,
-  CreditCard,
-  Plus,
-  Database
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -273,7 +249,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
         <div class="metric-header">
           <span class="metric-title">Tổng số khóa học</span>
           <span class="metric-delta is-info">
-            <Layers :size="12" /> Active Curriculum
+            <i class="pi pi-clone" style="font-size:0.75rem" /> Active Curriculum
           </span>
         </div>
         <div class="metric-content">
@@ -299,7 +275,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
         <div class="metric-footer">
           <NuxtLink to="/instructor/courses" class="footer-link-action">
             <span>Quản lý kho bài giảng</span>
-            <ArrowRight :size="12" />
+            <i class="pi pi-arrow-right" style="font-size:0.75rem" />
           </NuxtLink>
         </div>
       </div>
@@ -309,7 +285,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
         <div class="metric-header">
           <span class="metric-title">Hiệu suất học tập</span>
           <span class="metric-delta is-success-alt">
-            <Award :size="12" /> Đạt yêu cầu
+            <i class="pi pi-verified" style="font-size:0.75rem" /> Đạt yêu cầu
           </span>
         </div>
         <div class="metric-content">
@@ -347,7 +323,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
         <div class="metric-header">
           <span class="metric-title">Tổng lượng học viên</span>
           <span v-if="studentDelta !== null" class="metric-delta is-positive">
-            <Users :size="12" /> +{{ Math.abs(studentDelta) }}% tháng này
+            <i class="pi pi-users" style="font-size:0.75rem" /> +{{ Math.abs(studentDelta) }}% tháng này
           </span>
         </div>
         <div class="metric-content">

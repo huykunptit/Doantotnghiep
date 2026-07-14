@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronUp, ChevronDown, BookOpen, Clock, Pencil, Trash2, Plus } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import LessonBlock from './LessonBlock.vue'
 
 const props = defineProps<{
@@ -43,7 +43,7 @@ function formatDuration(seconds: number) {
           @click="emit('moveSectionUp', section)"
           title="Di chuyển chương lên"
         >
-          <ChevronUp :size="13" />
+          <i class="pi pi-chevron-up" style="font-size:0.8125rem" />
         </button>
         <button
           class="order-arrow-btn"
@@ -51,7 +51,7 @@ function formatDuration(seconds: number) {
           @click="emit('moveSectionDown', section)"
           title="Di chuyển chương xuống"
         >
-          <ChevronDown :size="13" />
+          <i class="pi pi-chevron-down" style="font-size:0.8125rem" />
         </button>
       </div>
 
@@ -65,11 +65,11 @@ function formatDuration(seconds: number) {
         
         <div class="section-summary-meta">
           <span class="meta-badge">
-            <BookOpen :size="12" />
+            <i class="pi pi-book" style="font-size:0.75rem" />
             {{ section.lessons?.length || 0 }} bài học
           </span>
           <span class="meta-badge">
-            <Clock :size="12" />
+            <i class="pi pi-clock" style="font-size:0.75rem" />
             {{ formatDuration(section.total_duration || 0) }}
           </span>
         </div>
@@ -78,11 +78,11 @@ function formatDuration(seconds: number) {
       <!-- Section Operations -->
       <div class="section-ops-buttons">
         <button class="op-btn is-edit" type="button" @click="emit('editSection', section)">
-          <Pencil :size="12" />
+          <i class="pi pi-pencil" style="font-size:0.75rem" />
           <span>Sửa tiêu đề</span>
         </button>
         <button class="op-btn is-delete" type="button" @click="emit('deleteSection', section.id)">
-          <Trash2 :size="13" />
+          <i class="pi pi-trash" style="font-size:0.8125rem" />
         </button>
       </div>
     </div>
@@ -109,7 +109,7 @@ function formatDuration(seconds: number) {
 
       <!-- Button: Add new lesson to this section -->
       <button class="add-lesson-dashed-btn" type="button" @click="emit('addLesson', section)">
-        <Plus :size="16" />
+        <i class="pi pi-plus" style="font-size:1.0rem" />
         <span>Thêm bài giảng vào Chương {{ index + 1 }}</span>
       </button>
     </div>

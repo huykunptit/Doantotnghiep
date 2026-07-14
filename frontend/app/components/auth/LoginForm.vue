@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Eye, EyeOff, Loader } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 
 const auth = useAuthStore()
@@ -103,8 +102,8 @@ async function handleGoogleLogin() {
             required
           >
           <button type="button" class="lf-eye-btn" :aria-label="passwordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" @click="passwordVisible = !passwordVisible">
-            <EyeOff v-if="passwordVisible" :size="17" :stroke-width="1.75" />
-            <Eye v-else :size="17" :stroke-width="1.75" />
+            <i v-if="passwordVisible" class="pi pi-eye-slash" style="font-size:1.0625rem" />
+            <i v-else class="pi pi-eye" style="font-size:1.0625rem" />
           </button>
         </div>
       </div>
@@ -117,7 +116,7 @@ async function handleGoogleLogin() {
 
       <!-- Submit -->
       <button type="submit" :disabled="loading" class="lf-submit">
-        <Loader v-if="loading" :size="16" :stroke-width="2" class="lf-spinner" />
+        <i v-if="loading" class="pi pi-spin pi-spinner lf-spinner" style="font-size:1rem" />
         <span>{{ loading ? 'Đang đăng nhập...' : 'Đăng nhập vào hệ thống' }}</span>
       </button>
     </form>

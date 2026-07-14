@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  Sun, Moon, Menu, X, ChevronDown,
-  User, ReceiptText, GraduationCap, ShieldCheck, LogOut,
-  BookOpen, Compass, Bell,
-} from 'lucide-vue-next'
 import NotificationBell from '~/components/NotificationBell.vue'
 import { publicNavigation } from '~/constants/navigation'
 import { useAuthStore } from '~/stores/auth'
@@ -99,8 +94,10 @@ onUnmounted(() => {
           :title="isDark ? 'Chuyển sang sáng' : 'Chuyển sang tối'"
           @click="toggleDark"
         >
-          <Sun v-if="isDark" :size="18" :stroke-width="1.75" />
-          <Moon v-else :size="18" :stroke-width="1.75" />
+          <Transition name="mode" mode="out-in">
+            <i v-if="isDark" key="sun" class="pi pi-sun" style="font-size:1.125rem" />
+            <i v-else key="moon" class="pi pi-moon" style="font-size:1.125rem" />
+          </Transition>
         </button>
 
         <ClientOnly>
@@ -119,9 +116,9 @@ onUnmounted(() => {
                 </div>
                 <div class="cd-user-info">
                   <span class="cd-user-name">{{ auth.user?.name }}</span>
-                  <span class="cd-user-role">Sylva Member</span>
+                  <span class="cd-user-role">Member</span>
                 </div>
-                <ChevronDown :size="16" :stroke-width="2" class="cd-chevron" :class="{ 'is-open': showMenu }" />
+                <i class="pi pi-chevron-down cd-chevron" :class="{ 'is-open': showMenu }" style="font-size:0.875rem" />
               </button>
 
               <Transition name="dropdown">
@@ -139,20 +136,20 @@ onUnmounted(() => {
                   <div class="cd-dropdown-divider" />
                   <div class="cd-dropdown-body">
                     <NuxtLink to="/profile" class="cd-dropdown-item" @click="showMenu = false">
-                      <User :size="16" :stroke-width="1.75" /> Hồ sơ cá nhân
+                      <i class="pi pi-user" style="font-size:0.875rem" /> Hồ sơ cá nhân
                     </NuxtLink>
                     <NuxtLink to="/orders" class="cd-dropdown-item" @click="showMenu = false">
-                      <ReceiptText :size="16" :stroke-width="1.75" /> Đơn hàng
+                      <i class="pi pi-receipt" style="font-size:0.875rem" /> Đơn hàng
                     </NuxtLink>
                     <NuxtLink v-if="isInstructor" to="/instructor" class="cd-dropdown-item cd-dropdown-item--primary" @click="showMenu = false">
-                      <GraduationCap :size="16" :stroke-width="1.75" /> Khu vực giảng viên
+                      <i class="pi pi-graduation-cap" style="font-size:0.875rem" /> Khu vực giảng viên
                     </NuxtLink>
                     <NuxtLink v-if="isAdmin" to="/admin" class="cd-dropdown-item cd-dropdown-item--accent" @click="showMenu = false">
-                      <ShieldCheck :size="16" :stroke-width="1.75" /> Quản trị hệ thống
+                      <i class="pi pi-shield" style="font-size:0.875rem" /> Quản trị hệ thống
                     </NuxtLink>
                     <div class="cd-dropdown-divider" />
                     <button class="cd-dropdown-item cd-dropdown-item--danger" @click="handleLogout">
-                      <LogOut :size="16" :stroke-width="1.75" /> Đăng xuất
+                      <i class="pi pi-sign-out" style="font-size:0.875rem" /> Đăng xuất
                     </button>
                   </div>
                 </div>
@@ -162,9 +159,9 @@ onUnmounted(() => {
         </ClientOnly>
 
         <!-- Mobile hamburger -->
-        <button class="cd-mobile-toggle" @click="showMobileMenu = !showMobileMenu" :aria-label="showMobileMenu ? 'Đóng menu' : 'Mở menu'">
-          <X v-if="showMobileMenu" :size="20" :stroke-width="2" />
-          <Menu v-else :size="20" :stroke-width="2" />
+        <button class="cd-mobile-toggle" :aria-label="showMobileMenu ? 'Đóng menu' : 'Mở menu'" @click="showMobileMenu = !showMobileMenu">
+          <i v-if="showMobileMenu" class="pi pi-times" style="font-size:1.25rem" />
+          <i v-else class="pi pi-bars" style="font-size:1.25rem" />
         </button>
       </div>
     </div>
@@ -174,7 +171,7 @@ onUnmounted(() => {
       <div v-if="showMobileMenu" class="cd-mobile-menu">
         <div class="cd-mobile-header">
           <div class="cd-mobile-brand">
-            <BookOpen :size="18" :stroke-width="1.75" />
+            <i class="pi pi-book" style="font-size:1.125rem" />
             <span>{{ siteName }}</span>
           </div>
           <p class="cd-mobile-desc">Học tập thích nghi · Tri thức bền vững</p>
@@ -208,7 +205,7 @@ onUnmounted(() => {
             </NuxtLink>
           </template>
           <button v-else class="cd-mobile-btn cd-mobile-btn--ghost" @click="handleLogout">
-            <LogOut :size="16" :stroke-width="1.75" /> Đăng xuất
+            <i class="pi pi-sign-out" style="font-size:1.0rem" /> Đăng xuất
           </button>
         </div>
       </div>

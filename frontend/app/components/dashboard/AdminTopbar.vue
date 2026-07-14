@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import {
-  Menu, Search, Bell, BellOff, Sun, Moon, ChevronDown,
-  Settings, LayoutDashboard, LogOut, Loader,
-  GraduationCap, ReceiptText, CircleCheckBig, XCircle, Star, Info, Zap,
-  Coins, Flame, Trophy, BookOpen, Medal, ShoppingBag, ClipboardList, CalendarCheck, ChevronRight, X,
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useDarkMode } from '~/composables/useDarkMode'
 
@@ -161,13 +156,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
     <!-- Left -->
     <div class="tb-left">
       <button type="button" class="tb-icon-btn" aria-label="Mở sidebar" @click="emit('toggleSidebar')">
-        <Menu :size="19" :stroke-width="1.75" />
+        <i class="pi pi-bars" style="font-size:1.1875rem" />
       </button>
     </div>
 
     <!-- Search -->
     <label class="tb-search">
-      <Search :size="14" :stroke-width="2" class="tb-search-icon" />
+      <i class="pi pi-search" style="font-size:0.875rem" />
       <input type="search" :placeholder="searchPlaceholder" class="tb-search-input" aria-label="Tìm kiếm">
       <kbd class="tb-search-kbd">⌘K</kbd>
     </label>
@@ -191,7 +186,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
           title="Nhiệm vụ tích điểm"
           @click="openQuestPanel"
         >
-          <Coins :size="17" :stroke-width="2" />
+          <i class="pi pi-money-bill" style="font-size:1.0625rem" />
           <span v-if="questData?.balance" class="tb-quest-pts">{{ questData.balance > 9999 ? '9999+' : questData.balance }}</span>
         </button>
 
@@ -199,27 +194,27 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
           <div v-if="questOpen" class="tb-panel tb-quest-panel" @click.stop>
             <div class="tb-panel-head">
               <div class="tb-panel-head-left">
-                <Coins :size="15" style="color:#f59e0b" />
+                <i class="pi pi-money-bill" style="font-size:0.9375rem" />
                 <span class="tb-panel-title">Điểm & Nhiệm vụ</span>
               </div>
-              <button class="tb-close-panel" @click="questOpen = false"><X :size="14" /></button>
+              <button class="tb-close-panel" @click="questOpen = false"><i class="pi pi-times" style="font-size:0.875rem" /></button>
             </div>
 
             <!-- Balance bar -->
             <div v-if="questData" class="tb-quest-balance">
               <div class="tb-qbal-item">
-                <Coins :size="14" style="color:#f59e0b" />
+                <i class="pi pi-money-bill" style="font-size:0.875rem" />
                 <span><strong>{{ questData.balance.toLocaleString('vi-VN') }}</strong> điểm</span>
               </div>
               <div class="tb-qbal-item">
-                <Flame :size="14" style="color:#ea580c" />
+                <i class="pi pi-bolt" style="font-size:0.875rem" />
                 <span>Streak <strong>{{ questData.streak_days }}</strong></span>
               </div>
             </div>
 
             <div class="tb-quest-body">
               <div v-if="questLoading" class="tb-notif-empty">
-                <Loader :size="20" class="tb-spin" />
+                <i class="pi pi-spinner" style="font-size:1.25rem" />
                 <p>Đang tải...</p>
               </div>
               <template v-else-if="questData">
@@ -252,7 +247,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 
             <div class="tb-quest-foot">
               <NuxtLink to="/student/points" class="tb-quest-shop-link" @click="questOpen = false">
-                Xem shop đổi quà <ChevronRight :size="13" />
+                Xem shop đổi quà <i class="pi pi-chevron-right" style="font-size:0.8125rem" />
               </NuxtLink>
             </div>
           </div>
@@ -262,7 +257,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
       <!-- Notifications -->
       <div class="tb-popover">
         <button type="button" class="tb-icon-btn" :class="{ 'is-active': notifOpen }" aria-label="Thông báo" @click="openNotif">
-          <Bell :size="17" :stroke-width="2" />
+          <i class="pi pi-bell" style="font-size:1.0625rem" />
           <span v-if="unreadCount > 0" class="tb-badge">
             {{ unreadCount > 9 ? '9+' : unreadCount }}
           </span>
@@ -283,11 +278,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 
             <div class="tb-notif-body">
               <div v-if="notifLoading" class="tb-notif-empty">
-                <Loader :size="22" :stroke-width="1.75" class="tb-spin" />
+                <i class="pi pi-spinner" style="font-size:1.375rem" />
                 <p>Đang tải...</p>
               </div>
               <div v-else-if="notifications.length === 0" class="tb-notif-empty">
-                <BellOff :size="30" :stroke-width="1.5" style="opacity:.3;" />
+                <i class="pi pi-bell-slash" style="font-size:1.875rem" />
                 <p>Chưa có thông báo nào</p>
               </div>
               <template v-else>
@@ -332,7 +327,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
             <strong class="tb-user-name">{{ userName }}</strong>
             <span class="tb-user-role">{{ userRole }}</span>
           </div>
-          <ChevronDown :size="13" :stroke-width="2.5" class="tb-chevron" :class="{ 'is-open': userOpen }" />
+          <i class="pi pi-chevron-down" style="font-size:0.8125rem" />
         </button>
 
         <Transition name="pop">
@@ -353,16 +348,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 
             <div class="tb-menu">
               <NuxtLink :to="settingsPath || '/admin/settings'" class="tb-menu-item" @click="userOpen = false">
-                <Settings :size="14" :stroke-width="1.75" />
+                <i class="pi pi-cog" style="font-size:0.875rem" />
                 Tài khoản & cài đặt
               </NuxtLink>
               <NuxtLink :to="dashboardPath || '/admin'" class="tb-menu-item" @click="userOpen = false">
-                <LayoutDashboard :size="14" :stroke-width="1.75" />
+                <i class="pi pi-th-large" style="font-size:0.875rem" />
                 Bảng điều khiển
               </NuxtLink>
               <div class="tb-sep" />
               <button type="button" class="tb-menu-item tb-menu-danger" @click="handleLogout">
-                <LogOut :size="14" :stroke-width="1.75" />
+                <i class="pi pi-sign-out" style="font-size:0.875rem" />
                 Đăng xuất
               </button>
             </div>

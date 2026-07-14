@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { GraduationCap, TrendingUp } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -92,14 +92,14 @@ function gradeClass(score: number | null) {
       <div v-for="i in 2" :key="i" class="tr-skeleton-block" />
     </div>
     <div v-else-if="semesters.length === 0" class="tr-empty">
-      <GraduationCap :size="44" :stroke-width="1.25" />
+      <i class="pi pi-graduation-cap" style="font-size:2.75rem" />
       <p>Chưa có dữ liệu bảng điểm.</p>
     </div>
     <div v-else class="tr-semesters">
       <div v-for="sem in semesters" :key="sem.id ?? sem.name" class="tr-semester">
         <div class="tr-sem-head">
           <div class="tr-sem-title-wrap">
-            <TrendingUp :size="16" :stroke-width="1.75" />
+            <i class="pi pi-arrow-up" style="font-size:1.0rem" />
             <h2 class="tr-sem-title">{{ sem.name }}</h2>
           </div>
           <div class="tr-sem-meta">

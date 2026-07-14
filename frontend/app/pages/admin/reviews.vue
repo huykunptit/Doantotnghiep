@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, Trash2, Star, BookOpen, TrendingUp, ThumbsUp, ThumbsDown, BarChart2 } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useToast } from '~/composables/useToast'
 
@@ -108,25 +108,25 @@ onMounted(() => fetchReviews(1))
     <!-- KPI Strip -->
     <div class="ds-stats mb-5">
       <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><BarChart2 :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-chart-bar" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Tổng đánh giá</p>
         <strong class="ds-stat-value">{{ totalItems }}</strong>
         <span class="ds-stat-sub">lượt đánh giá</span>
       </div>
       <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><Star :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-star" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Điểm trung bình</p>
         <strong class="ds-stat-value">{{ avgRating }}</strong>
         <span class="ds-stat-sub">trên 5 sao</span>
       </div>
       <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><ThumbsUp :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-thumbs-up" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Tích cực (4-5★)</p>
         <strong class="ds-stat-value">{{ positivePercent }}<small>%</small></strong>
         <span class="ds-stat-sub">{{ positiveCount }} đánh giá</span>
       </div>
       <div class="ds-stat ds-stat--red">
-        <div class="ds-stat-icon"><ThumbsDown :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-thumbs-down" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Tiêu cực (1-2★)</p>
         <strong class="ds-stat-value">{{ negativePercent }}<small>%</small></strong>
         <span class="ds-stat-sub">{{ negativeCount }} đánh giá</span>
@@ -156,7 +156,7 @@ onMounted(() => fetchReviews(1))
         </div>
         <div class="crud-toolbar-right">
           <button type="button" class="crud-export-btn" @click="exportCSV">
-            <Download :size="16" :stroke-width="1.75" />
+            <i class="pi pi-download" style="font-size:1.0rem" />
             Xuất CSV
           </button>
         </div>
@@ -190,7 +190,7 @@ onMounted(() => fetchReviews(1))
               <span class="rv-date">{{ formatDate(review.created_at) }}</span>
             </div>
             <button class="rv-del" type="button" title="Xoá" @click="removeReview(review)">
-              <Trash2 :size="14" />
+              <i class="pi pi-trash" style="font-size:0.875rem" />
             </button>
           </div>
 
@@ -218,7 +218,7 @@ onMounted(() => fetchReviews(1))
 
           <!-- Course tag -->
           <div class="rv-course">
-            <BookOpen :size="12" :stroke-width="1.75" />
+            <i class="pi pi-book" style="font-size:0.75rem" />
             <span>{{ review.course?.title || 'Không rõ khoá học' }}</span>
           </div>
         </div>

@@ -1,19 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-import { 
-  BookOpen, 
-  Plus, 
-  Trash2, 
-  Edit, 
-  GraduationCap, 
-  Calendar,
-  Layers, 
-  Check, 
-  X,
-  PlusCircle,
-  Eye
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -411,7 +399,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
   >
     <template #actions>
       <button class="crud-primary-btn" @click="openCreateModal">
-        <Plus :size="18" /> Tạo lộ trình mới
+        <i class="pi pi-plus" style="font-size:1.125rem" /> Tạo lộ trình mới
       </button>
     </template>
 
@@ -439,7 +427,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
     <div class="lnd-workspace-grid">
       <!-- Left sidebar: Curricula List -->
       <div class="lnd-list-sidebar dashboard-card">
-        <h4 class="section-title"><Layers :size="16" /> Danh sách lộ trình</h4>
+        <h4 class="section-title"><i class="pi pi-clone" style="font-size:1.0rem" /> Danh sách lộ trình</h4>
         <div v-if="curricula.length === 0" class="empty-state">
           Không tìm thấy lộ trình nào phù hợp.
         </div>
@@ -457,13 +445,13 @@ async function removeCourseFromCurriculum(ccId: Id) {
             </div>
             <div class="item-actions">
               <button class="icon-btn text-info" @click.stop="openViewModal(curr)" title="Xem chi tiết">
-                <Eye :size="14" />
+                <i class="pi pi-eye" style="font-size:0.875rem" />
               </button>
               <button class="icon-btn text-primary" @click.stop="openEditModal(curr)" title="Chỉnh sửa">
-                <Edit :size="14" />
+                <i class="pi pi-pencil" style="font-size:0.875rem" />
               </button>
               <button class="icon-btn text-danger" @click.stop="confirmDeleteCurriculum(curr)" title="Xóa">
-                <Trash2 :size="14" />
+                <i class="pi pi-trash" style="font-size:0.875rem" />
               </button>
             </div>
           </div>
@@ -473,7 +461,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
       <!-- Right panel: Selected Curriculum Details -->
       <div class="lnd-details-panel">
         <div v-if="!activeCurriculum" class="dashboard-card empty-panel">
-          <GraduationCap :size="48" class="text-muted" />
+          <i class="pi pi-graduation-cap" style="font-size:3.0rem" />
           <h3>Chưa chọn lộ trình</h3>
           <p>Vui lòng tạo hoặc chọn một lộ trình bên trái để xem và thiết kế môn học.</p>
         </div>
@@ -518,7 +506,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
             >
               <div class="term-header">
                 <div class="term-title">
-                  <Calendar :size="16" class="text-primary" />
+                  <i class="pi pi-calendar" style="font-size:1.0rem" />
                   <h4>Học kỳ {{ term }}</h4>
                   <span class="term-count-badge" v-if="curriculumDetails?.by_term[term]">
                     {{ curriculumDetails.by_term[term].length }} môn
@@ -550,7 +538,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
                     </div>
                   </div>
                   <button class="delete-link" @click="removeCourseFromCurriculum(cc.id)">
-                    <X :size="14" />
+                    <i class="pi pi-times" style="font-size:0.875rem" />
                   </button>
                 </div>
               </div>
@@ -584,7 +572,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
             <div v-if="modalMode === 'view'" class="um-view-profile">
               <div class="um-vp-header">
                 <div class="ds-avatar ds-avatar--xl">
-                  <Layers :size="32" class="text-primary" />
+                  <i class="pi pi-clone" style="font-size:2.0rem" />
                 </div>
                 <div class="um-vp-title">
                   <h4>{{ selectedCurriculum?.name }}</h4>
@@ -704,7 +692,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
                 @click="togglePickerCourse(course.id)"
               >
                 <div class="checkbox-box">
-                  <span class="check-indicator" v-if="selectedPickerCourseIds.includes(course.id)"><Check :size="12" /></span>
+                  <span class="check-indicator" v-if="selectedPickerCourseIds.includes(course.id)"><i class="pi pi-check" style="font-size:0.75rem" /></span>
                 </div>
                 <div class="course-text">
                   <strong>{{ course.title }}</strong>

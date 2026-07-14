@@ -20,7 +20,7 @@
         </div>
         <NuxtLink to="/courses" class="ord-hero-cta">
           Khám phá khoá học
-          <ArrowRight :size="18" />
+          <i class="pi pi-arrow-right" style="font-size:1.125rem" />
         </NuxtLink>
       </div>
     </section>
@@ -30,7 +30,7 @@
       <div class="ord-stats">
         <div class="ord-stat-card">
           <div class="ord-stat-icon" style="--icon-color: var(--green)">
-            <ShoppingBag :size="22" />
+            <i class="pi pi-shopping-bag" style="font-size:1.375rem" />
           </div>
           <div class="ord-stat-body">
             <span class="ord-stat-value">{{ orders.length }}</span>
@@ -39,7 +39,7 @@
         </div>
         <div class="ord-stat-card">
           <div class="ord-stat-icon" style="--icon-color: #22c55e">
-            <CheckCircle :size="22" />
+            <i class="pi pi-check-circle" style="font-size:1.375rem" />
           </div>
           <div class="ord-stat-body">
             <span class="ord-stat-value">{{ paidCount }}</span>
@@ -48,7 +48,7 @@
         </div>
         <div class="ord-stat-card">
           <div class="ord-stat-icon" style="--icon-color: #f59e0b">
-            <Clock :size="22" />
+            <i class="pi pi-clock" style="font-size:1.375rem" />
           </div>
           <div class="ord-stat-body">
             <span class="ord-stat-value">{{ pendingCount }}</span>
@@ -57,7 +57,7 @@
         </div>
         <div class="ord-stat-card">
           <div class="ord-stat-icon" style="--icon-color: var(--green)">
-            <ShoppingBag :size="22" />
+            <i class="pi pi-shopping-bag" style="font-size:1.375rem" />
           </div>
           <div class="ord-stat-body">
             <span class="ord-stat-value ord-stat-value--sm">{{ formatPrice(totalPaid) }}</span>
@@ -92,7 +92,7 @@
         <!-- Empty state -->
         <div v-if="orders.length === 0" class="ord-empty">
           <div class="ord-empty-icon">
-            <BookOpen :size="36" />
+            <i class="pi pi-book" style="font-size:2.25rem" />
           </div>
           <h3 class="ord-empty-title">Chưa có đơn hàng nào</h3>
           <p class="ord-empty-desc">
@@ -100,7 +100,7 @@
           </p>
           <NuxtLink to="/courses" class="ord-cta-btn">
             Khám phá khoá học
-            <ArrowRight :size="16" />
+            <i class="pi pi-arrow-right" style="font-size:1.0rem" />
           </NuxtLink>
         </div>
 
@@ -116,7 +116,7 @@
                 class="ord-thumb-img"
               >
               <div v-else class="ord-thumb-fallback">
-                <BookOpen :size="28" />
+                <i class="pi pi-book" style="font-size:1.75rem" />
               </div>
             </div>
 
@@ -145,7 +145,7 @@
                 :to="`/learn/${order.course_id}`"
                 class="ord-learn-btn"
               >
-                <PlayCircle :size="15" />
+                <i class="pi pi-play-circle" style="font-size:0.9375rem" />
                 Học ngay
               </NuxtLink>
             </div>
@@ -158,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowRight, BookOpen, CheckCircle, Clock, PlayCircle, ShoppingBag, XCircle } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { computed, onMounted, ref } from 'vue'
 import { useCourseStore } from '~/stores/course'
 

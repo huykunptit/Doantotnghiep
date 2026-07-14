@@ -320,7 +320,7 @@
 </template>
 
 <script setup lang="ts">
-import { AlertCircle, Clock, CheckCircle2, XCircle, HelpCircle, Save } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useToast } from '~/composables/useToast'
 
 const toast = useToast()

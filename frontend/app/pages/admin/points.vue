@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useToast } from '~/composables/useToast'
-import {
-  Coins, Trophy, Gift, Plus, Pencil, Trash2, Users, BarChart3,
-  CheckCircle2, TrendingUp, Ticket, X,
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 
@@ -156,7 +153,7 @@ function vTypeLabel(t: string) {
         <!-- KPI -->
         <div class="pts-kpi-grid">
           <div class="dashboard-card pts-kpi-card">
-            <Coins :size="30" class="kpi-ico" style="color:#f59e0b" />
+            <i class="pi pi-money-bill" style="font-size:1.875rem" />
             <div><p class="kpi-lbl">Điểm đã phát</p><strong class="kpi-val">{{ stats?.totals?.total_issued?.toLocaleString('vi-VN') ?? '—' }}</strong></div>
           </div>
           <div class="dashboard-card pts-kpi-card">
@@ -168,7 +165,7 @@ function vTypeLabel(t: string) {
             <div><p class="kpi-lbl">Lần đổi quà</p><strong class="kpi-val">{{ stats?.totals?.redemptions?.toLocaleString('vi-VN') ?? '—' }}</strong></div>
           </div>
           <div class="dashboard-card pts-kpi-card">
-            <TrendingUp :size="30" class="kpi-ico" style="color:#059669" />
+            <i class="pi pi-arrow-up" style="font-size:1.875rem" />
             <div><p class="kpi-lbl">Điểm đã tiêu</p><strong class="kpi-val">{{ stats?.totals?.total_redeemed?.toLocaleString('vi-VN') ?? '—' }}</strong></div>
           </div>
         </div>
@@ -182,14 +179,14 @@ function vTypeLabel(t: string) {
           </div>
 
           <div class="dashboard-card chart-card">
-            <div class="chart-head"><Trophy :size="15" class="text-gold" /><h3>Top học viên điểm cao</h3></div>
+            <div class="chart-head"><i class="pi pi-trophy" style="font-size:0.9375rem" /><h3>Top học viên điểm cao</h3></div>
             <div class="pts-top-list">
               <div v-if="statsLoading" v-for="i in 5" :key="i" class="pts-shimmer" style="height:40px; border-radius:8px;" />
               <div v-else v-for="(u, i) in stats?.top_students ?? []" :key="u.id" class="pts-top-row">
                 <span class="pts-top-rank">{{ ['🥇','🥈','🥉'][i] ?? (i+1) }}</span>
                 <div class="pts-top-avatar">{{ u.name?.slice(0,2).toUpperCase() }}</div>
                 <div class="pts-top-info"><p>{{ u.name }}</p><small>{{ u.student_code }}</small></div>
-                <div class="pts-top-pts"><Coins :size="12" style="color:#f59e0b" /><strong>{{ u.points_balance?.toLocaleString('vi-VN') }}</strong></div>
+                <div class="pts-top-pts"><i class="pi pi-money-bill" style="font-size:0.75rem" /><strong>{{ u.points_balance?.toLocaleString('vi-VN') }}</strong></div>
               </div>
             </div>
           </div>
@@ -219,7 +216,7 @@ function vTypeLabel(t: string) {
       <div v-if="activeTab === 'vouchers'">
         <div class="crud-toolbar">
           <h3 class="crud-toolbar-title">Danh sách Voucher</h3>
-          <button class="crud-primary-btn" @click="openCreate"><Plus :size="15" /> Tạo Voucher</button>
+          <button class="crud-primary-btn" @click="openCreate"><i class="pi pi-plus" style="font-size:0.9375rem" /> Tạo Voucher</button>
         </div>
 
         <div class="crud-panel">
@@ -252,8 +249,8 @@ function vTypeLabel(t: string) {
                   <td class="text-muted" style="font-size:.75rem">{{ v.expires_at ? new Date(v.expires_at).toLocaleDateString('vi-VN') : 'Không hạn' }}</td>
                   <td>
                     <div style="display:flex;gap:4px">
-                      <button class="action-btn is-edit" @click="openEdit(v)"><Pencil :size="13" /></button>
-                      <button class="action-btn is-delete" :disabled="deleting === v.id" @click="deleteVoucher(v)"><Trash2 :size="13" /></button>
+                      <button class="action-btn is-edit" @click="openEdit(v)"><i class="pi pi-pencil" style="font-size:0.8125rem" /></button>
+                      <button class="action-btn is-delete" :disabled="deleting === v.id" @click="deleteVoucher(v)"><i class="pi pi-trash" style="font-size:0.8125rem" /></button>
                     </div>
                   </td>
                 </tr>
@@ -271,7 +268,7 @@ function vTypeLabel(t: string) {
           <div class="crud-modal" style="max-width:480px">
             <div class="crud-modal-head">
               <h3>{{ editingVoucher ? 'Sửa Voucher' : 'Tạo Voucher mới' }}</h3>
-              <button class="crud-modal-close" @click="modalOpen = false"><X :size="16" /></button>
+              <button class="crud-modal-close" @click="modalOpen = false"><i class="pi pi-times" style="font-size:1.0rem" /></button>
             </div>
             <div class="crud-modal-body">
               <div class="crud-form-grid">

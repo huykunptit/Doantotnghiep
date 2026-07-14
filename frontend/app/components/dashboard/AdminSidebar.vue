@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LogOut, ChevronRight } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 defineProps<{
   userName: string
@@ -107,7 +107,7 @@ async function handleLogout() {
           <span class="sl-user-role">{{ userRole }}</span>
         </div>
         <button type="button" class="sl-logout" title="Đăng xuất" @click="handleLogout">
-          <LogOut :size="15" :stroke-width="1.75" />
+          <i class="pi pi-sign-out" style="font-size:0.9375rem" />
         </button>
       </div>
     </div>

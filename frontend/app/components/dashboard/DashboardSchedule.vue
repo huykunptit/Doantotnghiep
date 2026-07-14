@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { List, CalendarDays, Calendar, MapPin, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 
 interface ScheduleEvent {
   id: number
@@ -169,7 +168,7 @@ function getEventsForDay(day: number) {
 
       <div class="schedule-list">
         <div v-if="events.length === 0" class="schedule-empty">
-          <Calendar :size="24" :stroke-width="1.75" />
+          <i class="pi pi-calendar" style="font-size:1.5rem" />
           <p>Không có hoạt động nào trong ngày này.</p>
         </div>
         
@@ -187,7 +186,7 @@ function getEventsForDay(day: number) {
                 {{ event.type }}
               </span>
               <span v-if="event.location" class="event-loc">
-                <MapPin :size="16" :stroke-width="1.75" />
+                <i class="pi pi-map-marker" style="font-size:1.0rem" />
                 {{ event.location }}
               </span>
             </div>
@@ -214,11 +213,11 @@ function getEventsForDay(day: number) {
 
       <div class="calendar-nav">
         <button class="nav-btn" @click="prevMonth">
-          <ChevronLeft :size="18" :stroke-width="1.75" />
+          <i class="pi pi-chevron-left" style="font-size:1.125rem" />
         </button>
         <span class="month-label">{{ currentMonthLabel }}</span>
         <button class="nav-btn" @click="nextMonth">
-          <ChevronRight :size="18" :stroke-width="1.75" />
+          <i class="pi pi-chevron-right" style="font-size:1.125rem" />
         </button>
       </div>
 

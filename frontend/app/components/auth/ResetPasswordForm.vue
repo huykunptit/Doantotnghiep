@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { Eye, EyeOff, Loader, CheckCircle } from 'lucide-vue-next'
 import { useApi } from '~/composables/useApi'
 
 const route = useRoute()
@@ -42,7 +41,7 @@ async function handleReset() {
     <!-- Success state -->
     <div v-if="success" class="rpf-success">
       <div class="rpf-success-icon">
-        <CheckCircle :size="28" :stroke-width="1.75" />
+        <i class="pi pi-check-circle" style="font-size:1.75rem" />
       </div>
       <h3 class="rpf-success-title">Mật khẩu đã được cập nhật!</h3>
       <p class="rpf-success-body">Bạn có thể đăng nhập ngay bây giờ với mật khẩu mới.</p>
@@ -83,8 +82,8 @@ async function handleReset() {
               required
             >
             <button type="button" class="rpf-eye-btn" :aria-label="passwordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" @click="passwordVisible = !passwordVisible">
-              <EyeOff v-if="passwordVisible" :size="17" :stroke-width="1.75" />
-              <Eye v-else :size="17" :stroke-width="1.75" />
+              <i v-if="passwordVisible" class="pi pi-eye-slash" style="font-size:1.0625rem" />
+              <i v-else class="pi pi-eye" style="font-size:1.0625rem" />
             </button>
           </div>
         </div>
@@ -104,14 +103,14 @@ async function handleReset() {
               required
             >
             <button type="button" class="rpf-eye-btn" :aria-label="confirmVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'" @click="confirmVisible = !confirmVisible">
-              <EyeOff v-if="confirmVisible" :size="17" :stroke-width="1.75" />
-              <Eye v-else :size="17" :stroke-width="1.75" />
+              <i v-if="confirmVisible" class="pi pi-eye-slash" style="font-size:1.0625rem" />
+              <i v-else class="pi pi-eye" style="font-size:1.0625rem" />
             </button>
           </div>
         </div>
 
         <button type="submit" :disabled="loading" class="rpf-submit">
-          <Loader v-if="loading" :size="16" :stroke-width="2" class="rpf-spinner" />
+          <i v-if="loading" class="pi pi-spin pi-spinner rpf-spinner" style="font-size:1rem" />
           <span>{{ loading ? 'Đang lưu...' : 'Lưu mật khẩu mới' }}</span>
         </button>
       </form>

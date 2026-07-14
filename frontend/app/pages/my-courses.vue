@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { GraduationCap, ArrowRight, Play, CheckCheck } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useCourseStore } from '~/stores/course'
 
 definePageMeta({ middleware: 'auth' })
@@ -49,7 +49,7 @@ onMounted(async () => {
       description="Bạn chưa đăng ký khóa học nào. Hãy khám phá ngay để không bỏ lỡ kiến thức!"
     >
       <template #icon>
-        <GraduationCap :size="40" :stroke-width="1.25" />
+        <i class="pi pi-graduation-cap" style="font-size:2.5rem" />
       </template>
       <NuxtLink to="/courses">
         <UiButton class="mt-4">Khám phá khóa học</UiButton>
@@ -63,7 +63,7 @@ onMounted(async () => {
         <div class="mc-featured-thumb">
           <img v-if="activeEnrollment.course?.thumbnail" :src="activeEnrollment.course.thumbnail" :alt="activeEnrollment.course?.title" class="mc-featured-img">
           <div v-else class="mc-featured-fallback">
-            <GraduationCap :size="48" :stroke-width="1.25" />
+            <i class="pi pi-graduation-cap" style="font-size:3.0rem" />
           </div>
           <div class="mc-featured-overlay" />
         </div>
@@ -84,7 +84,7 @@ onMounted(async () => {
           </div>
           <div class="mc-featured-cta">
             Tiếp tục học
-            <ArrowRight :size="15" :stroke-width="2.5" class="mc-cta-arrow" />
+            <i class="pi pi-arrow-right" style="font-size:0.9375rem" />
           </div>
         </div>
       </NuxtLink>
@@ -95,7 +95,7 @@ onMounted(async () => {
         <div class="mc-stats-list">
           <div class="mc-stat-row">
             <div class="mc-stat-icon mc-stat-icon--green">
-              <GraduationCap :size="20" :stroke-width="1.75" />
+              <i class="pi pi-graduation-cap" style="font-size:1.25rem" />
             </div>
             <div>
               <p class="mc-stat-val">{{ enrollments.length }}</p>
@@ -125,7 +125,7 @@ onMounted(async () => {
         <div class="mc-card-thumb">
           <img v-if="e.course?.thumbnail" :src="e.course.thumbnail" :alt="e.course?.title" class="mc-card-img">
           <div v-else class="mc-card-fallback">
-            <GraduationCap :size="32" :stroke-width="1.25" />
+            <i class="pi pi-graduation-cap" style="font-size:2.0rem" />
           </div>
           <div v-if="e.progress >= 100" class="mc-card-badge mc-card-badge--done">Hoàn thành</div>
         </div>

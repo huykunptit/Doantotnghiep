@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { House } from 'lucide-vue-next'
 
 const props = withDefaults(defineProps<{
   title?: string
@@ -12,26 +11,29 @@ const props = withDefaults(defineProps<{
   breadcrumb: () => [],
 })
 
-const formattedBreadcrumb = computed(() => {
-  return props.breadcrumb.map((item, index) => {
-    const to = index === 0 ? '/instructor' : undefined
-    return {
-      label: item,
-      to,
-      icon: index === 0 ? House : undefined
-    }
-  })
+const breadcrumbItems = computed(() => {
+  return props.breadcrumb.map((item, index) => ({
+    label: item,
+    url: index === 0 ? '/instructor' : undefined,
+    icon: index === 0 ? 'pi pi-home' : undefined
+  }))
 })
+
+const breadcrumbHome = computed(() => ({
+  icon: 'pi pi-home',
+  url: '/instructor'
+}))
 </script>
 
 <template>
   <section class="crud-page">
     <header class="crud-page-header dashboard-card">
       <div>
-        <UBreadcrumb
+        <Breadcrumb
           v-if="breadcrumb.length"
-          :items="formattedBreadcrumb"
-          class="mb-4"
+          :home="breadcrumbHome"
+          :model="breadcrumbItems"
+          class="workspace-breadcrumb"
         />
         <p class="section-kicker">Khu vực giảng viên</p>
         <h2>{{ title }}</h2>
@@ -45,3 +47,9 @@ const formattedBreadcrumb = computed(() => {
     <slot />
   </section>
 </template>
+
+<style scoped>
+.workspace-breadcrumb {
+  margin-bottom: 1rem;
+}
+</style>

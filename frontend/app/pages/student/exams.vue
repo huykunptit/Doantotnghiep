@@ -2,19 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
-import {
-  Calendar,
-  Clock,
-  ClipboardList,
-  Award,
-  AlertTriangle,
-  Play,
-  Search,
-  BookOpen,
-  CheckCircle2,
-  Lock,
-  ChevronRight
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'student' })
 
@@ -91,7 +79,7 @@ const tabCounts = computed(() => {
 
       <!-- Search Box -->
       <div class="search-box-wrap">
-        <Search :size="16" class="search-icon" />
+        <i class="pi pi-search" style="font-size:1.0rem" />
         <input 
           type="text" 
           v-model="searchQuery" 
@@ -144,7 +132,7 @@ const tabCounts = computed(() => {
 
     <!-- Empty State -->
     <div v-else-if="filteredExams.length === 0" class="exams-empty-state dashboard-card">
-      <ClipboardList :size="48" class="empty-icon" />
+      <i class="pi pi-list" style="font-size:3.0rem" />
       <h3>Không tìm thấy kỳ thi nào</h3>
       <p>Không có kỳ thi nào khớp với bộ lọc hiện tại của bạn.</p>
     </div>
@@ -167,7 +155,7 @@ const tabCounts = computed(() => {
               {{ exam.type === 'course_final' ? 'Thi học phần' : 'Thi độc lập' }}
             </span>
             <span class="proctoring-tag" v-if="exam.proctoring_enabled">
-              <Lock :size="12" /> Giám sát AI
+              <i class="pi pi-lock" style="font-size:0.75rem" /> Giám sát AI
             </span>
           </div>
 
@@ -178,7 +166,7 @@ const tabCounts = computed(() => {
           <!-- Exam Details Grid -->
           <div class="exam-details-grid">
             <div class="detail-row">
-              <Calendar :size="14" class="text-muted" />
+              <i class="pi pi-calendar" style="font-size:0.875rem" />
               <div class="detail-text">
                 <span class="label">Thời gian thi:</span>
                 <span class="val">{{ formatDate(exam.starts_at) }} — {{ formatDate(exam.ends_at) }}</span>
@@ -186,7 +174,7 @@ const tabCounts = computed(() => {
             </div>
             
             <div class="detail-row">
-              <Clock :size="14" class="text-muted" />
+              <i class="pi pi-clock" style="font-size:0.875rem" />
               <div class="detail-text">
                 <span class="label">Thời gian làm bài:</span>
                 <span class="val">{{ exam.duration }} phút</span>
@@ -194,7 +182,7 @@ const tabCounts = computed(() => {
             </div>
 
             <div class="detail-row">
-              <Award :size="14" class="text-muted" />
+              <i class="pi pi-verified" style="font-size:0.875rem" />
               <div class="detail-text">
                 <span class="label">Điểm điều kiện đạt:</span>
                 <span class="val">{{ exam.pass_score }}/10 điểm</span>
@@ -207,7 +195,7 @@ const tabCounts = computed(() => {
             <!-- Completed state result -->
             <div class="result-display-box" v-if="exam.status === 'completed'">
               <div class="stat-badge">
-                <CheckCircle2 :size="14" class="text-success" />
+                <i class="pi pi-check-circle" style="font-size:0.875rem" />
                 <span>Hoàn thành đợt thi</span>
               </div>
               <div class="score-display">
@@ -232,7 +220,7 @@ const tabCounts = computed(() => {
                 :to="`/exam/result/${exam.attempt_id}`" 
                 class="action-btn view-result-btn"
               >
-                Xem chi tiết <ChevronRight :size="14" />
+                Xem chi tiết <i class="pi pi-chevron-right" style="font-size:0.875rem" />
               </NuxtLink>
 
               <!-- Join exam -->
@@ -241,7 +229,7 @@ const tabCounts = computed(() => {
                 :to="`/exam/${exam.id}`" 
                 class="action-btn start-exam-btn"
               >
-                <Play :size="14" /> Vào thi ngay
+                <i class="pi pi-play" style="font-size:0.875rem" /> Vào thi ngay
               </NuxtLink>
 
               <!-- Locked upcoming -->

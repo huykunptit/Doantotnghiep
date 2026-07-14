@@ -1,7 +1,8 @@
 import type { Config } from 'tailwindcss'
 
 export default {
-  darkMode: ['class', '[data-theme="dark"]'],
+  // admin-ui uses 'selector' (.dark class) — keep consistent
+  darkMode: ['selector', '.dark'],
   content: [
     './app/**/*.{vue,ts,js,jsx,tsx}',
     './components/**/*.{vue,ts,js,jsx,tsx}',
@@ -11,60 +12,61 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Surface scale (light backgrounds)
-        surface: {
-          DEFAULT: '#eaede9',
-          lowest: '#ffffff',
-          low: '#f4f6f4',
-          high: '#dde0db',
-          highest: '#d1d5cf',
-          dim: '#ced2cc',
-          tint: '#e8f2eb',
-        },
-        // Text on surfaces
-        'on-surface': {
-          DEFAULT: '#111111',
-          variant: '#5f675f',
-        },
-        // Dynamic Primary from CSS Variables
+        // ── Dynamic primary (CSS vars written by useSiteSettings) ──
         primary: {
-          DEFAULT: 'rgb(var(--primary-rgb, 47, 122, 69))',
-          50: 'rgba(var(--primary-rgb, 47, 122, 69), 0.05)',
-          100: 'rgba(var(--primary-rgb, 47, 122, 69), 0.1)',
+          DEFAULT: 'var(--theme-primary)',
+          50:  'var(--p-primary-50)',
+          100: 'var(--p-primary-100)',
+          200: 'var(--p-primary-200)',
+          300: 'var(--p-primary-300)',
+          400: 'var(--p-primary-400)',
+          500: 'var(--p-primary-500)',
+          600: 'var(--p-primary-600)',
+          700: 'var(--p-primary-700)',
+          800: 'var(--p-primary-800)',
+          900: 'var(--p-primary-900)',
         },
-        secondary: {
-          DEFAULT: 'rgba(var(--primary-rgb, 47, 122, 69), 0.8)',
-          50: 'rgba(var(--primary-rgb, 47, 122, 69), 0.02)',
-          100: 'rgba(var(--primary-rgb, 47, 122, 69), 0.05)',
+        // ── Emerald mapped to CSS vars (mirrors admin-ui) ──
+        emerald: {
+          50:  'var(--p-primary-50,  #ecfdf5)',
+          100: 'var(--p-primary-100, #d1fae5)',
+          200: 'var(--p-primary-200, #a7f3d0)',
+          300: 'var(--p-primary-300, #6ee7b7)',
+          400: 'var(--p-primary-400, #34d399)',
+          500: 'var(--p-primary-500, #10b981)',
+          600: 'var(--p-primary-600, #059669)',
+          700: 'var(--p-primary-700, #047857)',
+          800: 'var(--p-primary-800, #065f46)',
+          900: 'var(--p-primary-900, #064e3b)',
         },
-        // Tertiary (Emerald/Mint)
-        tertiary: {
-          DEFAULT: '#1D9E75',
-          dark: '#0F6E8C',
-          50: '#F0FAF7',
-          100: '#D9F1EA',
-        },
-        // Warning / Orange
-        warning: {
-          DEFAULT: '#d97706',
-          container: '#fff7ed',
-        },
-        // Outline / muted text
-        outline: '#8a9388',
-        // Error
-        error: {
-          DEFAULT: '#ae3d37',
-          container: '#fde8e6',
-        },
-        // Success
+        // ── Neutrals — slate is Tailwind default, just document intent ──
+        // text-slate-800 → page title
+        // text-slate-500 → subtitle/description
+        // text-slate-400 → muted/meta
+        // border-slate-100/200 → borders
+        // ── Page background ──
+        // bg-[#f6f6f6] — body/page background (matches admin-ui)
+        // ── Semantic status ──
         success: {
-          DEFAULT: '#2f7a45', // Align with primary
-          container: '#f0faf2',
+          DEFAULT: '#10b981',
+          50: '#ecfdf5',
+        },
+        warning: {
+          DEFAULT: '#f59e0b',
+          50: '#fffbeb',
+        },
+        danger: {
+          DEFAULT: '#ef4444',
+          50: '#fef2f2',
+        },
+        info: {
+          DEFAULT: '#3b82f6',
+          50: '#eff6ff',
         },
       },
       fontFamily: {
-        headline: ['Outfit', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
+        // Be Vietnam Pro — set in nuxt.config head
+        sans: ['Be Vietnam Pro', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         ambient: '0 8px 32px -8px rgba(17, 17, 17, 0.12)',

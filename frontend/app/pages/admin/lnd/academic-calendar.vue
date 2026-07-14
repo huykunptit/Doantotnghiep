@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useToast } from '~/composables/useToast'
-import {
-  Calendar, Plus, Edit, Trash2, ChevronDown, ChevronUp,
-  CalendarDays, Check, Clock, RefreshCw, Star, X, AlertCircle
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -301,13 +298,13 @@ function fmtDate(d: string) {
   >
     <template #actions>
       <button class="crud-primary-btn" @click="openCreateYear">
-        <Plus :size="16" /> Tạo năm học mới
+        <i class="pi pi-plus" style="font-size:1.0rem" /> Tạo năm học mới
       </button>
     </template>
 
     <!-- Loading -->
     <div v-if="loading" class="loading-state">
-      <RefreshCw :size="24" class="spin text-muted" />
+      <i class="pi pi-refresh" style="font-size:1.5rem" />
       <span>Đang tải dữ liệu...</span>
     </div>
 
@@ -316,7 +313,7 @@ function fmtDate(d: string) {
       <CalendarDays :size="48" class="text-muted" />
       <h3>Chưa có năm học nào</h3>
       <p>Bắt đầu bằng cách tạo năm học đầu tiên cho trường.</p>
-      <button class="crud-primary-btn" @click="openCreateYear"><Plus :size="16" /> Tạo năm học</button>
+      <button class="crud-primary-btn" @click="openCreateYear"><i class="pi pi-plus" style="font-size:1.0rem" /> Tạo năm học</button>
     </div>
 
     <!-- Academic Years Accordion -->
@@ -331,12 +328,12 @@ function fmtDate(d: string) {
         <div class="year-header" @click="toggleYear(year.id)">
           <div class="year-header-left">
             <div class="year-icon" :class="{ 'is-current': year.is_current }">
-              <Calendar :size="18" />
+              <i class="pi pi-calendar" style="font-size:1.125rem" />
             </div>
             <div class="year-info">
               <div class="year-title-row">
                 <h3 class="year-name">{{ year.name }}</h3>
-                <span v-if="year.is_current" class="current-badge"><Star :size="11" /> Năm học hiện tại</span>
+                <span v-if="year.is_current" class="current-badge"><i class="pi pi-star" style="font-size:0.6875rem" /> Năm học hiện tại</span>
               </div>
               <span class="year-range">{{ fmtDate(year.start_date) }} — {{ fmtDate(year.end_date) }}</span>
             </div>
@@ -346,14 +343,14 @@ function fmtDate(d: string) {
               {{ termsMap[year.id].length }} học kỳ
             </span>
             <button class="icon-btn" @click.stop="openEditYear(year)" title="Chỉnh sửa năm học">
-              <Edit :size="15" />
+              <i class="pi pi-pencil" style="font-size:0.9375rem" />
             </button>
             <button class="icon-btn text-danger" @click.stop="confirmDeleteYear(year)" title="Xóa năm học">
-              <Trash2 :size="15" />
+              <i class="pi pi-trash" style="font-size:0.9375rem" />
             </button>
             <span class="expand-btn">
-              <ChevronDown :size="18" v-if="!expandedYearIds.has(year.id)" />
-              <ChevronUp :size="18" v-else />
+              <i class="pi pi-chevron-down" style="font-size:1.125rem" />
+              <i class="pi pi-chevron-up" style="font-size:1.125rem" />
             </span>
           </div>
         </div>
@@ -361,7 +358,7 @@ function fmtDate(d: string) {
         <!-- Terms Panel -->
         <div v-if="expandedYearIds.has(year.id)" class="terms-panel">
           <div v-if="loadingTerms.has(year.id)" class="terms-loading">
-            <RefreshCw :size="16" class="spin text-muted" /> Đang tải học kỳ...
+            <i class="pi pi-refresh" style="font-size:1.0rem" /> Đang tải học kỳ...
           </div>
           <div v-else>
             <!-- Terms Table -->
@@ -389,7 +386,7 @@ function fmtDate(d: string) {
                     <td>
                       <div class="term-name-cell">
                         <strong>{{ term.name }}</strong>
-                        <span v-if="term.is_current" class="current-dot"><Clock :size="11" /> Hiện tại</span>
+                        <span v-if="term.is_current" class="current-dot"><i class="pi pi-clock" style="font-size:0.6875rem" /> Hiện tại</span>
                       </div>
                     </td>
                     <td><span class="term-code">{{ term.code }}</span></td>
@@ -424,10 +421,10 @@ function fmtDate(d: string) {
                     <td>
                       <div class="row-actions">
                         <button class="icon-btn text-primary" @click="openEditTerm(term, year.id)" title="Chỉnh sửa">
-                          <Edit :size="14" />
+                          <i class="pi pi-pencil" style="font-size:0.875rem" />
                         </button>
                         <button class="icon-btn text-danger" @click="confirmDeleteTerm(term, year.id)" title="Xóa">
-                          <Trash2 :size="14" />
+                          <i class="pi pi-trash" style="font-size:0.875rem" />
                         </button>
                       </div>
                     </td>
@@ -440,10 +437,10 @@ function fmtDate(d: string) {
             <!-- Add Term Actions -->
             <div class="add-term-actions">
               <button class="add-term-btn" @click="openCreateTerm(year.id, false)">
-                <Plus :size="14" /> Thêm học kỳ chính
+                <i class="pi pi-plus" style="font-size:0.875rem" /> Thêm học kỳ chính
               </button>
               <button class="add-term-btn add-term-btn--sup" @click="openCreateTerm(year.id, true)">
-                <Plus :size="14" /> Thêm kỳ phụ
+                <i class="pi pi-plus" style="font-size:0.875rem" /> Thêm kỳ phụ
               </button>
             </div>
           </div>

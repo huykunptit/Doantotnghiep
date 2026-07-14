@@ -1,22 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-import {
-  Users,
-  AlertTriangle,
-  TrendingUp,
-  Layers,
-  Search,
-  Award,
-  CheckCircle2,
-  BarChart3,
-  Building,
-  GraduationCap,
-  Activity,
-  Clock,
-  RefreshCcw,
-  BookOpen,
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
@@ -261,7 +246,7 @@ function riskLevel(days: number | null) {
         <Activity :size="15" /> Tổng quan
       </button>
       <button class="tab-btn" :class="{ active: activeTab === 'class' }" @click="activeTab = 'class'">
-        <GraduationCap :size="15" /> Tiến độ lớp
+        <i class="pi pi-graduation-cap" style="font-size:0.9375rem" /> Tiến độ lớp
       </button>
       <button class="tab-btn" :class="{ active: activeTab === 'atrisk' }" @click="activeTab = 'atrisk'">
         <AlertTriangle :size="15" />
@@ -269,7 +254,7 @@ function riskLevel(days: number | null) {
         <span v-if="atRiskData.length" class="tab-badge danger">{{ atRiskData.length }}</span>
       </button>
       <button class="tab-btn" :class="{ active: activeTab === 'completion' }" @click="activeTab = 'completion'">
-        <Award :size="15" /> Tỷ lệ hoàn thành
+        <i class="pi pi-verified" style="font-size:0.9375rem" /> Tỷ lệ hoàn thành
       </button>
     </div>
 
@@ -287,7 +272,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number">{{ overviewData.totals.enrollments.toLocaleString('vi-VN') }}</strong>
               <span class="kpi-subtext">Tất cả khóa học</span>
             </div>
-            <BookOpen :size="40" class="kpi-icon text-primary" />
+            <i class="pi pi-book" style="font-size:2.5rem" />
           </div>
           <div class="dashboard-card kpi-card-box">
             <div class="kpi-card-left">
@@ -295,7 +280,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number text-success">{{ overviewData.totals.completed_lessons.toLocaleString('vi-VN') }}</strong>
               <span class="kpi-subtext">lesson_progress.completed</span>
             </div>
-            <CheckCircle2 :size="40" class="kpi-icon text-success" />
+            <i class="pi pi-check-circle" style="font-size:2.5rem" />
           </div>
           <div class="dashboard-card kpi-card-box">
             <div class="kpi-card-left">
@@ -303,7 +288,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number">{{ overviewData.totals.total_students.toLocaleString('vi-VN') }}</strong>
               <span class="kpi-subtext">Tất cả hệ thống</span>
             </div>
-            <Users :size="40" class="kpi-icon text-primary" />
+            <i class="pi pi-users" style="font-size:2.5rem" />
           </div>
           <div class="dashboard-card kpi-card-box">
             <div class="kpi-card-left">
@@ -319,7 +304,7 @@ function riskLevel(days: number | null) {
         <div class="charts-row-2">
           <div class="dashboard-card chart-card">
             <div class="chart-card-header">
-              <TrendingUp :size="16" class="text-primary" />
+              <i class="pi pi-arrow-up" style="font-size:1.0rem" />
               <h3>Ghi danh 30 ngày qua</h3>
             </div>
             <UiAreaChart :series="[{ name: 'Ghi danh', values: trendValues }]" :labels="trendLabels" :height="200" />
@@ -336,7 +321,7 @@ function riskLevel(days: number | null) {
         <!-- Cohort enrollment bar -->
         <div class="dashboard-card chart-card">
           <div class="chart-card-header">
-            <Layers :size="16" class="text-primary" />
+            <i class="pi pi-clone" style="font-size:1.0rem" />
             <h3>Ghi danh theo khóa đào tạo</h3>
           </div>
           <div v-if="cohortLoading" class="shimmer-block" style="height:200px; border-radius:8px;" />
@@ -354,7 +339,7 @@ function riskLevel(days: number | null) {
         </div>
       </div>
       <div v-else-if="!selectedClassId" class="report-empty-box dashboard-card">
-        <Building :size="40" class="text-muted" />
+        <i class="pi pi-building" style="font-size:2.5rem" />
         <p>Vui lòng chọn lớp hành chính để xem báo cáo tiến trình đào tạo.</p>
       </div>
       <div v-else-if="reportData && !reportData.has_curriculum" class="report-empty-box dashboard-card">
@@ -370,7 +355,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number">{{ reportData.stats.total_students }}</strong>
               <span class="kpi-subtext">Học viên chính quy</span>
             </div>
-            <Users :size="40" class="kpi-icon text-primary" />
+            <i class="pi pi-users" style="font-size:2.5rem" />
           </div>
           <div class="dashboard-card kpi-card-box">
             <div class="kpi-card-left">
@@ -386,7 +371,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number text-success">{{ reportData.stats.average_completion_rate }}%</strong>
               <span class="kpi-subtext">Trung bình toàn lớp</span>
             </div>
-            <TrendingUp :size="40" class="kpi-icon text-success" />
+            <i class="pi pi-arrow-up" style="font-size:2.5rem" />
           </div>
         </div>
 
@@ -425,9 +410,9 @@ function riskLevel(days: number | null) {
         <div class="columns-wrap">
           <div class="dashboard-card column-item">
             <div class="column-header">
-              <h3 class="column-title"><GraduationCap :size="18" /> Tiến độ từng học viên</h3>
+              <h3 class="column-title"><i class="pi pi-graduation-cap" style="font-size:1.125rem" /> Tiến độ từng học viên</h3>
               <div class="search-wrap">
-                <Search :size="14" class="search-icon" />
+                <i class="pi pi-search" style="font-size:0.875rem" />
                 <input type="text" v-model="studentSearchQuery" placeholder="Mã SV hoặc tên..." />
               </div>
             </div>
@@ -518,7 +503,7 @@ function riskLevel(days: number | null) {
         </div>
       </div>
       <div v-else-if="!reportLoading && selectedClassId" class="report-empty-box dashboard-card">
-        <Building :size="40" class="text-muted" />
+        <i class="pi pi-building" style="font-size:2.5rem" />
         <p>Nhấn vào tab này để tải báo cáo lớp.</p>
         <button class="crud-primary-btn" @click="loadProgressReport">Tải báo cáo</button>
       </div>
@@ -542,7 +527,7 @@ function riskLevel(days: number | null) {
         <div class="column-header" style="padding: 16px 20px;">
           <h3 class="column-title"><AlertTriangle :size="16" class="text-danger" /> {{ atRiskData.length }} học viên cần chú ý</h3>
           <div class="search-wrap" style="width:220px;">
-            <Search :size="14" class="search-icon" />
+            <i class="pi pi-search" style="font-size:0.875rem" />
             <input type="text" v-model="atRiskSearch" placeholder="Tìm theo tên, mã SV..." />
           </div>
         </div>
@@ -563,7 +548,7 @@ function riskLevel(days: number | null) {
             <tbody>
               <tr v-if="filteredAtRisk.length === 0">
                 <td colspan="8" class="crud-empty">
-                  <CheckCircle2 :size="20" class="text-success" /> Không có học viên nào cần cảnh báo.
+                  <i class="pi pi-check-circle" style="font-size:1.25rem" /> Không có học viên nào cần cảnh báo.
                 </td>
               </tr>
               <tr v-else v-for="s in filteredAtRisk" :key="s.id" :class="{ 'row-danger': riskLevel(s.days_inactive) === 'high', 'row-warn': riskLevel(s.days_inactive) === 'medium' }">
@@ -575,7 +560,7 @@ function riskLevel(days: number | null) {
                 <td><strong>{{ s.enrollment_count }}</strong></td>
                 <td>
                   <span class="last-activity" :class="riskLevel(s.days_inactive)">
-                    <Clock :size="12" /> {{ daysLabel(s.days_inactive) }}
+                    <i class="pi pi-clock" style="font-size:0.75rem" /> {{ daysLabel(s.days_inactive) }}
                   </span>
                 </td>
                 <td>
@@ -610,7 +595,7 @@ function riskLevel(days: number | null) {
 
           <div class="dashboard-card chart-card">
             <div class="chart-card-header">
-              <Layers :size="16" class="text-primary" />
+              <i class="pi pi-clone" style="font-size:1.0rem" />
               <h3>Phân bổ ghi danh theo ngành</h3>
             </div>
             <div v-if="completionProgramSegments.length === 0" class="report-empty-box" style="padding: 40px;">
@@ -623,7 +608,7 @@ function riskLevel(days: number | null) {
         <!-- Term table detail -->
         <div class="dashboard-card">
           <div class="column-header" style="padding: 16px 20px;">
-            <h3 class="column-title"><Award :size="16" class="text-success" /> Chi tiết theo học kỳ</h3>
+            <h3 class="column-title"><i class="pi pi-verified" style="font-size:1.0rem" /> Chi tiết theo học kỳ</h3>
           </div>
           <div class="crud-table-wrap">
             <table class="crud-table">

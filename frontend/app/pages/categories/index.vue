@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { FolderX, ArrowRight } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useCourseStore } from '~/stores/course'
 
 const courseStore = useCourseStore()
@@ -51,7 +51,7 @@ const categoriesWithCounts = computed(() =>
       </div>
       
       <div v-else-if="categories.length === 0" class="mt-16 text-center py-24 bg-surface-lowest rounded-[2.5rem] border border-surface-dim shadow-sm">
-        <FolderX :size="60" :stroke-width="1.75" class="text-outline mb-4 mx-auto" />
+        <i class="pi pi-folder" style="font-size:3.75rem" />
         <p class="text-xl font-headline font-bold text-on-surface">Chưa có danh mục nào</p>
         <p class="text-on-surface-variant mt-2">Dữ liệu đang được đội ngũ EduPress cập nhật.</p>
       </div>
@@ -71,7 +71,7 @@ const categoriesWithCounts = computed(() =>
               <h3 class="text-2xl font-headline font-bold mb-3 text-on-surface group-hover:text-primary transition-colors">{{ cat.name }}</h3>
               <p class="text-on-surface-variant text-sm font-medium flex items-center gap-2">
                 {{ cat.total_courses || 0 }} khóa học trong toàn nhánh
-                <ArrowRight :size="16" :stroke-width="1.75" class="group-hover:translate-x-1 transition-transform" />
+                <i class="pi pi-arrow-right" style="font-size:1.0rem" />
               </p>
             </NuxtLink>
 

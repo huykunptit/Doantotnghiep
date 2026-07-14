@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { BookOpen, Search } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -69,7 +69,7 @@ const stats = computed(() => ({
 
     <!-- Search -->
     <div class="sc-search-wrap">
-      <Search :size="16" :stroke-width="1.75" class="sc-search-icon" />
+      <i class="pi pi-search" style="font-size:1.0rem" />
       <input v-model="search" class="sc-search" type="text" placeholder="Tìm khóa học...">
     </div>
 
@@ -78,7 +78,7 @@ const stats = computed(() => ({
       <div v-for="i in 6" :key="i" class="sc-skeleton" />
     </div>
     <div v-else-if="filtered.length === 0" class="sc-empty">
-      <BookOpen :size="40" :stroke-width="1.25" class="sc-empty-icon" />
+      <i class="pi pi-book" style="font-size:2.5rem" />
       <p>Không tìm thấy khóa học nào.</p>
       <NuxtLink to="/courses" class="sc-empty-link">Khám phá khóa học mới</NuxtLink>
     </div>

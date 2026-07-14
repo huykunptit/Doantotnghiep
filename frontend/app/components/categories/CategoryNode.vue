@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ChevronRight, Edit2, Trash2, Eye } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 interface CategoryItem {
   id: number
@@ -41,13 +41,13 @@ const hasChildren = computed(() => children.value.length > 0)
           
           <div class="node-actions">
             <button class="action-btn view-btn" type="button" @click.stop="emit('view', category)" title="Chi tiết">
-              <Eye :size="14" />
+              <i class="pi pi-eye" style="font-size:0.875rem" />
             </button>
             <button class="action-btn edit-btn" type="button" @click.stop="emit('edit', category)" title="Sửa">
-              <Edit2 :size="14" />
+              <i class="pi pi-pencil" style="font-size:0.875rem" />
             </button>
             <button class="action-btn delete-btn" type="button" @click.stop="emit('delete', category)" title="Xóa">
-              <Trash2 :size="14" />
+              <i class="pi pi-trash" style="font-size:0.875rem" />
             </button>
           </div>
         </div>
@@ -77,13 +77,13 @@ const hasChildren = computed(() => children.value.length > 0)
       
       <div class="node-actions">
         <button class="action-btn view-btn" type="button" @click.stop="emit('view', category)" title="Chi tiết">
-          <Eye :size="14" />
+          <i class="pi pi-eye" style="font-size:0.875rem" />
         </button>
         <button class="action-btn edit-btn" type="button" @click="emit('edit', category)" title="Sửa">
-          <Edit2 :size="14" />
+          <i class="pi pi-pencil" style="font-size:0.875rem" />
         </button>
         <button class="action-btn delete-btn" type="button" @click="emit('delete', category)" title="Xóa">
-          <Trash2 :size="14" />
+          <i class="pi pi-trash" style="font-size:0.875rem" />
         </button>
       </div>
     </div>

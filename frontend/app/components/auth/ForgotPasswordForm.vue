@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Mail, Loader, CheckCircle, ArrowLeft } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useApi } from '~/composables/useApi'
 
 const email = ref('')
@@ -27,14 +27,14 @@ async function handleSubmit() {
     <!-- Success state -->
     <div v-if="sent" class="fpf-success">
       <div class="fpf-success-icon">
-        <CheckCircle :size="28" :stroke-width="1.75" />
+        <i class="pi pi-check-circle" style="font-size:1.75rem" />
       </div>
       <h3 class="fpf-success-title">Email đã được gửi!</h3>
       <p class="fpf-success-body">
         Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến <strong>{{ email }}</strong>. Vui lòng kiểm tra hộp thư của bạn.
       </p>
       <NuxtLink to="/login" class="fpf-back-btn">
-        <ArrowLeft :size="15" :stroke-width="2" />
+        <i class="pi pi-arrow-left" style="font-size:0.9375rem" />
         Quay lại đăng nhập
       </NuxtLink>
     </div>
@@ -49,7 +49,7 @@ async function handleSubmit() {
         <div class="fpf-field">
           <label class="fpf-label" for="fpf-email">Email của bạn</label>
           <div class="fpf-input-wrap">
-            <Mail class="fpf-input-icon" :size="16" :stroke-width="1.75" />
+            <i class="pi pi-envelope fpf-input-icon" style="font-size:1rem" />
             <input
               id="fpf-email"
               v-model="email"
@@ -64,12 +64,12 @@ async function handleSubmit() {
         </div>
 
         <button type="submit" :disabled="loading" class="fpf-submit">
-          <Loader v-if="loading" :size="16" :stroke-width="2" class="fpf-spinner" />
+          <i v-if="loading" class="pi pi-spin pi-spinner fpf-spinner" style="font-size:1rem" />
           <span>{{ loading ? 'Đang gửi...' : 'Gửi hướng dẫn đặt lại' }}</span>
         </button>
 
         <NuxtLink to="/login" class="fpf-cancel">
-          <ArrowLeft :size="14" :stroke-width="2" />
+          <i class="pi pi-arrow-left" style="font-size:0.875rem" />
           Quay lại đăng nhập
         </NuxtLink>
       </form>

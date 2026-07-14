@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { FileText, Download, ExternalLink } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useToast } from '~/composables/useToast'
 
 const toast = useToast()

@@ -32,7 +32,7 @@
                 :disabled="uploading"
                 @click="openFilePicker"
               >
-                <RefreshCw :size="16" />
+                <i class="pi pi-refresh" style="font-size:1.0rem" />
                 <span>{{ uploading ? 'Đang xử lý...' : 'Cập nhật CV' }}</span>
               </button>
             </div>
@@ -61,12 +61,12 @@
               </template>
               <template v-else>
                 <div class="car-icon-circle car-icon-circle--lg">
-                  <CloudUpload :size="32" color="var(--green-deep)" />
+                  <i class="pi pi-cloud-upload" style="font-size:2.0rem" />
                 </div>
                 <strong class="car-dropzone-title">{{ isDragging ? 'Thả tệp để tải lên' : 'Kéo & thả CV vào đây' }}</strong>
                 <p class="car-dropzone-desc">hoặc bấm để chọn tệp từ máy của bạn</p>
                 <button class="car-btn-primary car-btn-primary--auto" type="button" @click.stop="openFilePicker">
-                  <Upload :size="16" />
+                  <i class="pi pi-upload" style="font-size:1.0rem" />
                   <span>Chọn tệp CV</span>
                 </button>
                 <div class="car-format-row">
@@ -89,7 +89,7 @@
                 </li>
               </ul>
               <div class="car-privacy-note">
-                <ShieldCheck :size="15" />
+                <i class="pi pi-shield" style="font-size:0.9375rem" />
                 <span>CV của bạn được bảo mật và chỉ dùng để phân tích cá nhân hóa.</span>
               </div>
             </aside>
@@ -106,7 +106,7 @@
                 <p class="car-label">CV hiện tại</p>
                 <div class="car-cv-file">
                   <div class="car-icon-circle">
-                    <FileText :size="20" color="var(--green-deep)" />
+                    <i class="pi pi-file" style="font-size:1.25rem" />
                   </div>
                   <div class="car-cv-meta">
                     <strong :title="cvData.file_name" class="car-cv-name">{{ cvData.file_name }}</strong>
@@ -156,7 +156,7 @@
                       {{ expertAnalysis.overview || analysis.ai_summary || 'AI đã hoàn tất phân tích. Xem chi tiết bên dưới để biết điểm mạnh, khoảng trống và lộ trình học tập đề xuất.' }}
                     </p>
                     <span class="car-badge car-badge--sm">
-                      <TrendingUp :size="12" />
+                      <i class="pi pi-arrow-up" style="font-size:0.75rem" />
                       AI Recommendation
                     </span>
                   </div>
@@ -216,7 +216,7 @@
                     <p class="car-label">Điểm mạnh</p>
                     <ul v-if="expertAnalysis.strengths.length" class="car-list car-list--positive">
                       <li v-for="item in expertAnalysis.strengths" :key="item">
-                        <CheckCircle :size="18" class="car-list-icon car-list-icon--green" />
+                        <i class="pi pi-check-circle" style="font-size:1.125rem" />
                         <span>{{ item }}</span>
                       </li>
                     </ul>
@@ -227,7 +227,7 @@
                     <p class="car-label">Cần cải thiện</p>
                     <ul v-if="expertAnalysis.weaknesses.length" class="car-list car-list--warning">
                       <li v-for="item in expertAnalysis.weaknesses" :key="item">
-                        <AlertCircle :size="18" class="car-list-icon car-list-icon--amber" />
+                        <i class="pi pi-exclamation-circle" style="font-size:1.125rem" />
                         <span>{{ item }}</span>
                       </li>
                     </ul>
@@ -263,12 +263,12 @@
                         <p class="car-muted">{{ course.instructor?.name || 'PTIT LMS' }}</p>
                         <p class="car-course-reason">{{ course.recommendation_reason || 'Khóa học phù hợp để lấp khoảng trống kỹ năng hiện tại.' }}</p>
                       </div>
-                      <ChevronRight :size="18" class="car-course-arrow" />
+                      <i class="pi pi-chevron-right" style="font-size:1.125rem" />
                     </NuxtLink>
                   </div>
                   <div v-else class="car-empty-state">
                     <div class="car-icon-circle car-icon-circle--lg">
-                      <BookOpen :size="28" color="var(--green-deep)" />
+                      <i class="pi pi-book" style="font-size:1.75rem" />
                     </div>
                     <strong>Chưa có khuyến nghị khóa học</strong>
                     <p class="car-muted">Hãy thử cập nhật mục tiêu nghề nghiệp để hệ thống gợi ý chính xác hơn.</p>
@@ -279,7 +279,7 @@
               <!-- No analysis yet -->
               <div v-else class="car-card car-empty-state">
                 <div class="car-icon-circle car-icon-circle--lg">
-                  <Target :size="28" color="var(--green-deep)" />
+                  <i class="pi pi-circle" style="font-size:1.75rem" />
                 </div>
                 <strong class="car-empty-title">Nhập mục tiêu của bạn</strong>
                 <p class="car-muted">Ví dụ: Frontend Developer, Data Analyst hoặc Project Manager để AI bắt đầu tư vấn.</p>
@@ -293,7 +293,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { RefreshCw, CloudUpload, Upload, Sparkles, FileText, CheckCircle, AlertCircle, Target, BookOpen, ChevronRight, TrendingUp, ShieldCheck, ScanSearch, GraduationCap, Route } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 

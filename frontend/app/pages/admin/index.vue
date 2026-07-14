@@ -5,32 +5,7 @@ import { useApi } from '~/composables/useApi'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
-import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  GraduationCap,
-  BookOpen,
-  DollarSign,
-  Calendar,
-  Bell,
-  Activity,
-  Layers,
-  ArrowRight,
-  RefreshCw,
-  CheckCircle,
-  AlertTriangle,
-  ChevronRight,
-  Award,
-  Zap,
-  BookMarked,
-  LayoutDashboard,
-  ShieldCheck,
-  CreditCard,
-  BarChart3,
-  Sliders,
-  Plus
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({
   layout: 'admin',
@@ -325,7 +300,7 @@ function notifTypeClass(type: string): string {
         <div class="metric-header">
           <span class="metric-title">Tổng số lớp học</span>
           <span class="metric-delta is-info">
-            <Layers :size="12" /> L&D Active
+            <i class="pi pi-clone" style="font-size:0.75rem" /> L&D Active
           </span>
         </div>
         <div class="metric-content">
@@ -351,7 +326,7 @@ function notifTypeClass(type: string): string {
         <div class="metric-footer">
           <NuxtLink to="/admin/lnd/classes" class="footer-link-action">
             <span>Quản lý học vụ lớp học</span>
-            <ArrowRight :size="12" />
+            <i class="pi pi-arrow-right" style="font-size:0.75rem" />
           </NuxtLink>
         </div>
       </div>
@@ -361,7 +336,7 @@ function notifTypeClass(type: string): string {
         <div class="metric-header">
           <span class="metric-title">Tỉ lệ & hiệu số học tập</span>
           <span class="metric-delta is-success-alt">
-            <Award :size="12" /> Đạt chuẩn đầu ra
+            <i class="pi pi-verified" style="font-size:0.75rem" /> Đạt chuẩn đầu ra
           </span>
         </div>
         <div class="metric-content">
@@ -399,7 +374,7 @@ function notifTypeClass(type: string): string {
         <div class="metric-header">
           <span class="metric-title">Tài khoản & Truy cập</span>
           <span v-if="userDelta !== null" class="metric-delta is-positive">
-            <Users :size="12" /> +{{ Math.abs(userDelta) }}% tháng này
+            <i class="pi pi-users" style="font-size:0.75rem" /> +{{ Math.abs(userDelta) }}% tháng này
           </span>
         </div>
         <div class="metric-content">
@@ -474,7 +449,7 @@ function notifTypeClass(type: string): string {
           <div class="card-body">
             <div class="skeleton-chart" v-if="loading" />
             <div v-else-if="!classProgressValues.length" class="chart-empty-state" style="height:220px;">
-              <GraduationCap :size="32" /><span>Chưa có dữ liệu tiến độ</span>
+              <i class="pi pi-graduation-cap" style="font-size:2.0rem" /><span>Chưa có dữ liệu tiến độ</span>
             </div>
             <UiBarChart
               v-else
@@ -495,7 +470,7 @@ function notifTypeClass(type: string): string {
               <p class="card-desc">Các lớp học phần có trạng thái đang mở gần nhất</p>
             </div>
             <span class="calendar-indicator">
-              <Calendar :size="14" />
+              <i class="pi pi-calendar" style="font-size:0.875rem" />
               <span>Đang mở</span>
             </span>
           </div>
@@ -507,7 +482,7 @@ function notifTypeClass(type: string): string {
               </div>
             </div>
             <div v-else-if="!upcomingSections.length" class="chart-empty-state">
-              <BookOpen :size="32" /><span>Không có lớp tín chỉ đang mở</span>
+              <i class="pi pi-book" style="font-size:2.0rem" /><span>Không có lớp tín chỉ đang mở</span>
             </div>
             <div v-else class="schedule-list">
               <div
@@ -525,11 +500,11 @@ function notifTypeClass(type: string): string {
                 </div>
                 <div class="schedule-meta-cols">
                   <div class="schedule-meta-cell">
-                    <Users :size="12" />
+                    <i class="pi pi-users" style="font-size:0.75rem" />
                     <span>{{ sec.enrolled_count }}/{{ sec.capacity }}</span>
                   </div>
                   <div v-if="sec.lecturer" class="schedule-meta-cell">
-                    <GraduationCap :size="12" />
+                    <i class="pi pi-graduation-cap" style="font-size:0.75rem" />
                     <span>{{ sec.lecturer.name }}</span>
                   </div>
                 </div>
@@ -551,7 +526,7 @@ function notifTypeClass(type: string): string {
               <p class="card-desc">Tin tức học vụ, lịch bảo trì và vận hành mới ban hành</p>
             </div>
             <div class="announcement-bell-icon">
-              <Bell :size="18" class="bell-ringing" />
+              <i class="pi pi-bell" style="font-size:1.125rem" />
             </div>
           </div>
           <div class="card-body is-nopad">
@@ -563,7 +538,7 @@ function notifTypeClass(type: string): string {
                 </div>
               </div>
               <div v-else-if="!recentNotifications.length" class="chart-empty-state" style="padding:30px 0;">
-                <Bell :size="28" /><span>Chưa có thông báo nào</span>
+                <i class="pi pi-bell" style="font-size:1.75rem" /><span>Chưa có thông báo nào</span>
               </div>
               <div
                 v-else
@@ -641,13 +616,13 @@ function notifTypeClass(type: string): string {
                   </div>
                 </div>
                 <div class="leaderboard-value">
-                  <Users :size="12" />
+                  <i class="pi pi-users" style="font-size:0.75rem" />
                   <span>{{ course.enrollments_count.toLocaleString('vi-VN') }}</span>
                 </div>
               </div>
             </div>
             <div v-else class="chart-empty-state">
-              <Award :size="32" />
+              <i class="pi pi-verified" style="font-size:2.0rem" />
               <span>Chưa có xếp hạng học phần</span>
             </div>
           </div>

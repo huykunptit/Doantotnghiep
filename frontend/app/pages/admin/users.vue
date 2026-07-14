@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { Download, Users } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
@@ -503,7 +503,7 @@ onMounted(() => {
               <span v-if="activeFilterCount > 0" class="uf-filter-count">{{ activeFilterCount }}</span>
             </button>
             <button class="crud-export-btn" type="button" @click="exportData">
-              <Download :size="16" :stroke-width="1.75" /> Xuất CSV
+              <i class="pi pi-download" style="font-size:1.0rem" /> Xuất CSV
             </button>
             <button class="crud-primary-btn" type="button" @click="openCreateModal">+ Thêm người dùng</button>
           </div>
@@ -623,7 +623,7 @@ onMounted(() => {
               <tr v-else-if="users.length === 0">
                 <td colspan="9">
                   <div class="ds-empty">
-                    <div class="ds-empty-icon"><Users :size="24" /></div>
+                    <div class="ds-empty-icon"><i class="pi pi-users" style="font-size:1.5rem" /></div>
                     <strong>Chưa có người dùng</strong>
                     <p>Thêm người dùng đầu tiên hoặc thay đổi bộ lọc.</p>
                   </div>

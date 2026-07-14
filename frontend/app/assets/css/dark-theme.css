@@ -1,0 +1,36 @@
+/* ════════════════════════════════════════════════════════════════
+   DARK THEME
+   Applied via .dark class on <html> (matches PrimeVue darkModeSelector)
+   Mirrors admin-ui/src/assets/styles/dark-theme.css
+   ════════════════════════════════════════════════════════════════ */
+
+.dark body {
+  background-color: var(--dark-secondary, #27272a) !important;
+}
+
+/* PrimeVue Card & Select borders */
+.dark .p-card,
+.dark .p-select {
+  border-color: var(--dark-border, #3f3f46) !important;
+}
+
+/* ProgressBar in dark */
+.dark .p-progressbar .p-progressbar-value {
+  background: white !important;
+}
+.dark .p-progressbar-label { color: black; }
+
+/* FullCalendar dark overrides (if used later) */
+.dark .fc-daygrid-day-number           { color: white !important; }
+.dark .fc-daygrid-day                  { background-color: var(--dark-secondary); border-color: var(--dark-border) !important; }
+.dark .fc-col-header-cell              { background: var(--dark-secondary); color: white !important; }
+.dark .fc-theme-standard td,
+.dark .fc-theme-standard th            { border-color: var(--dark-border) !important; }
+.dark .fc-scrollgrid                   { border-color: var(--dark-border) !important; }
+.dark .fc .fc-daygrid-day.fc-day-today { background-color: var(--dark-border) !important; }
+.dark .fc-theme-standard .fc-list-day-cushion { background-color: var(--dark-secondary) !important; }
+.dark .fc .fc-list-event:hover td      { background-color: var(--dark-secondary) !important; }
+.dark .fc-theme-standard .fc-list      { border-color: var(--dark-border) !important; }
+.dark .fc .fc-toolbar-title            { color: white !important; }
+.dark .fc-scrollgrid-section-sticky > * { background: transparent; }
+

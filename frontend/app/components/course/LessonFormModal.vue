@@ -1,31 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { 
-  Film,
-  BookOpen,
-  FileQuestion,
-  Package,
-  Cpu,
-  MonitorPlay,
-  ClipboardList,
-  Search,
-  CheckCircle,
-  HelpCircle,
-  UploadCloud,
-  FileCheck,
-  VideoIcon,
-  Calendar,
-  Globe,
-  Settings,
-  X,
-  FileCode,
-  FolderOpen,
-  ArrowLeft,
-  Info,
-  RefreshCw,
-  Pencil,
-  Clock
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { LESSON_TYPES, type LessonType } from '~/constants/lesson-types'
 
 const props = defineProps<{
@@ -210,7 +185,7 @@ function handleSubmit() {
             <div class="picker-panel-body">
               <div class="picker-search-bar">
                 <div class="search-input-wrap">
-                  <Search :size="15" class="search-icon" />
+                  <i class="pi pi-search" style="font-size:0.9375rem" />
                   <input 
                     v-model="pickerSearch" 
                     type="text" 
@@ -286,7 +261,7 @@ function handleSubmit() {
               
               <div class="header-operations-row">
                 <button v-if="!lesson" type="button" class="back-to-picker-btn" @click="backToPicker">
-                  <ArrowLeft :size="13" />
+                  <i class="pi pi-arrow-left" style="font-size:0.8125rem" />
                   <span>Chọn lại</span>
                 </button>
                 <button class="modal-close-x-btn" type="button" @click="emit('close')">✕</button>
@@ -304,7 +279,7 @@ function handleSubmit() {
                       <span class="required-indicator">*</span>
                     </label>
                     <div class="input-icon-wrapper">
-                      <Pencil :size="14" class="input-icon" />
+                      <i class="pi pi-pencil" style="font-size:0.875rem" />
                       <input 
                         v-model="form.title" 
                         type="text" 
@@ -318,7 +293,7 @@ function handleSubmit() {
                   <div class="form-field-group">
                     <label class="custom-label">Thời lượng ước tính (giây)</label>
                     <div class="input-icon-wrapper">
-                      <Clock :size="14" class="input-icon" />
+                      <i class="pi pi-clock" style="font-size:0.875rem" />
                       <input 
                         v-model.number="form.duration" 
                         type="number" 
@@ -378,7 +353,7 @@ function handleSubmit() {
                   </div>
 
                   <div v-if="lesson?.video_url" class="attachment-status-toast">
-                    <CheckCircle :size="14" />
+                    <i class="pi pi-check-circle" style="font-size:0.875rem" />
                     <span>Bài học hiện đã được cấu hình đường dẫn video bài giảng.</span>
                   </div>
                 </div>
@@ -387,7 +362,7 @@ function handleSubmit() {
                 <div v-if="form.type === LESSON_TYPES.QUIZ" class="lesson-type-fields-panel theme-quiz">
                   <h4 class="panel-section-title">Nội dung bài kiểm tra (Quiz)</h4>
                   <div class="info-alert-block">
-                    <Info :size="16" class="alert-icon" />
+                    <i class="pi pi-info-circle" style="font-size:1.0rem" />
                     <p class="alert-text">Để tạo câu hỏi trắc nghiệm, vui lòng hoàn tất việc khởi tạo bài học này trước. Sau đó nhấn biểu tượng "Quiz" ngoài danh sách bài giảng để thiết lập chi tiết câu hỏi.</p>
                   </div>
                 </div>
@@ -462,7 +437,7 @@ function handleSubmit() {
                     <div class="form-field-group is-full-width">
                       <label class="custom-label">Hạn chót nộp bài (Deadline)</label>
                       <div class="input-icon-wrapper">
-                        <Calendar :size="14" class="input-icon" />
+                        <i class="pi pi-calendar" style="font-size:0.875rem" />
                         <input 
                           v-model="form.assignment.due_at" 
                           type="datetime-local" 
@@ -494,7 +469,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Thời gian bắt đầu</label>
                       <div class="input-icon-wrapper">
-                        <Calendar :size="14" class="input-icon" />
+                        <i class="pi pi-calendar" style="font-size:0.875rem" />
                         <input 
                           v-model="form.virtual_class.start_at" 
                           type="datetime-local" 
@@ -519,7 +494,7 @@ function handleSubmit() {
                     <div class="form-field-group is-full-width">
                       <label class="custom-label">Đường dẫn bắt đầu (Host)</label>
                       <div class="input-icon-wrapper">
-                        <Settings :size="14" class="input-icon" />
+                        <i class="pi pi-cog" style="font-size:0.875rem" />
                         <input 
                           v-model="form.virtual_class.start_url" 
                           type="url" 
@@ -544,7 +519,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Mật khẩu phòng học (Passcode)</label>
                       <div class="input-icon-wrapper">
-                        <Settings :size="14" class="input-icon" />
+                        <i class="pi pi-cog" style="font-size:0.875rem" />
                         <input 
                           v-model="form.virtual_class.meeting_password" 
                           type="text" 
@@ -556,7 +531,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Thời lượng dự kiến (phút)</label>
                       <div class="input-icon-wrapper">
-                        <Clock :size="14" class="input-icon" />
+                        <i class="pi pi-clock" style="font-size:0.875rem" />
                         <input 
                           v-model.number="form.virtual_class.duration" 
                           type="number" 
@@ -625,7 +600,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Tiêu đề Package</label>
                       <div class="input-icon-wrapper">
-                        <Pencil :size="14" class="input-icon" />
+                        <i class="pi pi-pencil" style="font-size:0.875rem" />
                         <input 
                           v-model="form.scorm_package.title" 
                           type="text" 

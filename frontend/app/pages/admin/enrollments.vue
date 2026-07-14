@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
-import {
-  Users, BookOpen, Search, Plus, Upload, PlayCircle, Download,
-  CheckCircle2, AlertCircle, X, Trash2, ArrowRight
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -303,10 +300,10 @@ watch(enrollCourseId, loadEnrollments)
     <!-- TABS -->
     <div class="enr-tabs">
       <button class="enr-tab" :class="{'is-active': activeTab === 'admin-class'}" @click="activeTab = 'admin-class'">
-        <Users :size="18" /> Gán Lớp Hành Chính
+        <i class="pi pi-users" style="font-size:1.125rem" /> Gán Lớp Hành Chính
       </button>
       <button class="enr-tab" :class="{'is-active': activeTab === 'class-section'}" @click="activeTab = 'class-section'">
-        <BookOpen :size="18" /> Ghi Danh Lớp Tín Chỉ
+        <i class="pi pi-book" style="font-size:1.125rem" /> Ghi Danh Lớp Tín Chỉ
       </button>
     </div>
 
@@ -344,7 +341,7 @@ watch(enrollCourseId, loadEnrollments)
                 <span class="enr-user-code">{{ st.student_code }} - {{ st.email }}</span>
               </div>
               <button class="enr-btn-icon danger" title="Xóa khỏi lớp" @click="removeStudentFromAdminClass(st.id)">
-                <X :size="16" />
+                <i class="pi pi-times" style="font-size:1.0rem" />
               </button>
             </div>
           </div>
@@ -364,14 +361,14 @@ watch(enrollCourseId, loadEnrollments)
                 <span class="enr-user-code">{{ st.student_code }} - {{ st.email }}</span>
               </div>
               <button class="enr-btn-icon success" title="Thêm vào lớp" @click="assignStudentToAdminClass(st.id)">
-                <ArrowRight :size="16" />
+                <i class="pi pi-arrow-right" style="font-size:1.0rem" />
               </button>
             </div>
           </div>
         </div>
       </div>
       <div v-else style="text-align:center;padding:3rem;color:var(--text-secondary);border:1px dashed var(--border);border-radius:8px">
-        <Users :size="48" style="opacity:0.2;margin-bottom:1rem" />
+        <i class="pi pi-users" style="font-size:3.0rem" />
         <p>Vui lòng chọn khóa và lớp hành chính để bắt đầu xếp lớp.</p>
       </div>
     </div>
@@ -409,7 +406,7 @@ watch(enrollCourseId, loadEnrollments)
           <label>1. Ghi danh tự động (Môn Bắt Buộc)</label>
           <p style="font-size:0.85rem;color:var(--text-secondary);margin:0.2rem 0 0.5rem">Đẩy toàn bộ SV trong Khóa vào các Môn học Bắt buộc (Core) được phép mở.</p>
           <button class="enr-btn enr-btn-primary" :disabled="!enrollCohortId || bulkEnrollLoading" @click="handleBulkEnrollCore">
-            <PlayCircle :size="16" /> {{ bulkEnrollLoading ? 'Đang chạy...' : 'Thực thi ghi danh tự động' }}
+            <i class="pi pi-play-circle" style="font-size:1.0rem" /> {{ bulkEnrollLoading ? 'Đang chạy...' : 'Thực thi ghi danh tự động' }}
           </button>
         </div>
 
@@ -423,7 +420,7 @@ watch(enrollCourseId, loadEnrollments)
               <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
             </select>
             <button class="enr-btn enr-btn-outline" :disabled="manualEnrollLoading" @click="handleManualEnroll">
-              <Plus :size="16" /> {{ manualEnrollLoading ? '...' : 'Gán' }}
+              <i class="pi pi-plus" style="font-size:1.0rem" /> {{ manualEnrollLoading ? '...' : 'Gán' }}
             </button>
           </div>
         </div>
@@ -435,7 +432,7 @@ watch(enrollCourseId, loadEnrollments)
           <div style="display:flex;gap:0.5rem">
             <input type="file" id="csv_upload" accept=".csv" @change="handleFileSelect" style="display:none">
             <label for="csv_upload" class="enr-btn enr-btn-outline" style="cursor:pointer;flex:1;justify-content:center">
-              <Upload :size="16" /> Chọn Tệp
+              <i class="pi pi-upload" style="font-size:1.0rem" /> Chọn Tệp
             </label>
             <button class="enr-btn enr-btn-primary" :disabled="!importFile || importLoading" @click="handlePreviewImport">
               Xem trước
@@ -451,7 +448,7 @@ watch(enrollCourseId, loadEnrollments)
           <div style="display:flex;gap:0.5rem">
             <button class="enr-btn enr-btn-outline" @click="importPreviewData = []; importFile = null">Hủy</button>
             <button class="enr-btn enr-btn-primary" @click="handleExecuteImport">
-              <CheckCircle2 :size="16" /> Xác nhận Import
+              <i class="pi pi-check-circle" style="font-size:1.0rem" /> Xác nhận Import
             </button>
           </div>
         </div>
@@ -485,7 +482,7 @@ watch(enrollCourseId, loadEnrollments)
         <div class="enr-card-header">
           Danh sách Ghi danh
           <button class="enr-btn-icon" @click="loadEnrollments" title="Tải lại">
-            <RefreshCw :size="16" />
+            <i class="pi pi-refresh" style="font-size:1.0rem" />
           </button>
         </div>
         <div v-if="loadingEnrollments" style="padding:2rem;text-align:center">Đang tải...</div>
@@ -518,7 +515,7 @@ watch(enrollCourseId, loadEnrollments)
                 </td>
                 <td style="text-align:right">
                   <button class="enr-btn-icon danger" title="Hủy ghi danh" @click="unenrollRecord(e.id)">
-                    <Trash2 :size="16" />
+                    <i class="pi pi-trash" style="font-size:1.0rem" />
                   </button>
                 </td>
               </tr>

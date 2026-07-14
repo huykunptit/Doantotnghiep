@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { CircleAlert, CircleCheckBig, Award } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useRoute } from 'vue-router'
 
 definePageMeta({ layout: 'default' })
@@ -44,7 +44,7 @@ onMounted(verifyCertificate)
     </div>
 
     <div v-else-if="error" class="text-center py-20">
-      <CircleAlert :size="60" :stroke-width="1.75" class="text-rose-500" />
+      <i class="pi pi-exclamation-circle" style="font-size:3.75rem" />
       <h2 class="mt-4 text-2xl font-bold text-slate-800">Không tìm thấy chứng chỉ</h2>
       <p class="mt-2 text-slate-600">Chứng chỉ với mã {{ credentialId }} không tồn tại hoặc không hợp lệ.</p>
     </div>
@@ -56,7 +56,7 @@ onMounted(verifyCertificate)
           <h1 class="text-xl font-bold">Xác minh chứng chỉ</h1>
           <p class="text-primary-100 mt-1">Chứng nhận tính xác thực của chứng chỉ.</p>
         </div>
-        <CircleCheckBig :size="40" :stroke-width="1.75" class="opacity-80" />
+        <i class="pi pi-check-circle" style="font-size:2.5rem" />
       </div>
 
       <div class="p-8">
@@ -70,7 +70,7 @@ onMounted(verifyCertificate)
             draggable="false"
           >
           <div v-else class="cert-bg cert-bg-blank">
-            <Award :size="72" :stroke-width="1" class="text-primary opacity-20" />
+            <i class="pi pi-verified" style="font-size:4.5rem" />
           </div>
 
           <!-- fields_config overlay -->
@@ -102,7 +102,7 @@ onMounted(verifyCertificate)
           <!-- Fallback overlay (no fields_config) -->
           <div v-else class="cert-fallback">
             <div v-if="!certificate.certificate_template?.background_image_url" class="mb-8">
-              <Award :size="60" :stroke-width="1.75" class="text-primary" />
+              <i class="pi pi-verified" style="font-size:3.75rem" />
             </div>
             <h2 class="font-serif text-3xl font-bold text-primary mb-2">CHỨNG NHẬN HOÀN THÀNH</h2>
             <p class="text-lg opacity-80">Cấp cho học viên</p>

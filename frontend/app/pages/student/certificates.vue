@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Award, Download } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -40,7 +40,7 @@ function formatDate(d: string) {
       <div v-for="i in 6" :key="i" class="ce-skeleton" />
     </div>
     <div v-else-if="certs.length === 0" class="ce-empty">
-      <Award :size="44" :stroke-width="1.25" />
+      <i class="pi pi-verified" style="font-size:2.75rem" />
       <h3>Chưa có chứng chỉ nào</h3>
       <p>Hoàn thành các khóa học để nhận chứng chỉ.</p>
       <NuxtLink to="/student/courses" class="ce-empty-link">Xem khóa học của tôi</NuxtLink>
@@ -80,7 +80,7 @@ function formatDate(d: string) {
         <!-- Actions -->
         <div class="ce-actions">
           <a v-if="cert.pdf_url || cert.download_url" :href="cert.pdf_url || cert.download_url" target="_blank" rel="noopener" class="ce-btn ce-btn--primary">
-            <Download :size="14" :stroke-width="2" /> Tải xuống PDF
+            <i class="pi pi-download" style="font-size:0.875rem" /> Tải xuống PDF
           </a>
           <NuxtLink v-if="cert.course?.id" :to="`/learn/${cert.course.id}`" class="ce-btn ce-btn--outline">
             Xem khóa học

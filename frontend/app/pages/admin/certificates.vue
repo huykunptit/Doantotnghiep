@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, Award, ZoomIn, Settings2 } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
@@ -266,10 +266,10 @@ onMounted(() => {
             <div class="cert-preview" @click="previewTemplate = t">
               <img v-if="t.background_image_url" :src="t.background_image_url" :alt="t.name" class="cert-img">
               <div v-else class="cert-no-img">
-                <Award :size="40" :stroke-width="1.75" style="opacity: 0.3;" />
+                <i class="pi pi-verified" style="font-size:2.5rem" />
               </div>
               <div class="cert-hover-overlay">
-                <ZoomIn :size="28" :stroke-width="1.75" />
+                <i class="pi pi-search-plus" style="font-size:1.75rem" />
                 <span>Xem trước</span>
               </div>
             </div>
@@ -281,7 +281,7 @@ onMounted(() => {
               <div style="display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;">
                 <button type="button" class="action-btn is-view" @click="previewTemplate = t">Preview</button>
                 <button type="button" class="action-btn is-edit" @click="openEditor(t)">
-                  <Settings2 :size="13" style="margin-right:3px" />Thiết kế
+                  <i class="pi pi-cog" style="font-size:0.8125rem" />Thiết kế
                 </button>
                 <button type="button" class="action-btn is-danger" @click="deleteTemplate(t.id)">Xoá</button>
               </div>
@@ -306,7 +306,7 @@ onMounted(() => {
           </div>
           <div class="crud-toolbar-right">
             <button class="crud-export-btn" type="button" @click="exportIssuedData">
-              <Download :size="18" :stroke-width="1.75" />
+              <i class="pi pi-download" style="font-size:1.125rem" />
               Xuất Excel
             </button>
           </div>
@@ -369,7 +369,7 @@ onMounted(() => {
             <div style="padding: 24px;">
               <div class="cert-preview-frame">
                 <img v-if="previewTemplate.background_image_url" :src="previewTemplate.background_image_url" :alt="previewTemplate.name" class="cert-preview-bg">
-                <div v-else class="cert-preview-bg cert-preview-blank"><Award :size="64" :stroke-width="1" style="opacity:0.2" /></div>
+                <div v-else class="cert-preview-bg cert-preview-blank"><i class="pi pi-verified" style="font-size:4.0rem" /></div>
                 <!-- Render fields_config or fallback overlay -->
                 <template v-if="previewTemplate.fields_config?.length">
                   <div

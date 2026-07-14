@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { CircleCheckBig, Clock } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 const props = defineProps<{
   course: any
@@ -16,10 +16,10 @@ const progressStr = computed(() => `${Math.round(props.progress)}%`)
     <div class="pc-thumb-wrap">
       <img :src="course.thumbnail || 'https://placehold.co/600x400?text=Course'" :alt="course.title" class="pc-thumb" />
       <div v-if="isCompleted" class="pc-badge pc-badge--done">
-        <CircleCheckBig :size="12" :stroke-width="2.5" /> Đã hoàn thành
+        <i class="pi pi-check-circle" style="font-size:0.75rem" /> Đã hoàn thành
       </div>
       <div v-else-if="progress > 0" class="pc-badge pc-badge--progress">
-        <Clock :size="12" :stroke-width="2.5" /> Đang học
+        <i class="pi pi-clock" style="font-size:0.75rem" /> Đang học
       </div>
     </div>
 

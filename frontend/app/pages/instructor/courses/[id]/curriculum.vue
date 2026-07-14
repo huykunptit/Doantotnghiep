@@ -8,12 +8,12 @@
       <StatusBadge v-if="course" :value="course.status || 'draft'" />
       
       <NuxtLink to="/instructor/courses" class="studio-topbar-btn is-secondary">
-        <ArrowLeft :size="15" />
+        <i class="pi pi-arrow-left" style="font-size:0.9375rem" />
         <span>Quay lại</span>
       </NuxtLink>
       
       <button class="studio-topbar-btn is-secondary" @click="previewCourse">
-        <Eye :size="15" />
+        <i class="pi pi-eye" style="font-size:0.9375rem" />
         <span>Xem trước</span>
       </button>
       
@@ -104,15 +104,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { 
-  ArrowLeft, 
-  Eye, 
-  Rocket, 
-  PlayCircle, 
-  Zap, 
-  CheckSquare, 
-  Lightbulb 
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import CurriculumStudio from '~/components/course/CurriculumStudio.vue'

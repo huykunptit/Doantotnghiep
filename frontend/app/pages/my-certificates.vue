@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Award, Link2, Check, Download } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -75,7 +75,7 @@ onMounted(fetchMyCertificates)
         </p>
       </div>
       <div class="header-count" v-if="!loading">
-        <Award :size="18" :stroke-width="1.75" />
+        <i class="pi pi-verified" style="font-size:1.125rem" />
         {{ certificates.length }} chứng chỉ
       </div>
     </div>
@@ -88,7 +88,7 @@ onMounted(fetchMyCertificates)
 
     <!-- Empty -->
     <div v-else-if="certificates.length === 0" class="dashboard-card crud-empty">
-      <Award :size="40" :stroke-width="1.5" style="opacity: 0.35;" />
+      <i class="pi pi-verified" style="font-size:2.5rem" />
       <p>Bạn chưa nhận được chứng chỉ nào.</p>
       <NuxtLink to="/courses" class="crud-primary-btn" style="margin-top: 8px;">Khám phá khoá học</NuxtLink>
     </div>
@@ -105,7 +105,7 @@ onMounted(fetchMyCertificates)
             class="cert-thumb-img"
           >
           <div v-else class="cert-thumb-placeholder">
-            <Award :size="40" :stroke-width="1.5" />
+            <i class="pi pi-verified" style="font-size:2.5rem" />
           </div>
           <!-- Overlay -->
           <div class="cert-overlay">
@@ -149,7 +149,7 @@ onMounted(fetchMyCertificates)
             class="crud-primary-btn cert-download-btn"
             @click="downloadCert(cert)"
           >
-            <Download :size="15" :stroke-width="2" />
+            <i class="pi pi-download" style="font-size:0.9375rem" />
             In / Tải về PDF
           </button>
         </div>

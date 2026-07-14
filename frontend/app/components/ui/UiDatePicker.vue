@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-vue-next'
 
 defineOptions({ inheritAttrs: false })
 
@@ -201,7 +200,7 @@ const isSelected = (day: number, month: number, year: number) => {
         ]"
         @click="toggleOpen"
       >
-        <Calendar class="ui-datepicker-icon-calendar" :size="16" />
+        <i class="pi pi-calendar ui-datepicker-icon-calendar" style="font-size:1rem" />
         <span class="ui-datepicker-value" :class="{ 'ui-datepicker-placeholder': !formattedDisplayDate }">
           {{ formattedDisplayDate || props.placeholder }}
         </span>
@@ -211,7 +210,7 @@ const isSelected = (day: number, month: number, year: number) => {
           class="ui-datepicker-clear-btn"
           @click="clearDate"
         >
-          <X :size="14" />
+          <i class="pi pi-times" style="font-size:0.875rem" />
         </button>
       </button>
 
@@ -220,13 +219,13 @@ const isSelected = (day: number, month: number, year: number) => {
         <div v-if="isOpen" class="ui-datepicker-panel">
           <div class="ui-datepicker-header">
             <button type="button" class="ui-datepicker-nav-btn" @click="prevMonthAction">
-              <ChevronLeft :size="16" />
+              <i class="pi pi-chevron-left" style="font-size:1rem" />
             </button>
             <div class="ui-datepicker-header-label">
               {{ monthNames[currentMonth] }} {{ currentYear }}
             </div>
             <button type="button" class="ui-datepicker-nav-btn" @click="nextMonthAction">
-              <ChevronRight :size="16" />
+              <i class="pi pi-chevron-right" style="font-size:1rem" />
             </button>
           </div>
 

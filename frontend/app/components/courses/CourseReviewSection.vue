@@ -2,7 +2,7 @@
   <section class="cd-card">
     <div class="cd-card-header">
       <h2 class="cd-card-title">
-        <Star :size="22" :stroke-width="1.75" class="cd-card-icon" />
+        <i class="pi pi-star" style="font-size:1.375rem" />
         Đánh giá của học viên
       </h2>
     </div>
@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Star } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useApi } from '~/composables/useApi'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 import { useToast } from '~/composables/useToast'

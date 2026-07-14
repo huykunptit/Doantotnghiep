@@ -1,17 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
-import { 
-  FileSpreadsheet, 
-  UploadCloud, 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle,
-  Download,
-  Play,
-  ArrowLeft,
-  ChevronRight
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
 definePageMeta({
@@ -185,12 +175,12 @@ function resetWizard() {
         <span class="step-num">1</span>
         <span class="step-label">Tải tệp & Lọc kỳ</span>
       </div>
-      <ChevronRight :size="16" class="step-separator" />
+      <i class="pi pi-chevron-right" style="font-size:1.0rem" />
       <div class="step-item" :class="{ 'is-active': currentStep === 2, 'is-done': currentStep > 2 }">
         <span class="step-num">2</span>
         <span class="step-label">Xem trước & Kiểm tra</span>
       </div>
-      <ChevronRight :size="16" class="step-separator" />
+      <i class="pi pi-chevron-right" style="font-size:1.0rem" />
       <div class="step-item" :class="{ 'is-active': currentStep === 3 }">
         <span class="step-num">3</span>
         <span class="step-label">Hoàn tất</span>
@@ -209,7 +199,7 @@ function resetWizard() {
               class="upload-dropzone"
               @click="triggerFileSelect"
             >
-              <FileSpreadsheet :size="48" class="upload-icon" />
+              <i class="pi pi-file-excel" style="font-size:3.0rem" />
               <div v-if="!selectedFile" class="dropzone-text">
                 <strong>Kéo thả file CSV vào đây</strong>
                 <span>hoặc click để duyệt tệp tin</span>
@@ -230,14 +220,14 @@ function resetWizard() {
             <div class="template-download">
               <p>Chưa có file mẫu? Tải file mẫu CSV cấu trúc chuẩn của hệ thống:</p>
               <button class="add-btn-small" @click="downloadTemplate">
-                <Download :size="14" /> Tải tệp mẫu (.csv)
+                <i class="pi pi-download" style="font-size:0.875rem" /> Tải tệp mẫu (.csv)
               </button>
             </div>
           </div>
 
           <!-- Configuration sidebar -->
           <div class="dashboard-card config-card">
-            <h4 class="card-title"><FileSpreadsheet :size="18" /> Cấu hình học kỳ</h4>
+            <h4 class="card-title"><i class="pi pi-file-excel" style="font-size:1.125rem" /> Cấu hình học kỳ</h4>
             
             <label class="crud-field">
               <span>Học kỳ áp dụng</span>
@@ -278,14 +268,14 @@ function resetWizard() {
 
           <div class="preview-actions">
             <button class="crud-secondary-btn" @click="resetWizard">
-              <ArrowLeft :size="14" /> Chọn tệp khác
+              <i class="pi pi-arrow-left" style="font-size:0.875rem" /> Chọn tệp khác
             </button>
             <button 
               class="crud-primary-btn" 
               :disabled="previewResult.valid_rows === 0 || processing"
               @click="executeImport"
             >
-              <Play :size="14" /> Thực thi ghi danh ({{ previewResult.valid_rows }} dòng)
+              <i class="pi pi-play" style="font-size:0.875rem" /> Thực thi ghi danh ({{ previewResult.valid_rows }} dòng)
             </button>
           </div>
         </div>
@@ -331,7 +321,7 @@ function resetWizard() {
       <!-- STEP 3: COMPLETED SUCCESS SCREEN -->
       <div v-if="currentStep === 3" class="step-content success-step">
         <div class="dashboard-card success-card">
-          <CheckCircle :size="64" class="text-success" />
+          <i class="pi pi-check-circle" style="font-size:4.0rem" />
           <h3>Ghi Danh Hoàn Tất!</h3>
           <p>Hệ thống đã ghi danh thành công cho <strong>{{ importedCount }}</strong> sinh viên vào các học phần được cấu hình.</p>
           <button class="crud-primary-btn" @click="resetWizard">

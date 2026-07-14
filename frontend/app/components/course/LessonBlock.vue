@@ -1,22 +1,6 @@
 <script setup lang="ts">
 import { LESSON_TYPE_LABELS } from '~/constants/lesson-types'
-import { 
-  ChevronUp, 
-  ChevronDown, 
-  Clock, 
-  RefreshCw, 
-  CircleCheckBig, 
-  Pencil, 
-  CloudUpload, 
-  FileQuestion, 
-  Trash2, 
-  ClipboardList,
-  Film, 
-  BookOpen, 
-  Package, 
-  Cpu, 
-  MonitorPlay
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 const props = defineProps<{
   lesson: any
@@ -95,10 +79,10 @@ function typeIconStyle(lesson: any) {
     <!-- Reorder handle controls -->
     <div class="reorder-controls">
       <button class="order-arrow-btn" :disabled="isFirst" @click="emit('moveUp', lesson)" title="Di chuyển lên">
-        <ChevronUp :size="13" />
+        <i class="pi pi-chevron-up" style="font-size:0.8125rem" />
       </button>
       <button class="order-arrow-btn" :disabled="isLast" @click="emit('moveDown', lesson)" title="Di chuyển xuống">
-        <ChevronDown :size="13" />
+        <i class="pi pi-chevron-down" style="font-size:0.8125rem" />
       </button>
     </div>
 
@@ -118,15 +102,15 @@ function typeIconStyle(lesson: any) {
       
       <div class="lesson-meta-footer">
         <span class="meta-tag">
-          <Clock :size="12" />
+          <i class="pi pi-clock" style="font-size:0.75rem" />
           {{ formatDuration(lesson.duration) }}
         </span>
         <span v-if="lesson.video_status === 'processing'" class="meta-tag is-processing">
-          <RefreshCw :size="12" class="spin-icon" />
+          <i class="pi pi-refresh" style="font-size:0.75rem" />
           Đang xử lý video...
         </span>
         <span v-else-if="lesson.video_status === 'ready' || lesson.video_url" class="meta-tag is-success">
-          <CircleCheckBig :size="12" />
+          <i class="pi pi-check-circle" style="font-size:0.75rem" />
           Sẵn sàng
         </span>
       </div>
@@ -136,7 +120,7 @@ function typeIconStyle(lesson: any) {
     <div class="lesson-actions-panel">
       <!-- Edit button -->
       <button class="control-btn btn-edit" type="button" @click="emit('edit', lesson)" title="Chỉnh sửa bài giảng">
-        <Pencil :size="13" />
+        <i class="pi pi-pencil" style="font-size:0.8125rem" />
         <span>Sửa</span>
       </button>
 
@@ -148,7 +132,7 @@ function typeIconStyle(lesson: any) {
         @click="emit('uploadVideo', lesson)"
         title="Tải lên video bài giảng"
       >
-        <CloudUpload :size="13" />
+        <i class="pi pi-cloud-upload" style="font-size:0.8125rem" />
         <span>Video</span>
       </button>
 
@@ -160,7 +144,7 @@ function typeIconStyle(lesson: any) {
         @click="emit('viewSubmissions', lesson)"
         title="Xem danh sách học viên nộp bài"
       >
-        <ClipboardList :size="13" />
+        <i class="pi pi-list" style="font-size:0.8125rem" />
         <span>Bài nộp</span>
       </button>
 
@@ -176,7 +160,7 @@ function typeIconStyle(lesson: any) {
 
       <!-- Delete button -->
       <button class="control-btn btn-delete" type="button" @click="emit('delete', lesson)" title="Xóa bài học">
-        <Trash2 :size="13" />
+        <i class="pi pi-trash" style="font-size:0.8125rem" />
       </button>
     </div>
   </div>

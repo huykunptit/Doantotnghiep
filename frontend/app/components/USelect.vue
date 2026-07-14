@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import Dropdown from 'primevue/dropdown'
+import MultiSelect from 'primevue/multiselect'
+
 defineOptions({ name: 'USelect' })
 
 const props = withDefaults(defineProps<{
@@ -24,15 +27,26 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <USelectMenu
+  <MultiSelect
+    v-if="multiple"
     :model-value="modelValue"
-    :items="options"
-    value-key="value"
+    :options="options"
+    option-label="label"
+    option-value="value"
     :disabled="disabled"
-    :size="size"
     :placeholder="placeholder"
-    :search-input="searchInput"
-    :multiple="multiple"
+    :filter="!!searchInput"
+    @update:model-value="emit('update:modelValue', $event)"
+  />
+  <Dropdown
+    v-else
+    :model-value="modelValue"
+    :options="options"
+    option-label="label"
+    option-value="value"
+    :disabled="disabled"
+    :placeholder="placeholder"
+    :filter="!!searchInput"
     @update:model-value="emit('update:modelValue', $event)"
   />
 </template>

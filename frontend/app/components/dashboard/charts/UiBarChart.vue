@@ -60,12 +60,12 @@ const chartOptions = computed(() => {
         backgroundColor: 'rgba(17, 17, 17, 0.95)',
         padding: 10,
         titleFont: {
-          family: 'Inter, sans-serif',
+          family: 'Be Vietnam Pro, sans-serif',
           size: 11,
           weight: '700'
         },
         bodyFont: {
-          family: 'Inter, sans-serif',
+          family: 'Be Vietnam Pro, sans-serif',
           size: 12
         },
         borderRadius: 10,
@@ -84,11 +84,11 @@ const chartOptions = computed(() => {
         },
         ticks: {
           font: {
-            family: 'Inter, sans-serif',
+            family: 'Be Vietnam Pro, sans-serif',
             size: 10,
             weight: '600'
           },
-          color: '#5f675f'
+          color: '#64748b'
         }
       },
       y: {
@@ -100,11 +100,11 @@ const chartOptions = computed(() => {
         },
         ticks: {
           font: {
-            family: 'Inter, sans-serif',
+            family: 'Be Vietnam Pro, sans-serif',
             size: 10,
             weight: '600'
           },
-          color: '#5f675f',
+          color: '#64748b',
           callback: (value: any) => props.formatValue(value)
         }
       }

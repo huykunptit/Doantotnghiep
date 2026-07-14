@@ -1,46 +1,25 @@
 <script setup lang="ts">
+import { getDashboardPath } from '~/composables/useAuthSession'
+
 const { siteName, siteLogo } = useSiteSettings()
 
 interface SummaryStat {
-  label: string
-  value: string
-  note: string
-  tone?: 'green' | 'neutral' | 'amber'
+  label: string; value: string; note: string; tone?: 'green' | 'neutral' | 'amber'
 }
-
 interface HeroItem {
-  count: string
-  label: string
-  note: string
-  tone?: 'green' | 'neutral' | 'blue'
+  count: string; label: string; note: string; tone?: 'green' | 'neutral' | 'blue'
 }
-
 interface MetricCard {
-  title: string
-  value: string
-  delta: string
-  subtitle: string
+  title: string; value: string; delta: string; subtitle: string
   type: 'bars' | 'ring' | 'progress' | 'wave'
-  labels?: string[]
-  bars?: number[]
-  ring?: number
-  progress?: number
-  note?: string
-  wavePoints?: string
-  footLeft?: string
-  footRight?: string
+  labels?: string[]; bars?: number[]; ring?: number; progress?: number
+  note?: string; wavePoints?: string; footLeft?: string; footRight?: string
 }
 
 defineProps<{
-  roleLabel: string
-  workspaceLabel: string
-  title: string
-  intro: string
-  heroTitle: string
-  heroDescription: string
-  searchPlaceholder: string
-  userName: string
-  userRole: string
+  roleLabel: string; workspaceLabel: string; title: string; intro: string
+  heroTitle: string; heroDescription: string; searchPlaceholder: string
+  userName: string; userRole: string
   navItems: Array<{ label: string; icon: string; to?: string; active?: boolean }>
   supportItems: string[]
   summaryStats: SummaryStat[]
@@ -51,33 +30,18 @@ defineProps<{
 
 const chartLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-function statusClass(status: string) {
-  return status === 'Gap' ? 'is-warning' : 'is-positive'
-}
-
-function heroToneClass(tone?: string) {
-  return tone ? `tone-${tone}` : 'tone-green'
-}
-
-function cardToneClass(tone?: string) {
-  return tone ? `tone-${tone}` : ''
-}
+function statusClass(status: string) { return status === 'Gap' ? 'is-warning' : 'is-positive' }
+function heroToneClass(tone?: string) { return tone ? `tone-${tone}` : 'tone-green' }
+function cardToneClass(tone?: string) { return tone ? `tone-${tone}` : '' }
 
 async function handleLogout() {
   const token = useAuthTokenCookie()
-
   try {
     if (token.value) {
-      await useApi('/auth/logout', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token.value}`,
-        },
-      })
+      await useApi('/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${token.value}` } })
     }
-  } catch {
-    // Clear local session even if the API logout request fails.
-  } finally {
+  } catch {}
+  finally {
     clearAuthSession()
     await navigateTo('/login')
   }

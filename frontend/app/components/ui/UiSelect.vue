@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { ChevronDown, Check, Search, X } from 'lucide-vue-next'
 
 defineOptions({ inheritAttrs: false })
 
@@ -152,9 +151,9 @@ watch(isOpen, (val) => {
             class="ui-select-clear"
             @click="clearAll"
           >
-            <X :size="13" />
+            <i class="pi pi-times" style="font-size:0.8125rem" />
           </button>
-          <ChevronDown :size="15" class="ui-select-chevron" :class="{ 'is-open': isOpen }" />
+          <i class="pi pi-chevron-down ui-select-chevron" :class="{ 'is-open': isOpen }" style="font-size:0.9375rem" />
         </div>
       </button>
 
@@ -163,7 +162,7 @@ watch(isOpen, (val) => {
         <div v-if="isOpen" class="ui-select-panel">
           <!-- Search -->
           <div v-if="props.searchable" class="ui-select-search-wrap">
-            <Search :size="14" class="ui-select-search-icon" />
+            <i class="pi pi-search ui-select-search-icon" style="font-size:0.875rem" />
             <input
               ref="searchInputRef"
               v-model="searchQuery"
@@ -187,10 +186,10 @@ watch(isOpen, (val) => {
               @click="toggleOption(option.value)"
             >
               <span v-if="props.multiple" class="ui-select-checkbox">
-                <Check v-if="isSelected(option.value)" :size="11" />
+                <i v-if="isSelected(option.value)" class="pi pi-check" style="font-size:0.6875rem" />
               </span>
               <span class="ui-select-option-label">{{ option.label }}</span>
-              <Check v-if="!props.multiple && isSelected(option.value)" :size="14" class="ui-select-check-single" />
+              <i v-if="!props.multiple && isSelected(option.value)" class="pi pi-check ui-select-check-single" style="font-size:0.875rem" />
             </button>
           </div>
 

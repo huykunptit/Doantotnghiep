@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import {
-  Play, Square, RotateCcw, Terminal, X, RefreshCw,
-  Search, ChevronDown, Box, HardDrive, Layers, AlertTriangle, Hammer,
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: false })
 
@@ -206,7 +203,7 @@ onUnmounted(() => {
           <span class="dd-nav-badge">{{ services.length }}</span>
         </div>
         <div class="dd-nav-item disabled">
-          <Layers :size="15" :stroke-width="2" />
+          <i class="pi pi-clone" style="font-size:0.9375rem" />
           <span>Images</span>
         </div>
         <div class="dd-nav-item disabled">
@@ -238,7 +235,7 @@ onUnmounted(() => {
         </div>
         <div class="dd-toolbar-right">
           <div class="dd-search">
-            <Search :size="13" :stroke-width="2" class="dd-search-icon" />
+            <i class="pi pi-search" style="font-size:0.8125rem" />
             <input v-model="search" placeholder="Search containers..." class="dd-search-input" />
           </div>
           <div class="dd-filter">
@@ -247,7 +244,7 @@ onUnmounted(() => {
             <button class="dd-filter-btn" :class="{ active: filterMode === 'stopped' }" @click="filterMode = 'stopped'">Stopped</button>
           </div>
           <button class="dd-icon-btn" :class="{ 'icon-spin': loading }" title="Refresh" @click="fetchStatus">
-            <RefreshCw :size="14" :stroke-width="2" />
+            <i class="pi pi-refresh" style="font-size:0.875rem" />
           </button>
           <span v-if="lastRefresh" class="dd-last">{{ lastRefresh.toLocaleTimeString('vi-VN') }}</span>
         </div>
@@ -266,7 +263,7 @@ onUnmounted(() => {
             <tr>
               <th class="th-dot" />
               <th class="th-name">
-                Name <ChevronDown :size="12" :stroke-width="2" style="opacity:.4;margin-left:4px;vertical-align:middle;" />
+                Name <i class="pi pi-chevron-down" style="font-size:0.75rem" />
               </th>
               <th class="th-image">Service</th>
               <th class="th-status">Status</th>
@@ -346,7 +343,7 @@ onUnmounted(() => {
                     title="Restart"
                     @click="doAction(svc, 'restart')"
                   >
-                    <RotateCcw :size="13" :stroke-width="2" :class="{ 'icon-spin': actioning[svc.service] === 'restart' }" />
+                    <i class="pi pi-replay" style="font-size:0.8125rem" />
                   </button>
                   <!-- Logs -->
                   <button
@@ -393,7 +390,7 @@ onUnmounted(() => {
                 title="Fetch 500 more lines"
                 @click="fetchMoreLogs"
               >
-                <ChevronDown :size="13" :stroke-width="2" style="transform:rotate(180deg);" />
+                <i class="pi pi-chevron-down" style="font-size:0.8125rem" />
                 +500
               </button>
               <button
@@ -402,14 +399,14 @@ onUnmounted(() => {
                 title="Reload logs"
                 @click="reloadLog"
               >
-                <RefreshCw :size="13" :stroke-width="2" />
+                <i class="pi pi-refresh" style="font-size:0.8125rem" />
               </button>
               <button
                 class="dd-log-icon-btn"
                 title="Close"
                 @click="selectedSvc = null; logContent = ''; logLines = 500"
               >
-                <X :size="13" :stroke-width="2" />
+                <i class="pi pi-times" style="font-size:0.8125rem" />
               </button>
             </div>
           </div>

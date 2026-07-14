@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { ArrowLeft, Eye } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CurriculumStudio from '~/components/course/CurriculumStudio.vue'
 import VideoUploader from '~/components/VideoUploader.vue'
@@ -57,11 +57,11 @@ function previewCourse() {
   >
     <template #actions>
       <NuxtLink :to="`/admin/courses/${courseId}`" class="studio-topbar-btn is-secondary">
-        <ArrowLeft :size="15" />
+        <i class="pi pi-arrow-left" style="font-size:0.9375rem" />
         <span>Quay lại chi tiết</span>
       </NuxtLink>
       <button class="studio-topbar-btn is-secondary" @click="previewCourse">
-        <Eye :size="15" />
+        <i class="pi pi-eye" style="font-size:0.9375rem" />
         <span>Xem trước</span>
       </button>
     </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Bell, Check } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -83,7 +83,7 @@ function typeIcon(type: string) {
       <div class="nn-header-right">
         <span v-if="unread > 0" class="nn-unread-badge">{{ unread }} chưa đọc</span>
         <button v-if="unread > 0" class="nn-mark-all" :disabled="marking" @click="markAllRead">
-          <Check :size="14" :stroke-width="2.5" />
+          <i class="pi pi-check" style="font-size:0.875rem" />
           {{ marking ? 'Đang xử lý...' : 'Đánh dấu đã đọc' }}
         </button>
       </div>
@@ -93,7 +93,7 @@ function typeIcon(type: string) {
       <div v-for="i in 6" :key="i" class="nn-skeleton" />
     </div>
     <div v-else-if="notifications.length === 0" class="nn-empty">
-      <Bell :size="44" :stroke-width="1.25" />
+      <i class="pi pi-bell" style="font-size:2.75rem" />
       <h3>Không có thông báo nào</h3>
       <p>Các thông báo về khóa học, kỳ thi và điểm số sẽ xuất hiện ở đây.</p>
     </div>

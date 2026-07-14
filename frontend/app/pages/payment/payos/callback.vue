@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { CreditCard } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 const route = useRoute()
 const router = useRouter()
@@ -38,7 +38,7 @@ onMounted(async () => {
   <div class="payos-shell">
     <div class="payos-card">
       <div class="payos-logo">
-        <CreditCard :size="36" :stroke-width="1.75" style="color: var(--green);" />
+        <i class="pi pi-credit-card" style="font-size:2.25rem" />
       </div>
       <div class="payos-spinner" />
       <h1>Đang xử lý thanh toán</h1>

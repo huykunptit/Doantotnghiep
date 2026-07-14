@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { BookOpen, Plus, Trash2, Edit, Users, X, Calendar, Clock, MapPin } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import { useAuthTokenCookie } from '~/composables/useAuthSession'
@@ -230,7 +230,7 @@ onMounted(load)
   >
     <template #actions>
       <button class="crud-primary-btn" @click="openCreate">
-        <Plus :size="16" />
+        <i class="pi pi-plus" style="font-size:1.0rem" />
         Mở lớp tín chỉ
       </button>
     </template>
@@ -238,7 +238,7 @@ onMounted(load)
     <!-- KPI -->
     <div class="ds-stats mb-0">
       <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><BookOpen :size="22" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-book" style="font-size:1.375rem" /></div>
         <p class="ds-stat-label">Tổng lớp tín chỉ</p>
         <strong class="ds-stat-value">{{ kpi.total }}</strong>
         <span class="ds-stat-sub">đã tạo</span>
@@ -250,7 +250,7 @@ onMounted(load)
         <span class="ds-stat-sub">lớp</span>
       </div>
       <div class="ds-stat ds-stat--violet">
-        <div class="ds-stat-icon"><Users :size="22" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-users" style="font-size:1.375rem" /></div>
         <p class="ds-stat-label">Sĩ số / Tổng chỗ</p>
         <strong class="ds-stat-value">{{ kpi.enrolled }} / {{ kpi.capacity }}</strong>
         <span class="ds-stat-sub">sinh viên</span>
@@ -278,7 +278,7 @@ onMounted(load)
     <div class="dashboard-card crud-panel">
       <div v-if="loading" class="crud-empty" style="padding:3rem;">Đang tải...</div>
       <div v-else-if="filtered.length === 0" class="crud-empty">
-        <BookOpen :size="48" style="opacity:0.2;" />
+        <i class="pi pi-book" style="font-size:3.0rem" />
         <div><strong>Chưa có lớp tín chỉ</strong><p>Nhấn "Mở lớp tín chỉ" để bắt đầu.</p></div>
       </div>
       <div v-else class="crud-table-wrap">
@@ -316,9 +316,9 @@ onMounted(load)
               </td>
               <td style="text-align:right;">
                 <div class="row-actions">
-                  <button class="icon-btn is-calendar" :class="{ 'is-active': scheduleSection?.id === s.id }" title="Lịch học" @click="scheduleSection?.id === s.id ? scheduleSection = null : openSchedule(s)"><Calendar :size="15" /></button>
-                  <button class="icon-btn" title="Sửa" @click="openEdit(s)"><Edit :size="15" /></button>
-                  <button class="icon-btn is-danger" title="Xoá" @click="deleting = s"><Trash2 :size="15" /></button>
+                  <button class="icon-btn is-calendar" :class="{ 'is-active': scheduleSection?.id === s.id }" title="Lịch học" @click="scheduleSection?.id === s.id ? scheduleSection = null : openSchedule(s)"><i class="pi pi-calendar" style="font-size:0.9375rem" /></button>
+                  <button class="icon-btn" title="Sửa" @click="openEdit(s)"><i class="pi pi-pencil" style="font-size:0.9375rem" /></button>
+                  <button class="icon-btn is-danger" title="Xoá" @click="deleting = s"><i class="pi pi-trash" style="font-size:0.9375rem" /></button>
                 </div>
               </td>
             </tr>
@@ -336,30 +336,30 @@ onMounted(load)
         </div>
         <div style="display:flex;gap:8px;">
           <button class="crud-primary-btn" @click="openCreateSession">
-            <Plus :size="15" /> Thêm buổi học
+            <i class="pi pi-plus" style="font-size:0.9375rem" /> Thêm buổi học
           </button>
-          <button class="topbar-ghost" @click="scheduleSection = null"><X :size="16" /></button>
+          <button class="topbar-ghost" @click="scheduleSection = null"><i class="pi pi-times" style="font-size:1.0rem" /></button>
         </div>
       </div>
 
       <div v-if="sessionsLoading" class="crud-empty" style="padding:2rem;">Đang tải lịch học...</div>
       <div v-else-if="sessions.length === 0" class="crud-empty">
-        <Calendar :size="40" style="opacity:0.2;" />
+        <i class="pi pi-calendar" style="font-size:2.5rem" />
         <div><strong>Chưa có buổi học</strong><p>Nhấn "Thêm buổi học" để nhập lịch thủ công.</p></div>
       </div>
       <div v-else class="session-list">
         <div v-for="s in sessions" :key="s.id" class="session-card">
-          <div class="session-icon"><Calendar :size="18" /></div>
+          <div class="session-icon"><i class="pi pi-calendar" style="font-size:1.125rem" /></div>
           <div class="session-info">
             <strong>{{ s.title }}</strong>
             <div class="session-meta">
-              <span><Clock :size="12" /> {{ formatDateTime(s.start_at) }} · {{ s.duration }} phút</span>
-              <span v-if="s.location"><MapPin :size="12" /> {{ s.location }}</span>
+              <span><i class="pi pi-clock" style="font-size:0.75rem" /> {{ formatDateTime(s.start_at) }} · {{ s.duration }} phút</span>
+              <span v-if="s.location"><i class="pi pi-map-marker" style="font-size:0.75rem" /> {{ s.location }}</span>
             </div>
           </div>
           <div class="row-actions">
-            <button class="icon-btn" title="Sửa" @click="openEditSession(s)"><Edit :size="14" /></button>
-            <button class="icon-btn is-danger" title="Xoá" @click="deleteSession(s)"><Trash2 :size="14" /></button>
+            <button class="icon-btn" title="Sửa" @click="openEditSession(s)"><i class="pi pi-pencil" style="font-size:0.875rem" /></button>
+            <button class="icon-btn is-danger" title="Xoá" @click="deleteSession(s)"><i class="pi pi-trash" style="font-size:0.875rem" /></button>
           </div>
         </div>
       </div>
@@ -374,7 +374,7 @@ onMounted(load)
               <p class="section-kicker">{{ editingSession ? 'Chỉnh sửa buổi học' : 'Thêm buổi học' }}</p>
               <h3>{{ scheduleSection?.code }}</h3>
             </div>
-            <button class="topbar-ghost" @click="showSessionModal = false"><X :size="18" /></button>
+            <button class="topbar-ghost" @click="showSessionModal = false"><i class="pi pi-times" style="font-size:1.125rem" /></button>
           </div>
           <div class="crud-modal-body">
             <div class="crud-form-grid">
@@ -417,7 +417,7 @@ onMounted(load)
               <p class="section-kicker">{{ editing ? 'Chỉnh sửa' : 'Mở lớp mới' }}</p>
               <h3>{{ editing ? `Lớp ${editing.code}` : 'Mở lớp tín chỉ' }}</h3>
             </div>
-            <button class="topbar-ghost" @click="showModal = false"><X :size="18" /></button>
+            <button class="topbar-ghost" @click="showModal = false"><i class="pi pi-times" style="font-size:1.125rem" /></button>
           </div>
           <div class="crud-modal-body">
             <div class="crud-form-grid">

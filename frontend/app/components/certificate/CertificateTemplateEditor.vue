@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { GripVertical, Eye, EyeOff, RotateCcw } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 export interface FieldConfig {
   key: string
@@ -167,7 +167,7 @@ function sampleText(field: FieldConfig): string {
               <EyeOff v-else :size="14" style="opacity:.4" />
             </button>
             <button type="button" class="icon-btn" title="Đặt lại" @click.stop="resetField(field.key)">
-              <RotateCcw :size="14" />
+              <i class="pi pi-replay" style="font-size:0.875rem" />
             </button>
           </div>
         </div>

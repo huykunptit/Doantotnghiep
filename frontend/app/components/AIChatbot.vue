@@ -3,7 +3,7 @@
     <!-- FAB -->
     <Transition name="cb-fade-up">
       <button v-if="!isOpen" class="cb-fab" type="button" title="Trợ lý AI" @click="openChat">
-        <Bot :size="24" />
+        <i class="pi pi-comment" style="font-size:1.5rem" />
         <span class="cb-fab-pulse" />
         <div class="cb-fab-tooltip">Trợ lý AI</div>
       </button>
@@ -16,7 +16,7 @@
         <header class="cb-header">
           <div class="cb-header-left">
             <div class="cb-avatar">
-              <Sparkles :size="18" />
+              <i class="pi pi-sparkles" style="font-size:1.125rem" />
             </div>
             <div class="cb-header-info">
               <span class="cb-header-name">Trợ lý AI</span>
@@ -28,10 +28,10 @@
           </div>
           <div class="cb-header-actions">
             <button class="cb-icon-btn" type="button" title="Xóa hội thoại" @click="clearChat">
-              <RotateCcw :size="15" />
+              <i class="pi pi-replay" style="font-size:0.9375rem" />
             </button>
             <button class="cb-icon-btn cb-icon-btn--close" type="button" title="Đóng" @click="isOpen = false">
-              <X :size="15" />
+              <i class="pi pi-times" style="font-size:0.9375rem" />
             </button>
           </div>
         </header>
@@ -45,7 +45,7 @@
             :class="msg.role === 'user' ? 'cb-row--user' : 'cb-row--bot'"
           >
             <div v-if="msg.role === 'assistant'" class="cb-bot-avatar">
-              <Bot :size="14" />
+              <i class="pi pi-comment" style="font-size:0.875rem" />
             </div>
             <div class="cb-bubble" :class="msg.role === 'user' ? 'cb-bubble--user' : 'cb-bubble--bot'">
               <p class="cb-bubble-text">{{ msg.text }}</p>
@@ -54,7 +54,7 @@
 
           <!-- Typing dots -->
           <div v-if="loading" class="cb-row cb-row--bot">
-            <div class="cb-bot-avatar"><Bot :size="14" /></div>
+            <div class="cb-bot-avatar"><i class="pi pi-comment" style="font-size:0.875rem" /></div>
             <div class="cb-bubble cb-bubble--bot cb-bubble--typing">
               <span class="cb-dot" style="animation-delay: 0ms" />
               <span class="cb-dot" style="animation-delay: 140ms" />
@@ -92,7 +92,7 @@
               class="cb-send"
               :disabled="!input.trim() || loading"
             >
-              <ArrowUp :size="16" />
+              <i class="pi pi-arrow-up" style="font-size:1.0rem" />
             </button>
           </form>
           <p class="cb-disclaimer">AI có thể mắc lỗi — vui lòng kiểm tra thông tin quan trọng.</p>
@@ -104,7 +104,7 @@
 
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
-import { Bot, Sparkles, RotateCcw, X, ArrowUp } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 

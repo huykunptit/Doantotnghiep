@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
-import {
-  Coins, Flame, Trophy, Star, Gift, Clock, ChevronRight, Check,
-  BookOpen, GraduationCap, Medal, ShoppingBag, ClipboardList, CalendarCheck,
-  Ticket, Users, BarChart3, History,
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'student' })
@@ -139,7 +135,7 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
     <!-- Hero KPI strip -->
     <div class="pts-hero">
       <div class="pts-hero-main">
-        <div class="pts-coin-icon"><Coins :size="28" /></div>
+        <div class="pts-coin-icon"><i class="pi pi-money-bill" style="font-size:1.75rem" /></div>
         <div>
           <p class="pts-hero-label">Điểm tích lũy</p>
           <strong class="pts-hero-val">{{ summary?.balance?.toLocaleString('vi-VN') ?? '—' }}</strong>
@@ -147,11 +143,11 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
       </div>
       <div class="pts-hero-stats">
         <div class="pts-stat">
-          <Flame :size="18" class="text-orange" />
+          <i class="pi pi-bolt" style="font-size:1.125rem" />
           <div><strong>{{ summary?.streak_days ?? 0 }}</strong><span>ngày streak</span></div>
         </div>
         <div class="pts-stat">
-          <Trophy :size="18" class="text-gold" />
+          <i class="pi pi-trophy" style="font-size:1.125rem" />
           <div><strong>#{{ myRank }}</strong><span>xếp hạng</span></div>
         </div>
       </div>
@@ -161,7 +157,7 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
         :disabled="claimedToday || claimLoading"
         @click="claimDaily"
       >
-        <CalendarCheck :size="16" />
+        <i class="pi pi-calendar" style="font-size:1.0rem" />
         {{ claimedToday ? 'Đã nhận hôm nay' : claimLoading ? 'Đang nhận...' : 'Nhận điểm hàng ngày (+5)' }}
       </button>
     </div>
@@ -220,7 +216,7 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
           </div>
           <div class="pts-shop-footer">
             <div class="pts-shop-cost">
-              <Coins :size="14" style="color:#f59e0b" />
+              <i class="pi pi-money-bill" style="font-size:0.875rem" />
               <strong>{{ v.points_cost.toLocaleString('vi-VN') }}</strong> điểm
             </div>
             <button
@@ -238,7 +234,7 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
 
     <!-- ── HISTORY ── -->
     <div v-if="activeTab === 'history'">
-      <h3 class="pts-section-title"><Clock :size="16" /> Lịch sử giao dịch</h3>
+      <h3 class="pts-section-title"><i class="pi pi-clock" style="font-size:1.0rem" /> Lịch sử giao dịch</h3>
       <div class="pts-tx-list">
         <div v-if="transactions.length === 0" class="pts-empty"><p>Chưa có giao dịch nào.</p></div>
         <div v-else v-for="tx in transactions" :key="tx.id" class="pts-tx-item">
@@ -256,9 +252,9 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
 
     <!-- ── LEADERBOARD ── -->
     <div v-if="activeTab === 'leaderboard'">
-      <h3 class="pts-section-title"><Trophy :size="16" /> Bảng xếp hạng điểm</h3>
+      <h3 class="pts-section-title"><i class="pi pi-trophy" style="font-size:1.0rem" /> Bảng xếp hạng điểm</h3>
       <div v-if="leaderboard?.my_rank" class="pts-my-rank-banner">
-        <Trophy :size="18" class="text-gold" />
+        <i class="pi pi-trophy" style="font-size:1.125rem" />
         <span>Xếp hạng của bạn: <strong>#{{ leaderboard.my_rank }}</strong> — {{ leaderboard.my_balance?.toLocaleString('vi-VN') }} điểm</span>
       </div>
       <div class="pts-lb-list">
@@ -282,9 +278,9 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
             <p class="pts-lb-name">{{ u.name }}</p>
             <span class="pts-lb-code">{{ u.student_code }}</span>
           </div>
-          <div class="pts-lb-streak"><Flame :size="13" /> {{ u.streak_days }}d</div>
+          <div class="pts-lb-streak"><i class="pi pi-bolt" style="font-size:0.8125rem" /> {{ u.streak_days }}d</div>
           <div class="pts-lb-pts">
-            <Coins :size="13" style="color:#f59e0b" />
+            <i class="pi pi-money-bill" style="font-size:0.8125rem" />
             <strong>{{ u.points_balance?.toLocaleString('vi-VN') }}</strong>
           </div>
         </div>

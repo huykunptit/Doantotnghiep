@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { Users, Building2, GraduationCap, Search, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, X, UserPlus, FileSpreadsheet, Check } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useToast } from '~/composables/useToast'
 
@@ -436,7 +436,7 @@ watch(filterStatus, () => fetchClasses(1))
       <div class="crud-toolbar">
         <form class="crud-toolbar-main" @submit.prevent="fetchClasses(1)">
           <div class="search-wrap">
-            <Search :size="15" class="search-ico" />
+            <i class="pi pi-search" style="font-size:0.9375rem" />
             <input
               v-model="searchQuery"
               type="text"
@@ -456,7 +456,7 @@ watch(filterStatus, () => fetchClasses(1))
         </form>
         <div class="crud-toolbar-right">
           <button class="crud-primary-btn" type="button" @click="openCreate" style="white-space: nowrap; display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 0.85rem; height: 36px;">
-            <Plus :size="15" />
+            <i class="pi pi-plus" style="font-size:0.9375rem" />
             Tạo lớp mới
           </button>
         </div>
@@ -483,7 +483,7 @@ watch(filterStatus, () => fetchClasses(1))
             </tr>
             <tr v-else-if="classes.length === 0">
               <td colspan="8" class="crud-empty">
-                <Building2 :size="36" style="opacity:0.2; margin-bottom:8px;" />
+                <i class="pi pi-building" style="font-size:2.25rem" />
                 <div>Chưa có lớp hành chính nào.</div>
               </td>
             </tr>
@@ -510,15 +510,15 @@ watch(filterStatus, () => fetchClasses(1))
               </td>
               <td>
                 <span v-if="cls.curriculum" class="has-ctdt-tag">
-                  <GraduationCap :size="13" /> {{ cls.curriculum.code }}
+                  <i class="pi pi-graduation-cap" style="font-size:0.8125rem" /> {{ cls.curriculum.code }}
                 </span>
                 <span v-else class="no-ctdt-tag">
-                  <GraduationCap :size="13" /> Chưa gán
+                  <i class="pi pi-graduation-cap" style="font-size:0.8125rem" /> Chưa gán
                 </span>
               </td>
               <td>
                 <div style="display:flex; align-items:center; gap:6px;">
-                  <Users :size="14" style="color:var(--muted);" />
+                  <i class="pi pi-users" style="font-size:0.875rem" />
                   <strong>{{ cls.students_count ?? 0 }}</strong>
                   <span style="font-size:0.75rem; color:var(--muted);">/ {{ cls.capacity }}</span>
                 </div>
@@ -529,13 +529,13 @@ watch(filterStatus, () => fetchClasses(1))
               <td>
                 <div class="crud-actions">
                   <button class="action-btn is-view" type="button" @click="openEnroll(cls)">
-                    <UserPlus :size="13" /> Ghi danh
+                    <i class="pi pi-user-plus" style="font-size:0.8125rem" /> Ghi danh
                   </button>
                   <button class="action-btn is-edit" type="button" @click="openEdit(cls)">
-                    <Pencil :size="13" /> Sửa
+                    <i class="pi pi-pencil" style="font-size:0.8125rem" /> Sửa
                   </button>
                   <button class="action-btn is-delete" type="button" @click="openDelete(cls)">
-                    <Trash2 :size="13" /> Xóa
+                    <i class="pi pi-trash" style="font-size:0.8125rem" /> Xóa
                   </button>
                 </div>
               </td>
@@ -557,7 +557,7 @@ watch(filterStatus, () => fetchClasses(1))
             :disabled="currentPage <= 1"
             @click="fetchClasses(currentPage - 1)"
           >
-            <ChevronLeft :size="16" />
+            <i class="pi pi-chevron-left" style="font-size:1.0rem" />
           </button>
           <button
             class="crud-secondary-btn"
@@ -565,7 +565,7 @@ watch(filterStatus, () => fetchClasses(1))
             :disabled="currentPage >= lastPage"
             @click="fetchClasses(currentPage + 1)"
           >
-            <ChevronRight :size="16" />
+            <i class="pi pi-chevron-right" style="font-size:1.0rem" />
           </button>
         </div>
       </div>
@@ -581,7 +581,7 @@ watch(filterStatus, () => fetchClasses(1))
               <h3>Thêm lớp hành chính</h3>
             </div>
             <button class="topbar-ghost" type="button" @click="createOpen = false">
-              <X :size="18" />
+              <i class="pi pi-times" style="font-size:1.125rem" />
             </button>
           </div>
 
@@ -671,7 +671,7 @@ watch(filterStatus, () => fetchClasses(1))
               <h3>{{ selectedClass?.name }}</h3>
             </div>
             <button class="topbar-ghost" type="button" @click="editOpen = false">
-              <X :size="18" />
+              <i class="pi pi-times" style="font-size:1.125rem" />
             </button>
           </div>
 
@@ -761,7 +761,7 @@ watch(filterStatus, () => fetchClasses(1))
               <h3>Xóa lớp hành chính</h3>
             </div>
             <button class="topbar-ghost" type="button" @click="deleteOpen = false">
-              <X :size="18" />
+              <i class="pi pi-times" style="font-size:1.125rem" />
             </button>
           </div>
           <div class="crud-modal-body" style="padding: 20px 28px;">
@@ -788,7 +788,7 @@ watch(filterStatus, () => fetchClasses(1))
               <h3>{{ selectedClass?.name }} ({{ selectedClass?.code }})</h3>
             </div>
             <button class="topbar-ghost" type="button" @click="enrollOpen = false">
-              <X :size="18" />
+              <i class="pi pi-times" style="font-size:1.125rem" />
             </button>
           </div>
 
@@ -800,7 +800,7 @@ watch(filterStatus, () => fetchClasses(1))
               type="button"
               @click="enrollTab = 'list'"
             >
-              <Users :size="14" /> Chọn từ danh sách
+              <i class="pi pi-users" style="font-size:0.875rem" /> Chọn từ danh sách
             </button>
             <button
               class="enroll-modal-tab"
@@ -808,14 +808,14 @@ watch(filterStatus, () => fetchClasses(1))
               type="button"
               @click="enrollTab = 'import'; importStep = 1; importFile = null; importPreviewData = null"
             >
-              <FileSpreadsheet :size="14" /> Import từ Excel/CSV
+              <i class="pi pi-file-excel" style="font-size:0.875rem" /> Import từ Excel/CSV
             </button>
           </div>
 
           <!-- Tab: chọn từ list -->
           <div v-if="enrollTab === 'list'" class="enroll-modal-body">
             <div class="search-wrap" style="margin-bottom: 12px;">
-              <Search :size="15" class="search-ico" />
+              <i class="pi pi-search" style="font-size:0.9375rem" />
               <input
                 v-model="enrollSearchQuery"
                 type="text"
@@ -862,7 +862,7 @@ watch(filterStatus, () => fetchClasses(1))
                 Tải lên tệp CSV với cột đầu tiên là <strong>Mã sinh viên</strong>. Hệ thống sẽ xem trước kết quả trước khi thực hiện.
               </p>
               <div class="import-dropzone" @click="importFileRef?.click()">
-                <FileSpreadsheet :size="36" style="color:var(--muted); opacity:0.5;" />
+                <i class="pi pi-file-excel" style="font-size:2.25rem" />
                 <div v-if="!importFile">
                   <strong>Chọn tệp CSV</strong>
                   <span>Cột 1: Mã sinh viên (student_code)</span>
@@ -926,7 +926,7 @@ watch(filterStatus, () => fetchClasses(1))
                 :disabled="enrollSaving || selectedEnrollIds.length === 0"
                 @click="submitEnrollFromList"
               >
-                <UserPlus :size="15" />
+                <i class="pi pi-user-plus" style="font-size:0.9375rem" />
                 {{ enrollSaving ? 'Đang ghi danh...' : `Ghi danh ${selectedEnrollIds.length} sinh viên` }}
               </button>
             </template>

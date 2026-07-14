@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Trophy, Frown, CheckCircle2, XCircle, Clock, Hash, ChevronRight } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -114,7 +114,7 @@ onMounted(fetchResult)
       <div class="stats-grid">
         <div class="stat-tile dashboard-card">
           <div class="stat-icon-wrap" style="background: rgba(34,197,94,0.1); color: #22c55e;">
-            <CheckCircle2 :size="22" :stroke-width="1.75" />
+            <i class="pi pi-check-circle" style="font-size:1.375rem" />
           </div>
           <div class="stat-body">
             <p class="stat-label">Câu đúng</p>
@@ -123,7 +123,7 @@ onMounted(fetchResult)
         </div>
         <div class="stat-tile dashboard-card">
           <div class="stat-icon-wrap" style="background: rgba(239,68,68,0.1); color: #ef4444;">
-            <XCircle :size="22" :stroke-width="1.75" />
+            <i class="pi pi-times-circle" style="font-size:1.375rem" />
           </div>
           <div class="stat-body">
             <p class="stat-label">Câu sai</p>
@@ -132,7 +132,7 @@ onMounted(fetchResult)
         </div>
         <div class="stat-tile dashboard-card">
           <div class="stat-icon-wrap" style="background: rgba(59,130,246,0.1); color: #3b82f6;">
-            <Clock :size="22" :stroke-width="1.75" />
+            <i class="pi pi-clock" style="font-size:1.375rem" />
           </div>
           <div class="stat-body">
             <p class="stat-label">Thời gian</p>
@@ -141,7 +141,7 @@ onMounted(fetchResult)
         </div>
         <div class="stat-tile dashboard-card">
           <div class="stat-icon-wrap" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
-            <Hash :size="22" :stroke-width="1.75" />
+            <i class="pi pi-hashtag" style="font-size:1.375rem" />
           </div>
           <div class="stat-body">
             <p class="stat-label">Tổng câu</p>
@@ -193,7 +193,7 @@ onMounted(fetchResult)
       <!-- Actions -->
       <div class="result-actions">
         <NuxtLink :to="`/exam/${examId}`" class="crud-primary-btn">
-          <ChevronRight :size="16" :stroke-width="2" />
+          <i class="pi pi-chevron-right" style="font-size:1.0rem" />
           Thi lại
         </NuxtLink>
         <NuxtLink to="/my-courses" class="crud-secondary-btn">

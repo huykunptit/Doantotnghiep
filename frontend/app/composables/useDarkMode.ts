@@ -5,11 +5,12 @@ export function useDarkMode() {
 
   function apply(dark: boolean) {
     if (!import.meta.client) return
+    // Use .dark class — matches PrimeVue darkModeSelector and dark-theme.css
     if (dark) {
-      document.documentElement.setAttribute('data-theme', 'dark')
+      document.documentElement.classList.add('dark')
     }
     else {
-      document.documentElement.removeAttribute('data-theme')
+      document.documentElement.classList.remove('dark')
     }
     try { localStorage.setItem(STORAGE_KEY, dark ? '1' : '0') }
     catch {}

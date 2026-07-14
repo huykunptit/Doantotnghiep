@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { GraduationCap, Star, ArrowRight } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 const props = defineProps<{ course: any }>()
 
@@ -26,7 +26,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
     <div class="card-thumb">
       <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title" class="thumb-img">
       <div v-else class="thumb-fallback">
-        <GraduationCap :size="40" :stroke-width="1.25" />
+        <i class="pi pi-graduation-cap" style="font-size:2.5rem" />
       </div>
       <div class="thumb-overlay" />
 
@@ -48,7 +48,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
 
       <div class="card-meta">
         <span class="meta-rating">
-          <Star :size="14" :stroke-width="0" fill="#d4a017" />
+          <i class="pi pi-star" style="font-size:0.875rem" />
           {{ rating > 0 ? rating.toFixed(1) : 'Mới' }}
         </span>
         <span v-if="reviewCount > 0" class="meta-item">{{ reviewCount }} đánh giá</span>
@@ -62,7 +62,7 @@ const isFree = computed(() => Number(props.course.price || 0) === 0)
         </div>
         <span class="card-cta">
           Xem khóa học
-          <ArrowRight :size="14" :stroke-width="2.5" class="cta-arrow" />
+          <i class="pi pi-arrow-right" style="font-size:0.875rem" />
         </span>
       </div>
     </div>

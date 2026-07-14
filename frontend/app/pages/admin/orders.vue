@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, MoreVertical, ShoppingBag, CreditCard, Banknote } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAuthUserCookie, useAuthTokenCookie } from '~/composables/useAuthSession'
@@ -183,19 +183,19 @@ onMounted(fetchOrders)
   >
     <div class="ds-stats mb-5">
       <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><ShoppingBag :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-shopping-bag" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Tổng đơn</p>
         <strong class="ds-stat-value">{{ totalOrders }}</strong>
         <span class="ds-stat-sub">theo bộ lọc hiện tại</span>
       </div>
       <div class="ds-stat ds-stat--amber">
-        <div class="ds-stat-icon"><CreditCard :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-credit-card" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Đã thanh toán</p>
         <strong class="ds-stat-value">{{ paidCount }}</strong>
         <span class="ds-stat-sub">đơn thành công</span>
       </div>
       <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><Banknote :size="16" /></div>
+        <div class="ds-stat-icon"><i class="pi pi-money-bill" style="font-size:1.0rem" /></div>
         <p class="ds-stat-label">Doanh thu</p>
         <strong class="ds-stat-value" style="font-size:1.4rem">{{ formatMoney(totalRevenue) }}</strong>
         <span class="ds-stat-sub">tạm tính hiện tại</span>
@@ -223,7 +223,7 @@ onMounted(fetchOrders)
 
         <div class="crud-toolbar-right">
           <button class="crud-export-btn" type="button" @click="exportData">
-            <Download :size="20" :stroke-width="1.75" />
+            <i class="pi pi-download" style="font-size:1.25rem" />
             Xuất Excel
           </button>
         </div>
@@ -293,7 +293,7 @@ onMounted(fetchOrders)
           <template #actions-cell="{ row }">
             <div class="crud-actions-dropdown" style="text-align: right">
               <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(row.original.id)">
-                <MoreVertical :size="20" :stroke-width="1.75" />
+                <i class="pi pi-ellipsis-v" style="font-size:1.25rem" />
               </button>
               <div v-if="activeDropdown === row.original.id" class="dropdown-menu">
                 <button class="dropdown-item" type="button" @click="openDetail(row.original)">

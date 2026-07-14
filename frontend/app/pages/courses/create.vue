@@ -2,21 +2,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import MediaUpload from '~/components/common/MediaUpload.vue'
-import { 
-  BookOpen, 
-  HelpCircle, 
-  Info, 
-  Layers, 
-  CheckCircle, 
-  AlertCircle, 
-  ChevronRight, 
-  Award, 
-  DollarSign,
-  Gift,
-  ArrowLeft,
-  UploadCloud,
-  Lightbulb
-} from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 
 definePageMeta({ middleware: 'instructor', layout: 'instructor' })
 
@@ -163,14 +149,14 @@ async function handleSubmit() {
         <p class="header-subtitle">Khởi tạo thông tin cốt lõi để bắt đầu xây dựng chương trình giảng dạy của bạn.</p>
       </div>
       <NuxtLink to="/instructor/courses" class="btn-cancel">
-        <ArrowLeft :size="16" />
+        <i class="pi pi-arrow-left" style="font-size:1.0rem" />
         <span>Quay lại</span>
       </NuxtLink>
     </header>
 
     <!-- Error state banner -->
     <div v-if="error" class="alert-banner">
-      <AlertCircle :size="18" />
+      <i class="pi pi-exclamation-circle" style="font-size:1.125rem" />
       <span>{{ error }}</span>
     </div>
 
@@ -184,7 +170,7 @@ async function handleSubmit() {
         <div class="glass-card">
           <div class="card-head">
             <div class="card-icon-wrap">
-              <BookOpen :size="18" />
+              <i class="pi pi-book" style="font-size:1.125rem" />
             </div>
             <div>
               <h3 class="card-title">Thông tin cơ bản</h3>
@@ -226,7 +212,7 @@ async function handleSubmit() {
         <div class="glass-card">
           <div class="card-head">
             <div class="card-icon-wrap">
-              <Layers :size="18" />
+              <i class="pi pi-clone" style="font-size:1.125rem" />
             </div>
             <div>
               <h3 class="card-title">Phân mục & Học phí</h3>
@@ -247,11 +233,11 @@ async function handleSubmit() {
                   class="category-selector-trigger"
                   @click="isCategoryModalOpen = true"
                 >
-                  <Layers :size="15" class="text-slate-400" />
+                  <i class="pi pi-clone" style="font-size:0.9375rem" />
                   <span class="selected-cat-name text-left flex-1 font-semibold text-slate-700 dark:text-slate-200">
                     {{ selectedCategoryName || '— Chọn danh mục học tập —' }}
                   </span>
-                  <ChevronRight :size="15" class="arrow-icon text-slate-400" />
+                  <i class="pi pi-chevron-right" style="font-size:0.9375rem" />
                 </button>
                 <span class="group-hint mt-1 text-[11px] block text-slate-400">
                   * Hệ thống danh mục do Admin chuẩn hóa. Nhấp để xem cây danh mục và lựa chọn.
@@ -304,7 +290,7 @@ async function handleSubmit() {
                 </div>
                 <div class="price-indicators" v-if="form.price > 0">
                   <span class="indicator-success">
-                    <CheckCircle :size="12" />
+                    <i class="pi pi-check-circle" style="font-size:0.75rem" />
                     Giá trị truyền dữ liệu sạch: <strong>{{ form.price }}</strong> đ
                   </span>
                 </div>
@@ -318,7 +304,7 @@ async function handleSubmit() {
         <div class="glass-card">
           <div class="card-head">
             <div class="card-icon-wrap">
-              <Award :size="18" />
+              <i class="pi pi-verified" style="font-size:1.125rem" />
             </div>
             <div>
               <h3 class="card-title">Chứng nhận tốt nghiệp</h3>

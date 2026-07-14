@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-vue-next'
-import { useToast, type Toast } from '~/composables/useToast'
+import { ref } from 'vue'
+import { useToast } from '~/composables/useToast'
 
 const { toasts, remove } = useToast()
 
-// track which toasts are in "leaving" state for animation
 const leaving = ref<Set<string>>(new Set())
 
 function dismiss(id: string) {
@@ -16,11 +14,11 @@ function dismiss(id: string) {
   }, 320)
 }
 
-const iconMap = {
-  success: CheckCircle2,
-  error: XCircle,
-  warning: AlertTriangle,
-  info: Info,
+const piIconMap: Record<string, string> = {
+  success: 'pi-check-circle',
+  error:   'pi-times-circle',
+  warning: 'pi-exclamation-triangle',
+  info:    'pi-info-circle',
 }
 </script>
 
@@ -37,7 +35,7 @@ const iconMap = {
         >
           <!-- Left icon -->
           <div class="toast-icon">
-            <component :is="iconMap[t.type]" :size="18" :stroke-width="2" />
+            <i :class="`pi ${piIconMap[t.type]}`" style="font-size: 1.125rem" />
           </div>
 
           <!-- Content -->
@@ -48,7 +46,7 @@ const iconMap = {
 
           <!-- Close -->
           <button class="toast-close" :aria-label="`Đóng thông báo: ${t.title}`" @click="dismiss(t.id)">
-            <X :size="14" :stroke-width="2.5" />
+            <i class="pi pi-times" style="font-size: 0.875rem" />
           </button>
 
           <!-- Progress bar -->
@@ -186,7 +184,7 @@ const iconMap = {
 }
 
 /* Dark mode */
-[data-theme="dark"] .toast-item {
+:global(.dark) .toast-item {
   background: #142D1F;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3), 0 10px 24px -4px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-import { Users, BookOpen, Search, UserCheck, Building, GraduationCap, Trash2, Trash, Upload, X, FileSpreadsheet, ChevronLeft, ChevronRight, Check, Play } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useAuthTokenCookie } from '~/composables/useAuthSession'
 
@@ -298,13 +298,13 @@ function formatSource(src: string) {
     <!-- Tab bar -->
     <div class="enroll-tabs">
       <button class="enroll-tab" :class="{ 'is-active': activeTab === 'class-auto' }" @click="activeTab = 'class-auto'">
-        <Building :size="15" /> Tự động theo lớp
+        <i class="pi pi-building" style="font-size:0.9375rem" /> Tự động theo lớp
       </button>
       <button class="enroll-tab" :class="{ 'is-active': activeTab === 'direct-manual' }" @click="activeTab = 'direct-manual'">
-        <UserCheck :size="15" /> Ghi danh thủ công
+        <i class="pi pi-user" style="font-size:0.9375rem" /> Ghi danh thủ công
       </button>
       <button class="enroll-tab" :class="{ 'is-active': activeTab === 'enrollment-list' }" @click="activeTab = 'enrollment-list'">
-        <BookOpen :size="15" /> Danh sách ghi danh
+        <i class="pi pi-book" style="font-size:0.9375rem" /> Danh sách ghi danh
       </button>
     </div>
 
@@ -346,14 +346,14 @@ function formatSource(src: string) {
               <strong style="font-size:0.95rem;">Lớp: {{ adminClasses.find(c => c.id === selectedClassId)?.name }} ({{ adminClasses.find(c => c.id === selectedClassId)?.code }})</strong>
               <div style="display:flex; align-items:center; gap:8px;">
                 <span v-if="adminClasses.find(c => c.id === selectedClassId)?.curriculum_id" class="has-ctdt-tag" style="margin:0;">
-                  <GraduationCap :size="14" /> Đã gán CTĐT
+                  <i class="pi pi-graduation-cap" style="font-size:0.875rem" /> Đã gán CTĐT
                 </span>
-                <span v-else class="no-ctdt-tag" style="margin:0;"><GraduationCap :size="14" /> Chưa gán CTĐT</span>
+                <span v-else class="no-ctdt-tag" style="margin:0;"><i class="pi pi-graduation-cap" style="font-size:0.875rem" /> Chưa gán CTĐT</span>
               </div>
             </div>
           </div>
           <button class="crud-primary-btn" :disabled="processingEnrollment || !adminClasses.find(c => c.id === selectedClassId)?.curriculum_id" @click="runAutoEnrollment">
-            <Play :size="15" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Kích hoạt ghi danh' }}
+            <i class="pi pi-play" style="font-size:0.9375rem" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Kích hoạt ghi danh' }}
           </button>
         </div>
       </div>
@@ -364,7 +364,7 @@ function formatSource(src: string) {
         </div>
         <div v-if="loading" class="crud-empty" style="padding:2rem;">Đang tải...</div>
         <div v-else-if="classStudents.length === 0" class="crud-empty">
-          <Users :size="40" style="opacity:0.2;" /><div><strong>Lớp chưa có sinh viên</strong></div>
+          <i class="pi pi-users" style="font-size:2.5rem" /><div><strong>Lớp chưa có sinh viên</strong></div>
         </div>
         <div v-else class="crud-table-wrap">
           <table class="crud-table">
@@ -419,7 +419,7 @@ function formatSource(src: string) {
               <strong style="color:var(--green-deep); font-size:0.95rem;">{{ selectedDirectUserIds.length }} sinh viên</strong>
             </div>
             <button class="crud-primary-btn" style="width:100%; justify-content:center;" :disabled="!selectedDirectCourseId || !selectedDirectUserIds.length || processingEnrollment" @click="runDirectManualEnrollment">
-              <UserCheck :size="16" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Xác nhận ghi danh' }}
+              <i class="pi pi-user" style="font-size:1.0rem" /> {{ processingEnrollment ? 'Đang ghi danh...' : 'Xác nhận ghi danh' }}
             </button>
           </div>
         </div>
@@ -448,7 +448,7 @@ function formatSource(src: string) {
           </div>
 
           <div class="search-wrap">
-            <Search :size="15" class="search-ico" />
+            <i class="pi pi-search" style="font-size:0.9375rem" />
             <input v-model="searchStudentQuery" type="text" placeholder="Tìm theo mã SV hoặc tên học viên..." class="crud-search" style="padding-left:34px;width:100%;" @input="searchStudents" />
           </div>
           
@@ -487,10 +487,10 @@ function formatSource(src: string) {
           
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button v-if="selectedEnrollmentIds.length" class="action-btn is-delete" style="padding: 0 16px; height: 36px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" @click="deleteSelectedEnrollments">
-              <Trash2 :size="15" /> Xóa {{ selectedEnrollmentIds.length }} dòng
+              <i class="pi pi-trash" style="font-size:0.9375rem" /> Xóa {{ selectedEnrollmentIds.length }} dòng
             </button>
             <button class="action-btn is-edit" style="padding: 0 16px; height: 36px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;" @click="openBulkDeleteModal">
-              <Upload :size="15" /> Xóa bằng CSV
+              <i class="pi pi-upload" style="font-size:0.9375rem" /> Xóa bằng CSV
             </button>
           </div>
         </div>
@@ -531,7 +531,7 @@ function formatSource(src: string) {
             <option value="excel_import">Excel Import</option>
           </select>
           <button class="crud-primary-btn" style="height:38px;" @click="enrollmentsPage = 1; loadEnrollments()">
-            <Search :size="15" /> Lọc
+            <i class="pi pi-search" style="font-size:0.9375rem" /> Lọc
           </button>
         </div>
 
@@ -542,7 +542,7 @@ function formatSource(src: string) {
         </div>
         
         <div v-else-if="!enrollments.length" class="crud-empty" style="padding:4rem;">
-          <BookOpen :size="40" style="opacity:0.2; margin-bottom:12px;" />
+          <i class="pi pi-book" style="font-size:2.5rem" />
           <div><strong>Không tìm thấy dữ liệu ghi danh</strong></div>
           <span style="font-size:0.8rem; color:var(--muted); margin-top:4px;">Vui lòng đổi bộ lọc hoặc thực hiện ghi danh mới.</span>
         </div>
@@ -595,7 +595,7 @@ function formatSource(src: string) {
                   </td>
                   <td style="text-align:right; padding-right:16px;">
                     <button class="del-icon-btn" title="Hủy ghi danh học phần" @click="deleteOneEnrollment(e.id)">
-                      <Trash2 :size="15" />
+                      <i class="pi pi-trash" style="font-size:0.9375rem" />
                     </button>
                   </td>
                 </tr>
@@ -608,10 +608,10 @@ function formatSource(src: string) {
             <p>Hiển thị <strong>{{ enrollments.length }}</strong>/<strong>{{ enrollmentsTotal }}</strong> bản ghi — Trang <strong>{{ enrollmentsPage }}</strong> / <strong>{{ enrollmentsTotalPages }}</strong></p>
             <div class="crud-pagination-btns">
               <button class="crud-secondary-btn" style="height:32px; width:36px; padding:0; justify-content:center;" :disabled="enrollmentsPage <= 1" @click="enrollmentsPage--; loadEnrollments()">
-                <ChevronLeft :size="16" />
+                <i class="pi pi-chevron-left" style="font-size:1.0rem" />
               </button>
               <button class="crud-secondary-btn" style="height:32px; width:36px; padding:0; justify-content:center;" :disabled="enrollmentsPage >= enrollmentsTotalPages" @click="enrollmentsPage++; loadEnrollments()">
-                <ChevronRight :size="16" />
+                <i class="pi pi-chevron-right" style="font-size:1.0rem" />
               </button>
             </div>
           </div>
@@ -625,12 +625,12 @@ function formatSource(src: string) {
         <div class="crud-modal">
           <div class="crud-modal-head is-danger">
             <div><p class="section-kicker">Xoá hàng loạt</p><h3>Xoá ghi danh bằng tệp CSV</h3></div>
-            <button class="topbar-ghost" @click="showBulkDeleteModal = false"><X :size="18" /></button>
+            <button class="topbar-ghost" @click="showBulkDeleteModal = false"><i class="pi pi-times" style="font-size:1.125rem" /></button>
           </div>
           <div class="crud-modal-body" style="padding:24px 28px;">
             <div v-if="deleteStep === 1">
               <div class="dropzone" @click="fileInputRef?.click()">
-                <FileSpreadsheet :size="36" style="color:var(--muted);opacity:0.5;" />
+                <i class="pi pi-file-excel" style="font-size:2.25rem" />
                 <div v-if="!deleteFile"><strong>Chọn tệp CSV</strong><span>Mã sinh viên + mã khóa học</span></div>
                 <div v-else style="color:#ef4444;"><strong>{{ deleteFile.name }}</strong><span>{{ (deleteFile.size/1024).toFixed(1) }} KB</span></div>
                 <input ref="fileInputRef" type="file" accept=".csv" style="display:none;" @change="handleDeleteFileChange" />

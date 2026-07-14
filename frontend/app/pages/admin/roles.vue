@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Save, RotateCcw, ShieldCheck, ShieldAlert } from 'lucide-vue-next'
+// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'
@@ -200,11 +200,11 @@ onMounted(loadData)
         <div class="rl-actionbar dashboard-card">
           <div class="rl-actionbar-status">
             <template v-if="hasUnsavedChanges">
-              <ShieldAlert :size="15" class="rl-status-icon rl-status-icon--warn" />
+              <i class="pi pi-shield" style="font-size:0.9375rem" />
               <span class="rl-status-text rl-status-text--warn">Có thay đổi chưa lưu</span>
             </template>
             <template v-else>
-              <ShieldCheck :size="15" class="rl-status-icon rl-status-icon--ok" />
+              <i class="pi pi-shield" style="font-size:0.9375rem" />
               <span class="rl-status-text rl-status-text--ok">Đã đồng bộ</span>
             </template>
           </div>
@@ -215,7 +215,7 @@ onMounted(loadData)
               :disabled="!hasUnsavedChanges || saving"
               @click="resetChanges"
             >
-              <RotateCcw :size="14" /> Hoàn tác
+              <i class="pi pi-replay" style="font-size:0.875rem" /> Hoàn tác
             </button>
             <button
               class="rl-btn rl-btn--primary"
@@ -223,7 +223,7 @@ onMounted(loadData)
               :disabled="!hasUnsavedChanges || saving"
               @click="savePermissions"
             >
-              <Save :size="14" /> {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+              <i class="pi pi-save" style="font-size:0.875rem" /> {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
             </button>
           </div>
         </div>
