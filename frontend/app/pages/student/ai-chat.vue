@@ -1,174 +1,165 @@
 <template>
-  <div class="chat-page">
-    <!-- Hero Header -->
-    <header class="chat-hero">
-      <div class="chat-hero-inner">
-        <div class="chat-hero-left">
-          <div class="chat-hero-avatar">
-            <Bot :size="24" />
-            <span class="chat-hero-pulse" />
-          </div>
-          <div>
-            <h1 class="chat-hero-title">Trợ lý AI Sylva</h1>
-            <p class="chat-hero-sub">
-              <span class="chat-online-dot" />
-              Đang hoạt động · Trả lời dựa trên tài liệu PTIT
-            </p>
-          </div>
+  <div class="aichat-wrap">
+
+    <!-- ── Card Header ── -->
+    <div class="aichat-header">
+      <div class="aichat-header-left">
+        <div class="aichat-avatar-ring">
+          <Bot :size="20" />
+          <span class="aichat-status-dot" />
         </div>
-        <button class="chat-clear-btn" title="Xóa hội thoại" @click="clearChat">
-          <RotateCcw :size="15" />
-          Xóa hội thoại
-        </button>
+        <div>
+          <h1 class="aichat-title">Trợ lý AI Sylva</h1>
+          <p class="aichat-subtitle">Đang hoạt động · Trả lời dựa trên tài liệu PTIT</p>
+        </div>
       </div>
-    </header>
+      <button class="aichat-clear-btn" title="Xóa hội thoại" @click="clearChat">
+        <RotateCcw :size="14" />
+        Xóa hội thoại
+      </button>
+    </div>
 
-    <!-- Chat Body -->
-    <div class="chat-body">
-      <!-- Messages area -->
-      <div ref="msgBox" class="chat-messages">
-        <!-- Empty state -->
-        <div v-if="messages.length === 0" class="chat-empty">
-          <div class="chat-empty-icon">
-            <Sparkles :size="32" />
-          </div>
-          <h2 class="chat-empty-title">Xin chào! Tôi có thể giúp gì cho bạn?</h2>
-          <p class="chat-empty-lead">Hỏi tôi về bài học, tài liệu PTIT, lộ trình học tập hoặc bất cứ điều gì về hệ thống Sylva LMS.</p>
+    <!-- ── Messages ── -->
+    <div ref="msgBox" class="aichat-messages">
 
-          <!-- Quick suggestions -->
-          <div class="chat-suggestions">
-            <button
-              v-for="q in suggestions"
-              :key="q.text"
-              class="chat-suggestion"
-              @click="sendQuick(q.text)"
-            >
-              <component :is="q.icon" :size="15" />
-              <span>{{ q.text }}</span>
-            </button>
-          </div>
+      <!-- Empty / welcome state -->
+      <div v-if="messages.length === 0" class="aichat-welcome">
+        <div class="aichat-welcome-icon">
+          <Sparkles :size="28" />
         </div>
-
-        <!-- Message list -->
-        <template v-else>
-          <div
-            v-for="(msg, idx) in messages"
-            :key="idx"
-            class="chat-msg-row"
-            :class="msg.role === 'user' ? 'is-user' : 'is-bot'"
+        <h2 class="aichat-welcome-title">Xin chào! Tôi có thể giúp gì cho bạn?</h2>
+        <p class="aichat-welcome-desc">
+          Hỏi tôi về bài học, tài liệu PTIT, lộ trình học tập hoặc bất kỳ điều gì về hệ thống Sylva LMS.
+        </p>
+        <div class="aichat-chips">
+          <button
+            v-for="q in suggestions"
+            :key="q"
+            class="aichat-chip"
+            @click="sendQuick(q)"
           >
-            <!-- Bot avatar -->
-            <div v-if="msg.role === 'assistant'" class="chat-msg-avatar">
-              <Bot :size="16" />
-            </div>
+            {{ q }}
+          </button>
+        </div>
+      </div>
 
-            <div class="chat-msg-wrap">
-              <!-- Bubble -->
-              <div class="chat-bubble" :class="msg.role === 'user' ? 'chat-bubble--user' : 'chat-bubble--bot'">
-                <p class="chat-bubble-text">{{ msg.text }}</p>
+      <!-- Message list -->
+      <template v-else>
+        <div
+          v-for="(msg, idx) in messages"
+          :key="idx"
+          class="aichat-row"
+          :class="msg.role === 'user' ? 'is-user' : 'is-bot'"
+        >
+          <!-- Bot avatar -->
+          <div v-if="msg.role === 'assistant'" class="aichat-row-avatar">
+            <Bot :size="14" />
+          </div>
 
-                <!-- RAG Sources -->
-                <div v-if="msg.sources && msg.sources.length > 0" class="chat-sources">
-                  <div class="chat-sources-header">
-                    <BookOpen :size="11" />
-                    <span>Tài liệu tham khảo:</span>
-                  </div>
-                  <div class="chat-sources-list">
-                    <span
-                      v-for="(src, sIdx) in msg.sources"
-                      :key="sIdx"
-                      class="chat-source-tag"
-                      :title="src.content_preview"
-                    >
-                      [{{ sIdx + 1 }}] {{ src.source_file }}
-                      <em class="chat-source-pct">{{ Math.round(src.relevance_score) }}%</em>
-                    </span>
-                  </div>
+          <div class="aichat-row-body">
+            <!-- Bubble -->
+            <div class="aichat-bubble" :class="msg.role === 'user' ? 'aichat-bubble--user' : 'aichat-bubble--bot'">
+              <p class="aichat-bubble-text">{{ msg.text }}</p>
+
+              <!-- RAG sources -->
+              <div v-if="msg.sources && msg.sources.length > 0" class="aichat-sources">
+                <div class="aichat-sources-label">
+                  <BookOpen :size="11" />
+                  <span>Tài liệu tham khảo:</span>
+                </div>
+                <div class="aichat-sources-list">
+                  <span
+                    v-for="(src, si) in msg.sources"
+                    :key="si"
+                    class="aichat-source-tag"
+                    :title="src.content_preview"
+                  >
+                    [{{ si + 1 }}] {{ src.source_file }}
+                    <em class="aichat-source-pct">{{ Math.round(src.relevance_score) }}%</em>
+                  </span>
                 </div>
               </div>
-
-              <!-- Timestamp -->
-              <span class="chat-msg-time">{{ msg.time }}</span>
             </div>
-
-            <!-- User avatar -->
-            <div v-if="msg.role === 'user'" class="chat-msg-avatar chat-msg-avatar--user">
-              {{ userInitial }}
-            </div>
+            <!-- Time -->
+            <span class="aichat-time">{{ msg.time }}</span>
           </div>
 
-          <!-- Typing indicator -->
-          <div v-if="loading" class="chat-msg-row is-bot">
-            <div class="chat-msg-avatar">
-              <Bot :size="16" />
-            </div>
-            <div class="chat-bubble chat-bubble--bot chat-bubble--typing">
-              <span class="chat-dot" style="animation-delay: 0ms" />
-              <span class="chat-dot" style="animation-delay: 140ms" />
-              <span class="chat-dot" style="animation-delay: 280ms" />
-            </div>
+          <!-- User avatar -->
+          <div v-if="msg.role === 'user'" class="aichat-row-avatar aichat-row-avatar--user">
+            {{ userInitial }}
           </div>
-        </template>
-      </div>
-
-      <!-- Input Bar -->
-      <div class="chat-input-bar">
-        <!-- Quick suggestions when chat has messages -->
-        <div v-if="messages.length > 0 && messages.length < 3 && !loading" class="chat-quick-chips">
-          <button
-            v-for="q in suggestions.slice(0, 3)"
-            :key="q.text"
-            class="chat-quick-chip"
-            @click="sendQuick(q.text)"
-          >
-            {{ q.text }}
-          </button>
         </div>
 
-        <form class="chat-form" @submit.prevent="sendMessage">
-          <textarea
-            ref="inputRef"
-            v-model="input"
-            class="chat-textarea"
-            placeholder="Nhập câu hỏi... (Enter để gửi, Shift+Enter xuống dòng)"
-            rows="1"
-            @keydown.enter.exact.prevent="sendMessage"
-            @input="autoResize"
-          />
-          <button
-            type="submit"
-            class="chat-send-btn"
-            :disabled="!input.trim() || loading"
-          >
-            <ArrowUp :size="18" />
-          </button>
-        </form>
-        <p class="chat-disclaimer">AI có thể mắc lỗi — vui lòng kiểm tra lại thông tin quan trọng.</p>
-      </div>
+        <!-- Typing indicator -->
+        <div v-if="loading" class="aichat-row is-bot">
+          <div class="aichat-row-avatar"><Bot :size="14" /></div>
+          <div class="aichat-bubble aichat-bubble--bot aichat-bubble--typing">
+            <span class="aichat-dot" style="animation-delay:0ms" />
+            <span class="aichat-dot" style="animation-delay:140ms" />
+            <span class="aichat-dot" style="animation-delay:280ms" />
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- ── Quick chips (shown when chat started) ── -->
+    <div v-if="messages.length > 0 && messages.length < 4 && !loading" class="aichat-quick-row">
+      <button
+        v-for="q in suggestions.slice(0, 3)"
+        :key="q"
+        class="aichat-chip aichat-chip--sm"
+        @click="sendQuick(q)"
+      >
+        {{ q }}
+      </button>
+    </div>
+
+    <!-- ── Input Bar ── -->
+    <div class="aichat-input-bar">
+      <form class="aichat-form" @submit.prevent="sendMessage">
+        <textarea
+          ref="inputRef"
+          v-model="input"
+          class="aichat-textarea"
+          placeholder="Nhập câu hỏi... (Enter để gửi, Shift+Enter xuống dòng)"
+          rows="1"
+          @keydown.enter.exact.prevent="sendMessage"
+          @input="autoResize"
+        />
+        <button
+          type="submit"
+          class="aichat-send"
+          :disabled="!input.trim() || loading"
+          aria-label="Gửi"
+        >
+          <ArrowUp :size="18" />
+        </button>
+      </form>
+      <p class="aichat-disclaimer">AI có thể mắc lỗi — vui lòng kiểm tra thông tin quan trọng.</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, reactive, ref, computed } from 'vue'
-import { Bot, Sparkles, RotateCcw, ArrowUp, BookOpen, GraduationCap, BookMarked, Map, HelpCircle } from 'lucide-vue-next'
+import { computed, nextTick, reactive, ref } from 'vue'
+import { Bot, Sparkles, RotateCcw, ArrowUp, BookOpen } from 'lucide-vue-next'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
 definePageMeta({ layout: 'student', middleware: ['auth', 'student'] })
-
 useHead({ title: 'Chat với AI | Sylva LMS' })
 
 const auth = useAuthStore()
-const loading = ref(false)
-const input = ref('')
-const msgBox = ref<HTMLElement | null>(null)
-const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 const userInitial = computed(() => {
-  const name = auth.user?.name || 'S'
+  const name = auth.user?.name || 'SV'
   return name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
 })
+
+const loading  = ref(false)
+const input    = ref('')
+const msgBox   = ref<HTMLElement | null>(null)
+const inputRef = ref<HTMLTextAreaElement | null>(null)
 
 interface ChatSource {
   source_file: string
@@ -188,15 +179,15 @@ interface Message {
 const messages = reactive<Message[]>([])
 
 const suggestions = [
-  { text: 'Giải thích khái niệm hướng đối tượng (OOP)', icon: BookMarked },
-  { text: 'Tìm khóa học phù hợp với tôi', icon: GraduationCap },
-  { text: 'Lộ trình học lập trình Web từ đầu', icon: Map },
-  { text: 'Cách sử dụng hệ thống Sylva LMS', icon: HelpCircle },
-  { text: 'Ôn tập cấu trúc dữ liệu và giải thuật', icon: BookMarked },
-  { text: 'Các môn học ngành Công nghệ thông tin PTIT', icon: GraduationCap },
+  'Giải thích khái niệm hướng đối tượng (OOP)',
+  'Tìm khóa học phù hợp với tôi',
+  'Lộ trình học lập trình Web từ đầu',
+  'Ôn tập cấu trúc dữ liệu và giải thuật',
+  'Các môn học ngành CNTT PTIT',
+  'Cách sử dụng hệ thống Sylva LMS',
 ]
 
-function formatTime() {
+function now() {
   return new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 }
 
@@ -205,20 +196,20 @@ function sendQuick(text: string) {
   sendMessage()
 }
 
+function clearChat() {
+  messages.splice(0, messages.length)
+}
+
 async function sendMessage() {
   const text = input.value.trim()
   if (!text || loading.value) return
 
   if (!auth.isLoggedIn || !auth.token) {
-    messages.push({
-      role: 'assistant',
-      text: 'Vui lòng đăng nhập để sử dụng Trợ lý AI.',
-      time: formatTime(),
-    })
+    messages.push({ role: 'assistant', text: 'Vui lòng đăng nhập để sử dụng Trợ lý AI.', time: now() })
     return
   }
 
-  messages.push({ role: 'user', text, time: formatTime() })
+  messages.push({ role: 'user', text, time: now() })
   input.value = ''
   loading.value = true
   resetTextarea()
@@ -241,24 +232,22 @@ async function sendMessage() {
     messages.push({
       role: 'assistant',
       text: res.reply || 'Hệ thống chưa có phản hồi cho yêu cầu này.',
-      time: formatTime(),
+      time: now(),
       sources: res.sources,
       has_rag_context: res.has_rag_context,
     })
-  } catch {
+  }
+  catch {
     messages.push({
       role: 'assistant',
       text: 'Lỗi kết nối. Trợ lý AI hiện không khả dụng, vui lòng thử lại sau.',
-      time: formatTime(),
+      time: now(),
     })
-  } finally {
+  }
+  finally {
     loading.value = false
     scrollToBottom()
   }
-}
-
-function clearChat() {
-  messages.splice(0, messages.length)
 }
 
 function scrollToBottom() {
@@ -280,515 +269,318 @@ function resetTextarea() {
 </script>
 
 <style scoped>
-/* ── Layout ── */
-.chat-page {
+/* ── Wrapper — fills sv-content ── */
+.aichat-wrap {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 0px);
-  background: var(--bg, #eff2f0);
+  flex: 1;
+  height: 100%;
+  min-height: 500px;
+  background: var(--surface-strong, #fff);
+  border: 1px solid var(--line, #dde5e1);
+  border-radius: 16px;
+  overflow: hidden;
   font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+  box-shadow: 0 4px 24px -8px rgba(8,80,65,.08);
 }
 
-/* ── Hero Header ── */
-.chat-hero {
-  background: linear-gradient(135deg, #071812 0%, #0d2e1e 100%);
-  flex-shrink: 0;
-  padding: 0 24px;
-}
-
-.chat-hero-inner {
+/* ── Header ── */
+.aichat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 900px;
-  margin: 0 auto;
-  height: 64px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #071812 0%, #0d2e1e 100%);
+  flex-shrink: 0;
 }
 
-.chat-hero-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
+.aichat-header-left { display: flex; align-items: center; gap: 12px; }
 
-.chat-hero-avatar {
+.aichat-avatar-ring {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 40px; height: 40px;
   border-radius: 50%;
-  background: rgba(29, 158, 117, 0.2);
-  border: 1.5px solid rgba(29, 158, 117, 0.4);
+  background: rgba(29,158,117,.2);
+  border: 1.5px solid rgba(29,158,117,.4);
   display: grid;
   place-items: center;
   color: #5ddfb4;
   flex-shrink: 0;
 }
 
-.chat-hero-pulse {
+.aichat-status-dot {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 10px;
-  height: 10px;
+  top: 1px; right: 1px;
+  width: 10px; height: 10px;
   border-radius: 50%;
   background: #5ddfb4;
   border: 2px solid #071812;
-  animation: hero-pulse 2.5s ease-in-out infinite;
+  animation: dot-blink 2.5s ease-in-out infinite;
 }
 
-@keyframes hero-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.85); }
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .4; }
 }
 
-.chat-hero-title {
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  margin: 0 0 2px;
+.aichat-title {
+  font-size: .95rem; font-weight: 800; color: #fff; margin: 0 0 2px;
 }
 
-.chat-hero-sub {
-  font-size: 0.74rem;
-  color: rgba(255, 255, 255, 0.65);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin: 0;
+.aichat-subtitle {
+  font-size: .7rem; color: rgba(255,255,255,.6); margin: 0;
 }
 
-.chat-online-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #5ddfb4;
-  flex-shrink: 0;
-}
-
-.chat-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.78rem;
-  font-weight: 600;
+.aichat-clear-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 13px;
+  border-radius: 9px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.7);
+  font-size: .76rem; font-weight: 600; font-family: inherit;
   cursor: pointer;
-  font-family: inherit;
-  transition: background 140ms ease, color 140ms ease;
+  transition: background 140ms, color 140ms;
 }
-
-.chat-clear-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-}
-
-/* ── Body ── */
-.chat-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+.aichat-clear-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
 
 /* ── Messages ── */
-.chat-messages {
+.aichat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 28px 24px;
+  padding: 20px 20px 12px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  scroll-behavior: smooth;
+  gap: 16px;
+  background: var(--bg, #f5f7f6);
 }
 
-.chat-messages::-webkit-scrollbar { width: 4px; }
-.chat-messages::-webkit-scrollbar-track { background: transparent; }
-.chat-messages::-webkit-scrollbar-thumb {
-  background: var(--line-strong, rgba(31,49,43,.16));
-  border-radius: 4px;
+.aichat-messages::-webkit-scrollbar { width: 4px; }
+.aichat-messages::-webkit-scrollbar-track { background: transparent; }
+.aichat-messages::-webkit-scrollbar-thumb {
+  background: rgba(31,49,43,.14); border-radius: 4px;
 }
 
-/* ── Empty State ── */
-.chat-empty {
-  margin: auto;
-  text-align: center;
-  max-width: 540px;
-  padding: 40px 20px;
+/* ── Welcome ── */
+.aichat-welcome {
+  margin: auto; text-align: center; max-width: 500px; padding: 32px 16px;
 }
 
-.chat-empty-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 20px;
+.aichat-welcome-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 16px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(29,158,117,.15) 0%, rgba(8,80,65,.08) 100%);
   border: 1px solid rgba(29,158,117,.25);
-  display: grid;
-  place-items: center;
+  display: grid; place-items: center;
   color: var(--green, #1d9e75);
 }
 
-.chat-empty-title {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--text, #1f312b);
-  margin: 0 0 8px;
+.aichat-welcome-title {
+  font-size: 1.15rem; font-weight: 800;
+  color: var(--text, #1f312b); margin: 0 0 8px;
 }
 
-.chat-empty-lead {
-  font-size: 0.88rem;
-  color: var(--muted, #4a6059);
-  line-height: 1.6;
-  margin: 0 0 28px;
+.aichat-welcome-desc {
+  font-size: .85rem; color: var(--muted, #4a6059);
+  line-height: 1.65; margin: 0 0 24px;
 }
 
-.chat-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
+/* ── Chips ── */
+.aichat-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
 }
 
-.chat-suggestion {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 16px;
-  border-radius: 12px;
+.aichat-chip {
+  padding: 8px 15px; border-radius: 12px;
   border: 1.5px solid rgba(8,80,65,.2);
   background: var(--surface-strong, #fff);
   color: var(--green-deep, #085041);
-  font-size: 0.81rem;
-  font-weight: 600;
-  font-family: inherit;
+  font-size: .8rem; font-weight: 600; font-family: inherit;
   cursor: pointer;
-  transition: all 160ms ease;
-  text-align: left;
+  transition: all 150ms ease;
   box-shadow: 0 1px 4px rgba(31,49,43,.07);
+  text-align: left;
 }
 
-.chat-suggestion:hover {
+.aichat-chip:hover {
   background: var(--green-soft, #e1f5ee);
   border-color: var(--green, #1d9e75);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(29,158,117,.18);
+  box-shadow: 0 4px 12px rgba(29,158,117,.15);
 }
 
-/* ── Message Row ── */
-.chat-msg-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  max-width: 860px;
-  margin: 0 auto;
-  width: 100%;
+.aichat-chip--sm {
+  font-size: .76rem; padding: 5px 12px; border-radius: 999px;
 }
 
-.chat-msg-row.is-user { flex-direction: row-reverse; }
+/* ── Rows ── */
+.aichat-row { display: flex; align-items: flex-end; gap: 8px; }
+.aichat-row.is-user { flex-direction: row-reverse; }
 
-.chat-msg-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-width: 72%;
+.aichat-row-body {
+  display: flex; flex-direction: column; gap: 3px; max-width: 72%;
 }
+.is-user .aichat-row-body { align-items: flex-end; }
 
-.is-user .chat-msg-wrap { align-items: flex-end; }
-
-/* ── Avatars ── */
-.chat-msg-avatar {
-  width: 32px;
-  height: 32px;
+.aichat-row-avatar {
+  width: 28px; height: 28px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
   background: #c8e6da;
-  border: 1.5px solid rgba(8,80,65,.25);
+  border: 1.5px solid rgba(8,80,65,.2);
+  display: grid; place-items: center;
   color: var(--green-deep, #085041);
+  flex-shrink: 0;
+  font-size: .68rem; font-weight: 800;
 }
 
-.chat-msg-avatar--user {
+.aichat-row-avatar--user {
   background: linear-gradient(135deg, var(--green,#1d9e75), var(--green-deep,#085041));
-  color: #fff;
-  border-color: transparent;
+  color: #fff; border-color: transparent;
 }
 
 /* ── Bubbles ── */
-.chat-bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  word-break: break-word;
+.aichat-bubble {
+  padding: 10px 14px; border-radius: 16px;
+  font-size: .875rem; line-height: 1.65; word-break: break-word;
 }
 
-.chat-bubble--user {
+.aichat-bubble--user {
   background: linear-gradient(135deg, var(--green,#1d9e75) 0%, var(--green-deep,#085041) 100%);
   color: #fff;
-  border-radius: 18px 18px 4px 18px;
-  box-shadow: 0 4px 16px -6px rgba(29,158,117,.55);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: 0 4px 14px -6px rgba(29,158,117,.55);
 }
 
-.chat-bubble--bot {
+.aichat-bubble--bot {
   background: var(--surface-strong, #fff);
   color: var(--text, #1f312b);
   border: 1px solid var(--line, #dde5e1);
-  border-radius: 4px 18px 18px 18px;
-  box-shadow: 0 2px 8px rgba(31,49,43,.07);
+  border-radius: 4px 16px 16px 16px;
+  box-shadow: 0 1px 4px rgba(31,49,43,.07);
 }
 
-.chat-bubble-text { margin: 0; white-space: pre-wrap; }
+.aichat-bubble-text { margin: 0; white-space: pre-wrap; }
 
-/* ── Typing ── */
-.chat-bubble--typing {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 14px 20px;
+.aichat-bubble--typing {
+  display: flex; align-items: center; gap: 5px; padding: 12px 18px;
 }
 
-.chat-dot {
-  display: block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green, #1d9e75);
-  animation: chat-bounce 1s ease-in-out infinite;
+.aichat-dot {
+  display: block; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--green, #1d9e75);
+  animation: dot-bounce 1s ease-in-out infinite;
 }
 
-@keyframes chat-bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
-  40% { transform: translateY(-6px); opacity: 1; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: .5; }
+  40%           { transform: translateY(-5px); opacity: 1; }
 }
 
-/* ── Timestamp ── */
-.chat-msg-time {
-  font-size: 0.7rem;
-  color: var(--muted, #7a9c8e);
-  padding: 0 4px;
-}
+.aichat-time { font-size: .68rem; color: var(--muted, #8aaa9c); padding: 0 3px; }
 
 /* ── RAG Sources ── */
-.chat-sources {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(0,0,0,.1);
+.aichat-sources {
+  margin-top: 8px; padding-top: 7px;
+  border-top: 1px dashed rgba(0,0,0,.08);
 }
 
-.chat-sources-header {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.71rem;
-  font-weight: 700;
-  color: var(--muted, #4a6059);
-  margin-bottom: 6px;
+.aichat-sources-label {
+  display: flex; align-items: center; gap: 4px;
+  font-size: .69rem; font-weight: 700;
+  color: var(--muted, #4a6059); margin-bottom: 5px;
 }
 
-.chat-sources-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
+.aichat-sources-list { display: flex; flex-wrap: wrap; gap: 4px; }
 
-.chat-source-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(8,80,65,.06);
+.aichat-source-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: rgba(8,80,65,.05);
   border: 1px solid rgba(8,80,65,.12);
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  color: var(--green-deep, #085041);
-  font-weight: 500;
-  cursor: help;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 2px 7px; border-radius: 999px;
+  font-size: .68rem; color: var(--green-deep, #085041);
+  font-weight: 500; cursor: help;
+  max-width: 180px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
 }
 
-.chat-source-pct {
-  font-size: 0.65rem;
-  color: var(--green, #1d9e75);
-  font-style: normal;
-  font-weight: 600;
+.aichat-source-pct {
+  font-size: .63rem; color: var(--green, #1d9e75);
+  font-style: normal; font-weight: 700;
 }
 
-/* ── Input Bar ── */
-.chat-input-bar {
+/* ── Quick row ── */
+.aichat-quick-row {
+  display: flex; gap: 7px; flex-wrap: wrap;
+  padding: 8px 20px 0;
+  background: var(--bg, #f5f7f6);
+}
+
+/* ── Input bar ── */
+.aichat-input-bar {
   flex-shrink: 0;
-  padding: 12px 24px 16px;
+  padding: 10px 20px 14px;
   border-top: 1px solid var(--line, #dde5e1);
   background: var(--surface-strong, #fff);
 }
 
-.chat-quick-chips {
-  display: flex;
-  gap: 7px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-
-.chat-quick-chip {
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1.5px solid rgba(8,80,65,.22);
-  background: var(--bg, #eff2f0);
-  color: var(--green-deep, #085041);
-  font-size: 0.77rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 140ms ease;
-}
-
-.chat-quick-chip:hover {
-  background: var(--green-soft, #e1f5ee);
-  border-color: var(--green, #1d9e75);
-}
-
-.chat-form {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  background: var(--bg, #eff2f0);
+.aichat-form {
+  display: flex; align-items: flex-end; gap: 8px;
+  background: var(--bg, #f5f7f6);
   border: 1.5px solid var(--line, #dde5e1);
-  border-radius: 16px;
-  padding: 6px 6px 6px 16px;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-  max-width: 900px;
-  margin: 0 auto;
+  border-radius: 14px;
+  padding: 5px 5px 5px 14px;
+  transition: border-color 150ms, box-shadow 150ms;
 }
 
-.chat-form:focus-within {
+.aichat-form:focus-within {
   border-color: rgba(29,158,117,.5);
   box-shadow: 0 0 0 3px rgba(29,158,117,.1);
 }
 
-.chat-textarea {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 0.875rem;
-  color: var(--text, #1f312b);
-  outline: none;
-  resize: none;
-  font-family: inherit;
-  line-height: 1.6;
-  padding: 7px 0;
-  min-height: 36px;
-  max-height: 140px;
-  overflow-y: auto;
+.aichat-textarea {
+  flex: 1; border: none; background: transparent;
+  font-size: .875rem; color: var(--text, #1f312b);
+  outline: none; resize: none; font-family: inherit;
+  line-height: 1.55; padding: 7px 0;
+  min-height: 34px; max-height: 140px; overflow-y: auto;
 }
 
-.chat-textarea::placeholder { color: var(--muted, #7a9c8e); }
+.aichat-textarea::placeholder { color: var(--muted, #8aaa9c); }
 
-.chat-send-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: none;
+.aichat-send {
+  width: 38px; height: 38px; border-radius: 10px; border: none;
   background: linear-gradient(135deg, var(--green,#1d9e75) 0%, var(--green-deep,#085041) 100%);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: opacity 140ms ease, transform 140ms ease;
-  box-shadow: 0 4px 12px -4px rgba(29,158,117,.6);
+  color: #fff; display: grid; place-items: center; cursor: pointer; flex-shrink: 0;
+  transition: opacity 130ms, transform 130ms;
+  box-shadow: 0 4px 10px -4px rgba(29,158,117,.6);
 }
 
-.chat-send-btn:hover:not(:disabled) {
-  opacity: 0.88;
-  transform: scale(1.06);
+.aichat-send:hover:not(:disabled) { opacity: .88; transform: scale(1.06); }
+
+.aichat-send:disabled {
+  opacity: .32; cursor: not-allowed; box-shadow: none; transform: none;
 }
 
-.chat-send-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.aichat-disclaimer {
+  text-align: center; font-size: .68rem;
+  color: var(--muted, #8aaa9c); margin: 7px 0 0;
 }
 
-.chat-disclaimer {
-  text-align: center;
-  font-size: 0.69rem;
-  color: var(--muted, #7a9c8e);
-  margin: 8px 0 0;
-}
-
-/* ── Dark Mode ── */
-[data-theme="dark"] .chat-hero { background: linear-gradient(135deg, #030d07 0%, #071812 100%); }
-
-[data-theme="dark"] .chat-messages { background: #0a1910; }
-
-[data-theme="dark"] .chat-bubble--bot {
-  background: #132a1f;
-  border-color: rgba(255,255,255,.1);
-  color: #d4e8df;
-  box-shadow: none;
-}
-
-[data-theme="dark"] .chat-msg-avatar {
-  background: #1d4535;
-  border-color: rgba(93,223,180,.3);
-}
-
-[data-theme="dark"] .chat-empty-title { color: #d4e8df; }
-[data-theme="dark"] .chat-empty-lead  { color: #a3b8b0; }
-
-[data-theme="dark"] .chat-suggestion {
-  background: #132a1f;
-  border-color: rgba(93,223,180,.2);
-  color: #5ddfb4;
-  box-shadow: none;
-}
-
-[data-theme="dark"] .chat-suggestion:hover {
-  background: #1d4535;
-  border-color: #5ddfb4;
-}
-
-[data-theme="dark"] .chat-source-tag {
-  background: rgba(93,223,180,.08);
-  border-color: rgba(93,223,180,.2);
-  color: #5ddfb4;
-}
-
-[data-theme="dark"] .chat-input-bar {
-  background: #0f1f18;
-  border-color: rgba(255,255,255,.08);
-}
-
-[data-theme="dark"] .chat-form {
-  background: rgba(255,255,255,.05);
-  border-color: rgba(255,255,255,.1);
-}
-
-[data-theme="dark"] .chat-textarea { color: #e2ede9; }
-[data-theme="dark"] .chat-textarea::placeholder { color: rgba(255,255,255,.35); }
-
-[data-theme="dark"] .chat-quick-chip {
-  background: #132a1f;
-  border-color: rgba(93,223,180,.25);
-  color: #5ddfb4;
-}
-
-[data-theme="dark"] .chat-quick-chip:hover {
-  background: #1d4535;
-  border-color: #5ddfb4;
-}
-
-[data-theme="dark"] .chat-sources { border-top-color: rgba(255,255,255,.1); }
-[data-theme="dark"] .chat-sources-header { color: #a3b8b0; }
+/* ── Dark mode ── */
+[data-theme="dark"] .aichat-wrap { background: #0f1f18; border-color: rgba(255,255,255,.07); }
+[data-theme="dark"] .aichat-messages { background: #0a1910; }
+[data-theme="dark"] .aichat-bubble--bot { background: #132a1f; border-color: rgba(255,255,255,.1); color: #d4e8df; box-shadow: none; }
+[data-theme="dark"] .aichat-row-avatar { background: #1d4535; border-color: rgba(93,223,180,.3); }
+[data-theme="dark"] .aichat-welcome-title { color: #d4e8df; }
+[data-theme="dark"] .aichat-welcome-desc  { color: #a3b8b0; }
+[data-theme="dark"] .aichat-chip { background: #132a1f; border-color: rgba(93,223,180,.2); color: #5ddfb4; box-shadow: none; }
+[data-theme="dark"] .aichat-chip:hover { background: #1d4535; border-color: #5ddfb4; }
+[data-theme="dark"] .aichat-source-tag { background: rgba(93,223,180,.07); border-color: rgba(93,223,180,.2); color: #5ddfb4; }
+[data-theme="dark"] .aichat-quick-row { background: #0a1910; }
+[data-theme="dark"] .aichat-input-bar { background: #0f1f18; border-color: rgba(255,255,255,.07); }
+[data-theme="dark"] .aichat-form { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.09); }
+[data-theme="dark"] .aichat-textarea { color: #e2ede9; }
+[data-theme="dark"] .aichat-sources { border-top-color: rgba(255,255,255,.1); }
+[data-theme="dark"] .aichat-sources-label { color: #a3b8b0; }
 </style>

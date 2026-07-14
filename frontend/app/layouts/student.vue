@@ -84,6 +84,8 @@ const userInitials = computed(() => {
   const name = user.value?.name || 'SV'
   return name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
 })
+
+const isChatPage = computed(() => route.path === '/student/ai-chat')
 </script>
 
 <template>
@@ -160,7 +162,7 @@ const userInitials = computed(() => {
         settings-path="/student"
         @toggle-sidebar="sidebarOpen = !sidebarOpen"
       />
-      <div class="sv-content">
+      <div class="sv-content" :class="{ 'is-chat-page': isChatPage }">
         <slot />
       </div>
       <AdminFooter />
@@ -329,6 +331,12 @@ const userInitials = computed(() => {
   flex: 1;
   padding: 28px 32px 40px;
   background: #ffffff !important;
+}
+.sv-content.is-chat-page {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 [data-theme="dark"] .sv-content {
   background: var(--surface, #161920) !important;
