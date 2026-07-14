@@ -62,7 +62,7 @@ class StudentAnalyticsService
                 $completedLessons = DB::table('lesson_progress')
                     ->where('user_id', $user->id)
                     ->whereIn('lesson_id', $course->lessons()->pluck('id'))
-                    ->where('is_completed', true)
+                    ->where('completed', true)
                     ->count();
 
                 $progress = $totalLessons > 0 ? round(($completedLessons / $totalLessons) * 100, 1) : 0;
