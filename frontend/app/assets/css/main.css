@@ -24,6 +24,15 @@
     --theme-secondary-hover: #075985;
     --theme-secondary-rgb:   3, 105, 161;
 
+    /* Shared surface/text tokens — mirrored from admin-ui DESIGN.md */
+    --text:           #0d1f1a;
+    --muted:           #6b7c73;
+    --line:            rgba(0, 0, 0, 0.09);
+    --surface:         #f6f8f7;
+    --surface-strong:  #ffffff;
+    --danger:          #b91c1c;
+    --danger-soft:     #fee2e2;
+
     /* PrimeVue palette aliases (overridden at runtime) */
     --p-primary-50:  #f0f9ff;
     --p-primary-100: #e0f2fe;

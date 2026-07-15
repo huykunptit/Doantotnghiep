@@ -84,7 +84,7 @@
               <h3 class="car-upload-side-title">AI sẽ giúp bạn</h3>
               <ul class="car-feature-list">
                 <li v-for="feat in uploadFeatures" :key="feat.text">
-                  <span class="car-feature-icon"><component :is="feat.icon" :size="18" /></span>
+                  <span class="car-feature-icon"><i :class="`pi pi-${feat.icon}`" style="font-size:1.125rem" /></span>
                   <span>{{ feat.text }}</span>
                 </li>
               </ul>
@@ -135,7 +135,7 @@
                   @click="getRecommendations"
                 >
                   <span v-if="loadingRecommendations" class="car-spinner-sm" />
-                  <Sparkles v-else :size="16" />
+                  <i v-else class="pi pi-sparkles" style="font-size:1rem" />
                   <span>{{ loadingRecommendations ? 'Đang phân tích...' : 'Phân tích với AI' }}</span>
                 </button>
               </div>
@@ -256,7 +256,7 @@
                     >
                       <div class="car-course-thumb">
                         <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
-                        <BookOpen v-else :size="32" color="var(--green-deep)" />
+                        <i v-else class="pi pi-book" style="font-size:2rem;color:var(--green-deep)" />
                       </div>
                       <div class="car-course-body">
                         <strong class="car-course-title">{{ course.title }}</strong>
@@ -293,7 +293,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 
@@ -310,10 +309,10 @@ const isDragging = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const uploadFeatures = [
-  { icon: ScanSearch, text: 'Trích xuất & phân tích kỹ năng từ CV' },
-  { icon: Target, text: 'Đánh giá mức độ phù hợp với mục tiêu nghề nghiệp' },
-  { icon: Route, text: 'Xác định khoảng trống kỹ năng cần bổ sung' },
-  { icon: GraduationCap, text: 'Gợi ý lộ trình & khóa học cá nhân hóa' },
+  { icon: 'search', text: 'Trích xuất & phân tích kỹ năng từ CV' },
+  { icon: 'circle', text: 'Đánh giá mức độ phù hợp với mục tiêu nghề nghiệp' },
+  { icon: 'directions', text: 'Xác định khoảng trống kỹ năng cần bổ sung' },
+  { icon: 'graduation-cap', text: 'Gợi ý lộ trình & khóa học cá nhân hóa' },
 ]
 
 const matchScore = computed(() => {
@@ -369,7 +368,7 @@ const loadInitialData = async () => {
 const ALLOWED_EXT = ['pdf', 'doc', 'docx']
 const MAX_SIZE = 10 * 1024 * 1024
 
-const uploadCv = async (file: File) => {
+const uploadCv = async (file: 'file') => {
   if (uploading.value) return
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
   if (!ALLOWED_EXT.includes(ext)) {

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
 import { useCourseStore } from '~/stores/course'

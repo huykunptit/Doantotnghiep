@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useCourseStore } from '~/stores/course'
 
 definePageMeta({ middleware: 'auth' })
@@ -104,7 +103,7 @@ onMounted(async () => {
           </div>
           <div class="mc-stat-row">
             <div class="mc-stat-icon mc-stat-icon--blue">
-              <CheckCheck :size="20" :stroke-width="1.75" />
+              <i class="pi pi-check-circle" style="font-size:1.25rem" />
             </div>
             <div>
               <p class="mc-stat-val">0</p>
@@ -140,7 +139,7 @@ onMounted(async () => {
             <span class="mc-card-action">
               {{ e.progress >= 100 ? 'Xem lại' : 'Tiếp tục' }}
               <CheckCheck v-if="e.progress >= 100" :size="13" :stroke-width="2.5" />
-              <Play v-else :size="12" :stroke-width="2.5" />
+              <i v-else class="pi pi-play" style="font-size:0.75rem" />
             </span>
           </div>
         </div>

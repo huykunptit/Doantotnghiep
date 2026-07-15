@@ -19,10 +19,10 @@
           class="text-2xl transition-colors focus:outline-none"
           :class="(hoverRating || reviewForm.rating) >= star ? 'text-amber-400' : 'text-surface-dim'"
         >
-          <Star
-            :size="24"
-            :stroke-width="1.75"
-            :style="{ fill: (hoverRating || reviewForm.rating) >= star ? 'currentColor' : 'none' }"
+          <i
+            class="pi pi-star"
+            style="font-size:1.5rem"
+            :style="{ color: (hoverRating || reviewForm.rating) >= star ? '#FBBF24' : '#D1D5DB', fill: (hoverRating || reviewForm.rating) >= star ? '#FBBF24' : 'none' }"
           />
         </button>
         <span v-if="reviewForm.rating" class="ml-2 text-sm font-bold text-amber-500">{{ reviewForm.rating }} / 5</span>
@@ -62,13 +62,12 @@
             <div>
               <p class="text-sm font-bold text-on-surface">{{ review.user?.name || 'Học viên ẩn danh' }}</p>
               <div class="flex items-center gap-1 mt-0.5">
-                <Star
+                <i
                   v-for="star in 5"
                   :key="star"
-                  :size="14"
-                  :stroke-width="1.75"
-                  :class="star <= review.rating ? 'text-amber-400' : 'text-surface-dim'"
-                  :style="{ fill: star <= review.rating ? 'currentColor' : 'none' }"
+                  class="pi pi-star"
+                  style="font-size:0.875rem"
+                  :style="{ color: star <= review.rating ? '#FBBF24' : '#D1D5DB' }"
                 />
                 <span class="ml-2 text-xs text-on-surface-variant">{{ relativeTime(review.created_at) }}</span>
               </div>
@@ -90,7 +89,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-// Icons removed - using PrimeIcons
 import { useApi } from '~/composables/useApi'
 import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
 import { useToast } from '~/composables/useToast'

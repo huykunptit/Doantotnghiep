@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -513,7 +512,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
                   </span>
                 </div>
                 <button class="add-btn-small" @click="openAddCourseModal(term)">
-                  <PlusCircle :size="14" /> Thêm môn
+                  <i class="pi pi-plus-circle" style="font-size:0.875rem" /> Thêm môn
                 </button>
               </div>
 

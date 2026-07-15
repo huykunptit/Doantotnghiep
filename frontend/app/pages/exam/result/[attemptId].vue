@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -77,8 +76,8 @@ onMounted(fetchResult)
       <!-- Result hero card -->
       <div class="result-hero dashboard-card" :class="isPassed ? 'hero-pass' : 'hero-fail'">
         <div class="hero-icon-wrap" :class="isPassed ? 'icon-pass' : 'icon-fail'">
-          <Trophy v-if="isPassed" :size="36" :stroke-width="1.75" />
-          <Frown v-else :size="36" :stroke-width="1.75" />
+          <i v-if="isPassed" class="pi pi-trophy" style="font-size:2.25rem" />
+          <i v-else class="pi pi-face-frown" style="font-size:2.25rem" />
         </div>
 
         <div class="hero-copy">
@@ -170,8 +169,8 @@ onMounted(fetchResult)
             <div class="ans-header">
               <span class="ans-num">Câu {{ i + 1 }}</span>
               <span class="ans-verdict" :class="ans.is_correct ? 'verdict-pass' : 'verdict-fail'">
-                <CheckCircle2 v-if="ans.is_correct" :size="14" :stroke-width="2" />
-                <XCircle v-else :size="14" :stroke-width="2" />
+                <i v-if="ans.is_correct" class="pi pi-check-circle" style="font-size:0.875rem" />
+                <i v-else class="pi pi-times-circle" style="font-size:0.875rem" />
                 {{ ans.is_correct ? 'Đúng' : 'Sai' }}
               </span>
             </div>

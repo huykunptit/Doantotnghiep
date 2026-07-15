@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { LESSON_TYPE_LABELS } from '~/constants/lesson-types'
-// Icons removed - using PrimeIcons
 
 const props = defineProps<{
   lesson: any
@@ -26,18 +25,18 @@ function formatDuration(seconds: number) {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-function getLessonIconComponent(lesson: any) {
+function getLessonIcon(lesson: any) {
   const type = lesson.type || 'video'
-  const map: Record<string, any> = {
-    video: Film,
-    document: BookOpen,
-    assignment: ClipboardList,
-    virtual_class: MonitorPlay,
-    scorm: Package,
-    h5p: Cpu,
-    quiz: FileQuestion,
+  const map: Record<string, string> = {
+    video: 'video',
+    document: 'file',
+    assignment: 'list',
+    virtual_class: 'video',
+    scorm: 'box',
+    h5p: 'desktop',
+    quiz: 'question-circle',
   }
-  return map[type] || BookOpen
+  return map[type] || 'file'
 }
 
 function lessonChip(lesson: any) {
@@ -88,7 +87,7 @@ function typeIconStyle(lesson: any) {
 
     <!-- Visual Type Icon -->
     <div class="lesson-type-icon-box" :style="typeIconStyle(lesson)">
-      <component :is="getLessonIconComponent(lesson)" :size="18" />
+      <i :class="`pi pi-${getLessonIcon(lesson)}`" style="font-size:1.125rem" />
     </div>
 
     <!-- Main Content Info -->
@@ -154,7 +153,7 @@ function typeIconStyle(lesson: any) {
         class="control-btn btn-quiz" 
         title="Thiết lập Quiz trắc nghiệm"
       >
-        <FileQuestion :size="13" />
+        <i class="pi pi-question-circle" style="font-size:0.8125rem" />
         <span>Quiz</span>
       </NuxtLink>
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-// Icons removed - using PrimeIcons
 
 const route = useRoute()
 const router = useRouter()

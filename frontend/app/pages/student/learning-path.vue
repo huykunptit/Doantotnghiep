@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'student' })
 
@@ -147,8 +146,8 @@ function getStatusClass(status: string) {
               </div>
             </div>
             <div class="term-header-right">
-              <ChevronDown v-if="!expandedTerms.includes(term.term_number)" :size="20" />
-              <ChevronUp v-else :size="20" />
+              <i v-if="!expandedTerms.includes(term.term_number)" class="pi pi-chevron-down" style="font-size:1.25rem" />
+              <i v-else class="pi pi-chevron-up" style="font-size:1.25rem" />
             </div>
           </div>
 
@@ -168,9 +167,9 @@ function getStatusClass(status: string) {
               <!-- Course Thumb / Info -->
               <div class="course-row-meta">
                 <div class="course-status-icon">
-                  <CheckCircle2 v-if="course.status === 'completed'" :size="18" class="completed-check" />
-                  <Clock v-else-if="course.status === 'learning'" :size="18" class="learning-clock" />
-                  <HelpCircle v-else :size="18" class="notstarted-help" />
+                  <i v-if="course.status === 'completed'" class="pi pi-check-circle completed-check" style="font-size:1.125rem" />
+                  <i v-else-if="course.status === 'learning'" class="pi pi-clock learning-clock" style="font-size:1.125rem" />
+                  <i v-else class="pi pi-question-circle notstarted-help" style="font-size:1.125rem" />
                 </div>
                 <div class="course-title-block">
                   <NuxtLink :to="`/student/courses/${course.id}`" class="course-link-title">

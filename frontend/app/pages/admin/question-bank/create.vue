@@ -303,7 +303,7 @@ onMounted(fetchBank)
         </section>
       </div>
 
-      <!-- RIGHT: Sidebar -->
+      <!-- RIGHT: 'bars' -->
       <aside class="qf-sidebar">
         <section class="dashboard-card qf-section">
           <h4 class="qf-section-title">Cấu hình</h4>

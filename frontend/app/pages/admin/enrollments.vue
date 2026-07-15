@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -525,7 +524,7 @@ watch(enrollCourseId, loadEnrollments)
       </div>
       
       <div v-if="!enrollTermId" style="text-align:center;padding:3rem;color:var(--text-secondary);border:1px dashed var(--border);border-radius:8px">
-        <BookMarked :size="48" style="opacity:0.2;margin-bottom:1rem" />
+        <i class="pi pi-bookmark" style="font-size:3rem;opacity:0.2;margin-bottom:1rem" />
         <p>Vui lòng chọn Học kỳ để tải danh sách và thực hiện các thao tác ghi danh.</p>
       </div>
     </div>

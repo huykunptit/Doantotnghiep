@@ -13,7 +13,7 @@ export interface AdminUploadResponse {
 export function useAdminUpload() {
   const token = useAuthTokenCookie()
 
-  async function uploadImage(file: File, folder: 'users' | 'settings' | 'courses', oldPath?: string | null) {
+  async function uploadImage(file: 'file', folder: 'users' | 'settings' | 'courses', oldPath?: string | null) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('folder', folder)

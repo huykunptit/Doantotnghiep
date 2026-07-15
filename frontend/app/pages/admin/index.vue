@@ -5,7 +5,6 @@ import { useApi } from '~/composables/useApi'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({
   layout: 'admin',
@@ -153,12 +152,12 @@ const loadStats = async () => {
 onMounted(loadStats)
 
 const quickActions = [
-  { label: 'Thêm lớp hành chính', icon: Plus, to: '/admin/lnd/classes' },
-  { label: 'Danh sách lộ trình', icon: Layers, to: '/admin/lnd/learning-paths' },
-  { label: 'Báo cáo đào tạo', icon: BarChart3, to: '/admin/lnd/reports' },
-  { label: 'Quản trị nhân sự', icon: Users, to: '/admin/users' },
-  { label: 'Theo dõi doanh thu', icon: CreditCard, to: '/admin/orders' },
-  { label: 'Cấu hình hệ thống', icon: Sliders, to: '/admin/settings' },
+  { label: 'Thêm lớp hành chính', icon: 'plus', to: '/admin/lnd/classes' },
+  { label: 'Danh sách lộ trình', icon: 'clone', to: '/admin/lnd/learning-paths' },
+  { label: 'Báo cáo đào tạo', icon: 'chart-bar', to: '/admin/lnd/reports' },
+  { label: 'Quản trị nhân sự', icon: 'users', to: '/admin/users' },
+  { label: 'Theo dõi doanh thu', icon: 'credit-card', to: '/admin/orders' },
+  { label: 'Cấu hình hệ thống', icon: 'cog', to: '/admin/settings' },
 ]
 
 // Chart data from real API
@@ -227,11 +226,11 @@ function notifTypeClass(type: string): string {
       </div>
       <div class="header-action-meta">
         <div class="status-badge">
-          <Activity class="icon-pulse" :size="16" />
+          <i class="pi pi-chart-line icon-pulse" style="font-size:1rem" />
           <span>Hệ thống bình thường</span>
         </div>
         <button class="action-btn-refresh" :disabled="loading" title="Đồng bộ dữ liệu" @click="loadStats">
-          <RefreshCw :class="{ 'spin-anim': loading }" :size="16" />
+          <i class="pi pi-refresh { " style="font-size:1rem" />
           <span>Đồng bộ</span>
         </button>
       </div>
@@ -246,16 +245,16 @@ function notifTypeClass(type: string): string {
         class="action-card"
       >
         <div class="action-icon-wrap">
-          <component :is="action.icon" :size="18" />
+          <i :class="`pi pi-${action.icon}`" style="font-size:1.125rem" />
         </div>
         <span class="action-label">{{ action.label }}</span>
-        <ChevronRight class="action-arrow" :size="16" />
+        <i class="pi pi-chevron-right action-arrow" />
       </NuxtLink>
     </div>
 
     <!-- ══ ERROR STATUS ══ -->
     <div v-if="error" class="error-banner">
-      <AlertTriangle :size="20" />
+      <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
       <span class="error-msg">{{ error }}</span>
       <button class="btn-retry" @click="loadStats">Thử lại</button>
     </div>
@@ -268,7 +267,7 @@ function notifTypeClass(type: string): string {
         <div class="metric-header">
           <span class="metric-title">Doanh thu tích lũy</span>
           <span v-if="revenueDelta !== null" class="metric-delta" :class="revenueDelta >= 0 ? 'is-positive' : 'is-negative'">
-            <component :is="revenueDelta >= 0 ? TrendingUp : TrendingDown" :size="12" />
+            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" style="font-size:0.75rem" />
             {{ Math.abs(revenueDelta) }}% tháng trước
           </span>
         </div>
@@ -308,7 +307,7 @@ function notifTypeClass(type: string): string {
           <div v-else class="classes-split-row">
             <div class="class-split-col">
               <div class="split-num-wrap">
-                <GraduationCap class="text-sky" :size="18" />
+                <i class="pi pi-graduation-cap text-sky" style="font-size:1.125rem" />
                 <span class="split-value">{{ adminClassesCount }}</span>
               </div>
               <span class="split-lbl">Lớp hành chính</span>
@@ -316,7 +315,7 @@ function notifTypeClass(type: string): string {
             <div class="split-divider"></div>
             <div class="class-split-col">
               <div class="split-num-wrap">
-                <BookOpen class="text-indigo" :size="18" />
+                <i class="pi pi-book text-indigo" style="font-size:1.125rem" />
                 <span class="split-value">{{ creditClassesCount }}</span>
               </div>
               <span class="split-lbl">Lớp tín chỉ</span>
@@ -358,7 +357,7 @@ function notifTypeClass(type: string): string {
             </div>
             <div class="metric-indicators">
               <span class="indicator-tag">
-                <CheckCircle class="text-green" :size="12" />
+                <i class="pi pi-check-circle text-green" style="font-size:0.75rem" />
                 {{ (engagement.total_completions || 0).toLocaleString('vi-VN') }} bài học hoàn thành
               </span>
             </div>
@@ -426,7 +425,7 @@ function notifTypeClass(type: string): string {
           <div class="card-body">
             <div class="skeleton-chart" v-if="loading" />
             <div v-else-if="!trafficValues.length" class="chart-empty-state" style="height:260px;">
-              <Activity :size="32" /><span>Chưa có dữ liệu ghi danh</span>
+              <i class="pi pi-chart-line" style="font-size:2rem" /><span>Chưa có dữ liệu ghi danh</span>
             </div>
             <UiAreaChart
               v-else
@@ -577,7 +576,7 @@ function notifTypeClass(type: string): string {
               :center-value="totalCoursesFromStatus"
             />
             <div v-else class="chart-empty-state">
-              <BookMarked :size="32" />
+              <i class="pi pi-bookmark" style="font-size:2rem" />
               <span>Không có dữ liệu bài giảng</span>
             </div>
           </div>

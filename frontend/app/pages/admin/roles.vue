@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useToast } from '~/composables/useToast'
 import { useApi } from '~/composables/useApi'

@@ -346,7 +346,7 @@ async function uploadLessonVideo(lessonId: number) {
   }
 }
 
-async function onVideoFileSelected(file: File | null) {
+async function onVideoFileSelected(file: 'file' | null) {
   videoFile.value = file
   videoUploadError.value = ''
   videoUploadProgress.value = 0

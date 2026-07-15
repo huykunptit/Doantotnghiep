@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
 definePageMeta({ layout: 'admin' })

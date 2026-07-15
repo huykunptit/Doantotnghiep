@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({ middleware: 'auth' })
@@ -9,8 +8,8 @@ const auth = useAuthStore()
 const activeTab = ref<'info' | 'password'>('info')
 
 const tabs = [
-  { id: 'info' as const, label: 'Thông tin cá nhân', icon: User },
-  { id: 'password' as const, label: 'Bảo mật', icon: Lock },
+  { id: 'info' as const, label: 'Thông tin cá nhân', icon: 'user' },
+  { id: 'password' as const, label: 'Bảo mật', icon: 'lock' },
 ]
 
 const roleLabel = computed(() => {

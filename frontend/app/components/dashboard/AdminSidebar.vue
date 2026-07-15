@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Icons removed - using PrimeIcons
 
 defineProps<{
   userName: string
@@ -89,7 +88,7 @@ async function handleLogout() {
               <SylvaIcon :name="item.icon" :size="16" :stroke-width="isActive(item.to) ? 2.25 : 1.75" />
             </span>
             <span class="sl-item-label">{{ item.label }}</span>
-            <ChevronRight v-if="isActive(item.to)" :size="13" :stroke-width="2.5" class="sl-item-chevron" />
+            <i v-if="isActive(item.to)" class="pi pi-chevron-right sl-item-chevron" style="font-size:0.8125rem" />
           </NuxtLink>
         </div>
       </div>

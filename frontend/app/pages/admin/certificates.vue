@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'

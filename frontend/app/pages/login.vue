@@ -134,3 +134,222 @@ async function handleGoogleLogin() {
     </form>
   </AuthPageShell>
 </template>
+
+<style scoped>
+/* ── Google Button ─────────────────────────────────────────────────────── */
+.google-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--line, rgba(0,0,0,0.09));
+  background: var(--surface-strong, #fff);
+  color: var(--text, #0d1f1a);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, transform 150ms, box-shadow 150ms;
+}
+
+.google-button:hover:not(:disabled) {
+  background: var(--surface, #f8f9fa);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.google-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.google-button svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ── Divider ───────────────────────────────────────────────────────────── */
+.divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+  color: var(--muted, #6b7c73);
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px solid var(--line, rgba(0,0,0,0.09));
+}
+
+.divider span {
+  position: relative;
+  padding: 0 12px;
+  background: var(--surface-strong, #fff);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ── Auth Form ─────────────────────────────────────────────────────────── */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Field ─────────────────────────────────────────────────────────────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field > span,
+.field-row > span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text, #0d1f1a);
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-row a {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--green-deep, #085041);
+  text-decoration: none;
+  transition: color 150ms;
+}
+
+.field-row a:hover {
+  color: var(--green, #1D9E75);
+  text-decoration: underline;
+}
+
+.field input[type="email"],
+.field input[type="text"] {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line, rgba(0,0,0,0.09));
+  border-radius: 8px;
+  background: var(--surface-strong, #fff);
+  color: var(--text, #0d1f1a);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.field input::placeholder {
+  color: var(--muted, #6b7c73);
+}
+
+.field input:focus {
+  border-color: var(--green, #1D9E75);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.1);
+}
+
+.field small {
+  font-size: 0.75rem;
+  color: var(--muted, #6b7c73);
+  line-height: 1.4;
+}
+
+/* ── Password Wrap ─────────────────────────────────────────────────────── */
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  width: 100%;
+  height: 44px;
+  padding: 0 54px 0 14px;
+  border: 1px solid var(--line, rgba(0,0,0,0.09));
+  border-radius: 8px;
+  background: var(--surface-strong, #fff);
+  color: var(--text, #0d1f1a);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.password-wrap input::placeholder {
+  color: var(--muted, #6b7c73);
+}
+
+.password-wrap input:focus {
+  border-color: var(--green, #1D9E75);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.1);
+}
+
+.inline-action {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--green-deep, #085041);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 150ms, background 150ms;
+}
+
+.inline-action:hover {
+  color: var(--green, #1D9E75);
+  background: rgba(29, 158, 117, 0.06);
+}
+
+/* ── Primary Button ────────────────────────────────────────────────────── */
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 46px;
+  margin-top: 4px;
+  border-radius: 8px;
+  border: none;
+  background: var(--green, #1D9E75);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms, transform 150ms, box-shadow 150ms;
+  box-shadow: 0 4px 12px rgba(29, 158, 117, 0.25);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--green-deep, #085041);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(29, 158, 117, 0.3);
+}
+
+.primary-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+</style>

@@ -320,7 +320,6 @@
 </template>
 
 <script setup lang="ts">
-// Icons removed - using PrimeIcons
 import { useToast } from '~/composables/useToast'
 
 const toast = useToast()

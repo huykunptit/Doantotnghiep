@@ -104,7 +104,6 @@
 
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 

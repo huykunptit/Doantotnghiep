@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-// Icons removed - using PrimeIcons
 import { useRoute } from 'vue-router'
 
 definePageMeta({ layout: 'default' })

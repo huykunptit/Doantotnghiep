@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-// Icons removed - using PrimeIcons
 import { LESSON_TYPES, type LessonType } from '~/constants/lesson-types'
 
 const props = defineProps<{
@@ -18,13 +17,13 @@ const emit = defineEmits<{
 
 /* ── Content type registry ── */
 const contentTypes = [
-  { key: LESSON_TYPES.VIDEO,        label: 'Bài học video',    kind: 'resource', icon: Film,         help: 'Tải lên video bài học trực tiếp hoặc liên kết từ Youtube, Drive.',       bg: 'rgba(16,185,129,0.10)',  color: '#10B981' },
-  { key: LESSON_TYPES.DOCUMENT,     label: 'Tài liệu / File',  kind: 'resource', icon: BookOpen,     help: 'Học liệu PDF, slide bài giảng, hình ảnh hoặc tài liệu đọc thêm.',       bg: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
-  { key: LESSON_TYPES.QUIZ,         label: 'Quiz / Kiểm tra',  kind: 'activity', icon: FileQuestion, help: 'Đánh giá kiến thức với bài trắc nghiệm tự động chấm điểm.',             bg: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
-  { key: LESSON_TYPES.SCORM,        label: 'Gói SCORM',        kind: 'resource', icon: Package,      help: 'Tích hợp gói chuẩn SCORM .zip đóng gói sẵn học tập.',                   bg: 'rgba(234,88,12,0.10)',  color: '#EA580C' },
-  { key: 'h5p',                     label: 'H5P / Embed',      kind: 'resource', icon: Cpu,          help: 'Nhúng học liệu tương tác H5P hoặc nội dung iframe bên thứ ba.',         bg: 'rgba(236,72,153,0.10)', color: '#EC4899' },
-  { key: LESSON_TYPES.VIRTUAL_CLASS,label: 'Lớp trực tuyến',   kind: 'activity', icon: MonitorPlay,  help: 'Tổ chức buổi học trực tiếp qua Zoom, Google Meet hoặc Jitsi.',          bg: 'rgba(14,165,233,0.10)', color: '#0EA5E9' },
-  { key: LESSON_TYPES.ASSIGNMENT,   label: 'Bài tập nộp file', kind: 'activity', icon: ClipboardList,help: 'Yêu cầu thực hành, nhận bài làm đính kèm từ học viên.',                 bg: 'rgba(245,158,11,0.10)', color: '#D97706' },
+  { key: LESSON_TYPES.VIDEO,        label: 'Bài học video',    kind: 'resource', icon: 'video',         help: 'Tải lên video bài học trực tiếp hoặc liên kết từ Youtube, Drive.',       bg: 'rgba(16,185,129,0.10)',  color: '#10B981' },
+  { key: LESSON_TYPES.DOCUMENT,     label: 'Tài liệu / File',  kind: 'resource', icon: 'file',     help: 'Học liệu PDF, slide bài giảng, hình ảnh hoặc tài liệu đọc thêm.',       bg: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
+  { key: LESSON_TYPES.QUIZ,         label: 'Quiz / Kiểm tra',  kind: 'activity', icon: 'question-circle', help: 'Đánh giá kiến thức với bài trắc nghiệm tự động chấm điểm.',             bg: 'rgba(139,92,246,0.10)', color: '#8B5CF6' },
+  { key: LESSON_TYPES.SCORM,        label: 'Gói SCORM',        kind: 'resource', icon: 'box',      help: 'Tích hợp gói chuẩn SCORM .zip đóng gói sẵn học tập.',                   bg: 'rgba(234,88,12,0.10)',  color: '#EA580C' },
+  { key: 'h5p',                     label: 'H5P / Embed',      kind: 'resource', icon: 'desktop',          help: 'Nhúng học liệu tương tác H5P hoặc nội dung iframe bên thứ ba.',         bg: 'rgba(236,72,153,0.10)', color: '#EC4899' },
+  { key: LESSON_TYPES.VIRTUAL_CLASS,label: 'Lớp trực tuyến',   kind: 'activity', icon: 'video',  help: 'Tổ chức buổi học trực tiếp qua Zoom, Google Meet hoặc Jitsi.',          bg: 'rgba(14,165,233,0.10)', color: '#0EA5E9' },
+  { key: LESSON_TYPES.ASSIGNMENT,   label: 'Bài tập nộp file', kind: 'activity', icon: 'list',help: 'Yêu cầu thực hành, nhận bài làm đính kèm từ học viên.',                 bg: 'rgba(245,158,11,0.10)', color: '#D97706' },
 ]
 
 function typeLabel(key: string) {
@@ -32,7 +31,7 @@ function typeLabel(key: string) {
 }
 
 function typeIcon(key: string) {
-  return contentTypes.find(t => t.key === key)?.icon || FileText
+  return contentTypes.find(t => t.key === key)?.icon || 'file'
 }
 
 /* ── Step management: 'pick' | 'form' ── */
@@ -329,7 +328,7 @@ function handleSubmit() {
                       <span class="custom-label">Tải lên video trực tiếp</span>
                       <label class="custom-file-dropzone">
                         <input type="file" accept="video/mp4,video/mov,video/avi,video/webm" @change="onVideoChange" class="dropzone-input-file" />
-                        <UploadCloud :size="24" class="dropzone-icon" />
+                        <i class="pi pi-cloud-upload dropzone-icon" style="font-size:1.5rem" />
                         <strong class="dropzone-title">
                           {{ form.video_file ? form.video_file.name : (lesson?.video_url ? 'Đã liên kết video' : 'Chọn file video') }}
                         </strong>
@@ -340,7 +339,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <span class="custom-label">Hoặc liên kết video URL</span>
                       <div class="input-icon-wrapper">
-                        <Globe :size="14" class="input-icon" />
+                        <i class="pi pi-globe input-icon" style="font-size:0.875rem" />
                         <input 
                           v-model="form.video_url" 
                           type="url" 
@@ -374,7 +373,7 @@ function handleSubmit() {
                   
                   <label class="custom-file-dropzone is-wide">
                     <input type="file" multiple @change="onAttachmentChange" class="dropzone-input-file" />
-                    <UploadCloud :size="24" class="dropzone-icon" />
+                    <i class="pi pi-cloud-upload dropzone-icon" style="font-size:1.5rem" />
                     <strong class="dropzone-title">
                       {{ form.attachments.length ? `${form.attachments.length} file tài liệu đã chọn` : 'Chọn file tài liệu giảng dạy' }}
                     </strong>
@@ -411,7 +410,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Dung lượng tối đa được phép (KB)</label>
                       <div class="input-icon-wrapper">
-                        <FileCheck :size="14" class="input-icon" />
+                        <i class="pi pi-file-check input-icon" style="font-size:0.875rem" />
                         <input 
                           v-model.number="form.assignment.max_file_size" 
                           type="number" 
@@ -424,7 +423,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Định dạng file cho phép</label>
                       <div class="input-icon-wrapper">
-                        <FileCode :size="14" class="input-icon" />
+                        <i class="pi pi-file-code input-icon" style="font-size:0.875rem" />
                         <input 
                           v-model="form.assignment.allowed_extensions" 
                           type="text" 
@@ -481,7 +480,7 @@ function handleSubmit() {
                     <div class="form-field-group is-full-width">
                       <label class="custom-label">Đường dẫn tham gia (Cho học viên)</label>
                       <div class="input-icon-wrapper">
-                        <Globe :size="14" class="input-icon" />
+                        <i class="pi pi-globe input-icon" style="font-size:0.875rem" />
                         <input 
                           v-model="form.virtual_class.join_url" 
                           type="url" 
@@ -507,7 +506,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Meeting ID</label>
                       <div class="input-icon-wrapper">
-                        <FileCode :size="14" class="input-icon" />
+                        <i class="pi pi-file-code input-icon" style="font-size:0.875rem" />
                         <input 
                           v-model="form.virtual_class.meeting_id" 
                           type="text" 
@@ -557,7 +556,7 @@ function handleSubmit() {
                       <div class="form-field-group is-full-width">
                         <label class="custom-label">Embed Code hoặc Launch URL tương tác</label>
                         <div class="input-icon-wrapper">
-                          <Globe :size="14" class="input-icon" style="top: 20px;" />
+                          <i class="pi pi-globe input-icon" style="font-size:0.875rem;top: 20px" />
                           <textarea 
                             v-model="form.scorm_package.entry_url" 
                             rows="2" 
@@ -588,7 +587,7 @@ function handleSubmit() {
                         <!-- Normal dropzone -->
                         <label v-else class="custom-file-dropzone is-wide">
                           <input type="file" accept=".zip,application/zip" @change="onScormChange" class="dropzone-input-file" />
-                          <UploadCloud :size="24" class="dropzone-icon" />
+                          <i class="pi pi-cloud-upload dropzone-icon" style="font-size:1.5rem" />
                           <strong class="dropzone-title">
                             {{ form.scorm_file ? form.scorm_file.name : 'Chọn gói SCORM định dạng .zip' }}
                           </strong>
@@ -612,7 +611,7 @@ function handleSubmit() {
                     <div class="form-field-group">
                       <label class="custom-label">Mã định danh Identifier (Tùy chọn)</label>
                       <div class="input-icon-wrapper">
-                        <FileCode :size="14" class="input-icon" />
+                        <i class="pi pi-file-code input-icon" style="font-size:0.875rem" />
                         <input 
                           v-model="form.scorm_package.identifier" 
                           type="text" 
@@ -646,7 +645,7 @@ function handleSubmit() {
               <div class="modal-footer-ops">
                 <button class="modal-secondary-action" type="button" @click="emit('close')">Hủy bỏ</button>
                 <button class="modal-primary-action" type="submit" :disabled="saving">
-                  <RefreshCw v-if="saving" :size="14" class="spin-icon" />
+                  <i v-if="saving" class="pi pi-refresh spin-icon" style="font-size:0.875rem" />
                   <span>{{ saving ? 'Đang lưu...' : (lesson ? 'Cập nhật học liệu' : 'Tạo học liệu') }}</span>
                 </button>
               </div>

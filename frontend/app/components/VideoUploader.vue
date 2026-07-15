@@ -96,7 +96,7 @@ const handleDrop = (event: DragEvent) => {
   if (file) validateAndUpload(file)
 }
 
-const validateAndUpload = (file: File) => {
+const validateAndUpload = (file: 'file') => {
   error.value = ''
 
   // Validate file type

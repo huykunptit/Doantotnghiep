@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 
@@ -141,10 +140,10 @@ function vTypeLabel(t: string) {
       <!-- Tabs -->
       <div class="pts-tabs">
         <button class="pts-tab" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-          <BarChart3 :size="15" /> Tổng quan
+          <i class="pi pi-chart-bar" style="font-size:0.9375rem" /> Tổng quan
         </button>
         <button class="pts-tab" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
-          <Gift :size="15" /> Quản lý Voucher
+          <i class="pi pi-gift" style="font-size:0.9375rem" /> Quản lý Voucher
         </button>
       </div>
 
@@ -157,11 +156,11 @@ function vTypeLabel(t: string) {
             <div><p class="kpi-lbl">Điểm đã phát</p><strong class="kpi-val">{{ stats?.totals?.total_issued?.toLocaleString('vi-VN') ?? '—' }}</strong></div>
           </div>
           <div class="dashboard-card pts-kpi-card">
-            <Gift :size="30" class="kpi-ico" style="color:#7c3aed" />
+            <i class="pi pi-gift kpi-ico" style="font-size:1.875rem;color:#7c3aed" />
             <div><p class="kpi-lbl">Voucher hoạt động</p><strong class="kpi-val">{{ stats?.totals?.active_vouchers ?? '—' }}</strong></div>
           </div>
           <div class="dashboard-card pts-kpi-card">
-            <Ticket :size="30" class="kpi-ico" style="color:#0F6E8C" />
+            <i class="pi pi-ticket kpi-ico" style="font-size:1.875rem;color:#0F6E8C" />
             <div><p class="kpi-lbl">Lần đổi quà</p><strong class="kpi-val">{{ stats?.totals?.redemptions?.toLocaleString('vi-VN') ?? '—' }}</strong></div>
           </div>
           <div class="dashboard-card pts-kpi-card">
@@ -173,7 +172,7 @@ function vTypeLabel(t: string) {
         <!-- Chart + top students -->
         <div class="pts-charts-row">
           <div class="dashboard-card chart-card">
-            <div class="chart-head"><BarChart3 :size="15" class="text-primary" /><h3>Điểm phát ra 14 ngày</h3></div>
+            <div class="chart-head"><i class="pi pi-chart-bar text-primary" style="font-size:0.9375rem" /><h3>Điểm phát ra 14 ngày</h3></div>
             <UiBarChart v-if="stats" :values="trendEarned()" :labels="trendLabels()" color="#f59e0b" :height="180" />
             <div v-else class="pts-shimmer" style="height:180px" />
           </div>
@@ -194,7 +193,7 @@ function vTypeLabel(t: string) {
 
         <!-- Recent redemptions -->
         <div class="dashboard-card">
-          <div class="chart-head" style="padding: 16px 20px 0;"><Ticket :size="15" /><h3>Đổi quà gần đây</h3></div>
+          <div class="chart-head" style="padding: 16px 20px 0;"><i class="pi pi-ticket" style="font-size:0.9375rem" /><h3>Đổi quà gần đây</h3></div>
           <div class="crud-table-wrap">
             <table class="crud-table">
               <thead><tr><th>Học viên</th><th>Voucher</th><th>Điểm tiêu</th><th>Thời gian</th></tr></thead>

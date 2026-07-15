@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'student' })
 
@@ -207,7 +206,7 @@ const tabCounts = computed(() => {
 
             <div class="result-display-box" v-else-if="exam.status === 'closed'">
               <div class="stat-badge is-closed">
-                <AlertTriangle :size="14" class="text-muted" />
+                <i class="pi pi-exclamation-triangle" style="font-size:0.875rem" />
                 <span>Kỳ thi đã đóng</span>
               </div>
             </div>

@@ -134,9 +134,9 @@
               <div class="ord-price-row">
                 <span class="ord-price">{{ formatPrice(order.amount) }}</span>
                 <span :class="['ord-badge', badgeClass(order.status)]">
-                  <CheckCircle v-if="order.status === 'paid'" :size="13" />
-                  <Clock v-else-if="order.status === 'pending'" :size="13" />
-                  <XCircle v-else :size="13" />
+                  <i v-if="order.status === 'paid'" class="pi pi-check-circle" style="font-size:0.8125rem" />
+                  <i v-else-if="order.status === 'pending'" class="pi pi-clock" style="font-size:0.8125rem" />
+                  <i v-else class="pi pi-times-circle" style="font-size:0.8125rem" />
                   {{ statusLabel(order.status) }}
                 </span>
               </div>
@@ -158,7 +158,6 @@
 </template>
 
 <script setup lang="ts">
-// Icons removed - using PrimeIcons
 import { computed, onMounted, ref } from 'vue'
 import { useCourseStore } from '~/stores/course'
 

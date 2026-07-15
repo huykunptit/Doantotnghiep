@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({
   layout: 'default',
@@ -129,19 +128,19 @@ useHead({
 
 const features = [
   {
-    icon: GraduationCap,
+    icon: 'graduation-cap',
     title: 'Học tập thích nghi linh hoạt',
     desc: 'Hệ thống gợi ý bài giảng theo tiến trình riêng của từng người học, mềm dẻo thích nghi như cành liễu trước gió.',
     color: 'green',
   },
   {
-    icon: BarChart3,
+    icon: 'chart-bar',
     title: 'Đánh giá & phát triển bền vững',
     desc: 'Theo dõi tiến trình tích lũy kiến thức sâu sắc qua thời gian, đảm bảo phát triển kỹ năng thực tế bền vững.',
     color: 'blue',
   },
   {
-    icon: Sparkles,
+    icon: 'sparkles',
     title: 'Trợ lý AI đồng hành thân thiện',
     desc: 'Trợ lý AI am hiểu sâu tài liệu học tập của bạn, giải đáp thắc mắc và gợi ý lộ trình nghề nghiệp cá nhân hóa.',
     color: 'accent',
@@ -149,9 +148,9 @@ const features = [
 ]
 
 const steps = [
-  { num: '01', icon: UserPlus, title: 'Đăng ký mục tiêu', desc: 'Chọn lộ trình học tập và định hướng kỹ năng bạn mong muốn tích lũy.' },
-  { num: '02', icon: BookOpen, title: 'Tự do trải nghiệm', desc: 'Học qua video bài giảng, quiz tương tác, trao đổi cùng AI chatbot 24/7.' },
-  { num: '03', icon: Award, title: 'Đạt chuẩn năng lực', desc: 'Đạt các cột mốc kiểm tra để nhận chứng chỉ số và khẳng định năng lực bền vững.' },
+  { num: '01', icon: 'user-plus', title: 'Đăng ký mục tiêu', desc: 'Chọn lộ trình học tập và định hướng kỹ năng bạn mong muốn tích lũy.' },
+  { num: '02', icon: 'book', title: 'Tự do trải nghiệm', desc: 'Học qua video bài giảng, quiz tương tác, trao đổi cùng AI chatbot 24/7.' },
+  { num: '03', icon: 'verified', title: 'Đạt chuẩn năng lực', desc: 'Đạt các cột mốc kiểm tra để nhận chứng chỉ số và khẳng định năng lực bền vững.' },
 ]
 
 const googleMapsApiKey = (config.public.googleMapsApiKey as string | undefined) || ''
@@ -203,12 +202,12 @@ const googleMapEmbedUrl = computed(() => {
 
         <div class="hero-actions">
           <NuxtLink to="/courses" class="btn-hero-primary">
-            <Compass :size="18" :stroke-width="1.75" />
+            <i class="pi pi-compass" style="font-size:1.125rem" />
             Khám phá khoá học
             <i class="pi pi-chevron-right" style="font-size:1.0rem" />
           </NuxtLink>
           <NuxtLink to="/career" class="btn-hero-ghost">
-            <Briefcase :size="17" :stroke-width="1.75" />
+            <i class="pi pi-briefcase" style="font-size:1.062rem" />
             Lộ trình nghề nghiệp
           </NuxtLink>
         </div>
@@ -248,7 +247,7 @@ const googleMapEmbedUrl = computed(() => {
       <div class="features-grid">
         <article v-for="f in features" :key="f.title" class="feature-card" :class="`feature-card--${f.color}`">
           <div class="feature-icon-wrap" :class="`feature-icon-wrap--${f.color}`">
-            <component :is="f.icon" :size="22" :stroke-width="1.75" />
+            <i :class="`pi pi-${f.icon}`" style="font-size:1.375rem" />
           </div>
           <h3>{{ f.title }}</h3>
           <p>{{ f.desc }}</p>
@@ -373,7 +372,7 @@ const googleMapEmbedUrl = computed(() => {
           <div class="step-num-badge">{{ step.num }}</div>
           <div v-if="idx < steps.length - 1" class="step-connector" aria-hidden="true" />
           <div class="step-icon-wrap">
-            <component :is="step.icon" :size="24" :stroke-width="1.75" />
+            <i :class="`pi pi-${step.icon}`" style="font-size:1.5rem" />
           </div>
           <h3>{{ step.title }}</h3>
           <p>{{ step.desc }}</p>
@@ -418,7 +417,7 @@ const googleMapEmbedUrl = computed(() => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Map :size="17" :stroke-width="1.75" />
+              <i class="pi pi-map" style="font-size:1.062rem" />
               Mở Google Maps
             </a>
             <NuxtLink to="/register" class="btn-map-secondary">

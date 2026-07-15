@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
-// Icons removed - using PrimeIcons
 import { useToast } from '~/composables/useToast'
 
 definePageMeta({ layout: 'student' })
@@ -78,18 +77,18 @@ async function redeem(voucher: any) {
   } finally { redeemingId.value = null }
 }
 
-const iconMap: Record<string, any> = {
-  'calendar-check': CalendarCheck,
-  'flame': Flame,
-  'trophy': Trophy,
-  'book-open-check': BookOpen,
-  'graduation-cap': GraduationCap,
-  'medal': Medal,
-  'shopping-bag': ShoppingBag,
-  'clipboard-list': ClipboardList,
-  'star': Star,
+const iconMap: Record<string, string> = {
+  'calendar-check': 'calendar',
+  'flame': 'bolt',
+  'trophy': 'trophy',
+  'book-open-check': 'book',
+  'graduation-cap': 'graduation-cap',
+  'medal': 'star',
+  'shopping-bag': 'shopping-bag',
+  'clipboard-list': 'list',
+  'star': 'star',
 }
-function getIcon(key: string) { return iconMap[key] || Star }
+function getIcon(key: string) { return iconMap[key] || 'star' }
 
 const txActionLabel: Record<string, string> = {
   login_daily: 'Đăng nhập hàng ngày',
@@ -165,13 +164,13 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
     <!-- Tab nav -->
     <div class="pts-tabs">
       <button class="pts-tab" :class="{ active: activeTab === 'shop' }" @click="activeTab = 'shop'">
-        <Gift :size="15" /> Cửa hàng đổi quà
+        <i class="pi pi-shopping-bag" style="font-size:0.9375rem" /> Cửa hàng đổi quà
       </button>
       <button class="pts-tab" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
-        <History :size="15" /> Lịch sử điểm
+        <i class="pi pi-history" style="font-size:0.9375rem" /> Lịch sử điểm
       </button>
       <button class="pts-tab" :class="{ active: activeTab === 'leaderboard' }" @click="activeTab = 'leaderboard'">
-        <BarChart3 :size="15" /> Bảng xếp hạng
+        <i class="pi pi-chart-bar" style="font-size:0.9375rem" /> Bảng xếp hạng
       </button>
     </div>
 
@@ -179,7 +178,7 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
     <div v-if="activeTab === 'shop'">
       <!-- My vouchers -->
       <div v-if="myVouchers.length" class="pts-section">
-        <h3 class="pts-section-title"><Ticket :size="16" /> Voucher của tôi</h3>
+        <h3 class="pts-section-title"><i class="pi pi-ticket" style="font-size:1rem" /> Voucher của tôi</h3>
         <div class="pts-myvoucher-list">
           <div v-for="uv in myVouchers" :key="uv.id" class="pts-myvoucher-item" :class="uv.status">
             <div class="pts-uv-left">
@@ -195,12 +194,12 @@ const myRank = computed(() => leaderboard.value?.my_rank ?? '—')
       </div>
 
       <!-- Shop listing -->
-      <h3 class="pts-section-title"><Gift :size="16" /> Đổi điểm lấy quà</h3>
+      <h3 class="pts-section-title"><i class="pi pi-shopping-bag" style="font-size:1rem" /> Đổi điểm lấy quà</h3>
       <div v-if="loading" class="pts-shimmer-grid">
         <div v-for="i in 6" :key="i" class="pts-shimmer" />
       </div>
       <div v-else-if="vouchers.length === 0" class="pts-empty">
-        <Gift :size="40" style="opacity:.3" />
+        <i class="pi pi-shopping-bag" style="font-size:2.5rem;opacity:0.3" />
         <p>Chưa có phần thưởng nào.</p>
       </div>
       <div v-else class="pts-shop-grid">

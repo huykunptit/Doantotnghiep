@@ -1,5 +1,4 @@
 <script setup lang="ts">
-// Icons removed - using PrimeIcons
 import LessonBlock from './LessonBlock.vue'
 
 const props = defineProps<{

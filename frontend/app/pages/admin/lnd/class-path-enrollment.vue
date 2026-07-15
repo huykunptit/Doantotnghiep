@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useAuthTokenCookie } from '~/composables/useAuthSession'
 
@@ -463,7 +462,7 @@ function formatSource(src: string) {
           <div class="picker-list" style="border: 1px solid var(--border); border-radius: 12px; max-height: 380px; overflow-y: auto; background: var(--bg-alt);">
             <div v-if="!displayStudents.length" class="crud-empty" style="padding:2.5rem;font-size:0.85rem;">Không tìm thấy học viên phù hợp. Chọn lớp hành chính hoặc tìm kiếm ở trên.</div>
             <div v-else v-for="s in displayStudents" :key="s.id" class="picker-row" :class="{ 'is-sel': selectedDirectUserIds.includes(s.id) }" style="margin: 6px; border-color: transparent;" @click="toggleDirectUser(s.id)">
-              <div class="pick-check"><Check v-if="selectedDirectUserIds.includes(s.id)" :size="11" /></div>
+              <div class="pick-check"><i v-if="selectedDirectUserIds.includes(s.id)" class="pi pi-check" style="font-size:0.6875rem" /></div>
               <div style="display:flex;flex-direction:column;gap:2px;">
                 <span class="mono-code" style="font-size:0.72rem;">{{ s.student_code }}</span>
                 <strong style="font-size:0.88rem;">{{ s.name }}</strong>

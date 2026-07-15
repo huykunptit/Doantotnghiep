@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { useDarkMode } from '~/composables/useDarkMode'
 
@@ -29,18 +28,18 @@ const questOpen = ref(false)
 const questLoading = ref(false)
 const questData = ref<any>(null)
 
-const questIconMap: Record<string, any> = {
-  'calendar-check': CalendarCheck,
-  'flame': Flame,
-  'trophy': Trophy,
-  'book-open-check': BookOpen,
-  'graduation-cap': GraduationCap,
-  'medal': Medal,
-  'shopping-bag': ShoppingBag,
-  'clipboard-list': ClipboardList,
-  'star': Star,
+const questIconMap: Record<string, string> = {
+  'calendar-check': 'calendar',
+  'flame': 'bolt',
+  'trophy': 'trophy',
+  'book-open-check': 'book',
+  'graduation-cap': 'graduation-cap',
+  'medal': 'star',
+  'shopping-bag': 'shopping-bag',
+  'clipboard-list': 'list',
+  'star': 'star',
 }
-function questIcon(key: string) { return questIconMap[key] || Star }
+function questIcon(key: string) { return questIconMap[key] || 'star' }
 
 async function openQuestPanel() {
   questOpen.value = !questOpen.value
@@ -90,17 +89,17 @@ async function markAllRead() {
   } catch {}
 }
 
-const notifMeta: Record<string, { icon: any; color: string; bg: string }> = {
-  enrollment:      { icon: GraduationCap,  color: '#1D9E75', bg: 'rgba(29,158,117,0.1)' },
-  order:           { icon: ReceiptText,    color: '#7C3AED', bg: 'rgba(124,58,237,0.1)' },
-  course_approved: { icon: CircleCheckBig, color: '#1D9E75', bg: 'rgba(29,158,117,0.1)' },
-  course_rejected: { icon: XCircle,        color: '#E24B4A', bg: 'rgba(226,75,74,0.1)' },
-  review:          { icon: Star,           color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
-  system:          { icon: Zap,            color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
+const notifMeta: Record<string, { icon: string; color: string; bg: string }> = {
+  enrollment:      { icon: 'graduation-cap',  color: '#1D9E75', bg: 'rgba(29,158,117,0.1)' },
+  order:           { icon: 'receipt',    color: '#7C3AED', bg: 'rgba(124,58,237,0.1)' },
+  course_approved: { icon: 'check-circle', color: '#1D9E75', bg: 'rgba(29,158,117,0.1)' },
+  course_rejected: { icon: 'times-circle',        color: '#E24B4A', bg: 'rgba(226,75,74,0.1)' },
+  review:          { icon: 'star',           color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
+  system:          { icon: 'bolt',            color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
 }
 
 function notifIconMeta(type: string) {
-  return notifMeta[type] || { icon: Bell, color: '#4A6059', bg: 'rgba(74,96,89,0.1)' }
+  return notifMeta[type] || { icon: 'bell', color: '#4A6059', bg: 'rgba(74,96,89,0.1)' }
 }
 
 function relativeTime(date: string) {
@@ -172,8 +171,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
       <!-- Dark mode -->
       <button type="button" class="tb-icon-btn" :title="isDark ? 'Chế độ sáng' : 'Chế độ tối'" @click="toggleDark">
         <Transition name="mode" mode="out-in">
-          <Sun v-if="isDark" :key="'sun'" :size="17" :stroke-width="2" />
-          <Moon v-else :key="'moon'" :size="17" :stroke-width="2" />
+          <i v-if="isDark" class="pi pi-sun" style="font-size:1.062rem" />
+          <i v-else class="pi pi-moon" style="font-size:1.062rem" />
         </Transition>
       </button>
 
@@ -228,7 +227,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
                       :class="{ 'is-done': q.done_today }"
                     >
                       <div class="tb-quest-ico" :class="`qcat-${q.category}`">
-                        <component :is="questIcon(q.icon)" :size="13" />
+                        <i :class="`pi pi-${questIcon(q.icon)}`" style="font-size:0.8125rem" />
                       </div>
                       <div class="tb-quest-info">
                         <p class="tb-quest-name">{{ q.title }}</p>
@@ -298,7 +297,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
                     class="tb-notif-icon"
                     :style="{ background: notifIconMeta(n.type).bg, color: notifIconMeta(n.type).color }"
                   >
-                    <component :is="notifIconMeta(n.type).icon" :size="14" :stroke-width="2" />
+                    <i :class="`pi pi-${notifIconMeta(n.type).icon}`" style="font-size:0.875rem" />
                   </div>
                   <div class="tb-notif-content">
                     <p class="tb-notif-title">{{ n.title }}</p>

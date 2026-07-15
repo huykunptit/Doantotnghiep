@@ -49,7 +49,6 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-// Icons removed - using PrimeIcons
 import { useToast } from '~/composables/useToast'
 
 const toast = useToast()

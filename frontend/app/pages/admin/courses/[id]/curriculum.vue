@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CurriculumStudio from '~/components/course/CurriculumStudio.vue'
 import VideoUploader from '~/components/VideoUploader.vue'

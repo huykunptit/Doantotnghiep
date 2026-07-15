@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 
@@ -310,7 +309,7 @@ function fmtDate(d: string) {
 
     <!-- Empty -->
     <div v-else-if="academicYears.length === 0" class="empty-state-page dashboard-card">
-      <CalendarDays :size="48" class="text-muted" />
+      <i class="pi pi-calendar text-muted" style="font-size:3rem" />
       <h3>Chưa có năm học nào</h3>
       <p>Bắt đầu bằng cách tạo năm học đầu tiên cho trường.</p>
       <button class="crud-primary-btn" @click="openCreateYear"><i class="pi pi-plus" style="font-size:1.0rem" /> Tạo năm học</button>

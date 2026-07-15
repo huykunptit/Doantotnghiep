@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'default', middleware: 'auth' })
 
@@ -138,8 +137,8 @@ onMounted(fetchMyCertificates)
               :class="{ 'is-copied': copiedId === cert.credential_id }"
               @click="copyLink(cert.credential_id)"
             >
-              <Check v-if="copiedId === cert.credential_id" :size="15" :stroke-width="2.5" />
-              <Link2 v-else :size="15" :stroke-width="2" />
+              <i v-if="copiedId === cert.credential_id" class="pi pi-check" style="font-size:0.9375rem" />
+              <i v-else class="pi pi-link" style="font-size:0.9375rem" />
               {{ copiedId === cert.credential_id ? 'Đã sao chép' : 'Copy link' }}
             </button>
           </div>

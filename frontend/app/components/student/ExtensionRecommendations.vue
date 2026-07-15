@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useApi } from '~/composables/useApi'
 
 interface RecItem {
@@ -76,7 +75,7 @@ onMounted(load)
       >
         <div class="rec-thumb">
           <img v-if="item.course.thumbnail" :src="item.course.thumbnail" :alt="item.course.title">
-          <GraduationCap v-else :size="36" :stroke-width="1.75" />
+          <i v-else class="pi pi-graduation-cap" style="font-size:2.25rem" />
         </div>
         <div class="rec-body">
           <p class="rec-category">{{ item.course.category?.name || 'Extension' }}</p>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAdminUpload } from '~/composables/useAdminUpload'
 
 type Folder = 'users' | 'settings' | 'courses'
@@ -9,7 +8,7 @@ type Variant = 'avatar' | 'thumbnail' | 'banner' | 'square'
 const props = withDefaults(
   defineProps<{
     modelValue: string | null | undefined
-    folder: Folder
+    folder: 'folder'
     label?: string
     hint?: string
     accept?: string
@@ -90,7 +89,7 @@ async function onChange(event: Event) {
   target.value = ''
 }
 
-async function handleFile(file: File) {
+async function handleFile(file: 'file') {
   errorMessage.value = ''
 
   if (props.accept.startsWith('image/') && !file.type.startsWith('image/')) {
@@ -162,8 +161,8 @@ function clear() {
             :disabled="disabled || isUploading"
             @click="openPicker"
           >
-            <RefreshCw v-if="hasImage" :size="18" :stroke-width="1.75" />
-            <CloudUpload v-else :size="18" :stroke-width="1.75" />
+            <i v-if="hasImage" class="pi pi-refresh" style="font-size:1.125rem" />
+            <i v-else class="pi pi-cloud-upload" style="font-size:1.125rem" />
             <span>{{ hasImage ? 'Thay ảnh' : 'Chọn tệp' }}</span>
           </button>
           <button

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import { type AuthResponse, getDashboardPath, setAuthSession } from '~/composables/useAuthSession'
 
@@ -46,7 +45,7 @@ catch (error: any) {
           <path d="M13 22.85A7.5 7.5 0 0 1 12.6 20c0-.99.17-1.95.4-2.85V13.9H8.8A12.5 12.5 0 0 0 7.5 20c0 2.02.48 3.94 1.3 5.59L13 22.85Z" fill="#FBBC04" />
           <path d="M20 12.98c1.84 0 3.49.63 4.79 1.87l3.59-3.59C26.22 9.2 23.38 8 20 8A12.5 12.5 0 0 0 8.8 13.91l4.2 3.24c.98-2.97 3.74-5.17 7-5.17Z" fill="#EA4335" />
         </svg>
-        <CircleAlert v-else :size="40" :stroke-width="1.75" style="color: #ef4444;" />
+        <i v-else class="pi pi-exclamation-circle" style="font-size:2.5rem;color: #ef4444" />
       </div>
 
       <template v-if="!errorMessage">

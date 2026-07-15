@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import MediaUpload from '~/components/common/MediaUpload.vue'
@@ -446,571 +445,602 @@ onMounted(() => {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý người dùng"
-    description="Thêm, chỉnh sửa, xem hồ sơ học vụ và quản lý tài khoản trong hệ thống."
-    :breadcrumb="['Trang chủ', 'Quản lý người dùng']"
-  >
-    <div class="ds-stack">
+  <div class="flex flex-col gap-5">
 
-      <!-- KPI strip -->
-      <div class="ds-stats">
-        <div class="ds-stat ds-stat--green">
-          <p class="ds-stat-label">Tổng người dùng</p>
-          <strong class="ds-stat-value">{{ totalUsers }}</strong>
-          <span class="ds-stat-sub">tất cả vai trò</span>
-        </div>
-        <div class="ds-stat ds-stat--blue">
-          <p class="ds-stat-label">Sinh viên</p>
-          <strong class="ds-stat-value">{{ statsStudents }}</strong>
-          <span class="ds-stat-sub">đang học</span>
-        </div>
-        <div class="ds-stat ds-stat--amber">
-          <p class="ds-stat-label">Giảng viên</p>
-          <strong class="ds-stat-value">{{ statsInstructors }}</strong>
-          <span class="ds-stat-sub">instructor</span>
-        </div>
-        <div class="ds-stat ds-stat--violet">
-          <p class="ds-stat-label">Quản trị viên</p>
-          <strong class="ds-stat-value">{{ statsAdmins }}</strong>
-          <span class="ds-stat-sub">admin</span>
+    <!-- ── Page header ── -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Khu vực quản trị</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Quản lý người dùng</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Thêm, chỉnh sửa, xem hồ sơ học vụ và quản lý tài khoản.</p>
+      </div>
+      <button
+        class="inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-[#1d9e75] hover:bg-[#17876200] text-white text-sm font-semibold transition-colors shrink-0"
+        type="button"
+        @click="openCreateModal"
+      >
+        <i class="pi pi-plus" style="font-size:0.875rem" />
+        Thêm người dùng
+      </button>
+    </div>
+
+    <!-- ── KPI Cards ── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div v-for="stat in [
+        { label: 'Tổng người dùng', value: totalUsers, sub: 'tất cả vai trò', color: '#1d9e75', bg: 'rgba(29,158,117,0.08)', border: 'rgba(29,158,117,0.2)' },
+        { label: 'Sinh viên', value: statsStudents, sub: 'đang học', color: '#378add', bg: 'rgba(55,138,221,0.08)', border: 'rgba(55,138,221,0.2)' },
+        { label: 'Giảng viên', value: statsInstructors, sub: 'instructor', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
+        { label: 'Quản trị viên', value: statsAdmins, sub: 'admin', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+      ]" :key="stat.label"
+        class="rounded-2xl p-5 flex flex-col gap-2 border"
+        :style="`background:${stat.bg}; border-color:${stat.border}`"
+      >
+        <p class="text-xs font-bold uppercase tracking-wider" :style="`color:${stat.color}`">{{ stat.label }}</p>
+        <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ stat.value }}</strong>
+        <span class="text-xs text-[var(--muted)] font-medium">{{ stat.sub }}</span>
+      </div>
+    </div>
+
+    <!-- ── Main table panel ── -->
+    <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+
+      <!-- Toolbar -->
+      <div class="flex flex-wrap gap-3 items-center px-5 py-4 border-b border-[var(--line)]">
+        <form class="flex flex-1 min-w-0 gap-2" @submit.prevent="fetchUsers(1)">
+          <div class="relative flex-1 min-w-[180px] max-w-xs">
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" style="font-size:0.8rem" />
+            <input
+              v-model="filters.search"
+              class="w-full h-9 pl-8 pr-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]"
+              placeholder="Tên, email, MSSV..."
+              type="text"
+            >
+          </div>
+          <select
+            v-model="filters.role"
+            class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer"
+            @change="fetchUsers(1)"
+          >
+            <option value="">Tất cả vai trò</option>
+            <option value="admin">Admin</option>
+            <option value="instructor">Giảng viên</option>
+            <option value="student">Sinh viên</option>
+          </select>
+        </form>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border text-sm font-semibold transition-colors"
+            :class="filterOpen || activeFilterCount > 0
+              ? 'bg-[rgba(29,158,117,0.1)] border-[rgba(29,158,117,0.35)] text-[#085041]'
+              : 'bg-[var(--surface)] border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)]'"
+            type="button"
+            @click="filterOpen = !filterOpen"
+          >
+            <i class="pi pi-filter" style="font-size:0.8rem" />
+            Bộ lọc
+            <span v-if="activeFilterCount > 0" class="flex items-center justify-center w-4 h-4 rounded-full bg-[#1d9e75] text-white text-[0.6rem] font-extrabold">{{ activeFilterCount }}</span>
+          </button>
+          <button
+            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+            type="button"
+            @click="exportData"
+          >
+            <i class="pi pi-download" style="font-size:0.8rem" /> Xuất CSV
+          </button>
         </div>
       </div>
 
-      <!-- Main table panel -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <form class="crud-toolbar-main" @submit.prevent="fetchUsers(1)">
-            <input v-model="filters.search" class="crud-search" placeholder="Tên, email, MSSV, mã NV..." type="text">
-            <select v-model="filters.role" class="crud-select" @change="fetchUsers(1)">
-              <option value="">Tất cả vai trò</option>
-              <option value="admin">Admin</option>
-              <option value="instructor">Giảng viên</option>
-              <option value="student">Sinh viên</option>
-            </select>
-            <button class="crud-secondary-btn" type="submit">Tìm kiếm</button>
-          </form>
-          <div class="crud-toolbar-right">
-            <!-- Filter toggle button -->
-            <button
-              class="uf-filter-btn"
-              :class="{ 'uf-filter-btn--active': filterOpen || activeFilterCount > 0 }"
-              type="button"
-              @click="filterOpen = !filterOpen"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Bộ lọc
-              <span v-if="activeFilterCount > 0" class="uf-filter-count">{{ activeFilterCount }}</span>
-            </button>
-            <button class="crud-export-btn" type="button" @click="exportData">
-              <i class="pi pi-download" style="font-size:1.0rem" /> Xuất CSV
-            </button>
-            <button class="crud-primary-btn" type="button" @click="openCreateModal">+ Thêm người dùng</button>
-          </div>
-        </div>
-
-        <!-- Advanced filter panel -->
-        <div v-if="filterOpen" class="uf-filter-panel">
-          <div class="uf-filter-grid">
-            <label class="uf-filter-field">
-              <span>Trạng thái học vụ</span>
-              <select v-model="filters.study_status" @change="fetchUsers(1)">
-                <option value="">Tất cả trạng thái</option>
-                <option value="dang_hoc">Đang học</option>
-                <option value="bao_luu">Bảo lưu</option>
-                <option value="tot_nghiep">Tốt nghiệp</option>
-                <option value="thoi_hoc">Thôi học</option>
-                <option value="dinh_chi">Đình chỉ</option>
-                <option value="dang_cong_tac">Đang công tác</option>
-                <option value="nghi_phep">Nghỉ phép</option>
-                <option value="nghi_huu">Nghỉ hưu</option>
+      <!-- Advanced filter panel -->
+      <Transition
+        enter-active-class="transition-all duration-200 ease-out overflow-hidden"
+        leave-active-class="transition-all duration-200 ease-in overflow-hidden"
+        enter-from-class="max-h-0 opacity-0"
+        enter-to-class="max-h-96 opacity-100"
+        leave-from-class="max-h-96 opacity-100"
+        leave-to-class="max-h-0 opacity-0"
+      >
+        <div v-if="filterOpen" class="px-5 py-4 bg-[var(--surface)] border-b border-[var(--line)]">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 items-end">
+            <label v-for="f in [
+              { label: 'Trạng thái học vụ', model: 'study_status', options: [
+                { v:'dang_hoc',l:'Đang học'},{ v:'bao_luu',l:'Bảo lưu'},{ v:'tot_nghiep',l:'Tốt nghiệp'},
+                { v:'thoi_hoc',l:'Thôi học'},{ v:'dinh_chi',l:'Đình chỉ'},{ v:'dang_cong_tac',l:'Đang công tác'},
+                { v:'nghi_phep',l:'Nghỉ phép'},{ v:'nghi_huu',l:'Nghỉ hưu'},
+              ]},
+              { label: 'Giới tính', model: 'gender', options: [{ v:'male',l:'Nam'},{ v:'female',l:'Nữ'},{ v:'other',l:'Khác'}]},
+            ]" :key="f.model" class="flex flex-col gap-1">
+              <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">{{ f.label }}</span>
+              <select
+                v-model="filters[f.model as keyof typeof filters]"
+                class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer"
+                @change="fetchUsers(1)"
+              >
+                <option value="">Tất cả</option>
+                <option v-for="o in f.options" :key="o.v" :value="o.v">{{ o.l }}</option>
               </select>
             </label>
-            <label class="uf-filter-field">
-              <span>Giới tính</span>
-              <select v-model="filters.gender" @change="fetchUsers(1)">
-                <option value="">Tất cả giới tính</option>
-                <option value="male">Nam</option>
-                <option value="female">Nữ</option>
-                <option value="other">Khác</option>
-              </select>
-            </label>
-            <label class="uf-filter-field">
-              <span>Khóa / Niên khóa</span>
-              <select v-model="filters.cohort_id" @change="fetchUsers(1)">
-                <option value="">Tất cả khóa</option>
+            <label class="flex flex-col gap-1">
+              <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Khóa</span>
+              <select v-model="filters.cohort_id" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer" @change="fetchUsers(1)">
+                <option value="">Tất cả</option>
                 <option v-for="c in optCohorts" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
               </select>
             </label>
-            <label class="uf-filter-field">
-              <span>Chương trình đào tạo</span>
-              <select v-model="filters.program_id" @change="fetchUsers(1)">
-                <option value="">Tất cả chương trình</option>
+            <label class="flex flex-col gap-1">
+              <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Chương trình</span>
+              <select v-model="filters.program_id" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer" @change="fetchUsers(1)">
+                <option value="">Tất cả</option>
                 <option v-for="p in optPrograms" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
               </select>
             </label>
-            <label class="uf-filter-field">
-              <span>Lớp hành chính</span>
-              <select v-model="filters.administrative_class_id" @change="fetchUsers(1)">
-                <option value="">Tất cả lớp HC</option>
+            <label class="flex flex-col gap-1">
+              <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Lớp HC</span>
+              <select v-model="filters.administrative_class_id" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer" @change="fetchUsers(1)">
+                <option value="">Tất cả</option>
                 <option v-for="c in optAdminClasses" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
               </select>
             </label>
-            <div class="uf-filter-actions">
-              <button
-                v-if="activeFilterCount > 0"
-                class="uf-reset-btn"
-                type="button"
-                @click="resetFilters"
-              >Xóa bộ lọc ({{ activeFilterCount }})</button>
+            <div class="flex items-end">
+              <button v-if="activeFilterCount > 0" class="h-8 px-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors" type="button" @click="resetFilters">
+                Xóa bộ lọc ({{ activeFilterCount }})
+              </button>
             </div>
           </div>
-
-          <!-- Active filter chips -->
-          <div v-if="activeFilterCount > 0" class="uf-chips">
-            <span v-if="filters.study_status" class="uf-chip">
-              Trạng thái: {{ STUDY_STATUS_LABELS[filters.study_status] }}
-              <button type="button" @click="filters.study_status = ''; fetchUsers(1)">×</button>
+          <!-- Active chips -->
+          <div v-if="activeFilterCount > 0" class="flex flex-wrap gap-2 mt-3">
+            <span v-if="filters.study_status" class="inline-flex items-center gap-1.5 h-6 px-3 rounded-full bg-[rgba(29,158,117,0.1)] border border-[rgba(29,158,117,0.22)] text-[#085041] text-xs font-semibold">
+              {{ STUDY_STATUS_LABELS[filters.study_status] }}
+              <button type="button" class="opacity-60 hover:opacity-100" @click="filters.study_status = ''; fetchUsers(1)">×</button>
             </span>
-            <span v-if="filters.gender" class="uf-chip">
-              Giới tính: {{ { male: 'Nam', female: 'Nữ', other: 'Khác' }[filters.gender] }}
-              <button type="button" @click="filters.gender = ''; fetchUsers(1)">×</button>
+            <span v-if="filters.gender" class="inline-flex items-center gap-1.5 h-6 px-3 rounded-full bg-[rgba(29,158,117,0.1)] border border-[rgba(29,158,117,0.22)] text-[#085041] text-xs font-semibold">
+              {{ { male:'Nam', female:'Nữ', other:'Khác' }[filters.gender as 'male'|'female'|'other'] }}
+              <button type="button" class="opacity-60 hover:opacity-100" @click="filters.gender = ''; fetchUsers(1)">×</button>
             </span>
-            <span v-if="filters.cohort_id" class="uf-chip">
-              Khóa: {{ optCohorts.find(c => String(c.id) === filters.cohort_id)?.name }}
-              <button type="button" @click="filters.cohort_id = ''; fetchUsers(1)">×</button>
+            <span v-if="filters.cohort_id" class="inline-flex items-center gap-1.5 h-6 px-3 rounded-full bg-[rgba(29,158,117,0.1)] border border-[rgba(29,158,117,0.22)] text-[#085041] text-xs font-semibold">
+              {{ optCohorts.find(c => String(c.id) === filters.cohort_id)?.name }}
+              <button type="button" class="opacity-60 hover:opacity-100" @click="filters.cohort_id = ''; fetchUsers(1)">×</button>
             </span>
-            <span v-if="filters.program_id" class="uf-chip">
-              CT: {{ optPrograms.find(p => String(p.id) === filters.program_id)?.name }}
-              <button type="button" @click="filters.program_id = ''; fetchUsers(1)">×</button>
+            <span v-if="filters.program_id" class="inline-flex items-center gap-1.5 h-6 px-3 rounded-full bg-[rgba(29,158,117,0.1)] border border-[rgba(29,158,117,0.22)] text-[#085041] text-xs font-semibold">
+              {{ optPrograms.find(p => String(p.id) === filters.program_id)?.name }}
+              <button type="button" class="opacity-60 hover:opacity-100" @click="filters.program_id = ''; fetchUsers(1)">×</button>
             </span>
-            <span v-if="filters.administrative_class_id" class="uf-chip">
-              Lớp HC: {{ optAdminClasses.find(c => String(c.id) === filters.administrative_class_id)?.name }}
-              <button type="button" @click="filters.administrative_class_id = ''; fetchUsers(1)">×</button>
+            <span v-if="filters.administrative_class_id" class="inline-flex items-center gap-1.5 h-6 px-3 rounded-full bg-[rgba(29,158,117,0.1)] border border-[rgba(29,158,117,0.22)] text-[#085041] text-xs font-semibold">
+              {{ optAdminClasses.find(c => String(c.id) === filters.administrative_class_id)?.name }}
+              <button type="button" class="opacity-60 hover:opacity-100" @click="filters.administrative_class_id = ''; fetchUsers(1)">×</button>
             </span>
           </div>
         </div>
+      </Transition>
 
-        <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-        <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
+      <!-- Alerts -->
+      <div v-if="errorMessage" class="mx-5 mt-4 flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+        <i class="pi pi-exclamation-circle shrink-0" style="font-size:0.875rem" />{{ errorMessage }}
+      </div>
+      <div v-if="successMessage" class="mx-5 mt-4 flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+        <i class="pi pi-check-circle shrink-0" style="font-size:0.875rem" />{{ successMessage }}
+      </div>
 
-        <div class="crud-meta">
-          <p>{{ totalUsers }} người dùng phù hợp</p>
-          <button v-if="activeFilterCount > 0 || filters.search || filters.role" class="uf-meta-reset" type="button" @click="resetFilters">
-            Xóa tất cả bộ lọc
-          </button>
-        </div>
+      <!-- Meta bar -->
+      <div class="flex items-center justify-between px-5 py-2.5 text-xs text-[var(--muted)]">
+        <span>{{ totalUsers }} người dùng phù hợp</span>
+        <button v-if="activeFilterCount > 0 || filters.search || filters.role" class="text-red-500 hover:text-red-700 underline" type="button" @click="resetFilters">
+          Xóa tất cả bộ lọc
+        </button>
+      </div>
 
-        <div class="crud-table-wrap">
-          <table class="crud-table">
-            <thead>
-              <tr>
-                <th style="width:36px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th>
-                <th style="width:44px">#</th>
-                <th style="min-width:220px">Người dùng</th>
-                <th style="width:110px">Vai trò</th>
-                <th style="min-width:160px">Lớp HC / Khóa</th>
-                <th style="min-width:110px">MSSV / Mã NV</th>
-                <th style="min-width:120px">Số điện thoại</th>
-                <th style="min-width:110px">Trạng thái</th>
-                <th style="min-width:130px; text-align:right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="9" class="crud-empty"><span class="ds-spin ds-spin--sm" style="margin-right:8px"></span>Đang tải...</td>
-              </tr>
-              <tr v-else-if="users.length === 0">
-                <td colspan="9">
-                  <div class="ds-empty">
-                    <div class="ds-empty-icon"><i class="pi pi-users" style="font-size:1.5rem" /></div>
-                    <strong>Chưa có người dùng</strong>
-                    <p>Thêm người dùng đầu tiên hoặc thay đổi bộ lọc.</p>
+      <!-- Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
+          <thead>
+            <tr class="border-t border-b border-[var(--line)] bg-[var(--surface)]">
+              <th class="w-9 px-4 py-3 text-left"><input type="checkbox" :checked="isAllSelected" class="rounded" @change="toggleSelectAll"></th>
+              <th class="w-10 px-2 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">#</th>
+              <th class="min-w-[220px] px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Người dùng</th>
+              <th class="w-28 px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Vai trò</th>
+              <th class="min-w-[160px] px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Lớp HC / Khóa</th>
+              <th class="min-w-[110px] px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">MSSV / Mã NV</th>
+              <th class="min-w-[110px] px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">SĐT</th>
+              <th class="min-w-[110px] px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Trạng thái</th>
+              <th class="min-w-[120px] px-4 py-3 text-right text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Loading skeletons -->
+            <tr v-if="loading" v-for="n in 5" :key="n" class="border-b border-[var(--line)]">
+              <td class="px-4 py-3"><div class="w-4 h-4 rounded bg-[var(--line)] animate-pulse" /></td>
+              <td class="px-2 py-3"><div class="w-5 h-3 rounded bg-[var(--line)] animate-pulse" /></td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-[var(--line)] animate-pulse shrink-0" />
+                  <div class="flex flex-col gap-1.5">
+                    <div class="w-28 h-3 rounded bg-[var(--line)] animate-pulse" />
+                    <div class="w-36 h-2.5 rounded bg-[var(--line)] animate-pulse" />
                   </div>
-                </td>
-              </tr>
-              <tr v-for="(item, index) in users" :key="item.id">
-                <td><input type="checkbox" :value="item.id" v-model="selectedIds"></td>
-                <td class="cell-muted">{{ (currentPage - 1) * perPage + index + 1 }}</td>
-                <td>
-                  <div class="user-cell">
-                    <div v-if="item.avatar" class="ds-avatar ds-avatar--md">
-                      <img :src="item.avatar" :alt="item.name" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
-                    </div>
-                    <div v-else class="ds-avatar ds-avatar--md">{{ avatarInitials(item.name) }}</div>
-                    <div class="user-cell-info">
-                      <strong>{{ item.name }}</strong>
-                      <span class="cell-muted" style="font-size:0.78rem">{{ item.email }}</span>
-                    </div>
+                </div>
+              </td>
+              <td v-for="i in 6" :key="i" class="px-4 py-3"><div class="w-20 h-3 rounded bg-[var(--line)] animate-pulse" /></td>
+            </tr>
+            <!-- Empty state -->
+            <tr v-else-if="users.length === 0">
+              <td colspan="9">
+                <div class="flex flex-col items-center justify-center py-16 gap-3 text-[var(--muted)]">
+                  <i class="pi pi-users opacity-30" style="font-size:2.5rem" />
+                  <strong class="text-sm font-semibold text-[var(--text)]">Chưa có người dùng</strong>
+                  <p class="text-xs">Thêm người dùng đầu tiên hoặc thay đổi bộ lọc.</p>
+                </div>
+              </td>
+            </tr>
+            <!-- Data rows -->
+            <tr
+              v-for="(item, index) in users"
+              :key="item.id"
+              class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+            >
+              <td class="px-4 py-3"><input type="checkbox" :value="item.id" v-model="selectedIds" class="rounded"></td>
+              <td class="px-2 py-3 text-xs text-[var(--muted)]">{{ (currentPage - 1) * perPage + index + 1 }}</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full shrink-0 overflow-hidden flex items-center justify-center bg-[rgba(29,158,117,0.1)] text-[#085041] text-xs font-extrabold border border-[rgba(29,158,117,0.2)]">
+                    <img v-if="item.avatar" :src="item.avatar" :alt="item.name" class="w-full h-full object-cover">
+                    <span v-else>{{ avatarInitials(item.name) }}</span>
                   </div>
-                </td>
-                <td>
-                  <span class="ds-badge" :class="{
-                    'ds-badge--violet': resolveRole(item) === 'admin',
-                    'ds-badge--info': resolveRole(item) === 'instructor',
-                    'ds-badge--active': resolveRole(item) === 'student',
-                    'ds-badge--pending': resolveRole(item) === 'academic_manager',
-                  }">{{ resolveRole(item) }}</span>
-                </td>
-                <td>
-                  <div v-if="item.administrative_class || item.cohort" class="cell-stack">
-                    <span v-if="item.administrative_class" class="cell-strong">{{ item.administrative_class.name }}</span>
-                    <span v-if="item.cohort" class="cell-muted">{{ item.cohort.name }}</span>
+                  <div class="flex flex-col gap-0.5 min-w-0">
+                    <strong class="text-sm font-semibold text-[var(--text)] truncate">{{ item.name }}</strong>
+                    <span class="text-xs text-[var(--muted)] truncate">{{ item.email }}</span>
                   </div>
-                  <span v-else class="cell-muted">—</span>
-                </td>
-                <td class="cell-mono">{{ item.student_code || item.staff_code || '—' }}</td>
-                <td class="cell-muted">{{ item.phone || '—' }}</td>
-                <td>
-                  <span :class="studyStatusBadgeClass(item.study_status)">
-                    {{ item.study_status ? (STUDY_STATUS_LABELS[item.study_status] || item.study_status) : '—' }}
-                  </span>
-                </td>
-                <td style="text-align:right">
-                  <div style="display:flex;gap:5px;justify-content:flex-end">
-                    <button class="ds-btn ds-btn--view" type="button" @click="openViewModal(item)">Xem</button>
-                    <button class="ds-btn ds-btn--edit" type="button" @click="openEditModal(item)">Sửa</button>
-                    <button class="ds-btn ds-btn--delete ds-btn--icon" type="button" :disabled="deletingId === item.id" @click="deleteUser(item)">✕</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold" :class="{
+                  'bg-[rgba(139,92,246,0.1)] text-purple-700 border border-purple-200': resolveRole(item) === 'admin',
+                  'bg-[rgba(55,138,221,0.1)] text-blue-700 border border-blue-200': resolveRole(item) === 'instructor',
+                  'bg-[rgba(29,158,117,0.1)] text-[#085041] border border-[rgba(29,158,117,0.2)]': resolveRole(item) === 'student',
+                  'bg-amber-50 text-amber-700 border border-amber-200': resolveRole(item) === 'academic_manager',
+                }">{{ resolveRole(item) }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <div v-if="item.administrative_class || item.cohort" class="flex flex-col gap-0.5">
+                  <span v-if="item.administrative_class" class="text-sm font-medium text-[var(--text)]">{{ item.administrative_class.name }}</span>
+                  <span v-if="item.cohort" class="text-xs text-[var(--muted)]">{{ item.cohort.name }}</span>
+                </div>
+                <span v-else class="text-[var(--muted)]">—</span>
+              </td>
+              <td class="px-4 py-3 text-xs font-mono text-[var(--text)]">{{ item.student_code || item.staff_code || '—' }}</td>
+              <td class="px-4 py-3 text-xs text-[var(--muted)]">{{ item.phone || '—' }}</td>
+              <td class="px-4 py-3">
+                <span v-if="item.study_status" class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold" :class="{
+                  'bg-emerald-50 text-emerald-700 border border-emerald-200': ['dang_hoc','dang_cong_tac'].includes(item.study_status),
+                  'bg-amber-50 text-amber-700 border border-amber-200': ['bao_luu','nghi_phep'].includes(item.study_status),
+                  'bg-blue-50 text-blue-700 border border-blue-200': item.study_status === 'tot_nghiep',
+                  'bg-red-50 text-red-700 border border-red-200': ['thoi_hoc','dinh_chi'].includes(item.study_status),
+                  'bg-slate-100 text-slate-500 border border-slate-200': item.study_status === 'nghi_huu',
+                }">{{ STUDY_STATUS_LABELS[item.study_status] || item.study_status }}</span>
+                <span v-else class="text-[var(--muted)] text-xs">—</span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    class="inline-flex items-center justify-center h-7 px-2.5 rounded-lg border border-[var(--line)] bg-transparent text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+                    type="button"
+                    @click="openViewModal(item)"
+                  >Xem</button>
+                  <button
+                    class="inline-flex items-center justify-center h-7 px-2.5 rounded-lg border border-[rgba(29,158,117,0.3)] bg-[rgba(29,158,117,0.07)] text-xs font-semibold text-[#085041] hover:bg-[rgba(29,158,117,0.13)] transition-colors"
+                    type="button"
+                    @click="openEditModal(item)"
+                  >Sửa</button>
+                  <button
+                    class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold transition-colors disabled:opacity-40"
+                    type="button"
+                    :disabled="deletingId === item.id"
+                    @click="deleteUser(item)"
+                  >✕</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-        <DataTableFooter
-          :current="currentPage"
-          :last="lastPage"
-          :total="totalUsers"
-          :per-page="perPage"
-          @page="fetchUsers"
-          @update:per-page="perPage = $event; fetchUsers(1)"
-        />
-      </section>
-    </div>
+      <!-- Pagination -->
+      <DataTableFooter
+        :current="currentPage"
+        :last="lastPage"
+        :total="totalUsers"
+        :per-page="perPage"
+        @page="fetchUsers"
+        @update:per-page="perPage = $event; fetchUsers(1)"
+      />
+    </section>
 
     <!-- ── CRUD Modal ── -->
     <Teleport to="body">
-      <div v-if="modalOpen" class="crud-modal-backdrop" @click.self="closeModal">
-        <div class="crud-modal um-modal">
+      <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="closeModal">
+        <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden">
 
-          <!-- Header -->
-          <div class="crud-modal-head">
+          <!-- Modal Header -->
+          <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[var(--line)] shrink-0">
             <div>
-              <p class="section-kicker">{{ modalMode === 'create' ? 'Tạo mới' : modalMode === 'edit' ? 'Chỉnh sửa' : 'Chi tiết' }}</p>
-              <h3>{{ modalMode === 'create' ? 'Thêm người dùng' : modalMode === 'edit' ? 'Cập nhật người dùng' : selectedUser?.name }}</h3>
+              <p class="text-[0.68rem] font-bold uppercase tracking-widest text-[var(--muted)]">
+                {{ modalMode === 'create' ? 'Tạo mới' : modalMode === 'edit' ? 'Chỉnh sửa' : 'Chi tiết' }}
+              </p>
+              <h3 class="text-lg font-bold tracking-tight text-[var(--text)] mt-0.5">
+                {{ modalMode === 'create' ? 'Thêm người dùng' : modalMode === 'edit' ? 'Cập nhật người dùng' : selectedUser?.name }}
+              </h3>
             </div>
-            <button class="topbar-ghost" type="button" @click="closeModal">✕</button>
+            <button
+              class="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors shrink-0 mt-0.5"
+              type="button"
+              @click="closeModal"
+            >✕</button>
           </div>
 
-          <!-- ── View Mode: Clean Profile ── -->
-          <div v-if="modalMode === 'view'" class="um-view-profile">
-            <div class="um-vp-header">
-              <div v-if="selectedUser?.avatar" class="ds-avatar ds-avatar--xl">
-                <img :src="selectedUser.avatar" :alt="selectedUser.name" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
-              </div>
-              <div v-else class="ds-avatar ds-avatar--xl" style="font-size: 1.5rem;">{{ avatarInitials(selectedUser?.name || '') }}</div>
-              <div class="um-vp-title">
-                <h4>{{ selectedUser?.name }}</h4>
-                <span class="um-vp-email">{{ selectedUser?.email }}</span>
-                <span class="ds-badge" style="margin-top: 8px; width: fit-content;" :class="{
-                  'ds-badge--violet': resolveRole(selectedUser) === 'admin',
-                  'ds-badge--info': resolveRole(selectedUser) === 'instructor',
-                  'ds-badge--active': resolveRole(selectedUser) === 'student',
-                  'ds-badge--pending': resolveRole(selectedUser) === 'academic_manager',
-                }">{{ resolveRole(selectedUser) }}</span>
-              </div>
-            </div>
-            
-            <p v-if="selectedUser?.bio" class="um-vp-bio">{{ selectedUser.bio }}</p>
+          <!-- Scrollable body -->
+          <div class="flex-1 overflow-y-auto px-6 py-5">
 
-            <div v-if="resolveRole(selectedUser) === 'student'" class="um-gpa-strip" style="margin-top: 24px;">
-              <div v-if="loadingSummary" class="um-gpa-loading">
-                <span class="ds-spin ds-spin--sm"></span> Đang tải GPA...
+            <!-- ── VIEW MODE ── -->
+            <template v-if="modalMode === 'view'">
+              <!-- Avatar + name -->
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full shrink-0 overflow-hidden flex items-center justify-center bg-[rgba(29,158,117,0.1)] text-[#085041] text-xl font-extrabold border-2 border-[rgba(29,158,117,0.2)]">
+                  <img v-if="selectedUser?.avatar" :src="selectedUser.avatar" :alt="selectedUser?.name" class="w-full h-full object-cover">
+                  <span v-else>{{ avatarInitials(selectedUser?.name || '') }}</span>
+                </div>
+                <div class="flex flex-col gap-1 min-w-0">
+                  <h4 class="text-lg font-bold text-[var(--text)] truncate">{{ selectedUser?.name }}</h4>
+                  <span class="text-sm text-[var(--muted)] truncate">{{ selectedUser?.email }}</span>
+                  <span class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold w-fit" :class="{
+                    'bg-purple-50 text-purple-700 border border-purple-200': resolveRole(selectedUser) === 'admin',
+                    'bg-blue-50 text-blue-700 border border-blue-200': resolveRole(selectedUser) === 'instructor',
+                    'bg-emerald-50 text-emerald-700 border border-emerald-200': resolveRole(selectedUser) === 'student',
+                    'bg-amber-50 text-amber-700 border border-amber-200': resolveRole(selectedUser) === 'academic_manager',
+                  }">{{ resolveRole(selectedUser) }}</span>
+                </div>
               </div>
-              <template v-else-if="academicSummary">
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">GPA</p>
-                  <strong class="um-gpa-value">{{ academicSummary.overall_gpa?.toFixed(2) ?? '—' }}</strong>
-                </div>
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">Xếp loại</p>
-                  <span class="ds-badge" :class="gpaClassification(academicSummary.overall_gpa).cls">
-                    {{ gpaClassification(academicSummary.overall_gpa).label }}
-                  </span>
-                </div>
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">Tín chỉ</p>
-                  <strong class="um-gpa-value">{{ academicSummary.total_credits }}</strong>
-                </div>
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">Số môn</p>
-                  <strong class="um-gpa-value">{{ academicSummary.total_courses }}</strong>
-                </div>
-              </template>
-              <div v-else class="um-gpa-empty">Chưa có dữ liệu điểm.</div>
-            </div>
 
-            <div class="um-vp-grid" style="margin-top: 24px;">
-              <div class="um-vp-field">
-                <label>Mã SV/NV</label>
-                <p class="cell-mono">{{ selectedUser?.student_code || selectedUser?.staff_code || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Trạng thái</label>
-                <p>
-                  <span :class="studyStatusBadgeClass(selectedUser?.study_status)">
-                    {{ selectedUser?.study_status ? (STUDY_STATUS_LABELS[selectedUser.study_status] || selectedUser.study_status) : '—' }}
-                  </span>
-                </p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Lớp HC</label>
-                <p>{{ selectedUser?.administrative_class?.name || '—' }}</p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Khóa</label>
-                <p>{{ selectedUser?.cohort?.name || '—' }}</p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Chương trình</label>
-                <p>{{ selectedUser?.program?.name || '—' }}</p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Ngành học</label>
-                <p>{{ selectedUser?.major?.name || '—' }}</p>
-              </div>
-              
-              <div class="um-vp-field">
-                <label>Số điện thoại</label>
-                <p>{{ selectedUser?.phone || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Giới tính</label>
-                <p>{{ selectedUser?.gender === 'male' ? 'Nam' : selectedUser?.gender === 'female' ? 'Nữ' : selectedUser?.gender === 'other' ? 'Khác' : '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Ngày sinh</label>
-                <p>{{ selectedUser?.date_of_birth ? formatDate(selectedUser.date_of_birth) : '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Quốc tịch</label>
-                <p>{{ selectedUser?.nationality || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Số CMND / CCCD</label>
-                <p>{{ selectedUser?.id_card_number || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Quê quán</label>
-                <p>{{ selectedUser?.hometown || '—' }}</p>
-              </div>
-              <div class="um-vp-field" style="grid-column: 1 / -1;">
-                <label>Địa chỉ</label>
-                <p>{{ selectedUser?.permanent_address || '—' }}</p>
-              </div>
-            </div>
+              <!-- Bio -->
+              <p v-if="selectedUser?.bio" class="mt-4 text-sm text-[var(--text)] leading-relaxed bg-[var(--surface)] px-4 py-3 rounded-xl border border-[var(--line)]">{{ selectedUser.bio }}</p>
 
-            <div v-if="academicSummary && academicSummary.terms.length" class="um-vp-terms" style="margin-top: 24px;">
-              <span class="um-vp-section-title">Bảng điểm theo học kỳ</span>
-              <div class="um-terms-table">
-                <table>
-                  <thead><tr><th>Học kỳ</th><th>Số môn</th><th>Tín chỉ</th><th>GPA</th></tr></thead>
-                  <tbody>
-                    <tr v-for="t in academicSummary.terms" :key="t.term?.id">
-                      <td>{{ t.term?.name || '—' }}</td>
-                      <td>{{ t.course_count }}</td>
-                      <td>{{ t.credit_count }}</td>
-                      <td><strong>{{ t.gpa ?? '—' }}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
+              <!-- GPA strip for students -->
+              <div v-if="resolveRole(selectedUser) === 'student'" class="mt-4 grid grid-cols-4 gap-3 bg-[var(--surface)] border border-[var(--line)] rounded-xl px-4 py-3">
+                <div v-if="loadingSummary" class="col-span-4 flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <i class="pi pi-spin pi-spinner" style="font-size:0.875rem" /> Đang tải GPA...
+                </div>
+                <template v-else-if="academicSummary">
+                  <div v-for="item in [
+                    { label: 'GPA', value: academicSummary.overall_gpa?.toFixed(2) ?? '—' },
+                    { label: 'Xếp loại', value: gpaClassification(academicSummary.overall_gpa).label },
+                    { label: 'Tín chỉ', value: academicSummary.total_credits },
+                    { label: 'Số môn', value: academicSummary.total_courses },
+                  ]" :key="item.label" class="flex flex-col gap-1">
+                    <span class="text-[0.65rem] font-bold uppercase tracking-wide text-[var(--muted)]">{{ item.label }}</span>
+                    <strong class="text-xl font-extrabold tracking-tight text-[var(--text)]">{{ item.value }}</strong>
+                  </div>
+                </template>
+                <div v-else class="col-span-4 text-sm text-[var(--muted)]">Chưa có dữ liệu điểm.</div>
               </div>
-            </div>
+
+              <!-- Info grid -->
+              <div class="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 pt-4 border-t border-[var(--line)]">
+                <div v-for="field in [
+                  { label: 'Mã SV/NV', value: selectedUser?.student_code || selectedUser?.staff_code || '—', mono: true },
+                  { label: 'Trạng thái', value: selectedUser?.study_status ? (STUDY_STATUS_LABELS[selectedUser.study_status] || selectedUser.study_status) : '—' },
+                  ...(resolveRole(selectedUser) === 'student' ? [
+                    { label: 'Lớp HC', value: selectedUser?.administrative_class?.name || '—' },
+                    { label: 'Khóa', value: selectedUser?.cohort?.name || '—' },
+                    { label: 'Chương trình', value: selectedUser?.program?.name || '—' },
+                    { label: 'Ngành học', value: selectedUser?.major?.name || '—' },
+                  ] : []),
+                  { label: 'SĐT', value: selectedUser?.phone || '—' },
+                  { label: 'Giới tính', value: { male:'Nam', female:'Nữ', other:'Khác' }[selectedUser?.gender as 'male'|'female'|'other'] || '—' },
+                  { label: 'Ngày sinh', value: selectedUser?.date_of_birth ? formatDate(selectedUser.date_of_birth) : '—' },
+                  { label: 'Quốc tịch', value: selectedUser?.nationality || '—' },
+                  { label: 'CMND/CCCD', value: selectedUser?.id_card_number || '—' },
+                  { label: 'Quê quán', value: selectedUser?.hometown || '—' },
+                ]" :key="field.label" class="flex flex-col gap-0.5">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">{{ field.label }}</span>
+                  <span class="text-sm font-medium text-[var(--text)]" :class="{ 'font-mono': field.mono }">{{ field.value }}</span>
+                </div>
+                <div class="col-span-2 flex flex-col gap-0.5">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Địa chỉ</span>
+                  <span class="text-sm font-medium text-[var(--text)]">{{ selectedUser?.permanent_address || '—' }}</span>
+                </div>
+              </div>
+
+              <!-- Transcript table -->
+              <div v-if="academicSummary && academicSummary.terms.length" class="mt-4">
+                <span class="text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)] block mb-2">Bảng điểm theo học kỳ</span>
+                <div class="rounded-xl border border-[var(--line)] overflow-hidden">
+                  <table class="w-full text-sm border-collapse">
+                    <thead>
+                      <tr class="bg-[var(--surface)] border-b border-[var(--line)]">
+                        <th class="px-4 py-2 text-left text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Học kỳ</th>
+                        <th class="px-4 py-2 text-left text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Số môn</th>
+                        <th class="px-4 py-2 text-left text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Tín chỉ</th>
+                        <th class="px-4 py-2 text-left text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">GPA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="t in academicSummary.terms" :key="t.term?.id" class="border-b border-[var(--line)] last:border-0">
+                        <td class="px-4 py-2 text-[var(--text)]">{{ t.term?.name || '—' }}</td>
+                        <td class="px-4 py-2 text-[var(--muted)]">{{ t.course_count }}</td>
+                        <td class="px-4 py-2 text-[var(--muted)]">{{ t.credit_count }}</td>
+                        <td class="px-4 py-2"><strong class="text-[var(--text)]">{{ t.gpa ?? '—' }}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </template>
+
+            <!-- ── EDIT / CREATE MODE ── -->
+            <template v-else>
+              <!-- Section tabs -->
+              <div class="flex gap-1 pb-4 border-b border-[var(--line)] mb-5">
+                <button
+                  v-for="tab in [{ key:'account', label:'Tài khoản' }, { key:'academic', label:'Học vụ' }, { key:'personal', label:'Cá nhân' }]"
+                  :key="tab.key"
+                  class="h-8 px-4 rounded-xl text-sm font-semibold border transition-colors"
+                  :class="activeSection === tab.key
+                    ? 'bg-[rgba(29,158,117,0.1)] border-[rgba(29,158,117,0.3)] text-[#085041]'
+                    : 'bg-transparent border-transparent text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)]'"
+                  type="button"
+                  @click="activeSection = tab.key as 'account'|'academic'|'personal'"
+                >{{ tab.label }}</button>
+              </div>
+
+              <div v-if="errorMessage" class="mb-4 flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <i class="pi pi-exclamation-circle shrink-0" />{{ errorMessage }}
+              </div>
+
+              <!-- Field helpers -->
+              <div class="grid grid-cols-2 gap-4">
+
+                <!-- Tab: Tài khoản -->
+                <template v-if="activeSection === 'account'">
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Họ và tên <em class="text-red-500 not-italic">*</em></span>
+                    <input v-model="form.name" type="text" placeholder="Nguyễn Văn A" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Email <em class="text-red-500 not-italic">*</em></span>
+                    <input v-model="form.email" type="email" placeholder="user@ptit.edu.vn" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Vai trò <em class="text-red-500 not-italic">*</em></span>
+                    <select v-model="form.role" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="student">Sinh viên</option>
+                      <option value="instructor">Giảng viên</option>
+                      <option value="admin">Admin</option>
+                      <option value="academic_manager">Quản lý học vụ</option>
+                    </select>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">{{ modalMode === 'edit' ? 'Mật khẩu mới (bỏ trống nếu không đổi)' : 'Mật khẩu *' }}</span>
+                    <input v-model="form.password" type="password" :placeholder="modalMode === 'edit' ? 'Bỏ trống nếu không đổi' : 'Tối thiểu 6 ký tự'" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]">
+                  </label>
+                  <label class="col-span-2 flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Giới thiệu / Bio</span>
+                    <textarea v-model="form.bio" rows="2" placeholder="Mô tả ngắn..." class="px-3 py-2 rounded-xl border border-[var(--line)] bg-white text-sm resize-y focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]"></textarea>
+                  </label>
+                  <div class="col-span-2 flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Ảnh đại diện</span>
+                    <MediaUpload v-model="form.avatar" folder="users" variant="avatar" label="Ảnh đại diện" hint="JPG, PNG, WEBP — tối đa 5MB." :placeholder-initial="form.name ? avatarInitials(form.name) : 'AV'" @uploaded="onAvatarUploaded" @error="onAvatarError" />
+                  </div>
+                </template>
+
+                <!-- Tab: Học vụ -->
+                <template v-if="activeSection === 'academic'">
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Mã sinh viên</span>
+                    <input v-model="form.student_code" type="text" placeholder="B21DCCN123" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Mã nhân viên</span>
+                    <input v-model="form.staff_code" type="text" placeholder="GV001" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Lớp hành chính</span>
+                    <select v-model="form.administrative_class_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="">— Chọn lớp HC —</option>
+                      <option v-for="c in optAdminClasses" :key="c.id" :value="String(c.id)">{{ c.name }}<template v-if="c.code"> ({{ c.code }})</template></option>
+                    </select>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Khóa / Niên khóa</span>
+                    <select v-model="form.cohort_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="">— Chọn khóa —</option>
+                      <option v-for="c in optCohorts" :key="c.id" :value="String(c.id)">{{ c.name }}<template v-if="c.code"> ({{ c.code }})</template></option>
+                    </select>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Chương trình đào tạo</span>
+                    <select v-model="form.program_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="">— Chọn chương trình —</option>
+                      <option v-for="p in optPrograms" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
+                    </select>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Ngành học</span>
+                    <select v-model="form.major_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="">— Chọn ngành —</option>
+                      <option v-for="m in optMajors" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
+                    </select>
+                  </label>
+                  <label class="col-span-2 flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Trạng thái học vụ</span>
+                    <select v-model="form.study_status" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="">— Chưa xác định —</option>
+                      <option value="dang_hoc">Đang học</option>
+                      <option value="bao_luu">Bảo lưu</option>
+                      <option value="tot_nghiep">Tốt nghiệp</option>
+                      <option value="thoi_hoc">Thôi học</option>
+                      <option value="dinh_chi">Đình chỉ</option>
+                      <option value="dang_cong_tac">Đang công tác</option>
+                      <option value="nghi_phep">Nghỉ phép</option>
+                      <option value="nghi_huu">Nghỉ hưu</option>
+                    </select>
+                  </label>
+                </template>
+
+                <!-- Tab: Cá nhân -->
+                <template v-if="activeSection === 'personal'">
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Số điện thoại</span>
+                    <input v-model="form.phone" type="tel" placeholder="0987 654 321" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Giới tính</span>
+                    <select v-model="form.gender" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                      <option value="">— Chưa xác định —</option>
+                      <option value="male">Nam</option>
+                      <option value="female">Nữ</option>
+                      <option value="other">Khác</option>
+                    </select>
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Ngày sinh</span>
+                    <input v-model="form.date_of_birth" type="date" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Quốc tịch</span>
+                    <input v-model="form.nationality" type="text" placeholder="Việt Nam" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">CMND / CCCD</span>
+                    <input v-model="form.id_card_number" type="text" placeholder="001234567890" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Quê quán</span>
+                    <input v-model="form.hometown" type="text" placeholder="Hà Nội" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                  <label class="col-span-2 flex flex-col gap-1.5">
+                    <span class="text-xs font-semibold text-[var(--text)]">Địa chỉ thường trú</span>
+                    <input v-model="form.permanent_address" type="text" placeholder="Số nhà, đường, phường, quận, tỉnh..." class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+                  </label>
+                </template>
+
+              </div>
+            </template>
           </div>
 
-          <!-- ── Edit/Create Mode: Tabs & Form ── -->
-          <template v-else>
-            <!-- Section tabs -->
-            <div class="um-section-tabs">
-              <button
-                class="um-section-tab"
-                :class="{ 'um-section-tab--on': activeSection === 'account' }"
-                type="button"
-                @click="activeSection = 'account'"
-              >Tài khoản</button>
-              <button
-                class="um-section-tab"
-                :class="{ 'um-section-tab--on': activeSection === 'academic' }"
-                type="button"
-                @click="activeSection = 'academic'"
-              >Học vụ</button>
-              <button
-                class="um-section-tab"
-                :class="{ 'um-section-tab--on': activeSection === 'personal' }"
-                type="button"
-                @click="activeSection = 'personal'"
-              >Cá nhân</button>
-            </div>
-
-            <div v-if="errorMessage" class="crud-alert is-error" style="margin: 0 0 12px">{{ errorMessage }}</div>
-
-            <!-- Tab: Tài khoản -->
-            <div v-show="activeSection === 'account'" class="um-tab-body">
-              <div class="crud-form-grid">
-                <label class="crud-field">
-                  <span>Họ và tên <em>*</em></span>
-                  <input v-model="form.name" type="text" placeholder="Nguyễn Văn A">
-                </label>
-                <label class="crud-field">
-                  <span>Email <em>*</em></span>
-                  <input v-model="form.email" type="email" placeholder="user@ptit.edu.vn">
-                </label>
-                <label class="crud-field">
-                  <span>Vai trò <em>*</em></span>
-                  <select v-model="form.role">
-                    <option value="student">Sinh viên</option>
-                    <option value="instructor">Giảng viên</option>
-                    <option value="admin">Admin</option>
-                    <option value="academic_manager">Quản lý học vụ</option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>{{ modalMode === 'edit' ? 'Mật khẩu mới (bỏ trống nếu không đổi)' : 'Mật khẩu *' }}</span>
-                  <input
-                    v-model="form.password"
-                    type="password"
-                    :placeholder="modalMode === 'edit' ? 'Bỏ trống nếu không đổi' : 'Tối thiểu 6 ký tự'"
-                  >
-                </label>
-                <label class="crud-field crud-field-full">
-                  <span>Giới thiệu / Bio</span>
-                  <textarea v-model="form.bio" rows="2" placeholder="Mô tả ngắn về người dùng..." style="resize:vertical"></textarea>
-                </label>
-                <div class="crud-field crud-field-full">
-                  <span>Ảnh đại diện</span>
-                  <MediaUpload
-                    v-model="form.avatar"
-                    folder="users"
-                    variant="avatar"
-                    label="Ảnh đại diện"
-                    hint="JPG, PNG, WEBP — tối đa 5MB."
-                    :placeholder-initial="form.name ? avatarInitials(form.name) : 'AV'"
-                    @uploaded="onAvatarUploaded"
-                    @error="onAvatarError"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Tab: Học vụ -->
-            <div v-show="activeSection === 'academic'" class="um-tab-body">
-              <div class="crud-form-grid">
-                <label class="crud-field">
-                  <span>Mã sinh viên</span>
-                  <input v-model="form.student_code" type="text" placeholder="B21DCCN123">
-                </label>
-                <label class="crud-field">
-                  <span>Mã nhân viên</span>
-                  <input v-model="form.staff_code" type="text" placeholder="GV001">
-                </label>
-
-                <label class="crud-field">
-                  <span>Lớp hành chính</span>
-                  <select v-model="form.administrative_class_id">
-                    <option value="">— Chọn lớp hành chính —</option>
-                    <option v-for="c in optAdminClasses" :key="c.id" :value="String(c.id)">{{ c.name }} <template v-if="c.code">({{ c.code }})</template></option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Khóa / Niên khóa</span>
-                  <select v-model="form.cohort_id">
-                    <option value="">— Chọn khóa —</option>
-                    <option v-for="c in optCohorts" :key="c.id" :value="String(c.id)">{{ c.name }} <template v-if="c.code">({{ c.code }})</template></option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Chương trình đào tạo</span>
-                  <select v-model="form.program_id">
-                    <option value="">— Chọn chương trình —</option>
-                    <option v-for="p in optPrograms" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Ngành học</span>
-                  <select v-model="form.major_id">
-                    <option value="">— Chọn ngành —</option>
-                    <option v-for="m in optMajors" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
-                  </select>
-                </label>
-
-                <label class="crud-field crud-field-full">
-                  <span>Trạng thái học vụ</span>
-                  <select v-model="form.study_status">
-                    <option value="">— Chưa xác định —</option>
-                    <option value="dang_hoc">Đang học</option>
-                    <option value="bao_luu">Bảo lưu</option>
-                    <option value="tot_nghiep">Tốt nghiệp</option>
-                    <option value="thoi_hoc">Thôi học</option>
-                    <option value="dinh_chi">Đình chỉ</option>
-                    <option value="dang_cong_tac">Đang công tác</option>
-                    <option value="nghi_phep">Nghỉ phép</option>
-                    <option value="nghi_huu">Nghỉ hưu</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <!-- Tab: Cá nhân -->
-            <div v-show="activeSection === 'personal'" class="um-tab-body">
-              <div class="crud-form-grid">
-                <label class="crud-field">
-                  <span>Số điện thoại</span>
-                  <input v-model="form.phone" type="tel" placeholder="0987 654 321">
-                </label>
-                <label class="crud-field">
-                  <span>Giới tính</span>
-                  <select v-model="form.gender">
-                    <option value="">— Chưa xác định —</option>
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Ngày sinh</span>
-                  <input v-model="form.date_of_birth" type="date">
-                </label>
-                <label class="crud-field">
-                  <span>Quốc tịch</span>
-                  <input v-model="form.nationality" type="text" placeholder="Việt Nam">
-                </label>
-                <label class="crud-field">
-                  <span>Số CMND / CCCD</span>
-                  <input v-model="form.id_card_number" type="text" placeholder="001234567890">
-                </label>
-                <label class="crud-field">
-                  <span>Quê quán</span>
-                  <input v-model="form.hometown" type="text" placeholder="Hà Nội">
-                </label>
-                <label class="crud-field crud-field-full">
-                  <span>Địa chỉ thường trú</span>
-                  <input v-model="form.permanent_address" type="text" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố">
-                </label>
-              </div>
-            </div>
-          </template>
-
-
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="closeModal">Đóng</button>
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-[var(--line)] bg-[var(--surface)] shrink-0">
+            <button
+              class="h-9 px-5 rounded-xl border border-[var(--line)] bg-transparent text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-white transition-colors"
+              type="button"
+              @click="closeModal"
+            >Đóng</button>
             <button
               v-if="modalMode !== 'view'"
-              class="crud-primary-btn"
+              class="h-9 px-5 rounded-xl bg-[#1d9e75] hover:bg-[#17876a] text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               type="button"
               :disabled="saving"
               @click="saveUser"
-            >{{ saving ? 'Đang lưu...' : modalMode === 'create' ? 'Tạo người dùng' : 'Lưu thay đổi' }}</button>
+            >
+              <i v-if="saving" class="pi pi-spin pi-spinner mr-1.5" style="font-size:0.8rem" />
+              {{ saving ? 'Đang lưu...' : modalMode === 'create' ? 'Tạo người dùng' : 'Lưu thay đổi' }}
+            </button>
           </div>
         </div>
       </div>
@@ -1026,333 +1056,9 @@ onMounted(() => {
       @close="deleteModalOpen = false"
       @confirm="deleteUser()"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-/* ── View Profile ── */
-.um-view-profile {
-  padding: 0 4px;
-}
-.um-vp-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-.um-vp-title {
-  display: flex;
-  flex-direction: column;
-}
-.um-vp-title h4 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.um-vp-email {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.um-vp-bio {
-  margin-top: 16px;
-  font-size: 0.9rem;
-  color: var(--text);
-  line-height: 1.5;
-  background: var(--bg, #eff2f0);
-  padding: 12px 16px;
-  border-radius: 12px;
-}
-.um-vp-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 24px;
-  margin-top: 24px;
-  border-top: 1px solid var(--line, #dde5e1);
-  padding-top: 24px;
-}
-.um-vp-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.um-vp-field label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.um-vp-field p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--text);
-  font-weight: 500;
-}
-.um-vp-section-title {
-  display: block;
-  font-size: 0.8rem; 
-  font-weight: 600; 
-  color: var(--muted); 
-  text-transform: uppercase; 
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-
-/* ── Table cells ── */
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.user-cell-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.cell-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.cell-strong { font-weight: 600; font-size: 0.84rem; color: var(--text); }
-.cell-muted  { font-size: 0.78rem; color: var(--muted); }
-.cell-mono   { font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; color: var(--text); }
-
-/* ── Modal sizing ── */
-.um-modal {
-  max-width: 720px;
-  width: 100%;
-}
-
-/* ── Section tabs ── */
-.um-section-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 24px 16px;
-  border-bottom: 1px solid var(--line, #dde5e1);
-  margin-bottom: 20px;
-}
-.um-section-tab {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 0.84rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 120ms, color 120ms;
-}
-.um-section-tab:hover { background: var(--bg); color: var(--text); }
-.um-section-tab--on {
-  background: var(--green-soft, #e1f5ee);
-  color: var(--green-deep, #085041);
-  border-color: rgba(29,158,117,0.3);
-}
-
-.um-tab-body { padding: 0 4px; }
-
-/* ── GPA strip ── */
-.um-gpa-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
-  background: var(--bg, #eff2f0);
-  border: 1px solid var(--line, #dde5e1);
-  border-radius: 14px;
-  padding: 16px 20px;
-}
-.um-gpa-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.um-gpa-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin: 0; }
-.um-gpa-value { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
-.um-gpa-loading { grid-column: 1/-1; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.84rem; }
-.um-gpa-empty { grid-column: 1/-1; color: var(--muted); font-size: 0.84rem; }
-
-/* ── Terms mini table ── */
-.um-terms-table {
-  margin-top: 8px;
-  border: 1px solid var(--line, #dde5e1);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.um-terms-table table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.um-terms-table th {
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--muted);
-  background: transparent;
-  border-bottom: 1px solid var(--line);
-}
-.um-terms-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); color: var(--text); }
-.um-terms-table tr:last-child td { border-bottom: none; }
-
-/* ── Dark mode ── */
-[data-theme="dark"] .um-section-tab--on { background: rgba(29,158,117,0.15); }
-[data-theme="dark"] .um-gpa-strip { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .um-terms-table { border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .um-terms-table th, [data-theme="dark"] .um-terms-table td { border-color: rgba(255,255,255,0.07); }
-
-/* ── Filter panel ── */
-.uf-filter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
-  background: var(--surface-strong, #fff);
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 120ms, border-color 120ms, color 120ms;
-}
-.uf-filter-btn:hover { background: var(--bg); color: var(--text); border-color: var(--line-strong); }
-.uf-filter-btn--active { color: var(--green-deep, #085041); border-color: rgba(29,158,117,0.4); background: var(--green-soft, #e1f5ee); }
-.uf-filter-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--green, #1d9e75);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 800;
-}
-
-.uf-filter-panel {
-  border-top: 1px solid var(--line, #dde5e1);
-  padding: 16px 24px 12px;
-  background: var(--bg, #eff2f0);
-  margin: 0 -24px;
-}
-.uf-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr) auto;
-  gap: 10px;
-  align-items: end;
-}
-.uf-filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.uf-filter-field span {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--muted);
-}
-.uf-filter-field select {
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
-  background: var(--surface-strong, #fff);
-  font-size: 0.82rem;
-  color: var(--text);
-  font-family: inherit;
-  cursor: pointer;
-  appearance: auto;
-}
-.uf-filter-actions {
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 1px;
-}
-.uf-reset-btn {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(239,68,68,0.22);
-  background: rgba(239,68,68,0.07);
-  color: #b91c1c;
-  font-size: 0.78rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 120ms;
-}
-.uf-reset-btn:hover { background: rgba(239,68,68,0.14); }
-
-/* Active filter chips */
-.uf-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-.uf-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px 0 12px;
-  border-radius: 999px;
-  background: rgba(29,158,117,0.1);
-  border: 1px solid rgba(29,158,117,0.22);
-  color: var(--green-deep, #085041);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.uf-chip button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--green-deep, #085041);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  opacity: 0.7;
-}
-.uf-chip button:hover { opacity: 1; }
-
-/* Meta bar reset link */
-.crud-meta { display: flex; align-items: center; gap: 12px; }
-.uf-meta-reset {
-  background: none;
-  border: none;
-  font-size: 0.78rem;
-  color: var(--muted);
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-  font-family: inherit;
-}
-.uf-meta-reset:hover { color: #b91c1c; }
-
-/* Responsive */
-@media (max-width: 1000px) {
-  .uf-filter-grid { grid-template-columns: repeat(3, 1fr); }
-  .uf-filter-actions { grid-column: 1 / -1; justify-content: flex-start; }
-}
-@media (max-width: 640px) {
-  .uf-filter-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* Dark mode */
-[data-theme="dark"] .uf-filter-btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
-[data-theme="dark"] .uf-filter-btn--active { background: rgba(29,158,117,0.15); border-color: rgba(29,158,117,0.35); }
-[data-theme="dark"] .uf-filter-panel { background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.08); }
-[data-theme="dark"] .uf-filter-field select { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #e8eeec; }
-[data-theme="dark"] .uf-chip { background: rgba(29,158,117,0.15); border-color: rgba(29,158,117,0.3); }
+/* All Tailwind — no custom classes needed */
 </style>

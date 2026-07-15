@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: false })
 
@@ -198,7 +197,7 @@ onUnmounted(() => {
       <!-- Nav -->
       <nav class="dd-nav">
         <div class="dd-nav-item active">
-          <Box :size="15" :stroke-width="2" />
+          <i class="pi pi-box" style="font-size:0.9375rem" />
           <span>Containers</span>
           <span class="dd-nav-badge">{{ services.length }}</span>
         </div>
@@ -207,7 +206,7 @@ onUnmounted(() => {
           <span>Images</span>
         </div>
         <div class="dd-nav-item disabled">
-          <HardDrive :size="15" :stroke-width="2" />
+          <i class="pi pi-hdd" style="font-size:0.9375rem" />
           <span>Volumes</span>
         </div>
       </nav>
@@ -252,7 +251,7 @@ onUnmounted(() => {
 
       <!-- Docker unavailable banner -->
       <div v-if="!dockerAvailable && !loading" class="dd-banner-warn">
-        <AlertTriangle :size="16" :stroke-width="2" />
+        <i class="pi pi-exclamation-triangle" style="font-size:1rem" />
         Docker Engine không phản hồi. Hãy chắc chắn Docker đang chạy trên máy này.
       </div>
 
@@ -322,8 +321,8 @@ onUnmounted(() => {
                     title="Build & Start"
                     @click="doAction(svc, 'start')"
                   >
-                    <Hammer v-if="actioning[svc.service] === 'start'" :size="13" :stroke-width="2" class="icon-spin" />
-                    <Hammer v-else :size="13" :stroke-width="2" />
+                    <i v-if="actioning[svc.service] === 'start'" class="pi pi-wrench icon-spin" style="font-size:0.8125rem" />
+                    <i v-else class="pi pi-wrench" style="font-size:0.8125rem" />
                   </button>
                   <!-- Stop (when running) -->
                   <button
@@ -333,8 +332,8 @@ onUnmounted(() => {
                     title="Stop"
                     @click="doAction(svc, 'stop')"
                   >
-                    <Square v-if="actioning[svc.service] === 'stop'" :size="13" :stroke-width="0" class="icon-pulse" style="fill:currentColor;" />
-                    <Square v-else :size="13" :stroke-width="0" style="fill:currentColor;" />
+                    <i v-if="actioning[svc.service] === 'stop'" class="pi pi-stop-circle icon-pulse" style="font-size:0.8125rem;fill:currentColor" />
+                    <i v-else class="pi pi-stop-circle" style="font-size:0.8125rem;fill:currentColor" />
                   </button>
                   <!-- Restart -->
                   <button
@@ -352,7 +351,7 @@ onUnmounted(() => {
                     title="Show logs"
                     @click.stop="selectRow(svc)"
                   >
-                    <Terminal :size="13" :stroke-width="2" />
+                    <i class="pi pi-terminal" style="font-size:0.8125rem" />
                   </button>
                 </div>
               </td>
@@ -360,7 +359,7 @@ onUnmounted(() => {
 
             <tr v-if="filtered.length === 0">
               <td colspan="6" class="td-empty">
-                <Box :size="32" :stroke-width="1" style="opacity:.2;margin-bottom:8px;" />
+                <i class="pi pi-box" style="font-size:2rem;opacity:.2;margin-bottom:8px" />
                 <div>Không tìm thấy container nào</div>
               </td>
             </tr>

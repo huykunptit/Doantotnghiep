@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useToast } from '~/composables/useToast'
 
@@ -197,14 +196,13 @@ onMounted(() => fetchReviews(1))
           <!-- Stars + badge -->
           <div class="rv-rating-row">
             <div class="rv-stars">
-              <Star
+              <i
                 v-for="star in 5"
                 :key="star"
-                :size="13"
-                :stroke-width="1.5"
+                class="pi pi-star"
+                style="font-size:0.8125rem"
                 :style="{
                   color: star <= review.rating ? '#f59e0b' : 'var(--line-strong)',
-                  fill: star <= review.rating ? '#f59e0b' : 'none',
                 }"
               />
             </div>

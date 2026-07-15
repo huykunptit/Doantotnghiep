@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-// Icons removed - using PrimeIcons
 
 export interface FieldConfig {
   key: string
@@ -141,7 +140,7 @@ function sampleText(field: FieldConfig): string {
           }"
           @mousedown="(e) => onCanvasMouseDown(e, field.key)"
         >
-          <GripVertical class="drag-handle" :size="12" />
+          <i class="pi pi-bars drag-handle" style="font-size:0.75rem" />
           {{ sampleText(field) }}
         </div>
       </div>
@@ -163,8 +162,8 @@ function sampleText(field: FieldConfig): string {
           <span class="field-item-label">{{ field.label }}</span>
           <div class="field-item-actions">
             <button type="button" class="icon-btn" title="Ẩn/hiện" @click.stop="toggleVisible(field.key)">
-              <Eye v-if="field.visible" :size="14" />
-              <EyeOff v-else :size="14" style="opacity:.4" />
+              <i v-if="field.visible" class="pi pi-eye" style="font-size:0.875rem" />
+              <i v-else class="pi pi-eye-slash" style="font-size:0.875rem;opacity:.4" />
             </button>
             <button type="button" class="icon-btn" title="Đặt lại" @click.stop="resetField(field.key)">
               <i class="pi pi-replay" style="font-size:0.875rem" />

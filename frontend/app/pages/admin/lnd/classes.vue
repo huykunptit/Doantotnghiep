@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useToast } from '~/composables/useToast'
 
@@ -844,7 +843,7 @@ watch(filterStatus, () => fetchClasses(1))
                 @click="toggleEnrollStudent(s.id)"
               >
                 <div class="pick-check">
-                  <Check v-if="selectedEnrollIds.includes(s.id)" :size="11" />
+                  <i v-if="selectedEnrollIds.includes(s.id)" class="pi pi-check" style="font-size:0.6875rem" />
                 </div>
                 <div style="display:flex; flex-direction:column; gap:2px;">
                   <span class="mono-code" style="font-size:0.72rem;">{{ s.student_code }}</span>

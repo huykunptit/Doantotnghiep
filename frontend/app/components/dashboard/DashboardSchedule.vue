@@ -140,14 +140,14 @@ function getEventsForDay(day: number) {
           :class="{ active: activeView === 'list' }"
           @click="activeView = 'list'"
         >
-          <List :size="20" :stroke-width="1.75" />
+          <i class="pi pi-list" style="font-size:1.25rem" />
         </button>
         <button
           class="view-btn"
           :class="{ active: activeView === 'calendar' }"
           @click="activeView = 'calendar'"
         >
-          <CalendarDays :size="20" :stroke-width="1.75" />
+          <i class="pi pi-calendar" style="font-size:1.25rem" />
         </button>
       </div>
     </header>

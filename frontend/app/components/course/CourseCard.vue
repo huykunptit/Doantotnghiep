@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-// Icons removed - using PrimeIcons
 
 const props = defineProps<{ course: any }>()
 

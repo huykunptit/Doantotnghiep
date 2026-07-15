@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useApi } from '~/composables/useApi'
 
 const email = ref('')

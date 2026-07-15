@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-// Icons removed - using PrimeIcons
 
 interface CategoryItem {
   id: number
@@ -33,7 +32,7 @@ const hasChildren = computed(() => children.value.length > 0)
     <details v-if="hasChildren" class="cat-details" open>
       <summary class="cat-summary">
         <div class="node-header">
-          <ChevronRight class="chevron-icon" :size="16" />
+          <i class="pi pi-chevron-right chevron-icon" style="font-size:1rem" />
           <span v-if="category.icon" class="cat-icon">{{ category.icon }}</span>
           <span class="cat-name">{{ category.name }}</span>
           <span class="cat-badge">{{ category.courses_count || 0 }} khóa học</span>

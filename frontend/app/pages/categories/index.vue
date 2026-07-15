@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// Icons removed - using PrimeIcons
 import { useCourseStore } from '~/stores/course'
 
 const courseStore = useCourseStore()

@@ -6,7 +6,6 @@ import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
 import DashboardSchedule from '~/components/dashboard/DashboardSchedule.vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -137,11 +136,11 @@ onMounted(async () => {
 })
 
 const quickActions = [
-  { label: 'Tạo khóa học mới', icon: Plus, to: '/courses/create' },
-  { label: 'Ngân hàng câu hỏi', icon: Database, to: '/instructor/question-bank' },
-  { label: 'Quản lý học viên', icon: Users, to: '/instructor/students' },
-  { label: 'Doanh thu giảng dạy', icon: CreditCard, to: '/instructor/revenue' },
-  { label: 'Đợt thi & Giám sát', icon: Layers, to: '/instructor/exams' }
+  { label: 'Tạo khóa học mới', icon: 'plus', to: '/courses/create' },
+  { label: 'Ngân hàng câu hỏi', icon: 'database', to: '/instructor/question-bank' },
+  { label: 'Quản lý học viên', icon: 'users', to: '/instructor/students' },
+  { label: 'Doanh thu giảng dạy', icon: 'credit-card', to: '/instructor/revenue' },
+  { label: 'Đợt thi & Giám sát', icon: 'clone', to: '/instructor/exams' }
 ]
 
 function sparklineLine(values: number[], w: number, h: number): string {
@@ -176,11 +175,11 @@ function sparklinePath(values: number[], w: number, h: number): string {
       </div>
       <div class="header-action-meta">
         <div class="status-badge">
-          <Activity class="icon-pulse" :size="16" />
+          <i class="pi pi-chart-line icon-pulse" style="font-size:1rem" />
           <span>Hệ thống bình thường</span>
         </div>
         <button class="action-btn-refresh" :disabled="loading" title="Đồng bộ dữ liệu" @click="loadStats">
-          <RefreshCw :class="{ 'spin-anim': loading }" :size="16" />
+          <i class="pi pi-refresh { " style="font-size:1rem" />
           <span>Đồng bộ</span>
         </button>
       </div>
@@ -195,16 +194,16 @@ function sparklinePath(values: number[], w: number, h: number): string {
         class="action-card"
       >
         <div class="action-icon-wrap">
-          <component :is="action.icon" :size="18" />
+          <i :class="`pi pi-${action.icon}`" style="font-size:1.125rem" />
         </div>
         <span class="action-label">{{ action.label }}</span>
-        <ChevronRight class="action-arrow" :size="16" />
+        <i class="pi pi-chevron-right action-arrow" />
       </NuxtLink>
     </div>
 
     <!-- ══ ERROR STATUS ══ -->
     <div v-if="error" class="error-banner">
-      <AlertTriangle :size="20" />
+      <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
       <span class="error-msg">{{ error }}</span>
       <button class="btn-retry" @click="loadStats">Thử lại</button>
     </div>
@@ -217,7 +216,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
         <div class="metric-header">
           <span class="metric-title">Doanh thu (6 tháng)</span>
           <span v-if="revenueDelta !== null" class="metric-delta" :class="revenueDelta >= 0 ? 'is-positive' : 'is-negative'">
-            <component :is="revenueDelta >= 0 ? TrendingUp : TrendingDown" :size="12" />
+            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" style="font-size:0.75rem" />
             {{ Math.abs(revenueDelta) }}% tháng trước
           </span>
         </div>
@@ -257,7 +256,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
           <div v-else class="classes-split-row">
             <div class="class-split-col">
               <div class="split-num-wrap">
-                <BookOpen class="text-sky" :size="18" />
+                <i class="pi pi-book text-sky" style="font-size:1.125rem" />
                 <span class="split-value">{{ stats.courses_by_status?.published || 0 }}</span>
               </div>
               <span class="split-lbl">Đang xuất bản</span>
@@ -265,7 +264,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
             <div class="split-divider"></div>
             <div class="class-split-col">
               <div class="split-num-wrap">
-                <Layers class="text-indigo" :size="18" />
+                <i class="pi pi-clone text-indigo" style="font-size:1.125rem" />
                 <span class="split-value">{{ (stats.courses_by_status?.pending_review || 0) + (stats.courses_by_status?.draft || 0) }}</span>
               </div>
               <span class="split-lbl">Chờ duyệt / Nháp</span>
@@ -307,7 +306,7 @@ function sparklinePath(values: number[], w: number, h: number): string {
             </div>
             <div class="metric-indicators">
               <span class="indicator-tag">
-                <CheckCircle class="text-green" :size="12" />
+                <i class="pi pi-check-circle text-green" style="font-size:0.75rem" />
                 Đang theo sát lộ trình bài học
               </span>
             </div>

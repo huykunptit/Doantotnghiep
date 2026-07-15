@@ -23,7 +23,7 @@
         class="studio-topbar-btn is-primary"
         @click="submitForReview"
       >
-        <Rocket :size="15" />
+        <i class="pi pi-send" style="font-size:0.9375rem" />
         <span>{{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}</span>
       </button>
     </template>
@@ -61,7 +61,7 @@
 
           <div class="guide-quote-box">
             <div class="quote-header">
-              <Lightbulb :size="14" />
+              <i class="pi pi-lightbulb" style="font-size:0.875rem" />
               <span class="quote-kicker-text">Lời khuyên sư phạm</span>
             </div>
             <p class="quote-paragraph">"Một giáo trình tốt bắt đầu từ sự rõ ràng và lộ trình hợp lý. Hãy chia nhỏ bài học thành các chương mục để học viên không bị quá tải kiến thức."</p>
@@ -104,7 +104,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-// Icons removed - using PrimeIcons
 import { useAuthStore } from '~/stores/auth'
 import StatusBadge from '~/components/common/StatusBadge.vue'
 import CurriculumStudio from '~/components/course/CurriculumStudio.vue'
@@ -124,9 +123,9 @@ const uploadingLesson = ref<any>(null)
 const submitting = ref(false)
 
 const tips = [
-  { icon: PlayCircle, title: 'Video Preview', desc: 'Chọn ít nhất 1-2 bài học miễn phí để học viên dễ dàng xem thử trước khi quyết định đăng ký khóa học.' },
-  { icon: Zap, title: 'Xử lý Media', desc: 'Hệ thống tự động chuyển mã, nén và tối ưu hóa video sau khi tải lên để đảm bảo tốc độ tải mượt mà.' },
-  { icon: CheckSquare, title: 'Phân chia bài giảng', desc: 'Sắp xếp nội dung một cách khoa học theo cấu trúc chương mục tăng tỷ lệ hoàn thành học tập.' },
+  { icon: 'play-circle', title: 'Video Preview', desc: 'Chọn ít nhất 1-2 bài học miễn phí để học viên dễ dàng xem thử trước khi quyết định đăng ký khóa học.' },
+  { icon: 'bolt', title: 'Xử lý Media', desc: 'Hệ thống tự động chuyển mã, nén và tối ưu hóa video sau khi tải lên để đảm bảo tốc độ tải mượt mà.' },
+  { icon: 'check-square', title: 'Phân chia bài giảng', desc: 'Sắp xếp nội dung một cách khoa học theo cấu trúc chương mục tăng tỷ lệ hoàn thành học tập.' },
 ]
 
 const loadCourse = async () => {

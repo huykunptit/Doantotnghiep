@@ -87,7 +87,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async updateProfile(payload: { name: string; avatar?: string | null; student_code?: string | null; class_name?: string | null; department?: string | null }) {
-      const data = await useApi<{ user: User }>('/auth/profile', {
+      const data = await useApi<{ user: 'user' }>('/auth/profile', {
         method: 'PUT',
         body: payload,
         headers: { Authorization: `Bearer ${this.token}` },

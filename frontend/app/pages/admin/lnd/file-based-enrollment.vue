@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
 definePageMeta({
@@ -100,7 +99,7 @@ function downloadTemplate() {
   document.body.removeChild(link)
 }
 
-// Step 1: Upload and Preview
+// Step 1: 'upload' and Preview
 async function uploadAndValidate() {
   if (!selectedFile.value) {
     toast.error('Vui lòng chọn tệp CSV để nhập.')
@@ -194,7 +193,7 @@ function resetWizard() {
         <div class="grid-2-columns">
           <!-- Drop Area Card -->
           <div class="dashboard-card drop-card">
-            <h4 class="card-title"><UploadCloud :size="18" /> Tải lên tài liệu</h4>
+            <h4 class="card-title"><i class="pi pi-cloud-upload" style="font-size:1.125rem" /> Tải lên tài liệu</h4>
             <div 
               class="upload-dropzone"
               @click="triggerFileSelect"

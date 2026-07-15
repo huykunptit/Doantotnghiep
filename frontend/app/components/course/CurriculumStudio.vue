@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-// Icons removed - using PrimeIcons
 import SectionBlock from './SectionBlock.vue'
 import LessonFormModal from './LessonFormModal.vue'
 import { useAuthStore } from '~/stores/auth'
@@ -215,7 +214,7 @@ async function saveLesson(formData: any) {
     }
 
     if (Array.isArray(formData.attachments) && formData.attachments.length > 0) {
-      await Promise.all(formData.attachments.map((file: File) => {
+      await Promise.all(formData.attachments.map((file: 'file') => {
         const payload = new FormData()
         payload.append('file', file)
         return $fetch(`/api/courses/${props.courseId}/lessons/${lessonId}/attachments`, {
@@ -467,7 +466,7 @@ defineExpose({ loadSections })
           <div class="submissions-list-body">
             <!-- Loading indicator -->
             <div v-if="loadingSubmissions" class="submissions-loading-box">
-              <RefreshCw class="spin-icon" :size="24" />
+              <i class="pi pi-refresh spin-icon" style="font-size:1.5rem" />
               <p>Đang tải bài nộp của học viên...</p>
             </div>
 

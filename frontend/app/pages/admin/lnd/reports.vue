@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-// Icons removed - using PrimeIcons
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
@@ -243,13 +242,13 @@ function riskLevel(days: number | null) {
     <!-- Tab nav -->
     <div class="tab-nav">
       <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-        <Activity :size="15" /> Tổng quan
+        <i class="pi pi-chart-line" style="font-size:0.9375rem" /> Tổng quan
       </button>
       <button class="tab-btn" :class="{ active: activeTab === 'class' }" @click="activeTab = 'class'">
         <i class="pi pi-graduation-cap" style="font-size:0.9375rem" /> Tiến độ lớp
       </button>
       <button class="tab-btn" :class="{ active: activeTab === 'atrisk' }" @click="activeTab = 'atrisk'">
-        <AlertTriangle :size="15" />
+        <i class="pi pi-exclamation-triangle" style="font-size:0.9375rem" />
         Cảnh báo sớm
         <span v-if="atRiskData.length" class="tab-badge danger">{{ atRiskData.length }}</span>
       </button>
@@ -296,7 +295,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number text-danger">{{ overviewData.totals.at_risk_students.toLocaleString('vi-VN') }}</strong>
               <span class="kpi-subtext">Không hoạt động 14 ngày</span>
             </div>
-            <AlertTriangle :size="40" class="kpi-icon text-danger" />
+            <i class="pi pi-exclamation-triangle" style="font-size:2.5rem" />
           </div>
         </div>
 
@@ -311,7 +310,7 @@ function riskLevel(days: number | null) {
           </div>
           <div class="dashboard-card chart-card">
             <div class="chart-card-header">
-              <BarChart3 :size="16" class="text-primary" />
+              <i class="pi pi-chart-bar text-primary" style="font-size:1rem" />
               <h3>Top 10 khóa học nhiều ghi danh</h3>
             </div>
             <UiBarChart :values="topCourseValues" :labels="topCourseLabels" :height="200" />
@@ -343,7 +342,7 @@ function riskLevel(days: number | null) {
         <p>Vui lòng chọn lớp hành chính để xem báo cáo tiến trình đào tạo.</p>
       </div>
       <div v-else-if="reportData && !reportData.has_curriculum" class="report-empty-box dashboard-card">
-        <AlertTriangle :size="40" class="text-warning" />
+        <i class="pi pi-exclamation-triangle" style="font-size:2.5rem" />
         <p>{{ reportData.message }}</p>
         <span class="text-small text-muted mt-5">Hãy gán lộ trình đào tạo cho lớp này trong mục Quản lý lớp học.</span>
       </div>
@@ -363,7 +362,7 @@ function riskLevel(days: number | null) {
               <strong class="kpi-number text-danger">{{ reportData.stats.at_risk_students }}</strong>
               <span class="kpi-subtext">Hoàn thành &lt; 50%</span>
             </div>
-            <AlertTriangle :size="40" class="kpi-icon text-danger" />
+            <i class="pi pi-exclamation-triangle" style="font-size:2.5rem" />
           </div>
           <div class="dashboard-card kpi-card-box">
             <div class="kpi-card-left">
@@ -395,7 +394,7 @@ function riskLevel(days: number | null) {
         <!-- Course completion bar chart -->
         <div class="dashboard-card chart-card">
           <div class="chart-card-header">
-            <BarChart3 :size="16" class="text-primary" />
+            <i class="pi pi-chart-bar text-primary" style="font-size:1rem" />
             <h3>Tỷ lệ hoàn thành từng học phần</h3>
           </div>
           <UiBarChart
@@ -461,7 +460,7 @@ function riskLevel(days: number | null) {
 
           <div class="dashboard-card column-item">
             <div class="column-header">
-              <h3 class="column-title"><BarChart3 :size="18" /> Thống kê theo học phần</h3>
+              <h3 class="column-title"><i class="pi pi-chart-bar" style="font-size:1.125rem" /> Thống kê theo học phần</h3>
             </div>
             <div class="crud-table-wrap">
               <table class="crud-table">
@@ -512,20 +511,20 @@ function riskLevel(days: number | null) {
     <!-- ── TAB: AT-RISK ── -->
     <div v-if="activeTab === 'atrisk'" class="tab-content">
       <div class="dashboard-card alert-banner">
-        <AlertTriangle :size="20" class="text-danger" />
+        <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
         <div>
           <strong>Cảnh báo sớm học viên nguy cơ bỏ học</strong>
           <p>Danh sách sinh viên có ghi danh nhưng không hoàn thành bài học nào trong 30 ngày qua.</p>
         </div>
         <button class="crud-secondary-btn ml-auto" @click="loadAtRisk" :disabled="atRiskLoading">
-          <RefreshCcw :size="14" /> Làm mới
+          <i class="pi pi-refresh" style="font-size:0.875rem" /> Làm mới
         </button>
       </div>
 
       <div v-if="atRiskLoading" class="shimmer-block" style="height:300px; border-radius:14px;" />
       <div v-else class="dashboard-card">
         <div class="column-header" style="padding: 16px 20px;">
-          <h3 class="column-title"><AlertTriangle :size="16" class="text-danger" /> {{ atRiskData.length }} học viên cần chú ý</h3>
+          <h3 class="column-title"><i class="pi pi-exclamation-triangle" style="font-size:1rem" /> {{ atRiskData.length }} học viên cần chú ý</h3>
           <div class="search-wrap" style="width:220px;">
             <i class="pi pi-search" style="font-size:0.875rem" />
             <input type="text" v-model="atRiskSearch" placeholder="Tìm theo tên, mã SV..." />
@@ -584,7 +583,7 @@ function riskLevel(days: number | null) {
         <div class="charts-row-2">
           <div class="dashboard-card chart-card">
             <div class="chart-card-header">
-              <BarChart3 :size="16" class="text-primary" />
+              <i class="pi pi-chart-bar text-primary" style="font-size:1rem" />
               <h3>Tỷ lệ hoàn thành theo học kỳ (%)</h3>
             </div>
             <div v-if="completionTermLabels.length === 0" class="report-empty-box" style="padding: 40px;">

@@ -4,6 +4,26 @@
    Mirrors admin-ui/src/assets/styles/dark-theme.css
    ════════════════════════════════════════════════════════════════ */
 
+.dark {
+  --text:           #f1f5f9;
+  --muted:          #94a3b8;
+  --line:           rgba(255, 255, 255, 0.1);
+  --surface:        #27272a;
+  --surface-strong: #18181b;
+  --danger:         #f87171;
+  --danger-soft:    rgba(248, 113, 113, 0.1);
+}
+
+[data-theme="dark"] {
+  --text:           #f1f5f9;
+  --muted:          #94a3b8;
+  --line:           rgba(255, 255, 255, 0.1);
+  --surface:        #27272a;
+  --surface-strong: #18181b;
+  --danger:         #f87171;
+  --danger-soft:    rgba(248, 113, 113, 0.1);
+}
+
 .dark body {
   background-color: var(--dark-secondary, #27272a) !important;
 }

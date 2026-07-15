@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import MediaUpload from '~/components/common/MediaUpload.vue'
-// Icons removed - using PrimeIcons
 
 definePageMeta({ middleware: 'instructor', layout: 'instructor' })
 
@@ -254,7 +253,7 @@ async function handleSubmit() {
                     :class="{ 'is-active': priceMode === 'free' }"
                     @click="priceMode = 'free'"
                   >
-                    <Gift :size="14" />
+                    <i class="pi pi-gift" style="font-size:0.875rem" />
                     <span>Miễn phí</span>
                   </button>
                   <button
@@ -263,7 +262,7 @@ async function handleSubmit() {
                     :class="{ 'is-active': priceMode === 'paid' }"
                     @click="priceMode = 'paid'"
                   >
-                    <DollarSign :size="14" />
+                    <i class="pi pi-dollar" style="font-size:0.875rem" />
                     <span>Có phí VNĐ</span>
                   </button>
                 </div>
@@ -330,7 +329,7 @@ async function handleSubmit() {
         <div class="glass-card">
           <div class="card-head">
             <div class="card-icon-wrap">
-              <UploadCloud :size="18" />
+              <i class="pi pi-cloud-upload" style="font-size:1.125rem" />
             </div>
             <div>
               <h3 class="card-title">Ảnh bìa khóa học</h3>
@@ -363,14 +362,14 @@ async function handleSubmit() {
 
       </form>
 
-      <!-- Right Column: Sidebar Thumbnail & Tips -->
+      <!-- Right Column: 'bars' Thumbnail & Tips -->
       <aside class="sidebar-column">
 
         <!-- TIPS CARD -->
         <div class="glass-card tips-card">
           <div class="card-head">
             <div class="card-icon-wrap tips-icon">
-              <Lightbulb :size="18" />
+              <i class="pi pi-lightbulb" style="font-size:1.125rem" />
             </div>
             <div>
               <h3 class="card-title text-amber-700">Studio Tips</h3>
