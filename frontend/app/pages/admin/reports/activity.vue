@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin' })
@@ -122,150 +121,144 @@ onMounted(() => fetchActivity())
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Nhật ký hoạt động"
-    description="Lịch sử các giao dịch và hoạt động mới nhất trên hệ thống theo thời gian thực."
-    :breadcrumb="['Trang chủ', 'Hệ thống', 'Nhật ký hoạt động']"
-  >
-    <div v-if="loading && orders.length === 0" class="dashboard-card crud-empty">Đang tải hoạt động...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Hệ thống</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Nhật ký hoạt động</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Lịch sử các giao dịch và hoạt động mới nhất trên hệ thống theo thời gian thực.</p>
+    </div>
+    <div v-if="loading && orders.length === 0" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tải hoạt động...</div>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
 
     <template v-else>
       <!-- KPI -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article class="dashboard-card mini-card tone-blue">
-          <p class="mini-title">Hoạt động hôm nay</p>
-          <div class="mini-head"><strong>{{ todayCount }}</strong><span>Giao dịch mới</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-green">
-          <p class="mini-title">Doanh thu hôm nay</p>
-          <div class="mini-head"><strong>{{ formatMoney(paidToday) }}</strong><span>Đã thanh toán</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-amber">
-          <p class="mini-title">7 ngày qua</p>
-          <div class="mini-head"><strong>{{ weekCount }}</strong><span>Giao dịch trong tuần</span></div>
-        </article>
-        <article class="dashboard-card mini-card">
-          <p class="mini-title">Tổng tất cả</p>
-          <div class="mini-head"><strong>{{ total }}</strong><span>Giao dịch hệ thống</span></div>
-        </article>
-      </section>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider text-blue-500">Hoạt động hôm nay</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ todayCount }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Giao dịch mới</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(29,158,117,0.06);border-color:rgba(29,158,117,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider" style="color:#1d9e75">Doanh thu hôm nay</p>
+          <strong class="text-2xl font-extrabold tracking-tight leading-tight" style="color:var(--text)">{{ formatMoney(paidToday) }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Đã thanh toán</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-500">7 ngày qua</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ weekCount }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Giao dịch trong tuần</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border border-[var(--line)]" style="background:var(--surface)">
+          <p class="text-xs font-bold uppercase tracking-wider" style="color:var(--muted)">Tổng tất cả</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ total }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Giao dịch hệ thống</span>
+        </div>
+      </div>
 
-      <!-- Timeline -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
+      <!-- Timeline table -->
+      <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-[var(--line)]">
           <div>
-            <p class="section-kicker">Nhật ký giao dịch</p>
-            <h3>Hoạt động gần nhất</h3>
+            <p class="text-[0.72rem] font-bold uppercase tracking-wide mb-0.5" style="color:var(--muted)">Nhật ký giao dịch</p>
+            <h3 class="text-base font-semibold" style="color:var(--text)">Hoạt động gần nhất</h3>
           </div>
-          <div class="crud-toolbar-right">
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <i class="pi pi-download" style="font-size:1.125rem" />
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+              style="color:var(--muted)"
+              @click="exportCSV"
+            >
+              <i class="pi pi-download" />
               Xuất Excel
             </button>
-            <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <i class="pi pi-file" style="font-size:1.125rem" />
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white transition-colors"
+              style="background:#1d9e75"
+              @click="exportPDF"
+            >
+              <i class="pi pi-file" />
               Xuất PDF
             </button>
-            <button class="crud-secondary-btn" type="button" :disabled="loading" @click="fetchActivity(currentPage)">
+            <button
+              type="button"
+              :disabled="loading"
+              class="h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] disabled:opacity-40 transition-colors"
+              style="color:var(--muted)"
+              @click="fetchActivity(currentPage)"
+            >
               ↻ Làm mới
             </button>
           </div>
         </div>
 
-        <div class="activity-timeline">
-          <div v-for="order in orders" :key="order.id" class="timeline-item">
-            <div class="timeline-avatar">
-              <img v-if="order.user?.avatar" :src="order.user.avatar" :alt="order.user?.name" class="timeline-avatar-img">
-              <div v-else class="timeline-avatar-fallback">
-                {{ order.user?.name?.slice(0, 2).toUpperCase() || 'KH' }}
-              </div>
+        <div class="divide-y divide-[var(--line)]">
+          <div v-for="order in orders" :key="order.id" class="flex items-start gap-3.5 px-5 py-4 hover:bg-[var(--surface)] transition-colors">
+            <img v-if="order.user?.avatar" :src="order.user.avatar" :alt="order.user?.name" class="w-10 h-10 rounded-full object-cover shrink-0 mt-0.5">
+            <div v-else class="w-10 h-10 rounded-full flex items-center justify-center text-[0.7rem] font-bold shrink-0 mt-0.5" style="background:rgba(29,158,117,0.1);color:#085041">
+              {{ (order.user?.name || 'KH').slice(0, 2).toUpperCase() }}
             </div>
-            <div class="timeline-body">
-              <div class="timeline-main">
-                <div>
-                  <strong>{{ order.user?.name || 'Người dùng không rõ' }}</strong>
-                  <span style="color: var(--muted); font-size: 0.85rem; margin-left: 6px;">đã đăng ký</span>
-                  <em style="font-style: normal; font-weight: 600; margin-left: 4px;">{{ order.course?.title || 'Khóa học' }}</em>
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                  <span style="font-size: 0.8rem; color: var(--muted);">{{ timeAgo(order.created_at) }}</span>
-                  <span class="crud-badge" :style="{ color: statusColor(order.status), background: `${statusColor(order.status)}18` }">
-                    {{ statusLabel(order.status) }}
-                  </span>
-                  <span v-if="order.amount" style="font-size: 0.85rem; font-weight: 700; color: var(--green);">
-                    {{ formatMoney(order.amount) }}
-                  </span>
-                </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm" style="color:var(--text)">
+                <strong class="font-semibold">{{ order.user?.name || 'Người dùng không rõ' }}</strong>
+                <span class="font-normal" style="color:var(--muted)"> đã đăng ký </span>
+                <strong class="font-semibold">{{ order.course?.title || 'Khóa học' }}</strong>
+              </p>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-xs" style="color:var(--muted)">{{ timeAgo(order.created_at) }}</span>
+                <span
+                  class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
+                  :style="{ color: statusColor(order.status), background: `${statusColor(order.status)}18` }"
+                >
+                  {{ statusLabel(order.status) }}
+                </span>
+                <span v-if="order.amount" class="text-xs font-bold" style="color:#1d9e75">
+                  {{ formatMoney(order.amount) }}
+                </span>
               </div>
             </div>
           </div>
-          <div v-if="orders.length === 0" class="crud-empty">Không có hoạt động nào.</div>
+          <div v-if="orders.length === 0" class="py-12 text-center text-sm" style="color:var(--muted)">Không có hoạt động nào.</div>
         </div>
 
         <!-- Pagination -->
-        <div v-if="lastPage > 1" class="crud-pagination">
-          <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ total }} hoạt động)</p>
-          <div class="crud-pagination-actions">
-            <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchActivity(currentPage - 1)">
+        <div v-if="lastPage > 1" class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-t border-[var(--line)]">
+          <p class="text-sm" style="color:var(--muted)">Trang {{ currentPage }} / {{ lastPage }} ({{ total }} hoạt động)</p>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              :disabled="currentPage <= 1"
+              class="h-8 px-3 rounded-lg text-sm font-medium border border-[var(--line)] hover:bg-[var(--surface)] disabled:opacity-40 transition-colors"
+              style="color:var(--muted)"
+              @click="fetchActivity(currentPage - 1)"
+            >
               Trước
             </button>
-            <div class="pagination-numbers">
-              <button
-                v-for="p in visiblePages"
-                :key="p"
-                class="pagination-num-btn"
-                :class="{ 'is-active': p === currentPage }"
-                type="button"
-                @click="fetchActivity(p)"
-              >
-                {{ p }}
-              </button>
-            </div>
-            <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchActivity(currentPage + 1)">
+            <button
+              v-for="p in visiblePages"
+              :key="p"
+              type="button"
+              class="h-8 w-8 rounded-lg text-sm font-medium border transition-colors"
+              :class="p === currentPage ? 'text-white border-transparent' : 'border-[var(--line)] hover:bg-[var(--surface)]'"
+              :style="p === currentPage ? 'background:#1d9e75' : 'color:var(--text)'"
+              @click="fetchActivity(p)"
+            >
+              {{ p }}
+            </button>
+            <button
+              type="button"
+              :disabled="currentPage >= lastPage"
+              class="h-8 px-3 rounded-lg text-sm font-medium border border-[var(--line)] hover:bg-[var(--surface)] disabled:opacity-40 transition-colors"
+              style="color:var(--muted)"
+              @click="fetchActivity(currentPage + 1)"
+            >
               Sau
             </button>
           </div>
         </div>
       </section>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>
-
-<style scoped>
-.activity-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.timeline-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--line);
-}
-.timeline-item:last-child { border-bottom: none; }
-.timeline-avatar { flex-shrink: 0; }
-.timeline-avatar-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-.timeline-avatar-fallback {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(var(--green-rgb), 0.12);
-  color: var(--green-deep);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-.timeline-body { flex: 1; min-width: 0; }
-.timeline-main { line-height: 1.4; }
-.timeline-main strong { font-size: 0.9rem; }
-</style>

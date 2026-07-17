@@ -222,17 +222,19 @@ onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Lớp tín chỉ"
-    description="Mở lớp học phần theo học kỳ, phân công giảng viên và quản lý sĩ số."
-    :breadcrumb="['Trang chủ', 'Đào tạo & Học vụ', 'Lớp tín chỉ']"
-  >
-    <template #actions>
-      <button class="crud-primary-btn" @click="openCreate">
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Lớp tín chỉ</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Mở lớp học phần theo học kỳ, phân công giảng viên và quản lý sĩ số.</p>
+      </div>
+      <button class="crud-primary-btn shrink-0" @click="openCreate">
         <i class="pi pi-plus" style="font-size:1.0rem" />
         Mở lớp tín chỉ
       </button>
-    </template>
+    </div>
 
     <!-- KPI -->
     <div class="ds-stats mb-0">
@@ -487,7 +489,7 @@ onMounted(load)
       @confirm="confirmDelete"
       @cancel="deleting = null"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

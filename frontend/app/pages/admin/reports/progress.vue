@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin' })
@@ -94,115 +93,148 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Tiến độ học tập"
-    description="Theo dõi lộ trình đăng ký và mức độ phổ biến của từng khóa học trong hệ thống."
-    :breadcrumb="['Trang chủ', 'Báo cáo', 'Tiến độ học tập']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải dữ liệu...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Báo cáo</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Tiến độ học tập</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Theo dõi lộ trình đăng ký và mức độ phổ biến của từng khóa học trong hệ thống.</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+          style="color:var(--muted)"
+          @click="exportCSV"
+        >
+          <i class="pi pi-download" />
+          Xuất Excel
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white transition-colors"
+          style="background:#1d9e75"
+          @click="exportPDF"
+        >
+          <i class="pi pi-file" />
+          Xuất PDF
+        </button>
+      </div>
+    </div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tải dữ liệu...</div>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
 
     <template v-else>
       <!-- KPI -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article class="dashboard-card mini-card tone-green">
-          <p class="mini-title">Tổng học viên</p>
-          <div class="mini-head"><strong>{{ stats.students_count || totalEnrollments }}</strong><span>Đăng ký trong hệ thống</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-blue">
-          <p class="mini-title">Khóa học hoạt động</p>
-          <div class="mini-head"><strong>{{ publishedCourses.length }}</strong><span>Đang mở đăng ký</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-amber">
-          <p class="mini-title">TB đăng ký / khóa</p>
-          <div class="mini-head"><strong>{{ avgEnrollment }}</strong><span>Học viên mỗi khóa</span></div>
-        </article>
-        <article class="dashboard-card mini-card">
-          <p class="mini-title">Tổng bài học</p>
-          <div class="mini-head">
-            <strong>{{ publishedCourses.reduce((s, c) => s + (c.lessons_count || 0), 0) }}</strong>
-            <span>Bài học đã xuất bản</span>
-          </div>
-        </article>
-      </section>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(29,158,117,0.06);border-color:rgba(29,158,117,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider" style="color:#1d9e75">Tổng học viên</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ stats.students_count || totalEnrollments }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Đăng ký trong hệ thống</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider text-blue-500">Khóa học hoạt động</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ publishedCourses.length }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Đang mở đăng ký</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-500">TB đăng ký / khóa</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ avgEnrollment }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Học viên mỗi khóa</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border border-[var(--line)]" style="background:var(--surface)">
+          <p class="text-xs font-bold uppercase tracking-wider" style="color:var(--muted)">Tổng bài học</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">
+            {{ publishedCourses.reduce((s, c) => s + (c.lessons_count || 0), 0) }}
+          </strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Bài học đã xuất bản</span>
+        </div>
+      </div>
 
-      <!-- Filters -->
-      <!-- Filters -->
-      <section class="dashboard-card" style="margin-bottom: 24px; padding: 0; border: none; background: transparent; box-shadow: none;">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Tìm tên khóa học..."
-              class="crud-search"
-            >
-            <select v-model="sortBy" class="crud-select">
-              <option value="enrollments">Sắp xếp: Lượt đăng ký</option>
-              <option value="lessons">Sắp xếp: Số bài học</option>
-              <option value="title">Sắp xếp: Tên khóa học</option>
-            </select>
-          </div>
-          <div class="crud-toolbar-right">
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <span class="material-symbols-outlined">download</span>
-              Xuất Excel
-            </button>
-            <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span class="material-symbols-outlined">picture_as_pdf</span>
-              Xuất PDF
-            </button>
-          </div>
+      <!-- Filter toolbar -->
+      <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+        <div class="flex flex-wrap gap-3 items-center px-5 py-4">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Tìm tên khóa học..."
+            class="h-9 px-4 rounded-xl text-sm border border-[var(--line)] bg-transparent focus:outline-none focus:border-[#1d9e75] transition-colors flex-1 min-w-[180px] max-w-xs"
+            style="color:var(--text)"
+          >
+          <select
+            v-model="sortBy"
+            class="h-9 px-3 rounded-xl text-sm border border-[var(--line)] bg-transparent focus:outline-none focus:border-[#1d9e75] transition-colors"
+            style="color:var(--text)"
+          >
+            <option value="enrollments">Sắp xếp: Lượt đăng ký</option>
+            <option value="lessons">Sắp xếp: Số bài học</option>
+            <option value="title">Sắp xếp: Tên khóa học</option>
+          </select>
+          <span class="text-sm ml-auto" style="color:var(--muted)">{{ filteredAndSorted.length }} kết quả</span>
         </div>
       </section>
 
-      <!-- Course progress table -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div>
-            <p class="section-kicker">Khóa học đã xuất bản</p>
-            <h3>{{ filteredAndSorted.length }} kết quả</h3>
-          </div>
+      <!-- Course progress list -->
+      <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+        <div class="px-5 py-4 border-b border-[var(--line)]">
+          <h3 class="text-base font-semibold" style="color:var(--text)">Khóa học đã xuất bản</h3>
         </div>
 
-        <div v-if="filteredAndSorted.length === 0" class="crud-empty">Không có khóa học nào.</div>
+        <div v-if="filteredAndSorted.length === 0" class="py-12 text-center text-sm" style="color:var(--muted)">Không có khóa học nào.</div>
 
-        <div v-else class="progress-list">
-          <div v-for="(course, idx) in filteredAndSorted" :key="course.id" class="progress-row">
-            <div class="progress-rank">
-              <span :class="idx < 3 ? 'rank-top' : 'rank-normal'">#{{ idx + 1 }}</span>
+        <div v-else class="divide-y divide-[var(--line)]">
+          <div
+            v-for="(course, idx) in filteredAndSorted"
+            :key="course.id"
+            class="grid items-center gap-4 px-5 py-4"
+            style="grid-template-columns: 48px 1fr 1fr 100px"
+          >
+            <!-- Rank -->
+            <div class="text-center">
+              <span
+                class="font-extrabold"
+                :class="idx < 3 ? 'text-base' : 'text-sm'"
+                :style="idx < 3 ? 'color:#085041' : 'color:var(--muted)'"
+              >#{{ idx + 1 }}</span>
             </div>
-            <div class="progress-info">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <img
-                  v-if="course.thumbnail"
-                  :src="course.thumbnail"
-                  :alt="course.title"
-                  style="width: 40px; height: 32px; object-fit: cover; border-radius: 6px; flex-shrink: 0;"
-                >
-                <div>
-                  <strong style="font-size: 0.9rem;">{{ course.title }}</strong>
-                  <p style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;">
-                    {{ course.category?.name || 'Chưa phân loại' }} &nbsp;·&nbsp; {{ course.lessons_count || 0 }} bài học
-                  </p>
-                </div>
+            <!-- Info -->
+            <div class="min-w-0 flex items-center gap-3">
+              <img
+                v-if="course.thumbnail"
+                :src="course.thumbnail"
+                :alt="course.title"
+                class="w-10 h-8 object-cover rounded-md shrink-0"
+              >
+              <div class="min-w-0">
+                <p class="font-semibold text-sm truncate" style="color:var(--text)">{{ course.title }}</p>
+                <p class="text-xs mt-0.5" style="color:var(--muted)">
+                  {{ course.category?.name || 'Chưa phân loại' }} · {{ course.lessons_count || 0 }} bài học
+                </p>
               </div>
             </div>
-            <div class="progress-bar-col">
-              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
-                <span style="color: var(--muted);">Đăng ký</span>
-                <strong>{{ course.enrollments_count || 0 }} HV</strong>
+            <!-- Progress bar -->
+            <div class="min-w-0">
+              <div class="flex justify-between text-xs mb-1">
+                <span style="color:var(--muted)">Đăng ký</span>
+                <strong style="color:var(--text)">{{ course.enrollments_count || 0 }} HV</strong>
               </div>
-              <div style="height: 8px; background: rgba(17,17,17,.07); border-radius: 999px; overflow: hidden;">
+              <div class="h-2 rounded-full overflow-hidden" style="background:rgba(17,17,17,.07)">
                 <div
-                  style="height: 100%; border-radius: 999px; background: var(--green); transition: width 0.6s ease;"
+                  class="h-full rounded-full transition-all duration-700"
+                  style="background:#1d9e75"
                   :style="{ width: `${((course.enrollments_count || 0) / maxEnrollment) * 100}%` }"
                 />
               </div>
             </div>
-            <div class="progress-price">
-              <span v-if="!course.price || course.price === 0" class="crud-badge role-instructor">Miễn phí</span>
-              <span v-else style="font-size: 0.85rem; font-weight: 700;">
+            <!-- Price -->
+            <div class="text-right">
+              <span
+                v-if="!course.price || course.price === 0"
+                class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold bg-green-50 text-green-700"
+              >Miễn phí</span>
+              <span v-else class="text-sm font-bold" style="color:var(--text)">
                 {{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) }}
               </span>
             </div>
@@ -210,28 +242,17 @@ onMounted(fetchData)
         </div>
       </section>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.progress-list { display: flex; flex-direction: column; }
-.progress-row {
-  display: grid;
-  grid-template-columns: 48px 1fr 1fr 100px;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-}
-.progress-row:last-child { border-bottom: none; }
-.progress-rank { text-align: center; }
-.rank-top { font-size: 1rem; font-weight: 800; color: var(--green-deep); }
-.rank-normal { font-size: 0.85rem; font-weight: 700; color: var(--muted); }
-.progress-info { min-width: 0; }
-.progress-bar-col { min-width: 120px; }
-.progress-price { text-align: right; }
 @media (max-width: 900px) {
-  .progress-row { grid-template-columns: 40px 1fr; }
-  .progress-bar-col, .progress-price { display: none; }
+  .grid[style*="grid-template-columns: 48px 1fr 1fr 100px"] {
+    grid-template-columns: 40px 1fr !important;
+  }
+  .grid[style*="grid-template-columns: 48px 1fr 1fr 100px"] > div:nth-child(3),
+  .grid[style*="grid-template-columns: 48px 1fr 1fr 100px"] > div:nth-child(4) {
+    display: none;
+  }
 }
 </style>

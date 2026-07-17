@@ -6,7 +6,7 @@
       <p class="text-on-surface-variant">{{ error }}</p>
       <div class="flex justify-center gap-3 pt-2">
         <NuxtLink :to="`/courses/${courseId}`"><UiButton variant="secondary">Về trang khóa học</UiButton></NuxtLink>
-        <NuxtLink to="/my-courses"><UiButton>Khóa học của tôi</UiButton></NuxtLink>
+        <NuxtLink to="/student/courses"><UiButton>Khóa học của tôi</UiButton></NuxtLink>
       </div>
     </div>
     <div v-else class="text-center space-y-3">

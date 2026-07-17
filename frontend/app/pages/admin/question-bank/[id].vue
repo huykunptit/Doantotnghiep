@@ -93,11 +93,13 @@ onMounted(fetchBank)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Ngân hàng câu hỏi', bank?.name || 'Chi tiết']"
-    :description="bank?.description ? '' : 'Danh sách câu hỏi trong ngân hàng.'"
-    :title="bank?.name || 'Chi tiết ngân hàng câu hỏi'"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">{{ bank?.name || 'Chi tiết ngân hàng câu hỏi' }}</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">{{ bank?.description || 'Danh sách câu hỏi trong ngân hàng.' }}</p>
+    </div>
     <div class="qb-topbar">
       <button class="crud-secondary-btn" type="button" @click="goBack">← Quay lại</button>
       <button class="crud-primary-btn" type="button" @click="goToCreate">+ Thêm câu hỏi</button>
@@ -164,7 +166,7 @@ onMounted(fetchBank)
       @close="confirmOpen = false"
       @confirm="deleteQuestion"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

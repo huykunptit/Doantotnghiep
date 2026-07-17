@@ -117,11 +117,13 @@ onMounted(fetchCourses)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Ngân hàng câu hỏi']"
-    description="Quản lý ngân hàng câu hỏi theo khóa học."
-    title="Quản lý ngân hàng câu hỏi"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý ngân hàng câu hỏi</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý ngân hàng câu hỏi theo khóa học.</p>
+    </div>
     <!-- Filter bar -->
     <section class="dashboard-card crud-panel" style="position: relative; z-index: 20;">
       <div class="crud-toolbar">
@@ -216,5 +218,5 @@ onMounted(fetchCourses)
       @close="confirmOpen = false"
       @confirm="deleteBank"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>

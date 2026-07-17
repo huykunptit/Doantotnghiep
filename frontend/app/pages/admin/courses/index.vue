@@ -244,11 +244,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Kiểm duyệt khóa học']"
-    description="Trang kiểm duyệt khóa học tập trung vào việc rà soát nội dung chờ duyệt, hình ảnh đại diện và giảng viên phụ trách trước khi xuất bản; đồng thời cho phép admin tạo khóa học mới."
-    title="Kiểm duyệt khóa học"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Kiểm duyệt khóa học</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Rà soát nội dung chờ duyệt, hình ảnh đại diện và giảng viên trước khi xuất bản.</p>
+    </div>
     <!-- ── Overview cards ── -->
     <section class="crud-overview-grid">
       <article class="dashboard-card mini-card tone-green">
@@ -523,5 +525,5 @@ onMounted(async () => {
         </div>
       </div>
     </Teleport>
-  </AdminWorkspaceShell>
+  </div>
 </template>

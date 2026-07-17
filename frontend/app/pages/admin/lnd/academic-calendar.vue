@@ -290,16 +290,18 @@ function fmtDate(d: string) {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Năm Học & Học Kỳ"
-    description="Quản lý lịch học vụ toàn trường theo từng năm học và các kỳ chính, kỳ phụ"
-    :breadcrumb="['Trang chủ', 'Đào tạo', 'Năm Học & Học Kỳ']"
-  >
-    <template #actions>
-      <button class="crud-primary-btn" @click="openCreateYear">
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Năm Học & Học Kỳ</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý lịch học vụ toàn trường theo từng năm học và các kỳ chính, kỳ phụ</p>
+      </div>
+      <button class="crud-primary-btn shrink-0" @click="openCreateYear">
         <i class="pi pi-plus" style="font-size:1.0rem" /> Tạo năm học mới
       </button>
-    </template>
+    </div>
 
     <!-- Loading -->
     <div v-if="loading" class="loading-state">
@@ -591,7 +593,7 @@ function fmtDate(d: string) {
       @close="showDeleteTerm = false"
       @confirm="deleteTerm"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

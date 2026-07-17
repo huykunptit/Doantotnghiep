@@ -1,37 +1,41 @@
 <template>
-  <InstructorWorkspaceShell
-    :title="course?.title || 'Studio Giáo trình'"
-    description="Quản lý cấu trúc chương học, bài giảng và tài nguyên của khóa học."
-    :breadcrumb="['Trang chủ', 'Khóa học', 'Giáo trình']"
-  >
-    <template #actions>
-      <StatusBadge v-if="course" :value="course.status || 'draft'" />
-      
-      <NuxtLink to="/instructor/courses" class="studio-topbar-btn is-secondary">
-        <i class="pi pi-arrow-left" style="font-size:0.9375rem" />
-        <span>Quay lại</span>
-      </NuxtLink>
-      
-      <button class="studio-topbar-btn is-secondary" @click="previewCourse">
-        <i class="pi pi-eye" style="font-size:0.9375rem" />
-        <span>Xem trước</span>
-      </button>
-      
-      <button
-        v-if="course?.status === 'draft' || course?.status === 'rejected'"
-        :disabled="submitting"
-        class="studio-topbar-btn is-primary"
-        @click="submitForReview"
-      >
-        <i class="pi pi-send" style="font-size:0.9375rem" />
-        <span>{{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}</span>
-      </button>
-    </template>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Khóa học &bull; Giáo trình</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{{ course?.title || 'Studio Giáo trình' }}</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Quản lý cấu trúc chương học, bài giảng và tài nguyên của khóa học.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <StatusBadge v-if="course" :value="course.status || 'draft'" />
+        
+        <NuxtLink to="/instructor/courses" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors">
+          <i class="pi pi-arrow-left text-xs" />
+          <span>Quay lại</span>
+        </NuxtLink>
+        
+        <button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" @click="previewCourse">
+          <i class="pi pi-eye text-xs" />
+          <span>Xem trước</span>
+        </button>
+        
+        <button
+          v-if="course?.status === 'draft' || course?.status === 'rejected'"
+          :disabled="submitting"
+          class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50"
+          @click="submitForReview"
+        >
+          <i class="pi pi-send text-xs" />
+          <span>{{ submitting ? 'Đang gửi...' : 'Gửi kiểm duyệt' }}</span>
+        </button>
+      </div>
+    </div>
 
     <!-- Main Content Layout Grid -->
-    <div class="curriculum-workspace-grid">
+    <div class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
       <!-- Left side: Curriculum Studio Workspace -->
-      <div class="curriculum-studio-area">
+      <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm p-5">
         <CurriculumStudio
           ref="studioRef"
           :course-id="courseId"
@@ -40,31 +44,31 @@
       </div>
 
       <!-- Right side: Studio Guide Sidebar -->
-      <aside class="curriculum-guide-sidebar">
-        <div class="studio-guide-card">
-          <div class="guide-header">
-            <span class="guide-kicker">Studio Guide</span>
-            <h3 class="guide-title">Hướng dẫn nhanh</h3>
+      <aside class="sticky top-6 flex flex-col gap-4">
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#1d9e75]">Studio Guide</span>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-1">Hướng dẫn nhanh</h3>
           </div>
 
-          <div class="guide-tips-list">
-            <div v-for="(tip, i) in tips" :key="i" class="guide-tip-item">
-              <div class="tip-header-row">
-                <div class="tip-icon-box">
-                  <component :is="tip.icon" :size="15" />
+          <div class="flex flex-col gap-3">
+            <div v-for="(tip, i) in tips" :key="i" class="flex flex-col gap-1.5 p-3 rounded-xl bg-[var(--surface)] border border-[var(--line)]">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded bg-emerald-50 text-[#1d9e75] flex items-center justify-center flex-shrink-0">
+                  <i :class="`pi pi-${tip.icon === 'play-circle' ? 'play' : tip.icon === 'bolt' ? 'bolt' : 'check'}`" class="text-xs" />
                 </div>
-                <strong class="tip-title-text">{{ tip.title }}</strong>
+                <strong class="text-xs font-bold text-[var(--text)]">{{ tip.title }}</strong>
               </div>
-              <p class="tip-desc-text">{{ tip.desc }}</p>
+              <p class="text-[10px] text-[var(--muted)] leading-relaxed">{{ tip.desc }}</p>
             </div>
           </div>
 
-          <div class="guide-quote-box">
-            <div class="quote-header">
-              <i class="pi pi-lightbulb" style="font-size:0.875rem" />
-              <span class="quote-kicker-text">Lời khuyên sư phạm</span>
+          <div class="p-4 rounded-xl bg-emerald-50/50 border border-emerald-100/50 flex flex-col gap-2">
+            <div class="flex items-center gap-1.5 text-[#1d9e75]">
+              <i class="pi pi-lightbulb text-xs" />
+              <span class="text-[10px] font-bold uppercase tracking-wider">Lời khuyên sư phạm</span>
             </div>
-            <p class="quote-paragraph">"Một giáo trình tốt bắt đầu từ sự rõ ràng và lộ trình hợp lý. Hãy chia nhỏ bài học thành các chương mục để học viên không bị quá tải kiến thức."</p>
+            <p class="text-xs text-[var(--text-secondary)] leading-relaxed italic">"Một giáo trình tốt bắt đầu từ sự rõ ràng và lộ trình hợp lý. Hãy chia nhỏ bài học thành các chương mục để học viên không bị quá tải kiến thức."</p>
           </div>
         </div>
       </aside>
@@ -73,18 +77,18 @@
     <!-- Video Upload Modal (Teleport to Body) -->
     <Teleport to="body">
       <Transition name="fade">
-        <div v-if="showUploadModal" class="studio-modal-backdrop" @click.self="closeUploadModal">
-          <div class="studio-modal-card is-uploader">
-            <div class="modal-header">
+        <div v-if="showUploadModal" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[999]" @click.self="closeUploadModal">
+          <div class="bg-white border border-[var(--line)] rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex justify-between items-center">
               <div>
-                <span class="modal-subtitle-tag">Upload Video</span>
-                <h3 class="modal-title-text">Tải lên bài giảng</h3>
-                <span class="uploader-lesson-meta">{{ uploadingLesson?.title }}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Upload Video</span>
+                <h3 class="text-sm font-bold text-[var(--text)] mt-0.5">Tải lên bài giảng</h3>
+                <span class="text-[10px] text-[var(--muted)] font-semibold block mt-1">{{ uploadingLesson?.title }}</span>
               </div>
-              <button class="modal-close-x-btn" type="button" @click="closeUploadModal">✕</button>
+              <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--line)] text-[var(--muted)]" type="button" @click="closeUploadModal">✕</button>
             </div>
             
-            <div class="uploader-modal-body">
+            <div class="p-6">
               <VideoUploader
                 v-if="uploadingLesson"
                 :course-id="courseId"
@@ -98,7 +102,7 @@
         </div>
       </Transition>
     </Teleport>
-  </InstructorWorkspaceShell>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -180,201 +184,5 @@ async function submitForReview() {
 </script>
 
 <style scoped>
-.curriculum-workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-@media (min-width: 1280px) {
-  .curriculum-workspace-grid {
-    grid-template-columns: minmax(0, 1fr) 360px;
-  }
-}
-
-/* Sidebar styling */
-.curriculum-guide-sidebar {
-  position: sticky;
-  top: 24px;
-}
-
-.studio-guide-card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  box-shadow: var(--shadow-sm);
-}
-
-.guide-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.guide-kicker {
-  font-size: 0.68rem;
-  font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--green);
-}
-
-.guide-title {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 850;
-  color: var(--text);
-  letter-spacing: -0.02em;
-}
-
-.guide-tips-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.guide-tip-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  border-radius: 12px;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-}
-
-.tip-header-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.tip-icon-box {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: var(--green-soft);
-  color: var(--green);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.tip-title-text {
-  font-size: 0.82rem;
-  font-weight: 750;
-  color: var(--text);
-}
-
-.tip-desc-text {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--muted);
-  line-height: 1.5;
-  font-weight: 500;
-}
-
-/* Quote box styling */
-.guide-quote-box {
-  padding: 16px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(29, 158, 117, 0.04), rgba(29, 158, 117, 0.01));
-  border: 1px solid rgba(29, 158, 117, 0.12);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.quote-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--green);
-}
-
-.quote-kicker-text {
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.quote-paragraph {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  font-style: italic;
-  font-weight: 500;
-}
-
-/* Topbar Buttons */
-.studio-topbar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px;
-  border-radius: 10px;
-  font-size: 0.84rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 150ms;
-  text-decoration: none;
-  border: none;
-}
-
-.studio-topbar-btn.is-secondary {
-  border: 1px solid var(--line);
-  background: var(--surface-strong);
-  color: var(--text-secondary);
-}
-
-.studio-topbar-btn.is-secondary:hover {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.studio-topbar-btn.is-primary {
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(29, 158, 117, 0.15);
-}
-
-.studio-topbar-btn.is-primary:hover {
-  background: var(--green-deep);
-  box-shadow: 0 6px 16px rgba(29, 158, 117, 0.25);
-}
-
-/* Upload Dialog Modal specific styles */
-.studio-modal-card.is-uploader {
-  max-width: 600px;
-}
-
-.uploader-lesson-meta {
-  font-size: 0.76rem;
-  color: var(--muted);
-  display: block;
-  margin-top: 4px;
-  font-weight: 600;
-}
-
-.uploader-modal-body {
-  padding: 24px;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+/* Scoped styles kept minimal */
 </style>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import UiStatCard from '~/components/dashboard/charts/UiStatCard.vue'
 
@@ -232,21 +231,26 @@ onMounted(fetchDashboard)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý AI"
-    description="Cấu hình provider, model, theo dõi token và thống kê sử dụng AI."
-    :breadcrumb="['Admin', 'Quản lý AI']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Cấu hình hệ thống</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Quản lý AI</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Cấu hình provider, model, theo dõi token và thống kê sử dụng AI.</p>
+      </div>
+    </div>
+
     <!-- Alert -->
-    <div v-if="error"   class="crud-alert is-error"   >{{ error }}</div>
-    <div v-if="success" class="crud-alert is-success"  >{{ success }}</div>
+    <div v-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
+    <div v-if="success" class="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl px-5 py-4 text-sm">{{ success }}</div>
 
     <!-- Stats -->
-    <div class="ai-stats-grid">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <UiStatCard
         label="Token đã dùng"
         :value="formatK(settings?.tokens_used ?? 0)"
-        icon="token"
+        icon="pi-bolt"
         icon-bg="rgba(124,58,237,0.1)"
         icon-color="#7c3aed"
         :loading="loading"
@@ -254,7 +258,7 @@ onMounted(fetchDashboard)
       <UiStatCard
         label="Token còn lại"
         :value="formatK(tokensRemaining)"
-        icon="savings"
+        icon="pi-wallet"
         icon-bg="rgba(22,163,74,0.1)"
         icon-color="#16a34a"
         :loading="loading"
@@ -262,7 +266,7 @@ onMounted(fetchDashboard)
       <UiStatCard
         label="Tổng yêu cầu"
         :value="formatK(stats?.total_requests ?? 0)"
-        icon="chat_bubble"
+        icon="pi-comment"
         icon-bg="rgba(37,99,235,0.1)"
         icon-color="#2563eb"
         :loading="loading"
@@ -270,7 +274,7 @@ onMounted(fetchDashboard)
       <UiStatCard
         label="Thời gian TB"
         :value="formatMs(stats?.avg_response_time ?? 0)"
-        icon="timer"
+        icon="pi-clock"
         icon-bg="rgba(217,119,6,0.1)"
         icon-color="#d97706"
         :loading="loading"
@@ -278,155 +282,173 @@ onMounted(fetchDashboard)
     </div>
 
     <!-- Quota bar -->
-    <div class="dashboard-card ai-quota-card">
-      <div class="ai-quota-header">
-        <span class="ai-quota-title">Quota tháng này</span>
-        <span class="ai-quota-pct" :style="{ color: quotaBarColor }">{{ usagePercent }}%</span>
+    <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+      <div class="flex justify-between items-center mb-3">
+        <span class="text-sm font-bold text-[var(--text)]">Quota tháng này</span>
+        <span class="text-base font-extrabold text-[var(--text)]" :style="{ color: quotaBarColor }">{{ usagePercent }}%</span>
       </div>
-      <div class="ai-quota-bar-bg">
+      <div class="h-2.5 bg-[var(--surface)] rounded-full overflow-hidden mb-3">
         <div
-          class="ai-quota-bar-fill"
+          class="h-full rounded-full transition-all duration-500"
           :style="{ width: `${Math.min(usagePercent, 100)}%`, background: quotaBarColor }"
         />
       </div>
-      <div class="ai-quota-meta">
+      <div class="flex justify-between items-center text-xs text-[var(--muted)]">
         <span>{{ formatK(settings?.tokens_used ?? 0) }} / {{ formatK(settings?.monthly_token_quota ?? 0) }} tokens</span>
-        <button class="ai-reset-btn" :disabled="resetting" @click="resetQuota">
-          <span class="material-symbols-outlined">restart_alt</span>
+        <button 
+          class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] transition-colors disabled:opacity-40" 
+          :disabled="resetting" 
+          @click="resetQuota"
+        >
+          <i class="pi pi-refresh" />
           {{ resetting ? 'Đang reset...' : 'Reset quota' }}
         </button>
       </div>
     </div>
 
-    <div class="ai-main-grid">
+    <div class="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-5">
       <!-- Settings card -->
-      <div class="dashboard-card ai-settings-card">
-        <h3 class="ai-card-title">
-          <span class="material-symbols-outlined">settings</span> Cài đặt Provider
+      <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+        <h3 class="text-sm font-bold text-[var(--text)] flex items-center gap-2">
+          <i class="pi pi-cog text-[#1d9e75]" /> Cài đặt Provider
         </h3>
 
         <!-- Provider selector -->
-        <p class="ai-field-label">Provider</p>
-        <div class="ai-provider-grid">
-          <button
-            v-for="prov in providers"
-            :key="prov.id"
-            class="ai-provider-btn"
-            :class="{ 'is-active': form.provider === prov.id }"
-            :style="form.provider === prov.id ? { borderColor: prov.color, boxShadow: `0 0 0 3px ${prov.color}22` } : {}"
-            @click="form.provider = prov.id; form.model = prov.models[0]?.id ?? ''"
-          >
-            <span class="material-symbols-outlined" :style="{ color: prov.color }">{{ prov.icon }}</span>
-            <span class="ai-provider-name">{{ prov.name }}</span>
-          </button>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Provider</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              v-for="prov in providers"
+              :key="prov.id"
+              class="flex items-center gap-2 p-3 rounded-xl border border-[var(--line)] hover:bg-[var(--surface)] text-sm font-semibold transition-all w-full text-left"
+              :class="{ 'border-transparent ring-2': form.provider === prov.id }"
+              :style="form.provider === prov.id ? { borderColor: prov.color, boxShadow: `0 0 0 3px ${prov.color}22` } : {}"
+              @click="form.provider = prov.id; form.model = prov.models[0]?.id ?? ''"
+            >
+              <i class="pi pi-circle-fill text-[8px]" :style="{ color: prov.color }" />
+              <span class="text-xs text-[var(--text)] truncate">{{ prov.name }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- Model selector -->
-        <p class="ai-field-label">Model</p>
-        <div class="ai-model-grid">
-          <button
-            v-for="m in availableModels"
-            :key="m.id"
-            class="ai-model-btn"
-            :class="{ 'is-active': form.model === m.id }"
-            @click="form.model = m.id"
-          >
-            <span class="ai-model-name">{{ m.name }}</span>
-            <span
-              class="ai-model-tier"
-              :style="{ background: `${tierBadge(m.tier).color}18`, color: tierBadge(m.tier).color }"
-            >{{ tierBadge(m.tier).label }}</span>
-          </button>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-2">Model</p>
+          <div class="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1">
+            <button
+              v-for="m in availableModels"
+              :key="m.id"
+              class="flex items-center justify-between p-2.5 rounded-xl border border-[var(--line)] hover:bg-[var(--surface)] text-left transition-colors"
+              :class="{ 'border-[#1d9e75] bg-[rgba(29,158,117,0.06)]': form.model === m.id }"
+              @click="form.model = m.id"
+            >
+              <span class="text-xs font-semibold text-[var(--text)]">{{ m.name }}</span>
+              <span
+                class="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                :style="{ background: `${tierBadge(m.tier).color}18`, color: tierBadge(m.tier).color }"
+              >{{ tierBadge(m.tier).label }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- API Key -->
-        <p class="ai-field-label">
-          API Key
-          <span v-if="settings?.has_api_key" class="ai-key-set">
-            <span class="material-symbols-outlined">check_circle</span> Đã cấu hình
-          </span>
-        </p>
-        <input
-          v-model="form.api_key"
-          type="password"
-          class="ai-input"
-          :placeholder="settings?.has_api_key ? '••••••••  (để trống = giữ key cũ)' : 'Nhập API key...'"
-        />
+        <div class="flex flex-col gap-1.5">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center justify-between">
+            API Key
+            <span v-if="settings?.has_api_key" class="inline-flex items-center gap-1 text-[10px] text-emerald-600 lowercase tracking-normal font-semibold">
+              <i class="pi pi-check-circle" /> Đã cấu hình
+            </span>
+          </p>
+          <input
+            v-model="form.api_key"
+            type="password"
+            class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)] w-full"
+            :placeholder="settings?.has_api_key ? '••••••••  (để trống = giữ key cũ)' : 'Nhập API key...'"
+          />
+        </div>
 
         <!-- Quota settings -->
-        <div class="ai-row">
-          <div class="ai-col">
-            <p class="ai-field-label">Quota hàng tháng (tokens)</p>
-            <input v-model.number="form.monthly_token_quota" type="number" class="ai-input" min="1000" step="100000" />
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Quota hàng tháng</p>
+            <input v-model.number="form.monthly_token_quota" type="number" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" min="1000" step="100000" />
           </div>
-          <div class="ai-col">
-            <p class="ai-field-label">Giới hạn req/phút</p>
-            <input v-model.number="form.max_requests_per_minute" type="number" class="ai-input" min="1" max="1000" />
+          <div class="flex flex-col gap-1.5">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">req/phút</p>
+            <input v-model.number="form.max_requests_per_minute" type="number" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" min="1" max="1000" />
           </div>
         </div>
 
         <!-- Active toggle -->
-        <label class="ai-toggle">
-          <input v-model="form.is_active" type="checkbox" />
-          <span class="ai-toggle-track" />
-          <span class="ai-toggle-label">Kích hoạt AI</span>
-        </label>
+        <div class="flex items-center gap-2 mt-2">
+          <input type="checkbox" id="is_active_check" v-model="form.is_active" class="rounded border-gray-300 text-[#1d9e75] focus:ring-[#1d9e75]" />
+          <label for="is_active_check" class="text-xs font-semibold text-[var(--text)] cursor-pointer">Kích hoạt AI</label>
+        </div>
 
-        <button class="ai-save-btn" :disabled="saving" @click="saveSettings">
-          <span class="material-symbols-outlined">save</span>
+        <button 
+          class="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl text-sm font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed mt-2" 
+          :disabled="saving" 
+          @click="saveSettings"
+        >
+          <i class="pi pi-save" />
           {{ saving ? 'Đang lưu...' : 'Lưu cài đặt' }}
         </button>
       </div>
 
       <!-- Right column -->
-      <div class="ai-right-col">
+      <div class="flex flex-col gap-5">
         <!-- Daily chart -->
-        <div class="dashboard-card ai-chart-card">
-          <h3 class="ai-card-title">
-            <span class="material-symbols-outlined">bar_chart</span> Token theo ngày (14 ngày)
+        <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+          <h3 class="text-sm font-bold text-[var(--text)] flex items-center gap-2">
+            <i class="pi pi-chart-bar text-[#1d9e75]" /> Token theo ngày (14 ngày)
           </h3>
-          <div v-if="loading" class="ai-chart-skeleton" />
-          <div v-else-if="dailyPoints.length === 0" class="ai-empty">Chưa có dữ liệu</div>
-          <div v-else class="ai-bar-chart">
+          <div v-if="loading" class="h-36 bg-[var(--surface)] animate-pulse rounded-xl" />
+          <div v-else-if="dailyPoints.length === 0" class="text-center py-8 text-sm text-[var(--muted)]">Chưa có dữ liệu</div>
+          <div v-else class="flex items-end gap-2.5 h-36 pt-2">
             <div
               v-for="pt in dailyPoints"
               :key="pt.date"
-              class="ai-bar-col"
+              class="flex flex-col items-center flex-1 gap-1.5 group"
               :title="`${formatDayLabel(pt.date)}: ${formatK(pt.tokens)} tokens, ${pt.count} req`"
             >
-              <div class="ai-bar-wrap">
+              <div class="flex-1 flex items-end w-full">
                 <div
-                  class="ai-bar"
-                  :style="{ height: `${Math.max(4, Math.round((pt.tokens / chartMax) * 120))}px` }"
+                  class="w-full bg-[#1d9e75] rounded-t min-h-[4px] opacity-80 group-hover:opacity-100 transition-all duration-300"
+                  :style="{ height: `${Math.max(4, Math.round((pt.tokens / chartMax) * 100))}px` }"
                 />
               </div>
-              <span class="ai-bar-label">{{ formatDayLabel(pt.date) }}</span>
+              <span class="text-[9px] text-[var(--muted)] group-hover:text-[var(--text)] transition-colors">{{ formatDayLabel(pt.date) }}</span>
             </div>
           </div>
         </div>
 
         <!-- By endpoint & provider -->
-        <div class="ai-two-col">
-          <div class="dashboard-card">
-            <h3 class="ai-card-title">
-              <span class="material-symbols-outlined">api</span> Theo endpoint
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+            <h3 class="text-sm font-bold text-[var(--text)] flex items-center gap-2">
+              <i class="pi pi-server text-[#1d9e75]" /> Theo endpoint
             </h3>
-            <div v-if="byEndpoint.length === 0" class="ai-empty">Chưa có dữ liệu</div>
-            <div v-for="ep in byEndpoint" :key="ep.endpoint" class="ai-stat-row">
-              <span class="ai-stat-label">{{ ep.endpoint }}</span>
-              <span class="ai-stat-val">{{ formatK(ep.tokens) }}</span>
-              <span class="ai-stat-count">{{ ep.count }} req</span>
+            <div v-if="byEndpoint.length === 0" class="text-center py-4 text-xs text-[var(--muted)]">Chưa có dữ liệu</div>
+            <div v-for="ep in byEndpoint" :key="ep.endpoint" class="flex justify-between items-center py-2 border-b border-[var(--line)] last:border-0 text-xs">
+              <code class="font-mono text-[var(--text)] bg-[var(--surface)] px-1.5 py-0.5 rounded border border-[var(--line)]">{{ ep.endpoint }}</code>
+              <div class="flex items-center gap-2 font-semibold">
+                <span class="text-[var(--text)]">{{ formatK(ep.tokens) }} tokens</span>
+                <span class="text-[var(--muted)]">({{ ep.count }} req)</span>
+              </div>
             </div>
           </div>
-          <div class="dashboard-card">
-            <h3 class="ai-card-title">
-              <span class="material-symbols-outlined">hub</span> Theo provider
+          
+          <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+            <h3 class="text-sm font-bold text-[var(--text)] flex items-center gap-2">
+              <i class="pi pi-share-alt text-[#1d9e75]" /> Theo provider
             </h3>
-            <div v-if="byProvider.length === 0" class="ai-empty">Chưa có dữ liệu</div>
-            <div v-for="pv in byProvider" :key="pv.provider" class="ai-stat-row">
-              <span class="ai-stat-label">{{ pv.provider }}</span>
-              <span class="ai-stat-val">{{ formatK(pv.tokens) }}</span>
-              <span class="ai-stat-count">{{ pv.count }} req</span>
+            <div v-if="byProvider.length === 0" class="text-center py-4 text-xs text-[var(--muted)]">Chưa có dữ liệu</div>
+            <div v-for="pv in byProvider" :key="pv.provider" class="flex justify-between items-center py-2 border-b border-[var(--line)] last:border-0 text-xs">
+              <span class="font-semibold text-[var(--text)]">{{ pv.provider }}</span>
+              <div class="flex items-center gap-2 font-semibold">
+                <span class="text-[var(--text)]">{{ formatK(pv.tokens) }} tokens</span>
+                <span class="text-[var(--muted)]">({{ pv.count }} req)</span>
+              </div>
             </div>
           </div>
         </div>
@@ -434,47 +456,55 @@ onMounted(fetchDashboard)
     </div>
 
     <!-- Recent logs -->
-    <div class="dashboard-card ai-logs-card">
-      <h3 class="ai-card-title">
-        <span class="material-symbols-outlined">history</span> Nhật ký gần đây
-      </h3>
-      <div v-if="loading" class="ai-empty">Đang tải...</div>
-      <div v-else-if="recentLogs.length === 0" class="ai-empty">Chưa có yêu cầu nào.</div>
-      <div v-else class="ai-table-wrap">
-        <table class="ai-table">
+    <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+      <div class="flex items-center gap-2 px-6 pt-5 pb-4 border-b border-[var(--line)]">
+        <i class="pi pi-history text-[#1d9e75]" />
+        <h3 class="text-sm font-semibold text-[var(--text)]">Nhật ký gần đây</h3>
+      </div>
+      <div v-if="loading" class="text-center py-8 text-sm text-[var(--muted)]">Đang tải...</div>
+      <div v-else-if="recentLogs.length === 0" class="text-center py-8 text-sm text-[var(--muted)]">Chưa có yêu cầu nào.</div>
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-sm border-collapse">
           <thead>
-            <tr>
-              <th>Người dùng</th>
-              <th>Điểm cuối (Endpoint)</th>
-              <th>Nhà cung cấp / Mô hình</th>
-              <th>Số Token</th>
-              <th>Thời gian phản hồi</th>
-              <th>Trạng thái</th>
-              <th>Thời điểm gọi</th>
+            <tr class="border-b border-[var(--line)] bg-[var(--surface)]">
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Người dùng</th>
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Endpoint</th>
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Provider / Model</th>
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Token</th>
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Phản hồi</th>
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Trạng thái</th>
+              <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Thời điểm</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="log in pagedLogs" :key="log.id">
-              <td>
-                <div class="ai-user-cell">
-                  <img v-if="log.user?.avatar" :src="log.user.avatar" class="ai-avatar" />
-                  <div v-else class="ai-avatar-placeholder">{{ (log.user?.name ?? '?')[0] }}</div>
-                  <span>{{ log.user?.name ?? '—' }}</span>
+            <tr v-for="log in pagedLogs" :key="log.id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2">
+                  <div v-if="log.user?.avatar" class="w-7 h-7 rounded-full overflow-hidden border border-[var(--line)]">
+                    <img :src="log.user.avatar" class="w-full h-full object-cover" />
+                  </div>
+                  <div v-else class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-[rgba(29,158,117,0.1)] text-[#085041] border border-[rgba(29,158,117,0.2)]">{{ (log.user?.name ?? '?')[0] }}</div>
+                  <span class="text-xs font-semibold text-[var(--text)]">{{ log.user?.name ?? '—' }}</span>
                 </div>
               </td>
-              <td><code class="ai-code">{{ log.endpoint }}</code></td>
-              <td>
-                <span class="ai-provider-tag">{{ log.provider }}</span>
-                <span class="ai-model-tag">{{ log.model }}</span>
+              <td class="px-4 py-3"><code class="font-mono text-[10px] bg-[var(--surface)] px-1.5 py-0.5 rounded border border-[var(--line)] text-[var(--text)]">{{ log.endpoint }}</code></td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="inline-block text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200 px-1.5 py-0.5 rounded">{{ log.provider }}</span>
+                  <span class="text-[10px] font-mono text-[var(--muted)]">{{ log.model }}</span>
+                </div>
               </td>
-              <td>{{ formatK(log.tokens_used) }}</td>
-              <td>{{ formatMs(log.response_time_ms) }}</td>
-              <td>
-                <span class="ai-status-badge" :class="log.status === 'success' ? 'is-success' : 'is-error'">
+              <td class="px-4 py-3 text-xs font-semibold text-[var(--text)]">{{ formatK(log.tokens_used) }}</td>
+              <td class="px-4 py-3 text-xs text-[var(--muted)]">{{ formatMs(log.response_time_ms) }}</td>
+              <td class="px-4 py-3">
+                <span 
+                  class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
+                  :class="log.status === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'"
+                >
                   {{ log.status === 'success' ? 'OK' : 'Lỗi' }}
                 </span>
               </td>
-              <td class="ai-date">{{ formatDate(log.created_at) }}</td>
+              <td class="px-4 py-3 text-xs text-[var(--muted)]">{{ formatDate(log.created_at) }}</td>
             </tr>
           </tbody>
         </table>
@@ -489,206 +519,9 @@ onMounted(fetchDashboard)
         />
       </div>
     </div>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-/* Stats */
-.ai-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
-}
-@media (max-width: 900px) { .ai-stats-grid { grid-template-columns: repeat(2, 1fr); } }
-
-/* Quota */
-.ai-quota-card { margin-bottom: 16px; }
-.ai-quota-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.ai-quota-title  { font-weight: 700; font-size: 0.9rem; }
-.ai-quota-pct    { font-size: 1.1rem; font-weight: 800; }
-.ai-quota-bar-bg { height: 10px; background: var(--surface-dim, #e5e7eb); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
-.ai-quota-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
-.ai-quota-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--on-surface-variant); }
-.ai-reset-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 12px; border-radius: 8px; border: 1px solid var(--surface-dim);
-  background: transparent; cursor: pointer; font-size: 0.82rem; color: var(--on-surface-variant);
-  transition: background 0.15s;
-}
-.ai-reset-btn:hover { background: var(--surface-low); }
-.ai-reset-btn .material-symbols-outlined { font-size: 16px; }
-.ai-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Main grid */
-.ai-main-grid {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-  align-items: start;
-}
-@media (max-width: 1100px) { .ai-main-grid { grid-template-columns: 1fr; } }
-
-/* Settings card */
-.ai-card-title {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.92rem; font-weight: 700; margin: 0 0 16px;
-}
-.ai-card-title .material-symbols-outlined { font-size: 18px; color: var(--green); }
-
-.ai-field-label {
-  font-size: 0.76rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--on-surface-variant); margin: 0 0 8px;
-  display: flex; align-items: center; gap: 6px;
-}
-.ai-key-set {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 0.72rem; color: #16a34a; text-transform: none; letter-spacing: 0;
-}
-.ai-key-set .material-symbols-outlined { font-size: 13px; }
-
-/* Provider buttons */
-.ai-provider-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
-.ai-provider-btn {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--surface-dim);
-  background: var(--surface-lowest); cursor: pointer; font-size: 0.85rem;
-  font-weight: 600; color: var(--on-surface); transition: all 0.15s;
-}
-.ai-provider-btn:hover { background: var(--surface-low); }
-.ai-provider-btn.is-active { background: var(--surface-low); }
-.ai-provider-btn .material-symbols-outlined { font-size: 20px; }
-.ai-provider-name { line-height: 1.2; }
-
-/* Model buttons */
-.ai-model-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-height: 220px; overflow-y: auto; }
-.ai-model-btn {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--surface-dim);
-  background: var(--surface-lowest); cursor: pointer; text-align: left; transition: all 0.15s;
-}
-.ai-model-btn:hover  { background: var(--surface-low); }
-.ai-model-btn.is-active { border-color: var(--green); background: rgba(var(--green-rgb), 0.06); }
-.ai-model-name { font-size: 0.85rem; font-weight: 500; color: var(--on-surface); }
-.ai-model-tier {
-  font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
-  border-radius: 99px; text-transform: uppercase; letter-spacing: 0.06em;
-}
-
-/* Input */
-.ai-input {
-  width: 100%; padding: 9px 12px; border-radius: 9px;
-  border: 1.5px solid var(--surface-dim); background: var(--surface-lowest);
-  font-size: 0.88rem; color: var(--on-surface); outline: none;
-  transition: border-color 0.15s; margin-bottom: 14px; box-sizing: border-box;
-}
-.ai-input:focus { border-color: var(--green); }
-
-.ai-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.ai-col  {}
-
-/* Toggle */
-.ai-toggle {
-  display: flex; align-items: center; gap: 10px;
-  cursor: pointer; margin-bottom: 16px; user-select: none;
-}
-.ai-toggle input { display: none; }
-.ai-toggle-track {
-  width: 38px; height: 22px; border-radius: 99px;
-  background: var(--surface-dim); position: relative; transition: background 0.2s;
-  flex-shrink: 0;
-}
-.ai-toggle-track::after {
-  content: ''; position: absolute; top: 3px; left: 3px;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: #fff; transition: transform 0.2s;
-}
-.ai-toggle input:checked ~ .ai-toggle-track { background: var(--green); }
-.ai-toggle input:checked ~ .ai-toggle-track::after { transform: translateX(16px); }
-.ai-toggle-label { font-size: 0.88rem; font-weight: 600; color: var(--on-surface); }
-
-.ai-save-btn {
-  display: flex; align-items: center; gap: 6px; justify-content: center;
-  width: 100%; padding: 11px; border-radius: 10px; border: none;
-  background: var(--green); color: #fff; font-size: 0.9rem; font-weight: 700;
-  cursor: pointer; transition: opacity 0.15s;
-}
-.ai-save-btn:hover   { opacity: 0.88; }
-.ai-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ai-save-btn .material-symbols-outlined { font-size: 18px; }
-
-/* Right col */
-.ai-right-col { display: flex; flex-direction: column; gap: 16px; }
-
-/* Chart */
-.ai-chart-card {}
-.ai-chart-skeleton { height: 140px; background: var(--surface-low); border-radius: 10px; animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-.ai-bar-chart {
-  display: flex; align-items: flex-end; gap: 6px;
-  height: 140px; padding-top: 8px;
-}
-.ai-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 4px; }
-.ai-bar-wrap { flex: 1; display: flex; align-items: flex-end; }
-.ai-bar {
-  width: 100%; background: var(--green); border-radius: 4px 4px 0 0;
-  opacity: 0.8; transition: opacity 0.15s; min-height: 4px;
-}
-.ai-bar-col:hover .ai-bar { opacity: 1; }
-.ai-bar-label { font-size: 0.65rem; color: var(--on-surface-variant); white-space: nowrap; }
-
-/* Two col */
-.ai-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 700px) { .ai-two-col { grid-template-columns: 1fr; } }
-
-.ai-stat-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 0; border-bottom: 1px solid var(--surface-dim); font-size: 0.84rem;
-}
-.ai-stat-row:last-child { border-bottom: none; }
-.ai-stat-label { flex: 1; color: var(--on-surface); font-weight: 500; }
-.ai-stat-val   { font-weight: 700; color: var(--on-surface); }
-.ai-stat-count { font-size: 0.76rem; color: var(--on-surface-variant); }
-
-/* Logs */
-.ai-logs-card {}
-.ai-table-wrap { overflow-x: auto; }
-.ai-table {
-  width: 100%; border-collapse: collapse; font-size: 0.84rem;
-}
-.ai-table th {
-  text-align: left; padding: 8px 12px; font-size: 0.72rem;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--on-surface-variant); border-bottom: 1px solid var(--surface-dim);
-}
-.ai-table td { padding: 10px 12px; border-bottom: 1px solid var(--surface-dim); vertical-align: middle; }
-.ai-table tr:last-child td { border-bottom: none; }
-
-.ai-user-cell { display: flex; align-items: center; gap: 8px; }
-.ai-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-.ai-avatar-placeholder {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--green); color: #fff;
-  display: grid; place-items: center; font-size: 0.75rem; font-weight: 700;
-}
-.ai-code { font-family: monospace; font-size: 0.78rem; background: var(--surface-low); padding: 2px 6px; border-radius: 4px; }
-.ai-provider-tag {
-  display: inline-block; font-size: 0.72rem; font-weight: 700;
-  background: rgba(124,58,237,0.1); color: #7c3aed;
-  padding: 2px 6px; border-radius: 4px; margin-right: 4px;
-}
-.ai-model-tag {
-  display: inline-block; font-size: 0.72rem;
-  color: var(--on-surface-variant); font-family: monospace;
-}
-.ai-status-badge {
-  display: inline-block; padding: 2px 10px; border-radius: 99px;
-  font-size: 0.74rem; font-weight: 700;
-}
-.ai-status-badge.is-success { background: rgba(22,163,74,0.1); color: #16a34a; }
-.ai-status-badge.is-error   { background: rgba(220,38,38,0.1); color: #dc2626; }
-.ai-date { color: var(--on-surface-variant); font-size: 0.8rem; white-space: nowrap; }
-
-.ai-empty { color: var(--on-surface-variant); font-size: 0.88rem; padding: 16px 0; text-align: center; }
+/* Scoped styles kept minimal */
 </style>

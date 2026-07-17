@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -119,73 +118,75 @@ onMounted(load)
 </script>
 
 <template>
-  <InstructorWorkspaceShell
-    :title="sectionTitle || 'Đang tải...'"
-    :description="data?.class_section ? `${data.class_section.term?.name} · Khóa ${data.class_section.cohort?.code}` : ''"
-    :breadcrumb="['Trang chủ', 'Học vụ', 'Lớp học phần', 'Sổ điểm']"
-  >
-    <template #actions>
-      <NuxtLink to="/instructor/sections" class="crud-secondary-btn">
-        <span class="material-symbols-outlined">arrow_back</span>
-        Danh sách lớp
-      </NuxtLink>
-      <button class="crud-primary-btn" :disabled="saving || loading" @click="save">
-        <span class="material-symbols-outlined">save</span>
-        {{ saving ? 'Đang lưu...' : 'Lưu điểm' }}
-      </button>
-    </template>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Học vụ &bull; Sổ điểm</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{{ sectionTitle || 'Đang tải...' }}</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">{{ data?.class_section ? `${data.class_section.term?.name} · Khóa ${data.class_section.cohort?.code}` : '' }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <NuxtLink to="/instructor/sections" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors">
+          <i class="pi pi-arrow-left text-xs" />
+          <span>Danh sách lớp</span>
+        </NuxtLink>
+        <button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50" :disabled="saving || loading" @click="save">
+          <span class="material-symbols-outlined text-sm">save</span>
+          {{ saving ? 'Đang lưu...' : 'Lưu điểm' }}
+        </button>
+      </div>
+    </div>
 
-    <div v-if="error" class="crud-alert is-error">{{ error }}</div>
-    <div v-if="message" class="crud-alert is-success">{{ message }}</div>
+    <div v-if="error" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ error }}</div>
+    <div v-if="message" class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-semibold">{{ message }}</div>
 
-    <div class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <div>
-          <p class="section-kicker">Bảng điểm</p>
-          <h3 class="ds-section-title">{{ data?.students.length || 0 }} sinh viên</h3>
-        </div>
+    <!-- Content Card -->
+    <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col">
+      <div class="px-5 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex flex-col">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Bảng điểm</p>
+        <h3 class="text-xs font-bold text-[var(--text)] mt-0.5">{{ data?.students.length || 0 }} sinh viên</h3>
       </div>
 
-      <div v-if="loading" class="crud-empty" style="padding:3rem;">Đang tải bảng điểm...</div>
-      <div v-else-if="!data?.components.length" class="crud-empty" style="padding:3rem;">
+      <div v-if="loading" class="text-center py-12 text-xs text-[var(--muted)]">Đang tải bảng điểm...</div>
+      <div v-else-if="!data?.components.length" class="text-center py-12 text-xs text-[var(--muted)] px-5">
         Học phần chưa có cấu trúc điểm. Liên hệ admin/khoa để khởi tạo grade_components.
       </div>
-      <div v-else class="crud-table-wrap">
-        <table class="crud-table gradebook-table">
+      <div v-else class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
           <thead>
-            <tr>
-              <th style="min-width:60px">STT</th>
-              <th style="min-width:120px">Mã SV</th>
-              <th style="min-width:220px">Họ tên</th>
+            <tr class="border-b border-[var(--line)] bg-[var(--surface)] text-[0.72rem] font-bold uppercase tracking-wider text-[var(--muted)]">
+              <th class="px-5 py-3 w-16">STT</th>
+              <th class="px-5 py-3 min-w-[120px]">Mã SV</th>
+              <th class="px-5 py-3 min-w-[220px]">Họ tên</th>
               <th
                 v-for="component in data.components"
                 :key="component.id"
-                class="text-center"
-                style="min-width:120px"
+                class="px-5 py-3 text-center min-w-[120px]"
               >
                 {{ component.name }}
-                <p class="text-xs font-normal text-muted">/{{ component.max_score }} ({{ component.weight }}%)</p>
+                <div class="text-[10px] font-normal text-[var(--muted)] mt-0.5">/{{ component.max_score }} ({{ component.weight }}%)</div>
               </th>
-              <th class="text-center" style="min-width:110px">Tổng kết</th>
+              <th class="px-5 py-3 text-center min-w-[110px]">Tổng kết</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(stu, i) in data.students" :key="stu.enrollment_id">
-              <td>{{ i + 1 }}</td>
-              <td><code>{{ stu.student.student_code || '--' }}</code></td>
-              <td>{{ stu.student.name }}</td>
-              <td v-for="component in data.components" :key="component.id" class="text-center">
+            <tr v-for="(stu, i) in data.students" :key="stu.enrollment_id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+              <td class="px-5 py-4 text-xs font-semibold text-[var(--muted)]">{{ i + 1 }}</td>
+              <td class="px-5 py-4"><code class="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{{ stu.student.student_code || '--' }}</code></td>
+              <td class="px-5 py-4 text-xs font-bold text-[var(--text)]">{{ stu.student.name }}</td>
+              <td v-for="component in data.components" :key="component.id" class="px-5 py-4 text-center">
                 <input
                   v-model="scoreMap[`${stu.enrollment_id}-${component.id}`]"
                   type="number"
                   step="0.1"
                   min="0"
                   :max="component.max_score"
-                  class="grade-input"
+                  class="w-20 h-8 px-2 border border-[var(--line)] rounded-xl text-center text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] font-semibold"
                 >
               </td>
-              <td class="text-center">
-                <strong :class="Number(previewFinal(stu)) >= 5 ? 'final-pass' : 'final-fail'">
+              <td class="px-5 py-4 text-center">
+                <strong class="text-xs font-bold" :class="Number(previewFinal(stu)) >= 5 ? 'text-emerald-600' : 'text-red-600'">
                   {{ previewFinal(stu) }}
                 </strong>
               </td>
@@ -194,27 +195,9 @@ onMounted(load)
         </table>
       </div>
     </div>
-  </InstructorWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.gradebook-table { width: 100%; }
-.gradebook-table th { font-size: 0.85rem; }
-.grade-input {
-  width: 80px;
-  padding: 6px 8px;
-  border: 1px solid rgba(17,17,17,0.12);
-  border-radius: 8px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.grade-input:focus {
-  outline: none;
-  border-color: rgba(var(--green-rgb), 0.4);
-  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.1);
-}
-.final-pass { color: var(--green-deep); font-size: 1.05rem; }
-.final-fail { color: #b91c1c; font-size: 1.05rem; }
-.text-center { text-align: center; }
-.text-muted { color: var(--muted); }
+/* Scoped styles kept minimal */
 </style>

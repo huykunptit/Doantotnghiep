@@ -289,11 +289,13 @@ function formatSource(src: string) {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Ghi Danh Học Phần"
-    description="Ghi danh tự động theo lớp hành chính, ghi danh thủ công và tra cứu danh sách đăng ký."
-    :breadcrumb="['Trang chủ', 'Đào tạo & Học vụ', 'Ghi Danh']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Ghi Danh Học Phần</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Ghi danh tự động theo lớp hành chính, ghi danh thủ công và tra cứu danh sách đăng ký.</p>
+    </div>
     <!-- Tab bar -->
     <div class="enroll-tabs">
       <button class="enroll-tab" :class="{ 'is-active': activeTab === 'class-auto' }" @click="activeTab = 'class-auto'">
@@ -665,7 +667,7 @@ function formatSource(src: string) {
         </div>
       </div>
     </Teleport>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

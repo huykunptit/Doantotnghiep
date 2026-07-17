@@ -123,11 +123,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý Quiz / Đề thi"
-    description="Quản lý đề thi theo từng khóa học hoặc kỳ thi độc lập."
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Quiz / Đề thi']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý Quiz / Đề thi</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý đề thi theo từng khóa học hoặc kỳ thi độc lập.</p>
+    </div>
     <!-- ── Tabs + Course selector ── -->
     <div class="dashboard-card qz-tabs-card">
       <div class="qz-tabs">
@@ -263,7 +265,7 @@ onMounted(async () => {
       @close="confirmOpen = false"
       @confirm="deleteExam"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

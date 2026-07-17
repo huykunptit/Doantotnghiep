@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 
-definePageMeta({ layout: 'default', middleware: 'auth' })
+definePageMeta({ layout: 'student', middleware: 'auth' })
 
 const route = useRoute()
 const attemptId = route.params.attemptId as string
@@ -41,7 +41,7 @@ const correctCount = computed(() => answers.value.filter((a: any) => a.is_correc
 const incorrectCount = computed(() => answers.value.filter((a: any) => !a.is_correct).length)
 const timeSpent = computed(() => result.value?.attempt?.time_spent ?? result.value?.time_spent ?? 0)
 
-const circumference = 2 * Math.PI * 50
+const circumference = 2 * Math.PI * 46
 const strokeDash = computed(() => `${(scorePercent.value / 100) * circumference} ${circumference}`)
 
 function formatTime(seconds: number) {
@@ -55,304 +55,172 @@ onMounted(fetchResult)
 </script>
 
 <template>
-  <div class="result-page">
-
+  <div class="max-w-4xl mx-auto px-4 py-2 flex flex-col gap-6">
     <!-- Loading -->
-    <div v-if="loading" class="dashboard-card crud-empty" style="margin: 40px auto; max-width: 600px;">
-      <span class="material-symbols-outlined" style="font-size: 36px; opacity: 0.3;">hourglass_empty</span>
-      <p>Đang tải kết quả thi...</p>
+    <div v-if="loading" class="flex flex-col items-center justify-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm gap-3">
+      <span class="material-symbols-outlined text-3xl animate-spin text-[var(--muted)]">progress_activity</span>
+      <p class="text-xs font-semibold text-[var(--muted)]">Đang tải kết quả thi...</p>
     </div>
 
     <!-- Error -->
-    <div v-else-if="error" class="dashboard-card crud-empty" style="margin: 40px auto; max-width: 600px;">
-      <span class="material-symbols-outlined" style="font-size: 36px; color: var(--danger);">error_outline</span>
-      <p style="color: var(--danger);">{{ error }}</p>
-      <NuxtLink to="/my-courses" class="crud-secondary-btn" style="margin-top: 8px;">
-        Về khoá học của tôi
+    <div v-else-if="error" class="flex flex-col items-center justify-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm text-center px-6 gap-3">
+      <span class="material-symbols-outlined text-4xl text-rose-500">error</span>
+      <h3 class="text-base font-bold text-[var(--text)]">Không thể tải kết quả</h3>
+      <p class="text-xs text-[var(--muted)] max-w-sm">{{ error }}</p>
+      <NuxtLink to="/student/exams" class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-bold text-[var(--text)] flex items-center transition-colors mt-2">
+        Quay lại Kỳ thi của tôi
       </NuxtLink>
     </div>
 
     <template v-else-if="result">
       <!-- Result hero card -->
-      <div class="result-hero dashboard-card" :class="isPassed ? 'hero-pass' : 'hero-fail'">
-        <div class="hero-icon-wrap" :class="isPassed ? 'icon-pass' : 'icon-fail'">
-          <i v-if="isPassed" class="pi pi-trophy" style="font-size:2.25rem" />
-          <i v-else class="pi pi-face-frown" style="font-size:2.25rem" />
-        </div>
+      <div 
+        class="bg-white border rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6"
+        :class="isPassed ? 'border-emerald-200 bg-emerald-50/10' : 'border-rose-200 bg-rose-50/10'"
+      >
+        <div class="flex items-center gap-4 flex-wrap text-center md:text-left justify-center md:justify-start">
+          <div 
+            class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+            :class="isPassed ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'"
+          >
+            <span class="material-symbols-outlined text-2xl">{{ isPassed ? 'emoji_events' : 'sentiment_very_dissatisfied' }}</span>
+          </div>
 
-        <div class="hero-copy">
-          <p class="section-kicker" :style="{ color: isPassed ? 'var(--green)' : 'var(--danger)' }">
-            {{ isPassed ? 'Đạt yêu cầu' : 'Chưa đạt' }}
-          </p>
-          <h1>{{ isPassed ? 'Chúc mừng bạn đã vượt qua!' : 'Hãy ôn luyện và thử lại' }}</h1>
-          <p class="hero-exam-name">{{ examTitle }}</p>
+          <div class="flex flex-col gap-1">
+            <p 
+              class="text-[10px] font-bold uppercase tracking-widest"
+              :class="isPassed ? 'text-emerald-700' : 'text-rose-700'"
+            >
+              {{ isPassed ? 'Đạt yêu cầu' : 'Chưa đạt' }}
+            </p>
+            <h1 class="text-lg font-bold text-[var(--text)] leading-snug">{{ isPassed ? 'Chúc mừng bạn đã vượt qua!' : 'Hãy ôn luyện và thử lại' }}</h1>
+            <p class="text-xs text-[var(--muted)] font-semibold">{{ examTitle }}</p>
+          </div>
         </div>
 
         <!-- Score ring -->
-        <div class="score-ring-wrap">
-          <svg viewBox="0 0 120 120" class="score-svg">
-            <circle cx="60" cy="60" r="50" class="ring-bg" />
+        <div class="relative w-24 h-24 flex-shrink-0">
+          <svg viewBox="0 0 100 100" class="w-full h-full">
+            <circle cx="50" cy="50" r="46" fill="none" class="stroke-[var(--line)] stroke-[6]" />
             <circle
-              cx="60" cy="60" r="50"
-              class="ring-fill"
-              :class="isPassed ? 'ring-pass' : 'ring-fail'"
+              cx="50" cy="50" r="46"
+              fill="none"
+              class="stroke-[6] transition-all duration-1000 ease-out"
+              :class="isPassed ? 'stroke-emerald-500' : 'stroke-rose-500'"
               :stroke-dasharray="strokeDash"
               stroke-dashoffset="0"
-              transform="rotate(-90 60 60)"
+              stroke-linecap="round"
+              transform="rotate(-90 50 50)"
             />
           </svg>
-          <div class="score-inner">
-            <span class="score-num" :class="isPassed ? 'score-pass' : 'score-fail'">{{ scorePercent }}</span>
-            <span class="score-pct">%</span>
-            <span class="score-label">Điểm đạt: {{ passScore }}%</span>
+          <div class="absolute inset-0 flex flex-col items-center justify-center leading-none text-center">
+            <span class="text-2xl font-black" :class="isPassed ? 'text-emerald-600' : 'text-rose-600'">{{ scorePercent }}%</span>
+            <span class="text-[8px] text-[var(--muted)] font-bold mt-1 uppercase tracking-wider">Đạt: {{ passScore }}%</span>
           </div>
         </div>
       </div>
 
       <!-- Stats row -->
-      <div class="stats-grid">
-        <div class="stat-tile dashboard-card">
-          <div class="stat-icon-wrap" style="background: rgba(34,197,94,0.1); color: #22c55e;">
-            <i class="pi pi-check-circle" style="font-size:1.375rem" />
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Stat Item 1 -->
+        <div class="bg-white border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 border border-emerald-100">
+            <span class="material-symbols-outlined text-sm font-bold">check_circle</span>
           </div>
-          <div class="stat-body">
-            <p class="stat-label">Câu đúng</p>
-            <strong class="stat-value">{{ correctCount }}</strong>
-          </div>
-        </div>
-        <div class="stat-tile dashboard-card">
-          <div class="stat-icon-wrap" style="background: rgba(239,68,68,0.1); color: #ef4444;">
-            <i class="pi pi-times-circle" style="font-size:1.375rem" />
-          </div>
-          <div class="stat-body">
-            <p class="stat-label">Câu sai</p>
-            <strong class="stat-value">{{ incorrectCount }}</strong>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-[var(--muted)] uppercase tracking-wider">Câu đúng</span>
+            <strong class="text-base font-extrabold text-[var(--text)] leading-snug mt-0.5">{{ correctCount }}</strong>
           </div>
         </div>
-        <div class="stat-tile dashboard-card">
-          <div class="stat-icon-wrap" style="background: rgba(59,130,246,0.1); color: #3b82f6;">
-            <i class="pi pi-clock" style="font-size:1.375rem" />
+        <!-- Stat Item 2 -->
+        <div class="bg-white border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0 border border-rose-100">
+            <span class="material-symbols-outlined text-sm font-bold">cancel</span>
           </div>
-          <div class="stat-body">
-            <p class="stat-label">Thời gian</p>
-            <strong class="stat-value">{{ formatTime(timeSpent) }}</strong>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-[var(--muted)] uppercase tracking-wider">Câu sai</span>
+            <strong class="text-base font-extrabold text-[var(--text)] leading-snug mt-0.5">{{ incorrectCount }}</strong>
           </div>
         </div>
-        <div class="stat-tile dashboard-card">
-          <div class="stat-icon-wrap" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
-            <i class="pi pi-hashtag" style="font-size:1.375rem" />
+        <!-- Stat Item 3 -->
+        <div class="bg-white border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0 border border-sky-100">
+            <span class="material-symbols-outlined text-sm font-bold">schedule</span>
           </div>
-          <div class="stat-body">
-            <p class="stat-label">Tổng câu</p>
-            <strong class="stat-value">{{ answers.length }}</strong>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-[var(--muted)] uppercase tracking-wider">Thời gian</span>
+            <strong class="text-base font-extrabold text-[var(--text)] leading-snug mt-0.5">{{ formatTime(timeSpent) }}</strong>
+          </div>
+        </div>
+        <!-- Stat Item 4 -->
+        <div class="bg-white border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 border border-amber-100">
+            <span class="material-symbols-outlined text-sm font-bold">tag</span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-[9px] font-bold text-[var(--muted)] uppercase tracking-wider">Tổng câu</span>
+            <strong class="text-base font-extrabold text-[var(--text)] leading-snug mt-0.5">{{ answers.length }}</strong>
           </div>
         </div>
       </div>
 
       <!-- Answer review -->
-      <div v-if="answers.length > 0" class="dashboard-card crud-panel">
-        <div class="crud-toolbar" style="margin-bottom: 20px;">
+      <div v-if="answers.length > 0" class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+        <div class="flex items-center justify-between gap-4 border-b border-[var(--line)] pb-4">
           <div>
-            <p class="section-kicker">Chi tiết bài thi</p>
-            <h3>Đánh giá từng câu hỏi</h3>
+            <p class="text-[9px] font-bold uppercase tracking-widest text-[var(--muted)] mb-0.5">Chi tiết bài thi</p>
+            <h3 class="text-sm font-bold text-[var(--text)]">Đánh giá từng câu hỏi</h3>
           </div>
-          <span class="crud-badge">{{ correctCount }}/{{ answers.length }} câu đúng</span>
+          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+            {{ correctCount }}/{{ answers.length }} câu đúng
+          </span>
         </div>
 
-        <div class="review-list">
+        <div class="flex flex-col gap-3">
           <div
             v-for="(ans, i) in answers"
             :key="i"
-            class="answer-item"
-            :class="ans.is_correct ? 'ans-correct' : 'ans-wrong'"
+            class="border rounded-2xl p-4 flex flex-col gap-3"
+            :class="ans.is_correct ? 'bg-emerald-50/10 border-emerald-200/50' : 'bg-rose-50/10 border-rose-200/50'"
           >
-            <div class="ans-header">
-              <span class="ans-num">Câu {{ i + 1 }}</span>
-              <span class="ans-verdict" :class="ans.is_correct ? 'verdict-pass' : 'verdict-fail'">
-                <i v-if="ans.is_correct" class="pi pi-check-circle" style="font-size:0.875rem" />
-                <i v-else class="pi pi-times-circle" style="font-size:0.875rem" />
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-[var(--muted)]">Câu {{ i + 1 }}</span>
+              <span 
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border"
+                :class="ans.is_correct ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'"
+              >
+                <span class="material-symbols-outlined text-[10px] font-extrabold leading-none">{{ ans.is_correct ? 'check' : 'close' }}</span>
                 {{ ans.is_correct ? 'Đúng' : 'Sai' }}
               </span>
             </div>
-            <p class="ans-question">{{ ans.question_content || ans.question?.content }}</p>
-            <div class="ans-detail">
-              <span class="ans-detail-label">Đáp án của bạn:</span>
-              <span :class="ans.is_correct ? 'ans-text-correct' : 'ans-text-wrong'">
-                {{ ans.selected_answer || ans.user_answer || '(Không trả lời)' }}
-              </span>
-            </div>
-            <div v-if="!ans.is_correct" class="ans-detail">
-              <span class="ans-detail-label">Đáp án đúng:</span>
-              <span class="ans-text-correct">{{ ans.correct_answer }}</span>
+
+            <p class="text-xs font-bold text-[var(--text)] leading-relaxed">{{ ans.question_content || ans.question?.content }}</p>
+            
+            <div class="flex flex-col gap-1.5 pt-2 border-t border-[var(--line)]/50 text-[11px]">
+              <div class="flex items-start gap-1">
+                <span class="text-[var(--muted)] font-semibold flex-shrink-0">Đáp án của bạn:</span>
+                <span :class="ans.is_correct ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'">
+                  {{ ans.selected_answer || ans.user_answer || '(Không trả lời)' }}
+                </span>
+              </div>
+              <div v-if="!ans.is_correct" class="flex items-start gap-1">
+                <span class="text-[var(--muted)] font-semibold flex-shrink-0">Đáp án đúng:</span>
+                <span class="text-emerald-600 font-bold">{{ ans.correct_answer }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Actions -->
-      <div class="result-actions">
-        <NuxtLink :to="`/exam/${examId}`" class="crud-primary-btn">
-          <i class="pi pi-chevron-right" style="font-size:1.0rem" />
-          Thi lại
+      <div class="flex justify-center gap-3">
+        <NuxtLink :to="`/exam/${examId}`" class="h-9 px-5 rounded-xl bg-[#1d9e75] hover:bg-[#17876a] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm">
+          <span class="material-symbols-outlined text-sm font-bold">replay</span> Thi lại
         </NuxtLink>
-        <NuxtLink to="/my-courses" class="crud-secondary-btn">
-          Về khoá học của tôi
+        <NuxtLink to="/student/courses" class="h-9 px-5 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-bold text-[var(--muted)] hover:text-[var(--text)] flex items-center transition-colors">
+          Về khóa học của tôi
         </NuxtLink>
       </div>
     </template>
   </div>
 </template>
-
-<style scoped>
-.result-page {
-  max-width: 820px;
-  margin: 40px auto;
-  padding: 0 24px 60px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* Hero */
-.result-hero {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 20px;
-  padding: 32px;
-  border-width: 2px;
-}
-
-.hero-pass { border-color: rgba(34,197,94,0.3); background: linear-gradient(135deg, rgba(240,253,244,0.8), rgba(220,252,231,0.4)); }
-.hero-fail { border-color: rgba(239,68,68,0.25); background: linear-gradient(135deg, rgba(255,241,242,0.8), rgba(254,228,230,0.4)); }
-
-.hero-icon-wrap {
-  width: 64px; height: 64px;
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-
-.icon-pass { background: rgba(34,197,94,0.12); color: #16a34a; }
-.icon-fail { background: rgba(239,68,68,0.1); color: #dc2626; }
-
-.hero-copy h1 { margin: 4px 0 6px; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em; }
-.hero-exam-name { margin: 0; font-size: 0.875rem; color: var(--muted); }
-
-/* Score ring */
-.score-ring-wrap {
-  position: relative;
-  width: 110px; height: 110px;
-  flex-shrink: 0;
-}
-.score-svg { width: 100%; height: 100%; }
-.ring-bg { fill: none; stroke: rgba(17,17,17,0.06); stroke-width: 10; }
-.ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray 1s ease; }
-.ring-pass { stroke: #22c55e; }
-.ring-fail { stroke: #ef4444; }
-.score-inner {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 1px;
-}
-.score-num { font-size: 1.75rem; font-weight: 900; line-height: 1; }
-.score-pass { color: #16a34a; }
-.score-fail { color: #dc2626; }
-.score-pct { font-size: 0.75rem; color: var(--muted); }
-.score-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.stat-tile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
-}
-
-.stat-icon-wrap {
-  width: 44px; height: 44px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-label { margin: 0; font-size: 0.78rem; color: var(--muted); }
-.stat-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.04em; }
-
-/* Review list */
-.review-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.answer-item {
-  border-radius: 12px;
-  padding: 16px;
-  border: 1px solid transparent;
-}
-.ans-correct { background: rgba(240,253,244,0.8); border-color: rgba(134,239,172,0.6); }
-.ans-wrong { background: rgba(255,241,242,0.8); border-color: rgba(252,165,165,0.5); }
-
-.ans-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.ans-num { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-.ans-verdict {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 0.78rem; font-weight: 700;
-}
-.verdict-pass { color: #16a34a; }
-.verdict-fail { color: #dc2626; }
-
-.ans-question {
-  font-size: 0.875rem; font-weight: 600;
-  color: var(--text);
-  margin: 0 0 8px;
-  line-height: 1.5;
-}
-
-.ans-detail {
-  display: flex; align-items: baseline; gap: 8px;
-  font-size: 0.8rem;
-  margin-top: 4px;
-}
-.ans-detail-label { color: var(--muted); flex-shrink: 0; }
-.ans-text-correct { color: #16a34a; font-weight: 700; }
-.ans-text-wrong { color: #dc2626; font-weight: 700; }
-
-/* Actions */
-.result-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-}
-
-/* Dark mode */
-[data-theme="dark"] .hero-pass { background: rgba(34,197,94,0.06); }
-[data-theme="dark"] .hero-fail { background: rgba(239,68,68,0.06); }
-[data-theme="dark"] .ans-correct { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); }
-[data-theme="dark"] .ans-wrong { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.18); }
-[data-theme="dark"] .stat-tile { background: rgba(255,255,255,0.04); }
-
-@media (max-width: 700px) {
-  .result-hero { grid-template-columns: 1fr; text-align: center; }
-  .hero-icon-wrap { margin: 0 auto; }
-  .score-ring-wrap { margin: 0 auto; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 480px) {
-  .result-page { padding: 0 16px 40px; margin-top: 24px; }
-}
-</style>

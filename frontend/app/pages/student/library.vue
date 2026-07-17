@@ -16,35 +16,36 @@ const search = ref('')
 
 onMounted(async () => {
   const h = { Authorization: `Bearer ${auth.token}` }
-  const [r0] = await Promise.allSettled([
-    useApi<any[]>('/user/enrollments', { headers: h }),
-  ])
-  if (r0.status === 'fulfilled') {
-    enrollments.value = r0.value || []
+  try {
+    const res = await useApi<any[]>('/user/enrollments', { headers: h })
+    enrollments.value = res || []
     if (enrollments.value.length) {
       selectedCourseId.value = enrollments.value[0].course?.id || enrollments.value[0].course_id || enrollments.value[0].id
     }
+  } catch {
+    // error fallback
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 })
 
 watch(selectedCourseId, async (id) => {
   if (!id || attachments.value[id]) return
   loadingFiles.value = true
   const h = { Authorization: `Bearer ${auth.token}` }
-  const [r0] = await Promise.allSettled([
-    useApi<any>(`/courses/${id}/lessons?include_attachments=1`, { headers: h }),
-  ])
-  if (r0.status === 'fulfilled') {
-    const d = r0.value
-    const lessons: any[] = Array.isArray(d) ? d : (d?.data || d?.lessons || [])
+  try {
+    const res = await useApi<any>(`/courses/${id}/lessons?include_attachments=1`, { headers: h })
+    const lessons: any[] = Array.isArray(res) ? res : (res?.data || res?.lessons || [])
     attachments.value[id] = lessons.map(l => ({
       lessonId: l.id,
       lessonTitle: l.title || l.name,
       files: l.attachments || [],
     })).filter(g => g.files.length > 0)
+  } catch {
+    // fallback
+  } finally {
+    loadingFiles.value = false
   }
-  loadingFiles.value = false
 })
 
 const selectedEnrollment = computed(() =>
@@ -74,13 +75,23 @@ function toggleLesson(id: string | number) {
 
 function fileIcon(file: any) {
   const name = (file.name || file.filename || file.original_name || '').toLowerCase()
-  if (name.endsWith('.pdf')) return 'file-text'
-  if (name.match(/\.(mp4|mov|avi|mkv|webm)$/)) return 'play-circle'
+  if (name.endsWith('.pdf')) return 'picture_as_pdf'
+  if (name.match(/\.(mp4|mov|avi|mkv|webm)$/)) return 'play_circle'
   if (name.match(/\.(zip|rar|7z)$/)) return 'archive'
-  if (name.match(/\.(docx?|odt)$/)) return 'file'
-  if (name.match(/\.(xlsx?|csv)$/)) return 'table'
-  if (name.match(/\.(pptx?|ppt)$/)) return 'presentation'
-  return 'paperclip'
+  if (name.match(/\.(docx?|odt)$/)) return 'description'
+  if (name.match(/\.(xlsx?|csv)$/)) return 'table_chart'
+  if (name.match(/\.(pptx?|ppt)$/)) return 'present_to_all'
+  return 'attachment'
+}
+
+function fileIconClass(file: any) {
+  const name = (file.name || file.filename || file.original_name || '').toLowerCase()
+  if (name.endsWith('.pdf')) return 'bg-red-50 text-red-600'
+  if (name.match(/\.(mp4|mov|avi|mkv|webm)$/)) return 'bg-sky-50 text-sky-600'
+  if (name.match(/\.(zip|rar|7z)$/)) return 'bg-amber-50 text-amber-600'
+  if (name.match(/\.(docx?|odt)$/)) return 'bg-blue-50 text-blue-600'
+  if (name.match(/\.(xlsx?|csv)$/)) return 'bg-emerald-50 text-emerald-600'
+  return 'bg-slate-50 text-slate-600'
 }
 
 function fileExt(file: any) {
@@ -101,251 +112,109 @@ const totalFiles = computed(() =>
 </script>
 
 <template>
-  <div class="lb-page">
+  <div class="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-2">
     <!-- Header -->
     <div>
-      <p class="section-kicker">Tài nguyên</p>
-      <h1 class="lb-title">Thư viện tài liệu</h1>
+      <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Tài nguyên</p>
+      <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Thư viện tài liệu</h1>
     </div>
 
-    <div v-if="loading" class="lb-layout">
-      <div class="lb-sidebar-skeleton">
-        <span v-for="i in 5" :key="i" class="sd-shimmer" style="height:52px;border-radius:10px;display:block;margin-bottom:8px"></span>
-      </div>
-      <div class="dashboard-card lb-content-skeleton" style="flex:1;padding:20px;display:flex;flex-direction:column;gap:8px">
-        <span v-for="i in 8" :key="i" class="sd-shimmer" style="height:44px;border-radius:8px;display:block"></span>
-      </div>
+    <!-- Loading State -->
+    <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 animate-pulse">
+      <div class="h-64 bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl" />
+      <div class="h-96 bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl" />
     </div>
 
-    <div v-else-if="enrollments.length" class="lb-layout">
+    <div v-else-if="enrollments.length" class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 items-start">
       <!-- Sidebar: course list -->
-      <div class="lb-sidebar">
-        <p class="lb-sidebar-label">Khóa học</p>
+      <div class="bg-white border border-[var(--line)] rounded-2xl p-4 shadow-sm flex flex-col gap-2">
+        <p class="text-[9px] font-bold text-[var(--muted)] uppercase tracking-wider px-2 mb-1">Khóa học</p>
         <button
           v-for="e in enrollments"
           :key="e.id"
-          class="lb-course-btn"
-          :class="{active: selectedCourseId == (e.course?.id || e.course_id || e.id)}"
+          class="flex items-center gap-2.5 w-full p-2.5 rounded-xl text-left border transition-all"
+          :class="selectedCourseId == (e.course?.id || e.course_id || e.id) ? 'bg-emerald-50/70 border-emerald-200 text-[#085041]' : 'border-transparent hover:bg-[var(--surface)] text-[var(--text)]'"
           @click="selectedCourseId = e.course?.id || e.course_id || e.id"
         >
-          <div class="lb-course-thumb">
-            <img v-if="e.course?.thumbnail" :src="e.course.thumbnail" :alt="e.course?.title">
-            <SylvaIcon v-else name="book-open" :size="12" />
+          <div class="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center overflow-hidden flex-shrink-0 border border-[var(--line)]">
+            <img v-if="e.course?.thumbnail" :src="e.course.thumbnail" :alt="e.course?.title" class="w-full h-full object-cover">
+            <span v-else class="material-symbols-outlined text-sm">book</span>
           </div>
-          <p class="lb-course-name">{{ e.course?.title || e.title || 'Khóa học' }}</p>
+          <p class="text-xs font-bold truncate flex-1">{{ e.course?.title || e.title || 'Khóa học' }}</p>
         </button>
       </div>
 
       <!-- Content area -->
-      <div class="lb-content">
+      <div class="flex flex-col gap-6">
         <!-- Toolbar -->
-        <div class="lb-toolbar">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 class="lb-content-title">{{ selectedEnrollment?.course?.title || 'Tài liệu' }}</h2>
-            <p class="lb-content-sub">{{ loadingFiles ? 'Đang tải...' : `${totalFiles} tệp đính kèm` }}</p>
+            <h2 class="text-sm font-bold text-[var(--text)] leading-snug">{{ selectedEnrollment?.course?.title || 'Tài liệu' }}</h2>
+            <p class="text-[10px] text-[var(--muted)] font-semibold mt-1">{{ loadingFiles ? 'Đang tải...' : `${totalFiles} tệp đính kèm` }}</p>
           </div>
-          <div class="lb-search-wrap">
-            <SylvaIcon name="search" :size="14" class="lb-search-icon" />
-            <input v-model="search" type="search" placeholder="Tìm tài liệu..." class="lb-search" />
+          <div class="relative w-full sm:w-64">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm leading-none">search</span>
+            <input v-model="search" type="search" placeholder="Tìm tài liệu..." class="w-full h-9 pl-9 pr-4 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
           </div>
         </div>
 
         <!-- Loading files -->
-        <div v-if="loadingFiles" style="display:flex;flex-direction:column;gap:8px">
-          <span v-for="i in 6" :key="i" class="sd-shimmer" style="height:44px;border-radius:8px;display:block"></span>
+        <div v-if="loadingFiles" class="flex flex-col gap-3 animate-pulse">
+          <div v-for="i in 4" :key="i" class="h-12 bg-[var(--surface-strong)] border border-[var(--line)] rounded-xl" />
         </div>
 
         <!-- File groups -->
-        <div v-else-if="filteredGroups.length" class="lb-groups">
-          <div v-for="group in filteredGroups" :key="group.lessonId" class="lb-group">
-            <button class="lb-group-head" @click="toggleLesson(group.lessonId)" :aria-expanded="expanded.has(group.lessonId)">
-              <div class="lb-group-icon"><SylvaIcon name="folder" :size="15" /></div>
-              <span class="lb-group-title">{{ group.lessonTitle }}</span>
-              <span class="lb-group-count">{{ group.files.length }} tệp</span>
-              <SylvaIcon :name="expanded.has(group.lessonId) ? 'chevron-up' : 'chevron-down'" :size="14" class="lb-chevron" />
-            </button>
-            <Transition name="lb-slide">
-              <div v-if="expanded.has(group.lessonId)" class="lb-file-list">
-                <div v-for="file in group.files" :key="file.id" class="lb-file-row">
-                  <div class="lb-file-icon">
-                    <SylvaIcon :name="fileIcon(file)" :size="15" />
-                  </div>
-                  <div class="lb-file-info">
-                    <p class="lb-file-name">{{ file.name || file.filename || file.original_name || file.title }}</p>
-                    <div class="lb-file-meta">
-                      <span class="lb-file-ext">{{ fileExt(file) }}</span>
-                      <span v-if="file.size" class="lb-file-size">{{ formatSize(file.size) }}</span>
-                    </div>
-                  </div>
-                  <a
-                    :href="file.url || file.download_url || `/attachments/${file.id}/download`"
-                    target="_blank" rel="noopener"
-                    class="lb-btn-dl"
-                    :download="file.name || file.filename"
-                  >
-                    <SylvaIcon name="download" :size="13" />
-                  </a>
-                </div>
+        <div v-else-if="filteredGroups.length" class="flex flex-col gap-3">
+          <div v-for="group in filteredGroups" :key="group.lessonId" class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col">
+            <button class="flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--surface)] transition-colors text-left" @click="toggleLesson(group.lessonId)">
+              <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-sm">folder</span>
               </div>
-            </Transition>
+              <span class="text-xs font-bold text-[var(--text)] flex-1 truncate">{{ group.lessonTitle }}</span>
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200">{{ group.files.length }} tệp</span>
+              <span class="material-symbols-outlined text-lg text-[var(--muted)]">{{ expanded.has(group.lessonId) ? 'expand_less' : 'expand_more' }}</span>
+            </button>
+            
+            <div v-show="expanded.has(group.lessonId)" class="border-t border-[var(--line)] flex flex-col">
+              <div v-for="file in group.files" :key="file.id" class="flex items-center gap-3 px-5 py-3 hover:bg-[var(--surface)] border-b border-[var(--line)] last:border-b-0 transition-colors">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" :class="fileIconClass(file)">
+                  <span class="material-symbols-outlined text-base">{{ fileIcon(file) }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-bold text-[var(--text)] truncate">{{ file.name || file.filename || file.original_name || file.title }}</p>
+                  <div class="flex items-center gap-2 mt-1">
+                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-[8px] font-bold text-slate-500 border border-slate-200">{{ fileExt(file) }}</span>
+                    <span v-if="file.size" class="text-[9px] font-semibold text-[var(--muted)]">{{ formatSize(file.size) }}</span>
+                  </div>
+                </div>
+                <a
+                  :href="file.url || file.download_url || `/attachments/${file.id}/download`"
+                  target="_blank" rel="noopener"
+                  class="w-8 h-8 rounded-lg border border-[var(--line)] hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[#1d9e75] flex items-center justify-center transition-colors"
+                  :download="file.name || file.filename"
+                >
+                  <span class="material-symbols-outlined text-sm">download</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div v-else-if="!loadingFiles" class="sd-empty">
-          <SylvaIcon name="folder-open" :size="40" />
-          <p>{{ search ? 'Không tìm thấy tài liệu.' : 'Khóa học này chưa có tài liệu đính kèm.' }}</p>
+        <div v-else-if="!loadingFiles" class="flex flex-col items-center gap-3 text-center py-12 bg-white border border-[var(--line)] rounded-2xl shadow-sm">
+          <span class="material-symbols-outlined text-3xl text-[var(--muted)] opacity-60">folder_open</span>
+          <p class="text-xs font-semibold text-[var(--muted)]">{{ search ? 'Không tìm thấy tài liệu.' : 'Khóa học này chưa có tài liệu đính kèm.' }}</p>
         </div>
       </div>
     </div>
 
-    <div v-else class="sd-empty">
-      <SylvaIcon name="library" :size="40" />
-      <p>Bạn chưa đăng ký khóa học nào.</p>
-      <NuxtLink to="/student/recommendations" class="lb-btn-cta">Khám phá khóa học</NuxtLink>
+    <div v-else class="flex flex-col items-center gap-3 text-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm">
+      <span class="material-symbols-outlined text-4xl text-[var(--muted)] opacity-60">library_books</span>
+      <p class="text-sm font-semibold text-[var(--muted)]">Bạn chưa đăng ký khóa học nào.</p>
+      <NuxtLink to="/student/recommendations" class="h-9 px-4 rounded-xl bg-[#1d9e75] hover:bg-[#157959] text-white text-xs font-bold flex items-center transition-colors mt-2">Khám phá khóa học</NuxtLink>
     </div>
   </div>
 </template>
 
 <style scoped>
-.lb-page { display: flex; flex-direction: column; gap: 20px; }
-.lb-title { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 4px 0 0; }
-
-.lb-layout { display: flex; gap: 20px; align-items: flex-start; }
-
-/* Sidebar */
-.lb-sidebar {
-  width: 260px; flex-shrink: 0;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 12px;
-  position: sticky; top: 80px;
-  max-height: calc(100vh - 140px);
-  overflow-y: auto;
-}
-.lb-sidebar-skeleton { width: 260px; flex-shrink: 0; }
-.lb-sidebar-label {
-  font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--muted); padding: 0 8px; margin: 0 0 8px;
-}
-.lb-course-btn {
-  display: flex; align-items: center; gap: 8px;
-  width: 100%; padding: 8px 10px; border-radius: 8px;
-  border: none; background: transparent; cursor: pointer;
-  text-align: left; transition: background 150ms;
-  margin-bottom: 2px;
-}
-.lb-course-btn:hover { background: var(--bg); }
-.lb-course-btn.active { background: var(--green-soft); }
-.lb-course-thumb {
-  width: 30px; height: 30px; border-radius: 6px;
-  background: var(--bg); display: flex; align-items: center; justify-content: center;
-  overflow: hidden; flex-shrink: 0; color: var(--muted);
-}
-.lb-course-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.lb-course-name {
-  font-size: 0.8rem; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;
-}
-.lb-course-btn.active .lb-course-name { color: var(--green-deep); }
-
-/* Content */
-.lb-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
-.lb-content-skeleton { flex: 1; }
-.lb-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.lb-content-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
-.lb-content-sub { font-size: 0.78rem; color: var(--muted); margin: 0; }
-.lb-search-wrap { position: relative; }
-.lb-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-.lb-search {
-  padding: 7px 12px 7px 30px; border: 1px solid var(--line); border-radius: 8px;
-  background: var(--surface-strong); color: var(--text); font-size: 0.82rem; outline: none; width: 200px;
-}
-.lb-search:focus { border-color: var(--green); }
-
-.lb-groups { display: flex; flex-direction: column; gap: 8px; }
-.lb-group { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-strong); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06)); }
-.lb-group-head {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 12px 14px;
-  background: transparent; border: none; cursor: pointer;
-  text-align: left; transition: background 150ms;
-}
-.lb-group-head:hover { background: var(--bg); }
-.lb-group-icon {
-  width: 28px; height: 28px; border-radius: 7px;
-  background: var(--accent-soft); color: #92400e;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.lb-group-title { flex: 1; font-size: 0.86rem; font-weight: 700; color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lb-group-count {
-  font-size: 0.7rem; font-weight: 600;
-  background: var(--bg); color: var(--muted);
-  padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line); white-space: nowrap;
-}
-.lb-chevron { color: var(--muted); flex-shrink: 0; }
-
-.lb-file-list { border-top: 1px solid var(--line); }
-.lb-file-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border-bottom: 1px solid var(--line);
-  transition: background 120ms;
-}
-.lb-file-row:last-child { border-bottom: none; }
-.lb-file-row:hover { background: var(--bg); }
-.lb-file-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--secondary-soft); color: var(--secondary);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.lb-file-info { flex: 1; min-width: 0; }
-.lb-file-name { font-size: 0.84rem; font-weight: 600; color: var(--text); margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lb-file-meta { display: flex; align-items: center; gap: 8px; }
-.lb-file-ext {
-  font-size: 0.66rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;
-  background: var(--bg); color: var(--muted); border: 1px solid var(--line);
-}
-.lb-file-size { font-size: 0.7rem; color: var(--muted); }
-.lb-btn-dl {
-  width: 30px; height: 30px; border-radius: 7px;
-  border: 1px solid var(--line); background: transparent; color: var(--muted);
-  display: flex; align-items: center; justify-content: center;
-  transition: background 150ms, color 150ms; flex-shrink: 0;
-}
-.lb-btn-dl:hover { background: var(--green-soft); color: var(--green-deep); border-color: transparent; }
-
-/* Transitions */
-.lb-slide-enter-active { transition: all 200ms ease; }
-.lb-slide-leave-active { transition: all 150ms ease; }
-.lb-slide-enter-from, .lb-slide-leave-to { opacity: 0; transform: translateY(-6px); }
-
-.lb-btn-cta {
-  display: inline-flex; align-items: center; margin-top: 8px;
-  padding: 7px 16px; border-radius: 8px;
-  background: var(--green); color: #fff;
-  font-size: 0.82rem; font-weight: 700; text-decoration: none;
-}
-
-.sd-shimmer { background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%); background-size: 200% 100%; animation: sd-shimmer 1.5s infinite; border-radius: 6px; }
-@keyframes sd-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.sd-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--muted); gap: 10px; }
-.sd-empty p { font-size: 0.9rem; }
-
-[data-theme="dark"] .lb-sidebar { background: var(--surface); }
-[data-theme="dark"] .lb-group { background: var(--surface); }
-[data-theme="dark"] .lb-search { background: var(--surface); }
-[data-theme="dark"] .lb-course-btn.active { background: rgba(52,211,153,0.12); }
-[data-theme="dark"] .lb-course-btn.active .lb-course-name { color: #6ee7b7; }
-
-@media (max-width: 900px) {
-  .lb-layout { flex-direction: column; }
-  .lb-sidebar { width: 100%; position: static; max-height: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
-  .lb-sidebar-label { grid-column: 1/-1; }
-}
-@media (max-width: 640px) {
-  .lb-toolbar { flex-direction: column; align-items: flex-start; }
-  .lb-search { width: 100%; }
-  .lb-search-wrap { width: 100%; }
-  .lb-sidebar { grid-template-columns: 1fr 1fr; }
-}
+/* Scoped styles kept minimal */
 </style>

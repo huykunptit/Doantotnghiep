@@ -190,11 +190,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý chứng chỉ"
-    description="Tạo và quản lý mẫu phôi chứng chỉ. Xem danh sách chứng chỉ đã cấp cho học viên."
-    :breadcrumb="['Trang chủ', 'Quản trị hệ thống', 'Chứng chỉ']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý chứng chỉ</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Tạo và quản lý mẫu phôi chứng chỉ. Xem danh sách chứng chỉ đã cấp cho học viên.</p>
+    </div>
     <!-- KPI -->
     <section class="dashboard-grid" style="margin-bottom: 24px;">
       <article class="dashboard-card mini-card tone-green">
@@ -446,7 +448,7 @@ onMounted(() => {
         </div>
       </Transition>
     </Teleport>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

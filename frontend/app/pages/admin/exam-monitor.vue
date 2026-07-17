@@ -136,7 +136,13 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
 </script>
 
 <template>
-  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý thi', 'Giám sát kỳ thi']" title="Giám sát kỳ thi trực tiếp" description="Theo dõi thí sinh đang thi, tạm dừng / cho tiếp tục / dừng / gia hạn / gửi cảnh báo trong trường hợp vi phạm.">
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Giám sát kỳ thi trực tiếp</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Theo dõi thí sinh đang thi, tạm dừng / cho tiếp tục / dừng / gia hạn / gửi cảnh báo trong trường hợp vi phạm.</p>
+    </div>
 
     <div v-if="!examId" class="dashboard-card crud-panel">
       <div class="crud-empty" style="padding: 3rem;">Vui lòng chọn kỳ thi từ trang <NuxtLink to="/admin/quiz" style="color: var(--primary);">Quản lý quiz / đề thi</NuxtLink>.</div>
@@ -292,7 +298,7 @@ onUnmounted(() => { if (pollInterval.value) clearInterval(pollInterval.value) })
         </div>
       </div>
     </Teleport>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin' })
@@ -119,81 +118,108 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Báo cáo theo khóa học"
-    description="Phân bổ danh mục, trạng thái và hiệu quả đào tạo của toàn bộ hệ thống khóa học."
-    :breadcrumb="['Trang chủ', 'Báo cáo', 'Báo cáo khóa học']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải dữ liệu...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Báo cáo</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Báo cáo theo khóa học</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Phân bổ danh mục, trạng thái và hiệu quả đào tạo của toàn bộ hệ thống khóa học.</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+          style="color:var(--muted)"
+          @click="exportCSV"
+        >
+          <i class="pi pi-download" />
+          Xuất Excel
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white transition-colors"
+          style="background:#1d9e75"
+          @click="exportPDF"
+        >
+          <i class="pi pi-file" />
+          Xuất PDF
+        </button>
+      </div>
+    </div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tải dữ liệu...</div>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
 
     <template v-else>
-      <!-- Export toolbar -->
-      <section class="dashboard-card" style="margin-bottom: 24px; padding: 0; border: none; background: transparent; box-shadow: none;">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <p class="section-kicker" style="margin: 0;">Xuất dữ liệu báo cáo</p>
-          </div>
-          <div class="crud-toolbar-right">
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <i class="pi pi-download" style="font-size:1.125rem" />
-              Xuất Excel
-            </button>
-            <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <i class="pi pi-file" style="font-size:1.125rem" />
-              Xuất PDF
-            </button>
-          </div>
-        </div>
-      </section>
       <!-- KPI -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article v-for="metric in performanceMetrics" :key="metric.label" class="dashboard-card mini-card" :class="metric.color">
-          <p class="mini-title">{{ metric.label }}</p>
-          <div class="mini-head">
-            <strong>{{ metric.value }}</strong>
-            <SylvaIcon :name="metric.icon" :size="20" style="opacity: 0.5;" />
-          </div>
-        </article>
-      </section>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div
+          v-for="metric in performanceMetrics"
+          :key="metric.label"
+          class="rounded-2xl p-5 flex flex-col gap-2 border"
+          :class="{
+            'bg-[rgba(59,130,246,0.06)]': metric.color === 'tone-blue',
+            'bg-[rgba(29,158,117,0.06)]': metric.color === 'tone-green',
+            'bg-[rgba(245,158,11,0.06)]': metric.color === 'tone-amber',
+          }"
+          :style="{
+            borderColor: metric.color === 'tone-blue' ? 'rgba(59,130,246,0.2)' : metric.color === 'tone-green' ? 'rgba(29,158,117,0.2)' : 'rgba(245,158,11,0.2)'
+          }"
+        >
+          <p
+            class="text-xs font-bold uppercase tracking-wider"
+            :class="{
+              'text-blue-500': metric.color === 'tone-blue',
+              'text-amber-500': metric.color === 'tone-amber',
+            }"
+            :style="metric.color === 'tone-green' ? 'color:#1d9e75' : ''"
+          >{{ metric.label }}</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ metric.value }}</strong>
+        </div>
+      </div>
 
-      <div class="report-layout">
+      <div class="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5">
         <!-- Left col -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="flex flex-col gap-5">
           <!-- Category distribution -->
-          <section class="dashboard-card">
-            <div class="card-head" style="margin-bottom: 24px;">
-              <h3>Phân bổ theo danh mục</h3>
-              <p>Số lượng khóa học theo từng lĩnh vực đào tạo.</p>
+          <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-6 pt-5 pb-4 border-b border-[var(--line)]">
+              <h3 class="text-base font-semibold" style="color:var(--text)">Phân bổ theo danh mục</h3>
+              <p class="text-xs mt-0.5" style="color:var(--muted)">Số lượng khóa học theo từng lĩnh vực đào tạo.</p>
             </div>
-            <div v-if="categoryDistribution.length === 0" class="crud-empty">Chưa có dữ liệu.</div>
-            <div v-else class="category-bars">
-              <div v-for="cat in categoryDistribution" :key="cat.name" class="category-item">
-                <div class="cat-label">
-                  <strong>{{ cat.name }}</strong>
-                  <span>{{ cat.count }} khóa ({{ cat.percentage }}%)</span>
-                </div>
-                <div class="cat-track">
-                  <div class="cat-fill" :style="{ width: `${cat.percentage}%` }" />
+            <div class="px-6 py-5">
+              <div v-if="categoryDistribution.length === 0" class="py-8 text-center text-sm" style="color:var(--muted)">Chưa có dữ liệu.</div>
+              <div v-else class="flex flex-col gap-5">
+                <div v-for="cat in categoryDistribution" :key="cat.name" class="flex flex-col gap-2">
+                  <div class="flex justify-between items-center text-sm">
+                    <strong class="font-semibold" style="color:var(--text)">{{ cat.name }}</strong>
+                    <span class="text-xs" style="color:var(--muted)">{{ cat.count }} khóa ({{ cat.percentage }}%)</span>
+                  </div>
+                  <div class="h-2.5 rounded-full overflow-hidden" style="background:rgba(29,158,117,.07)">
+                    <div class="h-full rounded-full transition-all duration-700" style="background:#1d9e75" :style="{ width: `${cat.percentage}%` }" />
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           <!-- Top by enrollment -->
-          <section class="dashboard-card">
-            <div class="card-head" style="margin-bottom: 24px;">
-              <h3>Khóa học nhiều học viên nhất</h3>
+          <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-6 pt-5 pb-4 border-b border-[var(--line)]">
+              <h3 class="text-base font-semibold" style="color:var(--text)">Khóa học nhiều học viên nhất</h3>
             </div>
-            <div v-if="topByEnrollment.length === 0" class="crud-empty">Chưa có dữ liệu.</div>
-            <div v-else style="display: grid; gap: 14px;">
-              <div v-for="course in topByEnrollment" :key="course.id" style="display: grid; gap: 6px;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
-                  <span style="font-weight: 600; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ course.title }}</span>
-                  <span style="color: var(--muted); white-space: nowrap; margin-left: 8px;">{{ course.enrollments_count || 0 }} HV</span>
-                </div>
-                <div style="height: 6px; background: rgba(17,17,17,.05); border-radius: 999px; overflow: hidden;">
-                  <div style="height: 100%; background: var(--green); border-radius: 999px; transition: width 0.8s ease;" :style="{ width: `${((course.enrollments_count || 0) / maxEnrollment) * 100}%` }" />
+            <div class="px-6 py-5">
+              <div v-if="topByEnrollment.length === 0" class="py-8 text-center text-sm" style="color:var(--muted)">Chưa có dữ liệu.</div>
+              <div v-else class="flex flex-col gap-4">
+                <div v-for="course in topByEnrollment" :key="course.id" class="flex flex-col gap-1.5">
+                  <div class="flex justify-between text-sm">
+                    <span class="font-semibold truncate max-w-[24ch]" style="color:var(--text)">{{ course.title }}</span>
+                    <span class="text-xs ml-2 shrink-0" style="color:var(--muted)">{{ course.enrollments_count || 0 }} HV</span>
+                  </div>
+                  <div class="h-1.5 rounded-full overflow-hidden" style="background:rgba(17,17,17,.05)">
+                    <div class="h-full rounded-full transition-all duration-700" style="background:#1d9e75" :style="{ width: `${((course.enrollments_count || 0) / maxEnrollment) * 100}%` }" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -201,21 +227,22 @@ onMounted(fetchData)
         </div>
 
         <!-- Right col -->
-        <aside class="report-side">
+        <div class="flex flex-col gap-5">
           <!-- Status breakdown -->
-          <section class="dashboard-card">
-            <div class="card-head" style="margin-bottom: 20px;">
-              <h3>Theo trạng thái</h3>
+          <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-5 pt-4 pb-3 border-b border-[var(--line)]">
+              <h3 class="text-base font-semibold" style="color:var(--text)">Theo trạng thái</h3>
             </div>
-            <div style="display: grid; gap: 14px;">
-              <div v-for="s in statusDistribution" :key="s.status" style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.875rem; font-weight: 600;">{{ s.label }}</span>
+            <div class="px-5 py-4 flex flex-col gap-3.5">
+              <div v-for="s in statusDistribution" :key="s.status" class="flex justify-between items-center">
+                <span class="text-sm font-semibold" style="color:var(--text)">{{ s.label }}</span>
                 <span
-                  class="crud-badge"
+                  class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
                   :class="{
-                    'role-instructor': s.status === 'published',
-                    'role-admin': s.status === 'rejected',
+                    'bg-green-50 text-green-700': s.status === 'published',
+                    'bg-red-50 text-red-600': s.status === 'rejected',
                   }"
+                  :style="!['published','rejected'].includes(s.status) ? 'background:rgba(17,17,17,.06);color:var(--muted)' : ''"
                 >
                   {{ s.count }}
                 </span>
@@ -224,43 +251,25 @@ onMounted(fetchData)
           </section>
 
           <!-- Free vs paid -->
-          <section class="dashboard-card stat-highlight">
-            <h4>Miễn phí vs Trả phí</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
-              <div style="text-align: center;">
-                <strong style="font-size: 1.75rem; color: var(--green-deep);">
+          <section class="rounded-2xl p-5 border" style="background:rgba(29,158,117,0.06);border:1px dashed rgba(29,158,117,0.35)">
+            <h4 class="text-sm font-semibold" style="color:var(--text)">Miễn phí vs Trả phí</h4>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+              <div class="text-center">
+                <strong class="text-3xl font-extrabold" style="color:#085041">
                   {{ courses.filter(c => !c.price || c.price === 0).length }}
                 </strong>
-                <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">Miễn phí</p>
+                <p class="text-xs mt-1" style="color:var(--muted)">Miễn phí</p>
               </div>
-              <div style="text-align: center;">
-                <strong style="font-size: 1.75rem; color: var(--green);">
+              <div class="text-center">
+                <strong class="text-3xl font-extrabold" style="color:#1d9e75">
                   {{ courses.filter(c => c.price > 0).length }}
                 </strong>
-                <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">Trả phí</p>
+                <p class="text-xs mt-1" style="color:var(--muted)">Trả phí</p>
               </div>
             </div>
           </section>
-        </aside>
+        </div>
       </div>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>
-
-<style scoped>
-.report-layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 24px;
-}
-.report-side { display: flex; flex-direction: column; gap: 24px; }
-.category-bars { display: grid; gap: 20px; }
-.category-item { display: grid; gap: 8px; }
-.cat-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
-.cat-label span { color: var(--muted); font-size: 0.8rem; }
-.cat-track { height: 10px; background: rgba(var(--green-rgb),.07); border-radius: 999px; overflow: hidden; }
-.cat-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 1s ease-out; }
-.stat-highlight { background: var(--green-soft); border: 1px dashed var(--green); }
-.stat-highlight h4 { margin: 0; font-size: 0.95rem; }
-@media (max-width: 1100px) { .report-layout { grid-template-columns: 1fr; } }
-</style>

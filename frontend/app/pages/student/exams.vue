@@ -67,186 +67,167 @@ const tabCounts = computed(() => {
 </script>
 
 <template>
-  <div class="exams-container">
+  <div class="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-2">
     <!-- Header -->
-    <div class="exams-header-bar">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
-        <p class="section-kicker">Khảo thí & Đánh giá</p>
-        <h1 class="exams-page-title">Kỳ Thi Của Tôi</h1>
-        <p class="exams-page-sub">Danh sách các đợt thi học kỳ, thi thử và kiểm tra chất lượng</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Khảo thí & Đánh giá</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Kỳ Thi Của Tôi</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Danh sách các đợt thi học kỳ, thi thử và kiểm tra chất lượng</p>
       </div>
 
       <!-- Search Box -->
-      <div class="search-box-wrap">
-        <i class="pi pi-search" style="font-size:1.0rem" />
+      <div class="relative w-full md:w-80">
+        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)] text-lg">search</span>
         <input 
           type="text" 
           v-model="searchQuery" 
           placeholder="Tìm kiếm kỳ thi..." 
-          class="search-input" 
+          class="w-full h-10 pl-10 pr-4 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] transition-colors" 
         />
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="exams-tabs-bar">
+    <div class="flex flex-wrap gap-2 border-b border-[var(--line)] pb-px">
       <button 
-        class="tab-item-btn" 
-        :class="{ 'is-active': activeTab === 'all' }" 
+        class="h-9 px-4 text-xs font-bold border-b-2 transition-all inline-flex items-center gap-1.5" 
+        :class="activeTab === 'all' ? 'border-[#1d9e75] text-[#1d9e75]' : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'" 
         @click="activeTab = 'all'"
       >
         Tất cả
-        <span class="count-badge">{{ tabCounts.all }}</span>
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold border border-slate-200">{{ tabCounts.all }}</span>
       </button>
       <button 
-        class="tab-item-btn" 
-        :class="{ 'is-active': activeTab === 'upcoming' }" 
+        class="h-9 px-4 text-xs font-bold border-b-2 transition-all inline-flex items-center gap-1.5" 
+        :class="activeTab === 'upcoming' ? 'border-[#1d9e75] text-[#1d9e75]' : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'" 
         @click="activeTab = 'upcoming'"
       >
         Sắp diễn ra
-        <span class="count-badge">{{ tabCounts.upcoming }}</span>
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold border border-slate-200">{{ tabCounts.upcoming }}</span>
       </button>
       <button 
-        class="tab-item-btn" 
-        :class="{ 'is-active': activeTab === 'live' }" 
+        class="h-9 px-4 text-xs font-bold border-b-2 transition-all inline-flex items-center gap-1.5" 
+        :class="activeTab === 'live' ? 'border-[#1d9e75] text-[#1d9e75]' : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'" 
         @click="activeTab = 'live'"
       >
         Đang diễn ra
-        <span class="count-badge bg-danger text-white">{{ tabCounts.live }}</span>
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-red-500 text-white font-bold">{{ tabCounts.live }}</span>
       </button>
       <button 
-        class="tab-item-btn" 
-        :class="{ 'is-active': activeTab === 'done' }" 
+        class="h-9 px-4 text-xs font-bold border-b-2 transition-all inline-flex items-center gap-1.5" 
+        :class="activeTab === 'done' ? 'border-[#1d9e75] text-[#1d9e75]' : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'" 
         @click="activeTab = 'done'"
       >
         Đã hoàn thành / Kết thúc
-        <span class="count-badge">{{ tabCounts.done }}</span>
+        <span class="px-1.5 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-600 font-bold border border-slate-200">{{ tabCounts.done }}</span>
       </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="exams-grid-layout">
-      <div v-for="i in 3" :key="i" class="shimmer-card dashboard-card"></div>
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="i in 3" :key="i" class="h-64 rounded-2xl bg-[var(--surface-strong)] border border-[var(--line)] animate-pulse"></div>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="filteredExams.length === 0" class="exams-empty-state dashboard-card">
-      <i class="pi pi-list" style="font-size:3.0rem" />
-      <h3>Không tìm thấy kỳ thi nào</h3>
-      <p>Không có kỳ thi nào khớp với bộ lọc hiện tại của bạn.</p>
+    <div v-else-if="filteredExams.length === 0" class="flex flex-col items-center gap-4 text-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm">
+      <span class="material-symbols-outlined text-4xl text-[var(--muted)] opacity-60">list</span>
+      <h3 class="text-base font-bold text-[var(--text)]">Không tìm thấy kỳ thi nào</h3>
+      <p class="text-xs text-[var(--muted)]">Không có kỳ thi nào khớp với bộ lọc hiện tại của bạn.</p>
     </div>
 
     <!-- Exams Grid -->
-    <div v-else class="exams-grid-layout">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <div 
         v-for="exam in filteredExams" 
         :key="exam.id" 
-        class="exam-card-item dashboard-card"
-        :class="[exam.status, { 'is-active-now': exam.is_open }]"
+        class="flex flex-col bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
       >
         <!-- Status indicator bar -->
-        <div class="card-status-bar" :class="exam.status"></div>
+        <div class="h-1 w-full" :class="exam.status === 'active' ? 'bg-red-500' : exam.status === 'upcoming' ? 'bg-sky-500' : 'bg-slate-400'"></div>
 
-        <div class="exam-card-content">
+        <div class="p-5 flex flex-col flex-1 gap-4">
           <!-- Top row (Type & Proctoring) -->
-          <div class="exam-card-meta-top">
-            <span class="type-tag" :class="exam.type">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 bg-slate-50 text-slate-600">
               {{ exam.type === 'course_final' ? 'Thi học phần' : 'Thi độc lập' }}
             </span>
-            <span class="proctoring-tag" v-if="exam.proctoring_enabled">
-              <i class="pi pi-lock" style="font-size:0.75rem" /> Giám sát AI
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border border-red-100 bg-red-50 text-red-600" v-if="exam.proctoring_enabled">
+              <span class="material-symbols-outlined text-xs">lock</span> Giám sát AI
             </span>
           </div>
 
           <!-- Title & Description -->
-          <h3 class="exam-title-name">{{ exam.title }}</h3>
-          <p class="exam-desc-snippet" v-if="exam.description">{{ exam.description }}</p>
+          <div>
+            <h3 class="text-sm font-bold text-[var(--text)] line-clamp-1 leading-snug">{{ exam.title }}</h3>
+            <p class="text-xs text-[var(--muted)] line-clamp-2 mt-1 leading-relaxed" v-if="exam.description">{{ exam.description }}</p>
+          </div>
 
           <!-- Exam Details Grid -->
-          <div class="exam-details-grid">
-            <div class="detail-row">
-              <i class="pi pi-calendar" style="font-size:0.875rem" />
-              <div class="detail-text">
-                <span class="label">Thời gian thi:</span>
-                <span class="val">{{ formatDate(exam.starts_at) }} — {{ formatDate(exam.ends_at) }}</span>
+          <div class="flex flex-col gap-2.5 text-xs font-semibold text-[var(--muted)] border-t border-[var(--line)] pt-4">
+            <div class="flex gap-2">
+              <span class="material-symbols-outlined text-base">calendar_today</span>
+              <div class="flex flex-col gap-0.5">
+                <span class="text-[9px] uppercase tracking-wider">Thời gian thi:</span>
+                <span class="text-[var(--text)]">{{ formatDate(exam.starts_at) }} &mdash; {{ formatDate(exam.ends_at) }}</span>
               </div>
             </div>
             
-            <div class="detail-row">
-              <i class="pi pi-clock" style="font-size:0.875rem" />
-              <div class="detail-text">
-                <span class="label">Thời gian làm bài:</span>
-                <span class="val">{{ exam.duration }} phút</span>
+            <div class="flex gap-2">
+              <span class="material-symbols-outlined text-base">schedule</span>
+              <div class="flex flex-col gap-0.5">
+                <span class="text-[9px] uppercase tracking-wider">Thời gian làm bài:</span>
+                <span class="text-[var(--text)]">{{ exam.duration }} phút</span>
               </div>
             </div>
 
-            <div class="detail-row">
-              <i class="pi pi-verified" style="font-size:0.875rem" />
-              <div class="detail-text">
-                <span class="label">Điểm điều kiện đạt:</span>
-                <span class="val">{{ exam.pass_score }}/10 điểm</span>
+            <div class="flex gap-2">
+              <span class="material-symbols-outlined text-base">verified</span>
+              <div class="flex flex-col gap-0.5">
+                <span class="text-[9px] uppercase tracking-wider">Điểm điều kiện đạt:</span>
+                <span class="text-[var(--text)]">{{ exam.pass_score }}/10 điểm</span>
               </div>
             </div>
           </div>
 
           <!-- Bottom block: Attempt results or actions -->
-          <div class="exam-card-bottom-actions">
+          <div class="mt-auto border-t border-[var(--line)] pt-4">
             <!-- Completed state result -->
-            <div class="result-display-box" v-if="exam.status === 'completed'">
-              <div class="stat-badge">
-                <i class="pi pi-check-circle" style="font-size:0.875rem" />
-                <span>Hoàn thành đợt thi</span>
+            <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-[var(--line)]" v-if="exam.status === 'completed'">
+              <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-xs">
+                <span class="material-symbols-outlined text-sm">check_circle</span>
+                <span>Đã nộp bài</span>
               </div>
-              <div class="score-display">
-                Điểm cao nhất: <strong :class="{ 'text-success': exam.best_score >= exam.pass_score, 'text-danger': exam.best_score < exam.pass_score }">
-                  {{ exam.best_score }}/10
-                </strong>
+              <div class="text-xs text-[var(--text)] font-bold">
+                Điểm: <span class="text-emerald-600 font-extrabold text-sm">{{ exam.highest_score ?? '—' }}</span>/10
               </div>
             </div>
 
-            <div class="result-display-box" v-else-if="exam.status === 'closed'">
-              <div class="stat-badge is-closed">
-                <i class="pi pi-exclamation-triangle" style="font-size:0.875rem" />
-                <span>Kỳ thi đã đóng</span>
+            <!-- Active / Take exam actions -->
+            <div class="flex flex-col gap-2" v-else-if="exam.status === 'active' || exam.is_open">
+              <div class="flex justify-between items-center text-xs font-bold text-[var(--muted)] mb-1">
+                <span>Số lượt thi đã dùng:</span>
+                <span class="text-[var(--text)]">{{ exam.attempts_count }} / {{ exam.max_attempts ?? 'Không giới hạn' }}</span>
               </div>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="action-buttons-wrap">
-              <!-- Result check -->
               <NuxtLink 
-                v-if="exam.status === 'completed' && exam.attempt_id" 
-                :to="`/exam/result/${exam.attempt_id}`" 
-                class="action-btn view-result-btn"
-              >
-                Xem chi tiết <i class="pi pi-chevron-right" style="font-size:0.875rem" />
-              </NuxtLink>
-
-              <!-- Join exam -->
-              <NuxtLink 
-                v-else-if="exam.is_open" 
                 :to="`/exam/${exam.id}`" 
-                class="action-btn start-exam-btn"
+                class="w-full h-9 rounded-xl font-semibold text-white bg-red-600 hover:bg-red-700 flex items-center justify-center text-xs gap-1.5 transition-colors"
               >
-                <i class="pi pi-play" style="font-size:0.875rem" /> Vào thi ngay
+                <span class="material-symbols-outlined text-sm">play_circle</span>
+                Vào thi ngay
               </NuxtLink>
+            </div>
 
-              <!-- Locked upcoming -->
-              <button 
-                v-else-if="exam.status === 'upcoming'" 
-                class="action-btn locked-btn" 
-                disabled
-              >
-                Chưa tới giờ thi
-              </button>
+            <!-- Closed state -->
+            <div class="flex items-center justify-between text-xs font-semibold text-[var(--muted)] py-2" v-else-if="exam.status === 'closed'">
+              <span>Trạng thái:</span>
+              <span class="font-bold text-red-600">Đã đóng đợt thi</span>
+            </div>
 
-              <button 
-                v-else-if="exam.status === 'closed'" 
-                class="action-btn locked-btn" 
-                disabled
-              >
-                Đã quá hạn thi
-              </button>
+            <!-- Upcoming state -->
+            <div class="flex items-center justify-between text-xs font-semibold text-[var(--muted)] py-2" v-else>
+              <span>Thời gian mở thi:</span>
+              <span class="font-bold text-sky-600">{{ exam.starts_at ? new Date(exam.starts_at).toLocaleDateString('vi-VN') : 'Tự do' }}</span>
             </div>
           </div>
         </div>
@@ -256,413 +237,5 @@ const tabCounts = computed(() => {
 </template>
 
 <style scoped>
-.exams-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.exams-header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.section-kicker {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--green-deep, #047857);
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-
-.exams-page-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 0 0 6px 0;
-}
-
-.exams-page-sub {
-  font-size: 0.88rem;
-  color: #64748b;
-  margin: 0;
-}
-
-/* Search Box */
-.search-box-wrap {
-  position: relative;
-  width: 260px;
-}
-
-@media (max-width: 640px) {
-  .search-box-wrap {
-    width: 100%;
-  }
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-}
-
-.search-input {
-  width: 100%;
-  padding: 8px 12px 8px 36px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  font-size: 0.85rem;
-  outline: none;
-  background: #f8fafc;
-  transition: all 150ms ease;
-}
-
-.search-input:focus {
-  border-color: var(--green-deep, #047857);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.05);
-}
-
-/* Tabs */
-.exams-tabs-bar {
-  display: flex;
-  gap: 8px;
-  border-bottom: 2px solid #f1f5f9;
-  padding-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.tab-item-btn {
-  background: none;
-  border: none;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 160ms ease;
-}
-
-.tab-item-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-}
-
-.tab-item-btn.is-active {
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.count-badge {
-  background: #e2e8f0;
-  color: #475569;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-}
-
-.tab-item-btn.is-active .count-badge {
-  background: rgba(16, 185, 129, 0.15);
-  color: #047857;
-}
-
-.bg-danger {
-  background: #fef2f2 !important;
-  color: #ef4444 !important;
-}
-
-/* Loading Shimmer Card */
-.shimmer-card {
-  height: 220px;
-  border-radius: 16px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmerAnim 1.5s infinite;
-}
-
-/* Empty State */
-.exams-empty-state {
-  padding: 48px 24px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.exams-empty-state .empty-icon {
-  color: #cbd5e1;
-}
-
-.exams-empty-state h3 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin: 0;
-  color: #334155;
-}
-
-.exams-empty-state p {
-  font-size: 0.88rem;
-  color: #64748b;
-  margin: 0;
-}
-
-/* Exams Grid */
-.exams-grid-layout {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
-}
-
-@media (max-width: 640px) {
-  .exams-grid-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.exam-card-item {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: all 180ms ease;
-  border: 1px solid rgba(0, 0, 0, 0.03);
-}
-
-.exam-card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.04);
-}
-
-.card-status-bar {
-  height: 4px;
-  width: 100%;
-}
-
-.card-status-bar.upcoming {
-  background: #3b82f6; /* Blue */
-}
-
-.card-status-bar.active {
-  background: #ef4444; /* Red / Live */
-}
-
-.card-status-bar.completed {
-  background: #10b981; /* Green */
-}
-
-.card-status-bar.closed {
-  background: #94a3b8; /* Muted */
-}
-
-.exam-card-content {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.exam-card-meta-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.type-tag {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
-.type-tag.course_final {
-  background: #eff6ff;
-  color: #1e40af;
-}
-
-.type-tag.standalone {
-  background: #faf5ff;
-  color: #6b21a8;
-}
-
-.proctoring-tag {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #ef4444;
-  background: #fef2f2;
-  padding: 2px 6px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.exam-title-name {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 0 0 6px 0;
-  line-height: 1.4;
-}
-
-.exam-desc-snippet {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin: 0 0 16px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Details Grid */
-.exam-details-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #f1f5f9;
-}
-
-.detail-row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.detail-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.detail-text .label {
-  font-size: 0.68rem;
-  color: #94a3b8;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.detail-text .val {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #475569;
-  margin-top: 1px;
-}
-
-/* Card Bottom Actions */
-.exam-card-bottom-actions {
-  margin-top: auto;
-  border-top: 1px dashed #e2e8f0;
-  padding-top: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.result-display-box {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.stat-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #047857;
-}
-
-.stat-badge.is-closed {
-  color: #64748b;
-}
-
-.score-display {
-  font-size: 0.78rem;
-  color: #475569;
-}
-
-.score-display strong {
-  font-size: 0.9rem;
-}
-
-.action-buttons-wrap {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 8px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 160ms ease;
-  white-space: nowrap;
-}
-
-.start-exam-btn {
-  background: #ef4444;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
-}
-
-.start-exam-btn:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
-}
-
-.view-result-btn {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-}
-
-.view-result-btn:hover {
-  background: #e2e8f0;
-}
-
-.locked-btn {
-  background: #f1f5f9;
-  color: #94a3b8;
-  border: 1px solid #e2e8f0;
-  cursor: not-allowed;
-}
-
-/* Dark mode adjustment override */
-[data-theme="dark"] .exams-page-title {
-  color: #f1f5f9;
-}
-[data-theme="dark"] .search-input {
-  background: #1e293b;
-  border-color: #334155;
-}
-[data-theme="dark"] .exam-details-grid {
-  background: #1e293b;
-  border-color: #334155;
-}
-[data-theme="dark"] .tab-item-btn:hover {
-  background: #1e293b;
-}
+/* Scoped styles kept minimal */
 </style>

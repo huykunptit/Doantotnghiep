@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -126,227 +125,192 @@ onMounted(load)
 </script>
 
 <template>
-  <InstructorWorkspaceShell
-    title="Báo cáo điểm & GPA"
-    :description="data?.class_section ? `${data.class_section.course?.title} — ${data.class_section.term?.name}` : ''"
-    :breadcrumb="['Trang chủ', 'Học vụ', 'Lớp học phần', 'Báo cáo điểm']"
-  >
-    <template #actions>
-      <button class="crud-secondary-btn" type="button" @click="showComponentsEditor = !showComponentsEditor">
-        <span class="material-symbols-outlined">tune</span>
-        Cấu trúc điểm
-      </button>
-      <NuxtLink :to="`/instructor/sections/${sectionId}/grades`" class="crud-primary-btn">
-        <span class="material-symbols-outlined">grading</span>
-        Nhập điểm
-      </NuxtLink>
-    </template>
-
-    <div v-if="loading" class="dashboard-card crud-panel">
-      <div class="crud-empty" style="padding:3rem;">Đang tải...</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Học vụ &bull; Báo cáo điểm</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Báo cáo điểm & GPA</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">{{ data?.class_section ? `${data.class_section.course?.title} — ${data.class_section.term?.name}` : '' }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" type="button" @click="showComponentsEditor = !showComponentsEditor">
+          <span class="material-symbols-outlined text-sm">tune</span>
+          Cấu trúc điểm
+        </button>
+        <NuxtLink :to="`/instructor/sections/${sectionId}/grades`" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors">
+          <span class="material-symbols-outlined text-sm">grading</span>
+          Nhập điểm
+        </NuxtLink>
+      </div>
     </div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm text-center py-12 text-xs text-[var(--muted)]">
+      Đang tải...
+    </div>
+    <div v-else-if="error" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ error }}</div>
 
     <template v-else-if="data">
       <!-- KPI -->
-      <div class="ds-stats mb-0">
-        <div class="ds-stat ds-stat--blue">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">people</span></div>
-          <p class="ds-stat-label">Tổng SV</p>
-          <strong class="ds-stat-value">{{ data.summary.total }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 text-sky-600">
+            <span class="material-symbols-outlined text-lg">people</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng SV</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.total }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--green">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">check_circle</span></div>
-          <p class="ds-stat-label">Đạt</p>
-          <strong class="ds-stat-value">{{ data.summary.passed }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+            <span class="material-symbols-outlined text-lg">check_circle</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Đạt</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.passed }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--red">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">cancel</span></div>
-          <p class="ds-stat-label">Không đạt</p>
-          <strong class="ds-stat-value">{{ data.summary.failed }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-600">
+            <span class="material-symbols-outlined text-lg">cancel</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Không đạt</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.failed }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--blue">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">avg_pace</span></div>
-          <p class="ds-stat-label">Điểm TB</p>
-          <strong class="ds-stat-value">{{ data.summary.avg_score?.toFixed(1) ?? '—' }}</strong>
-          <span class="ds-stat-sub">thang 10</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 text-sky-600">
+            <span class="material-symbols-outlined text-lg">avg_pace</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Điểm TB</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.avg_score?.toFixed(1) ?? '—' }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">thang 10</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--violet">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">school</span></div>
-          <p class="ds-stat-label">GPA lớp</p>
-          <strong class="ds-stat-value">{{ data.summary.class_gpa?.toFixed(2) ?? '—' }}</strong>
-          <span class="ds-stat-sub">thang 4</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-violet-50 text-violet-600">
+            <span class="material-symbols-outlined text-lg">school</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">GPA lớp</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.class_gpa?.toFixed(2) ?? '—' }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">thang 4</span>
+          </div>
         </div>
       </div>
 
       <!-- Grade Components Editor -->
-      <div v-if="showComponentsEditor" class="dashboard-card">
-        <div class="crud-toolbar mb-4">
+      <div v-if="showComponentsEditor" class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+        <div class="flex justify-between items-center border-b border-[var(--line)] pb-3">
           <div>
-            <p class="section-kicker">Cấu hình</p>
-            <h3 class="ds-section-title">Cấu trúc đầu điểm</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Cấu hình</p>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-0.5">Cấu trúc đầu điểm</h3>
           </div>
           <button
             v-if="components.length === 0"
-            class="crud-secondary-btn"
+            class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors"
             type="button"
             @click="applyPreset"
           >
-            <span class="material-symbols-outlined">auto_fix_high</span>
+            <span class="material-symbols-outlined text-sm">auto_fix_high</span>
             Áp dụng mẫu mặc định
           </button>
         </div>
-        <div class="component-grid-head">
+        <div class="grid grid-cols-[1fr_140px_140px_40px] gap-2 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] px-1">
           <span>Tên đầu điểm</span>
           <span>Trọng số (%)</span>
           <span>Điểm tối đa</span>
           <span></span>
         </div>
-        <div v-for="(c, i) in components" :key="i" class="component-grid-row">
-          <input v-model="c.name" placeholder="VD: Cuối kỳ" class="form-input" />
-          <input v-model.number="c.weight" type="number" min="0" max="100" class="form-input" />
-          <input v-model.number="c.max_score" type="number" min="1" class="form-input" />
-          <button class="ds-btn ds-btn--delete" type="button" @click="removeComponent(i)">
-            <span class="material-symbols-outlined">close</span>
+        <div v-for="(c, i) in components" :key="i" class="grid grid-cols-[1fr_140px_140px_40px] gap-2 items-center">
+          <input v-model="c.name" placeholder="VD: Cuối kỳ" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+          <input v-model.number="c.weight" type="number" min="0" max="100" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+          <input v-model.number="c.max_score" type="number" min="1" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+          <button class="w-8 h-8 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors" type="button" @click="removeComponent(i)">
+            <span class="material-symbols-outlined text-sm">close</span>
           </button>
         </div>
-        <div class="component-footer">
-          <button class="crud-secondary-btn" type="button" @click="addComponent">
-            <span class="material-symbols-outlined">add</span> Thêm đầu điểm
+        <div class="flex justify-between items-center border-t border-[var(--line)] pt-3">
+          <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" type="button" @click="addComponent">
+            <span class="material-symbols-outlined text-sm">add</span> Thêm đầu điểm
           </button>
-          <span class="text-muted text-sm">Tổng: {{ components.reduce((s, c) => s + Number(c.weight), 0) }}%</span>
+          <span class="text-xs text-[var(--muted)] font-bold">Tổng: {{ components.reduce((s, c) => s + Number(c.weight), 0) }}%</span>
         </div>
-        <div v-if="componentError" class="crud-alert is-error mt-3">{{ componentError }}</div>
-        <div class="component-actions">
-          <button class="crud-secondary-btn" type="button" @click="showComponentsEditor = false">Huỷ</button>
-          <button class="crud-primary-btn" :disabled="savingComponents" type="button" @click="saveComponents">
-            <span class="material-symbols-outlined">save</span>
+        <div v-if="componentError" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ componentError }}</div>
+        <div class="flex justify-end gap-2 border-t border-[var(--line)] pt-3">
+          <button class="h-8 px-3 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" type="button" @click="showComponentsEditor = false">Huỷ</button>
+          <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" :disabled="savingComponents" type="button" @click="saveComponents">
+            <span class="material-symbols-outlined text-sm">save</span>
             {{ savingComponents ? 'Đang lưu...' : 'Lưu cấu trúc' }}
           </button>
         </div>
       </div>
 
       <!-- No components warning -->
-      <div v-if="data.components.length === 0" class="crud-alert is-warning">
+      <div v-if="data.components.length === 0" class="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl text-xs font-semibold">
         Chưa có cấu trúc đầu điểm.
-        <button class="ml-1 font-semibold underline" @click="showComponentsEditor = true">Thiết lập ngay</button>
+        <button class="ml-1 font-bold underline text-[#b45309]" @click="showComponentsEditor = true">Thiết lập ngay</button>
         hoặc
-        <button class="ml-1 font-semibold underline" @click="applyPreset">áp dụng mẫu mặc định</button>
+        <button class="ml-1 font-bold underline text-[#b45309]" @click="applyPreset">áp dụng mẫu mặc định</button>
         (Chuyên cần 10%, Giữa kỳ 20%, Kiểm tra/BTL 20%, Cuối kỳ 50%).
       </div>
 
       <!-- Grade table -->
-      <div class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div>
-            <p class="section-kicker">Bảng điểm</p>
-            <h3 class="ds-section-title">Chi tiết điểm sinh viên</h3>
-          </div>
+      <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col">
+        <div class="px-5 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex flex-col">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Bảng điểm</p>
+          <h3 class="text-xs font-bold text-[var(--text)] mt-0.5">Chi tiết điểm sinh viên</h3>
         </div>
-        <div class="crud-table-wrap">
-          <table class="crud-table">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left border-collapse">
             <thead>
-              <tr>
-                <th>Sinh viên</th>
-                <th>MSSV</th>
+              <tr class="border-b border-[var(--line)] bg-[var(--surface)] text-[0.72rem] font-bold uppercase tracking-wider text-[var(--muted)]">
+                <th class="px-5 py-3">Sinh viên</th>
+                <th class="px-5 py-3">MSSV</th>
                 <th
                   v-for="c in data.components"
                   :key="c.id"
-                  class="text-center"
+                  class="px-5 py-3 text-center"
                 >
                   {{ c.name }}
-                  <div class="text-xs font-normal text-muted">({{ c.weight }}%)</div>
+                  <div class="text-[10px] font-normal text-[var(--muted)] mt-0.5">({{ c.weight }}%)</div>
                 </th>
-                <th class="text-center">Điểm TK</th>
-                <th class="text-center">Xếp loại</th>
-                <th class="text-center">GPA</th>
+                <th class="px-5 py-3 text-center">Điểm TK</th>
+                <th class="px-5 py-3 text-center">Xếp loại</th>
+                <th class="px-5 py-3 text-center">GPA</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="s in data.students" :key="s.enrollment_id">
-                <td><strong>{{ s.student.name }}</strong></td>
-                <td class="text-muted">{{ s.student.student_code ?? '—' }}</td>
+              <tr v-for="s in data.students" :key="s.enrollment_id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+                <td class="px-5 py-4"><strong class="text-xs font-bold text-[var(--text)]">{{ s.student.name }}</strong></td>
+                <td class="px-5 py-4 text-xs text-[var(--muted)] font-semibold">{{ s.student.student_code ?? '—' }}</td>
                 <td
                   v-for="entry in s.entries"
                   :key="entry.component_id"
-                  class="text-center"
+                  class="px-5 py-4 text-center text-xs font-semibold text-[var(--text)]"
                 >
                   {{ entry.score !== null ? Number(entry.score).toFixed(1) : '—' }}
                 </td>
-                <td class="text-center"><strong>{{ s.final_score !== null ? Number(s.final_score).toFixed(2) : '—' }}</strong></td>
-                <td class="text-center">
-                  <span :class="letterClass(s.letter_grade)">{{ s.letter_grade ?? '—' }}</span>
+                <td class="px-5 py-4 text-center text-xs font-bold text-[var(--text)]">{{ s.final_score !== null ? Number(s.final_score).toFixed(2) : '—' }}</td>
+                <td class="px-5 py-4 text-center">
+                  <span class="text-xs font-bold" :class="letterClass(s.letter_grade)">{{ s.letter_grade ?? '—' }}</span>
                 </td>
-                <td class="text-center text-muted">{{ s.gpa4?.toFixed(1) ?? '—' }}</td>
+                <td class="px-5 py-4 text-center text-xs text-[var(--muted)] font-semibold">{{ s.gpa4?.toFixed(1) ?? '—' }}</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
     </template>
-  </InstructorWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.text-center { text-align: center; }
-.text-muted  { color: var(--muted); font-size: 0.85rem; }
-
-.component-grid-head {
-  display: grid;
-  grid-template-columns: 1fr 140px 140px 40px;
-  gap: 8px;
-  padding: 0 4px 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.component-grid-row {
-  display: grid;
-  grid-template-columns: 1fr 140px 140px 40px;
-  gap: 8px;
-  margin-bottom: 6px;
-  align-items: center;
-}
-.form-input {
-  width: 100%;
-  padding: 7px 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font: inherit;
-  font-size: 0.875rem;
-  background: var(--bg);
-  color: var(--text);
-}
-.form-input:focus {
-  outline: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.12);
-}
-.component-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-.component-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
-
-/* letter grade colors */
-.text-green-600  { color: #16a34a; font-weight: 600; }
-.text-blue-600   { color: #2563eb; font-weight: 600; }
-.text-yellow-600 { color: #ca8a04; font-weight: 600; }
-.text-orange-600 { color: #ea580c; font-weight: 600; }
-.text-red-600    { color: #dc2626; font-weight: 600; }
-.text-gray-400   { color: var(--muted); }
+/* Scoped styles kept minimal */
 </style>

@@ -222,11 +222,13 @@ onMounted(fetchCategories)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý khóa học', 'Danh mục']"
-    description="Quản lý cấu trúc danh mục học tập theo dạng cây thư mục thông minh. Bạn có thể mở rộng, thu gọn và tương tác trực quan với các danh mục."
-    title="Quản lý danh mục"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý danh mục</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý cấu trúc danh mục học tập theo dạng cây thư mục. Mở rộng, thu gọn và tương tác trực quan với các danh mục.</p>
+    </div>
     <section class="crud-overview-grid">
       <article class="dashboard-card mini-card tone-green">
         <p class="mini-title">Tổng danh mục</p>
@@ -348,7 +350,7 @@ onMounted(fetchCategories)
       @close="confirmOpen = false"
       @confirm="deleteCategory()"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

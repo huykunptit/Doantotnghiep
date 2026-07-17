@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
@@ -157,115 +156,144 @@ onMounted(() => {
 </script>
 
 <template>
-  <InstructorWorkspaceShell
-    title="Khóa học của tôi"
-    description="Theo dõi trạng thái, cập nhật giáo trình và di chuyển nhanh đến học viên hoặc doanh thu."
-    :breadcrumb="['Trang chủ', 'Khóa học']"
-  >
-    <template #actions>
-      <NuxtLink to="/instructor/question-bank" class="crud-secondary-btn">
-        <span class="material-symbols-outlined">database</span>
-        Ngân hàng câu hỏi
-      </NuxtLink>
-      <button class="crud-export-btn" type="button" @click="exportData">
-        <span class="material-symbols-outlined">download</span>
-        Xuất Excel
-      </button>
-      <button class="crud-primary-btn" type="button" @click="openCreateModal">
-        <span class="material-symbols-outlined">add_circle</span>
-        Tạo khóa học
-      </button>
-    </template>
-
-    <!-- KPI -->
-    <div class="ds-stats mb-0">
-      <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><span class="material-symbols-outlined">school</span></div>
-        <p class="ds-stat-label">Tổng khóa học</p>
-        <strong class="ds-stat-value">{{ courses.length }}</strong>
-        <span class="ds-stat-sub">khóa học</span>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Khóa học</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Khóa học của tôi</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Theo dõi trạng thái, cập nhật giáo trình và di chuyển nhanh đến học viên hoặc doanh thu.</p>
       </div>
-      <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><span class="material-symbols-outlined">menu_book</span></div>
-        <p class="ds-stat-label">Tổng bài giảng</p>
-        <strong class="ds-stat-value">{{ totalLessons }}</strong>
-        <span class="ds-stat-sub">bài học</span>
-      </div>
-      <div class="ds-stat ds-stat--amber">
-        <div class="ds-stat-icon"><span class="material-symbols-outlined">group</span></div>
-        <p class="ds-stat-label">Tổng học viên</p>
-        <strong class="ds-stat-value">{{ totalEnrollments }}</strong>
-        <span class="ds-stat-sub">ghi danh</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <NuxtLink to="/instructor/question-bank" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors">
+          <span class="material-symbols-outlined text-sm">database</span>
+          Ngân hàng câu hỏi
+        </NuxtLink>
+        <button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" type="button" @click="exportData">
+          <span class="material-symbols-outlined text-sm">download</span>
+          Xuất Excel
+        </button>
+        <button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" type="button" @click="openCreateModal">
+          <span class="material-symbols-outlined text-sm">add_circle</span>
+          Tạo khóa học
+        </button>
       </div>
     </div>
 
-    <!-- Table -->
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <form class="crud-toolbar-main" @submit.prevent>
-          <div class="search-input-wrap">
-            <span class="material-symbols-outlined search-icon">search</span>
-            <input v-model="search" class="crud-search" type="text" placeholder="Tìm tên khóa học, mô tả...">
+    <!-- KPI -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+          <span class="material-symbols-outlined text-xl">school</span>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng khóa học</p>
+          <strong class="text-lg font-extrabold text-[var(--text)] block mt-0.5">{{ courses.length }}</strong>
+          <span class="text-[10px] text-[var(--muted)]">khóa học</span>
+        </div>
+      </div>
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-sky-50 text-sky-600">
+          <span class="material-symbols-outlined text-xl">menu_book</span>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng bài giảng</p>
+          <strong class="text-lg font-extrabold text-[var(--text)] block mt-0.5">{{ totalLessons }}</strong>
+          <span class="text-[10px] text-[var(--muted)]">bài học</span>
+        </div>
+      </div>
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
+          <span class="material-symbols-outlined text-xl">group</span>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng học viên</p>
+          <strong class="text-lg font-extrabold text-[var(--text)] block mt-0.5">{{ totalEnrollments }}</strong>
+          <span class="text-[10px] text-[var(--muted)]">ghi danh</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col gap-4 p-5">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div class="flex flex-1 items-center gap-3 w-full sm:max-w-md">
+          <div class="relative flex-1">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[var(--muted)]">search</span>
+            <input v-model="search" class="w-full h-9 pl-9 pr-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#1d9e75]" type="text" placeholder="Tìm tên khóa học, mô tả...">
           </div>
-          <select v-model="selectedStatus" class="crud-select">
+          <select v-model="selectedStatus" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer">
             <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
-        </form>
+        </div>
       </div>
 
-      <div class="crud-table-wrap">
-        <table class="crud-table">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
           <thead>
-            <tr>
-              <th style="width:40px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th>
-              <th style="width:56px">STT</th>
-              <th>Khóa học</th>
-              <th>Danh mục</th>
-              <th>Trạng thái</th>
-              <th>Nội dung</th>
-              <th>Học viên</th>
-              <th>Học phí</th>
-              <th style="text-align:right">Thao tác</th>
+            <tr class="border-b border-[var(--line)] bg-[var(--surface)] text-[0.72rem] font-bold uppercase tracking-wider text-[var(--muted)]">
+              <th class="px-4 py-3" style="width:40px">
+                <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" class="rounded border-[var(--line)] text-[#1d9e75] focus:ring-[#1d9e75]">
+              </th>
+              <th class="px-4 py-3" style="width:56px">STT</th>
+              <th class="px-4 py-3">Khóa học</th>
+              <th class="px-4 py-3">Danh mục</th>
+              <th class="px-4 py-3">Trạng thái</th>
+              <th class="px-4 py-3 text-center">Nội dung</th>
+              <th class="px-4 py-3 text-center">Học viên</th>
+              <th class="px-4 py-3">Học phí</th>
+              <th class="px-4 py-3 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="loading"><td colspan="9" class="crud-empty">Đang tải dữ liệu...</td></tr>
-            <tr v-else-if="allFilteredCourses.length === 0"><td colspan="9" class="crud-empty">Không tìm thấy khóa học phù hợp.</td></tr>
-            <tr v-for="(course, idx) in filteredCourses" :key="course.id">
-              <td><input type="checkbox" v-model="selectedIds" :value="course.id"></td>
-              <td>{{ (instrPage - 1) * instrPerPage + idx + 1 }}</td>
-              <td>
-                <div class="crud-course">
-                  <div class="crud-course-thumb">
-                    <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
-                    <span v-else class="material-symbols-outlined text-thumb">book</span>
+            <tr v-if="loading"><td colspan="9" class="p-6 text-center text-xs text-[var(--muted)]">Đang tải dữ liệu...</td></tr>
+            <tr v-else-if="allFilteredCourses.length === 0"><td colspan="9" class="p-6 text-center text-xs text-[var(--muted)]">Không tìm thấy khóa học phù hợp.</td></tr>
+            <tr v-for="(course, idx) in filteredCourses" :key="course.id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+              <td class="px-4 py-3">
+                <input type="checkbox" v-model="selectedIds" :value="course.id" class="rounded border-[var(--line)] text-[#1d9e75] focus:ring-[#1d9e75]">
+              </td>
+              <td class="px-4 py-3 text-xs text-[var(--muted)]">{{ (instrPage - 1) * instrPerPage + idx + 1 }}</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-14 h-9 rounded-lg overflow-hidden bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center flex-shrink-0">
+                    <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title" class="w-full h-full object-cover">
+                    <span v-else class="material-symbols-outlined text-base text-[#1d9e75]">book</span>
                   </div>
-                  <div class="course-info">
-                    <strong>{{ course.title }}</strong>
-                    <p v-if="course.status === 'rejected' && course.reject_reason" class="reject-reason">
+                  <div class="flex flex-col min-w-0">
+                    <strong class="text-xs font-bold text-[var(--text)] truncate">{{ course.title }}</strong>
+                    <p v-if="course.status === 'rejected' && course.reject_reason" class="text-[10px] text-red-500 font-semibold mt-0.5">
                       Từ chối: {{ course.reject_reason }}
                     </p>
-                    <p v-else class="category-name">{{ course.category?.name || 'Chưa có danh mục' }}</p>
+                    <p v-else class="text-[10px] text-[var(--muted)] mt-0.5">{{ course.category?.name || 'Chưa có danh mục' }}</p>
                   </div>
                 </div>
               </td>
-              <td>{{ course.category?.name || '--' }}</td>
-              <td><span class="status-badge" :class="statusClass(course.status)">{{ statusLabel(course.status) }}</span></td>
-              <td class="stat-col">{{ course.lessons_count || 0 }} bài</td>
-              <td class="stat-col">{{ course.enrollments_count || 0 }}</td>
-              <td class="price-col">{{ formatPrice(course.price || 0) }}</td>
-              <td>
-                <div class="crud-actions-dropdown" style="text-align:right">
-                  <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(course.id)">
-                    <span class="material-symbols-outlined">more_vert</span>
+              <td class="px-4 py-3 text-xs text-[var(--text)]">{{ course.category?.name || '--' }}</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border" :class="{
+                  'bg-emerald-50 text-emerald-600 border-emerald-100': course.status === 'published',
+                  'bg-sky-50 text-sky-600 border-sky-100': course.status === 'pending_review',
+                  'bg-[var(--surface)] text-[var(--muted)] border-[var(--line)]': course.status === 'draft',
+                  'bg-red-50 text-red-500 border-red-100': course.status === 'rejected'
+                }">
+                  {{ statusLabel(course.status) }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-xs text-[var(--text)] font-semibold text-center">{{ course.lessons_count || 0 }} bài</td>
+              <td class="px-4 py-3 text-xs text-[var(--text)] font-semibold text-center">{{ course.enrollments_count || 0 }}</td>
+              <td class="px-4 py-3 text-xs text-emerald-600 font-bold">{{ formatPrice(course.price || 0) }}</td>
+              <td class="px-4 py-3 text-right">
+                <div class="relative inline-block text-left">
+                  <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] transition-colors" type="button" @click.stop="toggleDropdown(course.id)">
+                    <span class="material-symbols-outlined text-sm">more_vert</span>
                   </button>
-                  <div v-if="activeDropdown === course.id" class="dropdown-menu">
-                    <NuxtLink :to="`/instructor/courses/${course.id}/curriculum`" class="dropdown-item">Xây dựng giáo trình</NuxtLink>
-                    <NuxtLink :to="`/courses/${course.id}`" class="dropdown-item" target="_blank">Xem trang khóa học</NuxtLink>
-                    <NuxtLink :to="`/instructor/courses/${course.id}/students`" class="dropdown-item">Quản lý học viên</NuxtLink>
-                    <NuxtLink :to="`/instructor/courses/${course.id}/revenue`" class="dropdown-item">Xem doanh thu</NuxtLink>
-                    <div class="dropdown-divider"></div>
-                    <button class="dropdown-item is-danger" type="button" @click="selectedCourse = course; confirmOpen = true; activeDropdown = null">Xóa khóa học</button>
+                  <div v-if="activeDropdown === course.id" class="absolute right-0 mt-1 w-48 bg-white border border-[var(--line)] rounded-xl shadow-lg py-1 z-50 flex flex-col text-left">
+                    <NuxtLink :to="`/instructor/courses/${course.id}/curriculum`" class="px-4 py-2 text-xs text-[var(--text)] hover:bg-[var(--surface)] hover:text-[#1d9e75] transition-colors">Xây dựng giáo trình</NuxtLink>
+                    <NuxtLink :to="`/courses/${course.id}`" class="px-4 py-2 text-xs text-[var(--text)] hover:bg-[var(--surface)] hover:text-[#1d9e75] transition-colors" target="_blank">Xem trang khóa học</NuxtLink>
+                    <NuxtLink :to="`/instructor/courses/${course.id}/students`" class="px-4 py-2 text-xs text-[var(--text)] hover:bg-[var(--surface)] hover:text-[#1d9e75] transition-colors">Quản lý học viên</NuxtLink>
+                    <NuxtLink :to="`/instructor/courses/${course.id}/revenue`" class="px-4 py-2 text-xs text-[var(--text)] hover:bg-[var(--surface)] hover:text-[#1d9e75] transition-colors">Xem doanh thu</NuxtLink>
+                    <div class="border-t border-[var(--line)] my-1"></div>
+                    <button class="px-4 py-2 text-xs text-red-500 hover:bg-red-50 transition-colors w-full text-left" type="button" @click="selectedCourse = course; confirmOpen = true; activeDropdown = null">Xóa khóa học</button>
                   </div>
                 </div>
               </td>
@@ -282,35 +310,46 @@ onMounted(() => {
         @page="instrPage = $event"
         @update:per-page="instrPerPage = $event; instrPage = 1"
       />
-    </section>
-  </InstructorWorkspaceShell>
+    </div>
+  </div>
 
   <!-- Create modal -->
   <Teleport to="body">
-    <div v-if="modalOpen" class="crud-modal-backdrop" @click.self="modalOpen = false">
-      <div class="crud-modal">
-        <div class="crud-modal-head">
+    <div v-if="modalOpen" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[999]" @click.self="modalOpen = false">
+      <div class="bg-white border border-[var(--line)] rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex justify-between items-center">
           <div>
-            <p class="section-kicker">Tạo mới</p>
-            <h3>Tạo khóa học</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tạo mới</p>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-0.5">Tạo khóa học</h3>
           </div>
-          <button class="topbar-ghost" type="button" @click="modalOpen = false">✕</button>
+          <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--line)] text-[var(--muted)]" type="button" @click="modalOpen = false">✕</button>
         </div>
-        <div class="crud-form-grid">
-          <label class="crud-field crud-field-full"><span>Tên khóa học</span><input v-model="form.title" type="text" placeholder="Nhập tên khóa học"></label>
-          <div class="crud-field crud-field-full"><span>Mô tả</span><RichTextEditor v-model="form.description" placeholder="Mô tả khóa học..." /></div>
-          <label class="crud-field"><span>Giá tiền (VNĐ)</span><input v-model="form.price" type="number" min="0"></label>
-          <label class="crud-field">
-            <span>Danh mục</span>
-            <select v-model="form.category_id" class="crud-select">
-              <option value="">Chọn danh mục</option>
-              <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-            </select>
-          </label>
+        <div class="p-6 flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Tên khóa học</span>
+            <input v-model="form.title" type="text" placeholder="Nhập tên khóa học" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Mô tả</span>
+            <RichTextEditor v-model="form.description" placeholder="Mô tả khóa học..." />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <span class="text-xs font-semibold text-[var(--text)]">Giá tiền (VNĐ)</span>
+              <input v-model="form.price" type="number" min="0" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]">
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <span class="text-xs font-semibold text-[var(--text)]">Danh mục</span>
+              <select v-model="form.category_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+                <option value="">Chọn danh mục</option>
+                <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="crud-modal-foot">
-          <button class="crud-secondary-btn" type="button" @click="modalOpen = false">Hủy</button>
-          <button class="crud-primary-btn" type="button" :disabled="saving || !form.title.trim()" @click="createCourse">
+        <div class="px-6 py-4 border-t border-[var(--line)] bg-[var(--surface)] flex justify-end gap-2">
+          <button class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" type="button" @click="modalOpen = false">Hủy</button>
+          <button class="h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50" type="button" :disabled="saving || !form.title.trim()" @click="createCourse">
             {{ saving ? 'Đang tạo...' : 'Tạo khóa học' }}
           </button>
         </div>
@@ -330,42 +369,5 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.search-input-wrap { position: relative; flex: 1; max-width: 320px; }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 20px; color: var(--muted); pointer-events: none; }
-.crud-search { padding-left: 40px !important; width: 100%; }
-
-.crud-course { display: flex; align-items: center; gap: 16px; }
-.crud-course-thumb { width: 72px; height: 48px; border-radius: 10px; overflow: hidden; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--line); }
-.crud-course-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.text-thumb { font-size: 22px; color: var(--green); }
-.course-info strong { font-size: 0.9rem; color: var(--text); display: block; }
-.reject-reason { color: #e24b4a; font-size: 0.75rem; margin: 4px 0 0; font-weight: 500; }
-.category-name { color: var(--muted); font-size: 0.78rem; margin: 4px 0 0; }
-
-.stat-col { font-weight: 700; text-align: center; }
-.price-col { font-weight: 700; color: var(--green); }
-
-.status-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid transparent; }
-.is-published  { background: rgba(29,158,117,0.1);  color: var(--green-deep);  border-color: rgba(29,158,117,0.2); }
-.is-pending    { background: rgba(55,138,221,0.1);  color: #1a5fa8;            border-color: rgba(55,138,221,0.2); }
-.is-draft      { background: rgba(17,17,17,0.06);   color: var(--muted);       border-color: var(--line); }
-.is-rejected   { background: rgba(239,68,68,0.1);   color: #b91c1c;            border-color: rgba(239,68,68,0.2); }
-
-.crud-actions-dropdown { position: relative; display: block; }
-
-.action-toggle-btn { background: transparent; border: none; cursor: pointer; padding: 4px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #64748b; transition: background-color 0.2s; }
-.action-toggle-btn:hover { background-color: rgba(17,17,17,0.05); }
-
-.dropdown-menu { position: absolute; right: 0; top: 100%; margin-top: 4px; background: white; border: 1px solid rgba(17,17,17,0.1); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 200px; z-index: 50; padding: 8px 0; display: flex; flex-direction: column; text-align: left; }
-.dropdown-item { background: transparent; border: none; width: 100%; text-align: left; padding: 8px 16px; font-size: 0.9rem; cursor: pointer; color: #1e293b; transition: all 0.2s; text-decoration: none; display: block; }
-.dropdown-item:hover { background-color: rgba(29,158,117,0.08); color: var(--green); }
-.dropdown-item.is-danger { color: #dc2626; }
-.dropdown-item.is-danger:hover { background-color: #fef2f2; }
-.dropdown-divider { height: 1px; background-color: rgba(17,17,17,0.1); margin: 4px 0; }
-
-[data-theme="dark"] .dropdown-menu { background: var(--surface-strong); border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .dropdown-item { color: var(--text); }
-[data-theme="dark"] .dropdown-item.is-danger { color: #f87171; }
-[data-theme="dark"] .dropdown-item.is-danger:hover { background: rgba(239,68,68,0.1); }
-[data-theme="dark"] .is-draft { background: rgba(255,255,255,0.05); }
+/* Scoped styles kept minimal */
 </style>

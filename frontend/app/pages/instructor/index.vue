@@ -163,69 +163,75 @@ function sparklinePath(values: number[], w: number, h: number): string {
 </script>
 
 <template>
-  <div class="dash-container">
+  <div class="flex flex-col gap-6 pb-8 min-h-screen text-[var(--text)]">
     
     <!-- ══ HEADER HUB ══ -->
-    <header class="dash-header">
-      <div class="header-main-info">
-        <h1 class="header-title">Trung Tâm Giảng Dạy</h1>
-        <p class="header-subtitle">
-          {{ greeting }}, <strong>{{ auth.user?.name || 'Giảng viên' }}</strong> &bull; {{ todayLabel }}
+    <header class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-6 bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl shadow-sm backdrop-blur-md">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Trung Tâm Giảng Dạy</h1>
+        <p class="text-xs text-[var(--muted)] mt-1 font-medium">
+          {{ greeting }}, <strong class="text-[var(--text)] font-semibold">{{ auth.user?.name || 'Giảng viên' }}</strong> &bull; {{ todayLabel }}
         </p>
       </div>
-      <div class="header-action-meta">
-        <div class="status-badge">
-          <i class="pi pi-chart-line icon-pulse" style="font-size:1rem" />
+      <div class="flex items-center gap-3">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-bold uppercase tracking-wider">
+          <i class="pi pi-chart-line animate-pulse" />
           <span>Hệ thống bình thường</span>
         </div>
-        <button class="action-btn-refresh" :disabled="loading" title="Đồng bộ dữ liệu" @click="loadStats">
-          <i class="pi pi-refresh { " style="font-size:1rem" />
+        <button 
+          class="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)] hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] hover:text-[#1d9e75] hover:border-[#1d9e75] transition-all cursor-pointer shadow-sm disabled:opacity-50" 
+          :disabled="loading" 
+          title="Đồng bộ dữ liệu" 
+          @click="loadStats"
+        >
+          <i class="pi pi-refresh" :class="{ 'animate-spin': loading }" />
           <span>Đồng bộ</span>
         </button>
       </div>
     </header>
 
     <!-- ══ QUICK RUNWAY ══ -->
-    <div class="action-grid">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       <NuxtLink
         v-for="action in quickActions"
         :key="action.to"
         :to="action.to"
-        class="action-card"
+        class="flex items-center justify-between p-4 bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl text-[var(--text-secondary)] shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-emerald-600 group transition-all duration-200"
       >
-        <div class="action-icon-wrap">
-          <i :class="`pi pi-${action.icon}`" style="font-size:1.125rem" />
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-50 text-[#1d9e75] group-hover:bg-[#1d9e75] group-hover:text-white transition-colors duration-200">
+            <i :class="`pi pi-${action.icon}`" class="text-sm" />
+          </div>
+          <span class="text-xs font-bold text-[var(--text)] group-hover:text-[#1d9e75] transition-colors">{{ action.label }}</span>
         </div>
-        <span class="action-label">{{ action.label }}</span>
-        <i class="pi pi-chevron-right action-arrow" />
+        <i class="pi pi-chevron-right text-[10px] text-[var(--muted)] group-hover:translate-x-1 group-hover:text-[#1d9e75] transition-all" />
       </NuxtLink>
     </div>
 
     <!-- ══ ERROR STATUS ══ -->
-    <div v-if="error" class="error-banner">
-      <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
-      <span class="error-msg">{{ error }}</span>
-      <button class="btn-retry" @click="loadStats">Thử lại</button>
+    <div v-if="error" class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-sm text-sm">
+      <i class="pi pi-exclamation-triangle text-base" />
+      <span class="flex-1 font-medium">{{ error }}</span>
+      <button class="px-3 py-1 rounded-lg bg-white border border-red-200 text-xs font-semibold hover:bg-red-50 transition-colors" @click="loadStats">Thử lại</button>
     </div>
 
     <!-- ══ METRICS WORKSPACE ══ -->
-    <section class="metrics-grid">
+    <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
       
       <!-- CARD 1: REVENUE -->
-      <div class="metric-block is-revenue">
-        <div class="metric-header">
-          <span class="metric-title">Doanh thu (6 tháng)</span>
-          <span v-if="revenueDelta !== null" class="metric-delta" :class="revenueDelta >= 0 ? 'is-positive' : 'is-negative'">
-            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" style="font-size:0.75rem" />
-            {{ Math.abs(revenueDelta) }}% tháng trước
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Doanh thu (6 tháng)</span>
+          <span v-if="revenueDelta !== null" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" :class="revenueDelta >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
+            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" class="text-[8px]" />
+            {{ Math.abs(revenueDelta) }}%
           </span>
         </div>
-        
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <h2 v-else class="metric-value">{{ formatVndFull(stats.total_revenue || 0) }}</h2>
+        <div>
+          <div v-if="loading" class="h-8 w-32 bg-[var(--line)] rounded animate-pulse" />
+          <h2 v-else class="text-xl font-extrabold text-[var(--text)] tracking-tight">{{ formatVndFull(stats.total_revenue || 0) }}</h2>
           
-          <div class="metric-sparkline" v-if="!loading && revenueValues.length">
+          <div class="h-8 mt-3" v-if="!loading && revenueValues.length">
             <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="glow-rev-instr" x1="0" y1="0" x2="0" y2="1">
@@ -238,142 +244,126 @@ function sparklinePath(values: number[], w: number, h: number): string {
             </svg>
           </div>
         </div>
-        <div class="metric-footer">
-          <span class="footer-note">Doanh số khóa học đã phân chia hoa hồng</span>
-        </div>
+        <p class="text-[10px] text-[var(--muted)] mt-3 pt-3 border-t border-[var(--line)]">Doanh số khóa học đã phân chia hoa hồng</p>
       </div>
 
       <!-- CARD 2: COURSES SPLIT -->
-      <div class="metric-block is-classes">
-        <div class="metric-header">
-          <span class="metric-title">Tổng số khóa học</span>
-          <span class="metric-delta is-info">
-            <i class="pi pi-clone" style="font-size:0.75rem" /> Active Curriculum
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng số khóa học</span>
+          <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-600">
+            <i class="pi pi-clone text-[8px]" /> Active
           </span>
         </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <div v-else class="classes-split-row">
-            <div class="class-split-col">
-              <div class="split-num-wrap">
-                <i class="pi pi-book text-sky" style="font-size:1.125rem" />
-                <span class="split-value">{{ stats.courses_by_status?.published || 0 }}</span>
+        <div>
+          <div v-if="loading" class="h-8 w-32 bg-[var(--line)] rounded animate-pulse" />
+          <div v-else class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1.5">
+                <i class="pi pi-book text-sky-500 text-sm" />
+                <span class="text-lg font-extrabold text-[var(--text)] tracking-tight">{{ stats.courses_by_status?.published || 0 }}</span>
               </div>
-              <span class="split-lbl">Đang xuất bản</span>
+              <span class="text-[9px] text-[var(--muted)] mt-0.5">Đang xuất bản</span>
             </div>
-            <div class="split-divider"></div>
-            <div class="class-split-col">
-              <div class="split-num-wrap">
-                <i class="pi pi-clone text-indigo" style="font-size:1.125rem" />
-                <span class="split-value">{{ (stats.courses_by_status?.pending_review || 0) + (stats.courses_by_status?.draft || 0) }}</span>
+            <div class="h-8 w-px bg-[var(--line)]"></div>
+            <div class="flex flex-col items-end">
+              <div class="flex items-center gap-1.5">
+                <span class="text-lg font-extrabold text-[var(--text)] tracking-tight">{{ (stats.courses_by_status?.pending_review || 0) + (stats.courses_by_status?.draft || 0) }}</span>
+                <i class="pi pi-clone text-indigo-500 text-sm" />
               </div>
-              <span class="split-lbl">Chờ duyệt / Nháp</span>
+              <span class="text-[9px] text-[var(--muted)] mt-0.5">Chờ duyệt / Nháp</span>
             </div>
           </div>
         </div>
-        <div class="metric-footer">
-          <NuxtLink to="/instructor/courses" class="footer-link-action">
+        <div class="mt-3 pt-3 border-t border-[var(--line)]">
+          <NuxtLink to="/instructor/courses" class="inline-flex items-center gap-1 text-[10px] font-bold text-[#1d9e75] hover:underline">
             <span>Quản lý kho bài giảng</span>
-            <i class="pi pi-arrow-right" style="font-size:0.75rem" />
+            <i class="pi pi-arrow-right text-[8px]" />
           </NuxtLink>
         </div>
       </div>
 
       <!-- CARD 3: ENGAGEMENT -->
-      <div class="metric-block is-completion">
-        <div class="metric-header">
-          <span class="metric-title">Hiệu suất học tập</span>
-          <span class="metric-delta is-success-alt">
-            <i class="pi pi-verified" style="font-size:0.75rem" /> Đạt yêu cầu
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Hiệu suất học tập</span>
+          <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
+            <i class="pi pi-verified text-[8px]" /> Đạt yêu cầu
           </span>
         </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <template v-else>
-            <div class="completion-hero-row">
-              <div class="score-display">
-                <span class="score-value">82%</span>
-                <span class="score-max">Hoàn thành</span>
-              </div>
-              <div class="progress-ring-mini">
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="var(--line)" stroke-width="3"/>
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="#8B5CF6" stroke-width="3" 
-                    stroke-dasharray="100" stroke-dashoffset="18"
-                    stroke-linecap="round" transform="rotate(-90 18 18)"/>
-                </svg>
-              </div>
+        <div>
+          <div v-if="loading" class="h-8 w-32 bg-[var(--line)] rounded animate-pulse" />
+          <div v-else class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-lg font-extrabold text-[var(--text)] tracking-tight">82%</span>
+              <span class="text-[9px] text-[var(--muted)] mt-0.5">Hoàn thành bài tập</span>
             </div>
-            <div class="metric-indicators">
-              <span class="indicator-tag">
-                <i class="pi pi-check-circle text-green" style="font-size:0.75rem" />
-                Đang theo sát lộ trình bài học
-              </span>
+            <div class="w-9 h-9">
+              <svg width="36" height="36" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--line)" stroke-width="3"/>
+                <circle cx="18" cy="18" r="16" fill="none" stroke="#8B5CF6" stroke-width="3" 
+                  stroke-dasharray="100" stroke-dashoffset="18"
+                  stroke-linecap="round" transform="rotate(-90 18 18)"/>
+              </svg>
             </div>
-          </template>
+          </div>
         </div>
-        <div class="metric-footer">
-          <span class="footer-note">Đánh giá chung qua tiến trình học tập</span>
-        </div>
+        <p class="text-[10px] text-[var(--muted)] mt-3 pt-3 border-t border-[var(--line)]">Đánh giá chung qua tiến trình học tập</p>
       </div>
 
       <!-- CARD 4: STUDENTS TOTAL -->
-      <div class="metric-block is-users">
-        <div class="metric-header">
-          <span class="metric-title">Tổng lượng học viên</span>
-          <span v-if="studentDelta !== null" class="metric-delta is-positive">
-            <i class="pi pi-users" style="font-size:0.75rem" /> +{{ Math.abs(studentDelta) }}% tháng này
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div class="flex justify-between items-start mb-3">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng lượng học viên</span>
+          <span v-if="studentDelta !== null" class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+            <i class="pi pi-users text-[8px]" /> +{{ Math.abs(studentDelta) }}%
           </span>
         </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <div v-else class="users-total-wrap">
-            <h2 class="metric-value">{{ (stats.total_students || 0).toLocaleString('vi-VN') }}</h2>
-            <div class="live-counter-badge">
-              <span class="ping-dot"></span>
-              <span>Ghi danh</span>
-            </div>
+        <div>
+          <div v-if="loading" class="h-8 w-32 bg-[var(--line)] rounded animate-pulse" />
+          <div v-else class="flex items-center justify-between">
+            <h2 class="text-xl font-extrabold text-[var(--text)] tracking-tight">{{ (stats.total_students || 0).toLocaleString('vi-VN') }}</h2>
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 text-[8px] font-bold uppercase tracking-wide">Ghi danh</span>
           </div>
           
-          <div class="ratio-progress-bar" v-if="!loading">
+          <div class="flex h-1.5 bg-[var(--line)] rounded-full overflow-hidden mt-3" v-if="!loading">
             <div 
-              class="bar-fill is-student" 
+              class="h-full bg-emerald-500 transition-all duration-500" 
               :style="`width: ${((stats.courses_by_status?.published || 0) / (totalCoursesFromStatus || 1)) * 100}%`"
               title="Xuất bản"
             />
             <div 
-              class="bar-fill is-instructor" 
+              class="h-full bg-emerald-200 transition-all duration-500" 
               :style="`width: ${(((stats.courses_by_status?.pending_review || 0) + (stats.courses_by_status?.draft || 0)) / (totalCoursesFromStatus || 1)) * 100}%`"
               title="Khác"
             />
           </div>
         </div>
-        <div class="metric-footer text-split">
+        <div class="flex justify-between text-[9px] text-[var(--muted)] mt-3 pt-3 border-t border-[var(--line)]">
           <span>{{ stats.courses_by_status?.published || 0 }} Đã xuất bản</span>
           <span>{{ (stats.courses_by_status?.pending_review || 0) + (stats.courses_by_status?.draft || 0) }} Khác</span>
         </div>
       </div>
-
     </section>
 
     <!-- ══ CHARTS & SCHEDULE WORKSPACE ══ -->
-    <div class="grid-12 mt-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-2">
       
       <!-- Schedule -->
-      <div class="span-lg-12">
+      <div class="lg:col-span-12">
         <DashboardSchedule :events="scheduleEvents" title="Kỳ thi sắp diễn ra" />
       </div>
 
       <!-- Revenue Chart -->
-      <div class="dashboard-card chart-card span-lg-8">
-        <header class="chart-card-head">
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-6 shadow-sm flex flex-col justify-between lg:col-span-8">
+        <header class="flex justify-between items-start mb-5">
           <div>
-            <p class="chart-card-kicker">Doanh thu giảng dạy</p>
-            <h3 class="chart-card-title">Xu hướng 6 tháng gần nhất</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Doanh thu giảng dạy</p>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-1">Xu hướng 6 tháng gần nhất</h3>
           </div>
-          <span class="chart-card-tag">VND</span>
+          <span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">VND</span>
         </header>
-        <div v-if="loading" class="h-44 rounded-xl bg-surface-high animate-pulse" />
+        <div v-if="loading" class="h-44 rounded-xl bg-[var(--surface)] animate-pulse" />
         <UiAreaChart
           v-else-if="revenuePoints.length"
           :series="[{ name: 'Doanh thu', values: revenueValues, color: 'var(--green)' }]"
@@ -381,40 +371,41 @@ function sparklinePath(values: number[], w: number, h: number): string {
           :height="200"
           :format-y="formatVnd"
         />
-        <div v-else class="empty-block">Chưa có doanh thu trong 6 tháng qua.</div>
+        <div v-else class="flex items-center justify-center min-h-[180px] border border-dashed border-[var(--line)] rounded-2xl text-xs text-[var(--muted)] bg-[var(--surface)]">Chưa có doanh thu trong 6 tháng qua.</div>
       </div>
 
       <!-- Donut Status Distribution -->
-      <div class="dashboard-card chart-card span-lg-4">
-        <header class="chart-card-head">
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-6 shadow-sm flex flex-col justify-between lg:col-span-4">
+        <header class="flex justify-between items-start mb-5">
           <div>
-            <p class="chart-card-kicker">Khóa học</p>
-            <h3 class="chart-card-title">Phân bố trạng thái</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Khóa học</p>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-1">Phân bố trạng thái</h3>
           </div>
-          <NuxtLink to="/instructor/courses" class="chart-card-link">Quản lý →</NuxtLink>
+          <NuxtLink to="/instructor/courses" class="text-xs font-bold text-[#1d9e75] hover:underline">Quản lý →</NuxtLink>
         </header>
-        <div v-if="loading" class="h-44 rounded-xl bg-surface-high animate-pulse" />
-        <UiDonut
-          v-else-if="courseStatusSegments.length"
-          :segments="courseStatusSegments"
-          :size="150"
-          :thickness="24"
-          center-label="Tổng"
-          :center-value="totalCoursesFromStatus"
-        />
-        <div v-else class="empty-block">Bạn chưa có khóa học nào.</div>
+        <div v-if="loading" class="h-44 rounded-xl bg-[var(--surface)] animate-pulse" />
+        <div class="flex justify-center" v-else-if="courseStatusSegments.length">
+          <UiDonut
+            :segments="courseStatusSegments"
+            :size="150"
+            :thickness="24"
+            center-label="Tổng"
+            :center-value="totalCoursesFromStatus"
+          />
+        </div>
+        <div v-else class="flex items-center justify-center min-h-[180px] border border-dashed border-[var(--line)] rounded-2xl text-xs text-[var(--muted)] bg-[var(--surface)]">Bạn chưa có khóa học nào.</div>
       </div>
 
       <!-- Monthly Enrollment Bar Chart -->
-      <div class="dashboard-card chart-card span-lg-5">
-        <header class="chart-card-head">
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-6 shadow-sm flex flex-col justify-between lg:col-span-5">
+        <header class="flex justify-between items-start mb-5">
           <div>
-            <p class="chart-card-kicker">Học viên mới</p>
-            <h3 class="chart-card-title">Ghi danh theo tháng</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Học viên mới</p>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-1">Ghi danh theo tháng</h3>
           </div>
-          <span class="chart-card-tag">Số lượng</span>
+          <span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">Số lượng</span>
         </header>
-        <div v-if="loading" class="h-44 rounded-xl bg-surface-high animate-pulse" />
+        <div v-if="loading" class="h-44 rounded-xl bg-[var(--surface)] animate-pulse" />
         <UiBarChart
           v-else-if="studentPoints.length"
           :values="studentValues"
@@ -422,34 +413,34 @@ function sparklinePath(values: number[], w: number, h: number): string {
           :height="180"
           color="var(--green)"
         />
-        <div v-else class="empty-block">Chưa có học viên ghi danh trong 6 tháng qua.</div>
+        <div v-else class="flex items-center justify-center min-h-[180px] border border-dashed border-[var(--line)] rounded-2xl text-xs text-[var(--muted)] bg-[var(--surface)]">Chưa có học viên ghi danh trong 6 tháng qua.</div>
       </div>
 
       <!-- Top Courses Leaderboard -->
-      <div class="dashboard-card chart-card span-lg-7">
-        <header class="chart-card-head">
+      <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-6 shadow-sm flex flex-col justify-between lg:col-span-7">
+        <header class="flex justify-between items-start mb-5">
           <div>
-            <p class="chart-card-kicker">Top khóa học của bạn</p>
-            <h3 class="chart-card-title">Theo lượt ghi danh</h3>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Top khóa học của bạn</p>
+            <h3 class="text-sm font-bold text-[var(--text)] mt-1">Theo lượt ghi danh</h3>
           </div>
-          <NuxtLink to="/instructor/courses" class="chart-card-link">Tất cả →</NuxtLink>
+          <NuxtLink to="/instructor/courses" class="text-xs font-bold text-[#1d9e75] hover:underline">Tất cả →</NuxtLink>
         </header>
         <div v-if="loading" class="space-y-2">
-          <div v-for="i in 5" :key="i" class="h-10 rounded-lg bg-surface-high animate-pulse" />
+          <div v-for="i in 5" :key="i" class="h-10 rounded-xl bg-[var(--surface)] animate-pulse" />
         </div>
-        <ol v-else-if="stats.top_courses?.length" class="leaderboard">
-          <li v-for="(course, i) in stats.top_courses" :key="course.id" class="leaderboard-item">
-            <span class="leaderboard-rank">{{ i + 1 }}</span>
-            <NuxtLink :to="`/instructor/courses/${course.id}/curriculum`" class="leaderboard-title">
+        <ol v-else-if="stats.top_courses?.length" class="flex flex-col gap-2">
+          <li v-for="(course, i) in stats.top_courses" :key="course.id" class="grid grid-cols-[28px_1fr_auto] items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--line)] rounded-xl hover:border-emerald-500 hover:translate-x-0.5 transition-all duration-200">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center bg-emerald-50 text-[#1d9e75] font-extrabold text-xs">{{ i + 1 }}</span>
+            <NuxtLink :to="`/instructor/courses/${course.id}/curriculum`" class="text-xs font-semibold text-[var(--text)] hover:text-[#1d9e75] truncate">
               {{ course.title }}
             </NuxtLink>
-            <span class="leaderboard-value">
-              <span class="material-symbols-outlined">person</span>
+            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-[var(--muted)] tabular-nums">
+              <i class="pi pi-user text-[10px]" />
               {{ course.enrollments_count }}
             </span>
           </li>
         </ol>
-        <div v-else class="empty-block">Chưa có khóa học nào có lượt ghi danh.</div>
+        <div v-else class="flex items-center justify-center min-h-[180px] border border-dashed border-[var(--line)] rounded-2xl text-xs text-[var(--muted)] bg-[var(--surface)]">Chưa có khóa học nào có lượt ghi danh.</div>
       </div>
 
     </div>
@@ -457,620 +448,5 @@ function sparklinePath(values: number[], w: number, h: number): string {
 </template>
 
 <style scoped>
-/* ── General Scrollbars ── */
-.dash-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-height: 100vh;
-  color: var(--text);
-  padding-bottom: 32px;
-}
-
-/* ── Header Hub ── */
-.dash-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--surface-strong), rgba(var(--surface-strong-rgb), 0.7));
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
-}
-
-.header-title {
-  margin: 0 0 6px;
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-}
-
-.header-subtitle {
-  margin: 0;
-  font-size: 0.88rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.header-action-meta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 99px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #10B981;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.icon-pulse {
-  animation: pulse-ring 2s infinite ease-in-out;
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.5; }
-}
-
-.action-btn-refresh {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-strong);
-  color: var(--text);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 200ms ease;
-  box-shadow: var(--shadow-sm);
-}
-
-.action-btn-refresh:hover:not(:disabled) {
-  background: var(--surface);
-  border-color: #10B981;
-  color: #10B981;
-  transform: translateY(-1px);
-}
-
-.spin-anim {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── Runway Quick Actions ── */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  text-decoration: none;
-  color: var(--text-secondary);
-  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
-}
-
-.action-card:hover {
-  transform: translateY(-3px);
-  border-color: #10B981;
-  box-shadow: var(--shadow);
-  background: linear-gradient(to bottom, var(--surface-strong), rgba(16, 185, 129, 0.02));
-}
-
-.action-card:hover .action-label {
-  color: #10B981;
-}
-
-.action-card:hover .action-arrow {
-  transform: translateX(4px);
-  color: #10B981;
-}
-
-.action-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.06);
-  color: #10B981;
-  transition: all 200ms;
-}
-
-.action-card:hover .action-icon-wrap {
-  background: #10B981;
-  color: #ffffff;
-}
-
-.action-label {
-  flex: 1;
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text);
-  transition: color 200ms;
-}
-
-.action-arrow {
-  color: var(--muted);
-  transition: transform 200ms, color 200ms;
-}
-
-/* ── Error Banner ── */
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 14px;
-  color: #EF4444;
-  font-size: 0.88rem;
-}
-
-.error-msg {
-  flex: 1;
-  font-weight: 600;
-}
-
-.btn-retry {
-  padding: 6px 14px;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 150ms;
-}
-
-.btn-retry:hover {
-  background: #EF4444;
-  color: #fff;
-}
-
-/* ── Metrics Cards Grid ── */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-}
-
-.metric-block {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px;
-  min-height: 170px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 250ms, box-shadow 250ms, transform 250ms;
-}
-
-.metric-block:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-2px);
-}
-
-.metric-block.is-revenue:hover { border-color: rgba(16, 185, 129, 0.3); }
-.metric-block.is-classes:hover { border-color: rgba(14, 165, 233, 0.3); }
-.metric-block.is-completion:hover { border-color: rgba(139, 92, 246, 0.3); }
-.metric-block.is-users:hover { border-color: rgba(245, 158, 11, 0.3); }
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.metric-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.metric-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 99px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.metric-delta.is-positive { background: rgba(16, 185, 129, 0.08); color: #10B981; }
-.metric-delta.is-negative { background: rgba(239, 68, 68, 0.08); color: #EF4444; }
-.metric-delta.is-info { background: rgba(14, 165, 233, 0.08); color: #0EA5E9; }
-.metric-delta.is-success-alt { background: rgba(139, 92, 246, 0.08); color: #8B5CF6; }
-
-.metric-content {
-  margin: 16px 0;
-  position: relative;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.metric-value {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 850;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.metric-sparkline {
-  margin-top: 10px;
-  height: 36px;
-}
-
-.metric-footer {
-  font-size: 0.78rem;
-  color: var(--muted);
-  font-weight: 500;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  margin-top: auto;
-}
-
-.footer-note {
-  opacity: 0.8;
-}
-
-.footer-link-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  color: #0EA5E9;
-  font-weight: 700;
-  transition: opacity 150ms;
-}
-
-.footer-link-action:hover {
-  opacity: 0.8;
-}
-
-.text-split {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* ── Class Card Split Layout ── */
-.classes-split-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.class-split-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.split-num-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.split-value {
-  font-size: 1.6rem;
-  font-weight: 850;
-  color: var(--text);
-}
-
-.split-lbl {
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.split-divider {
-  width: 1px;
-  height: 36px;
-  background: var(--line);
-  flex-shrink: 0;
-}
-
-.text-sky { color: #0EA5E9; }
-.text-indigo { color: #8B5CF6; }
-
-/* ── Completion Score Layout ── */
-.completion-hero-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.score-display {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.score-value {
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: var(--text);
-  letter-spacing: -0.04em;
-}
-
-.score-max {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.progress-ring-mini {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.metric-indicators {
-  margin-top: 10px;
-}
-
-.indicator-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text-secondary);
-  font-size: 0.74rem;
-  font-weight: 600;
-}
-
-.text-green { color: #10B981; }
-.text-orange { color: #F59E0B; }
-.text-violet { color: #8B5CF6; }
-
-/* ── Users Card Live Stats ── */
-.users-total-wrap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.live-counter-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(29, 158, 117, 0.08);
-  border: 1px solid rgba(29, 158, 117, 0.2);
-  color: #10B981;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.ping-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #10B981;
-  animation: live-ping 1.4s infinite ease-in-out;
-}
-
-@keyframes live-ping {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.8); opacity: 0.5; }
-}
-
-.ratio-progress-bar {
-  display: flex;
-  height: 7px;
-  background: var(--line);
-  border-radius: 99px;
-  overflow: hidden;
-  margin-top: 14px;
-}
-
-.bar-fill {
-  height: 100%;
-  transition: width 0.6s ease;
-}
-
-.bar-fill.is-student { background: #10B981; }
-.bar-fill.is-instructor { background: rgba(29, 158, 117, 0.4); }
-
-/* Skeletons */
-.skeleton-h3 {
-  height: 28px;
-  border-radius: 6px;
-  background: var(--line);
-  width: 70%;
-  animation: pulse 1.4s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-}
-
-/* ── Charts & Grid Layout ── */
-.grid-12 {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 16px;
-}
-.grid-12 > * { grid-column: span 12; min-width: 0; }
-@media (min-width: 1024px) {
-  .grid-12 > .span-lg-4 { grid-column: span 4; }
-  .grid-12 > .span-lg-5 { grid-column: span 5; }
-  .grid-12 > .span-lg-7 { grid-column: span 7; }
-  .grid-12 > .span-lg-8 { grid-column: span 8; }
-}
-
-.chart-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px;
-  min-width: 0;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 200ms, box-shadow 200ms;
-}
-
-.chart-card:hover {
-  border-color: rgba(var(--text-rgb), 0.1);
-}
-
-.chart-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.chart-card-kicker {
-  margin: 0;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--muted);
-}
-
-.chart-card-title {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  margin: 4px 0 0;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
-}
-
-.chart-card-tag {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--green-soft);
-  color: var(--green);
-}
-
-.chart-card-link {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--green);
-  text-decoration: none;
-}
-.chart-card-link:hover { text-decoration: underline; }
-
-.empty-block {
-  display: grid;
-  place-items: center;
-  min-height: 180px;
-  border: 1px dashed var(--line);
-  border-radius: 18px;
-  font-size: 0.86rem;
-  color: var(--muted);
-  text-align: center;
-  padding: 24px;
-  background: var(--bg);
-}
-
-/* Leaderboard */
-.leaderboard { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.leaderboard-item {
-  display: grid;
-  grid-template-columns: 28px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-.leaderboard-item:hover { 
-  border-color: var(--green);
-  transform: translateX(3px);
-}
-.leaderboard-rank {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--green-soft);
-  color: var(--green);
-  font-weight: 800;
-  font-size: 0.8rem;
-}
-.leaderboard-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.leaderboard-title:hover { color: var(--green); }
-.leaderboard-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.84rem;
-  font-weight: 700;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.leaderboard-value .material-symbols-outlined { font-size: 16px; }
+/* Scoped styles kept minimal */
 </style>

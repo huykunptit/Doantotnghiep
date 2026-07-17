@@ -391,16 +391,18 @@ async function removeCourseFromCurriculum(ccId: Id) {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Chương Trình Đào Tạo"
-    description="Thiết kế và chuẩn hóa khung chương trình học theo học kỳ cho từng ngành."
-    :breadcrumb="['Trang chủ', 'Đào tạo & Học vụ', 'Chương Trình Đào Tạo']"
-  >
-    <template #actions>
-      <button class="crud-primary-btn" @click="openCreateModal">
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Chương Trình Đào Tạo</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Thiết kế và chuẩn hóa khung chương trình học theo học kỳ cho từng ngành.</p>
+      </div>
+      <button class="crud-primary-btn shrink-0" @click="openCreateModal">
         <i class="pi pi-plus" style="font-size:1.125rem" /> Tạo lộ trình mới
       </button>
-    </template>
+    </div>
 
     <!-- Filters -->
     <div class="lnd-filters dashboard-card">
@@ -726,7 +728,7 @@ async function removeCourseFromCurriculum(ccId: Id) {
       @close="showDeleteConfirm = false"
       @confirm="executeDeleteCurriculum"
     />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

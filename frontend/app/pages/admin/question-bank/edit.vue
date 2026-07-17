@@ -244,11 +244,13 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Ngân hàng câu hỏi', 'Chỉnh sửa câu hỏi']"
-    description="Chỉnh sửa nội dung, đáp án, phản hồi và giải thích cho câu hỏi."
-    title="Chỉnh sửa câu hỏi"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Chỉnh sửa câu hỏi</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Chỉnh sửa nội dung, đáp án, phản hồi và giải thích cho câu hỏi.</p>
+    </div>
     <div class="qf-topbar">
       <button class="crud-secondary-btn" type="button" @click="goBack">← Quay lại</button>
       <div class="qf-topbar-right">
@@ -412,7 +414,7 @@ onMounted(fetchData)
         </aside>
       </div>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
