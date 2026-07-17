@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -135,110 +134,119 @@ onMounted(loadExams)
 </script>
 
 <template>
-  <InstructorWorkspaceShell
-    title="Kỳ thi độc lập"
-    description="Quản lý các kỳ thi riêng biệt ngoài bài học cho khoá học này."
-    :breadcrumb="['Trang chủ', 'Khóa học', 'Kỳ thi']"
-  >
-    <template #actions>
-      <NuxtLink :to="`/instructor/courses/${courseId}/question-bank`" class="crud-secondary-btn">
-        <span class="material-symbols-outlined">database</span>
-        Ngân hàng câu hỏi
-      </NuxtLink>
-      <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="crud-secondary-btn">
-        <span class="material-symbols-outlined">auto_stories</span>
-        Giáo trình
-      </NuxtLink>
-      <button type="button" class="crud-primary-btn" @click="openCreate">
-        <span class="material-symbols-outlined">add_circle</span>
-        Tạo kỳ thi mới
-      </button>
-    </template>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Khóa học &bull; Kỳ thi</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Kỳ thi độc lập</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Quản lý các kỳ thi riêng biệt ngoài bài học cho khoá học này.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <NuxtLink :to="`/instructor/courses/${courseId}/question-bank`" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors">
+          <span class="material-symbols-outlined text-sm">database</span>
+          Ngân hàng câu hỏi
+        </NuxtLink>
+        <NuxtLink :to="`/instructor/courses/${courseId}/curriculum`" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors">
+          <span class="material-symbols-outlined text-sm">auto_stories</span>
+          Giáo trình
+        </NuxtLink>
+        <button type="button" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" @click="openCreate">
+          <span class="material-symbols-outlined text-sm">add_circle</span>
+          Tạo kỳ thi mới
+        </button>
+      </div>
+    </div>
 
-    <div v-if="success" class="crud-alert is-success" style="margin-bottom: 16px;">{{ success }}</div>
-    <div v-if="error && !showForm" class="crud-alert is-error" style="margin-bottom: 16px;">{{ error }}</div>
+    <div v-if="success" class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-semibold">{{ success }}</div>
+    <div v-if="error && !showForm" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ error }}</div>
 
     <!-- Form tạo/sửa -->
-    <section v-if="showForm" class="dashboard-card crud-panel" style="margin-bottom: 24px;">
-      <div class="card-head" style="margin-bottom: 20px;">
-        <h3>{{ editingExam ? 'Cập nhật kỳ thi' : 'Tạo kỳ thi mới' }}</h3>
+    <section v-if="showForm" class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+      <div class="border-b border-[var(--line)] pb-3">
+        <h3 class="text-sm font-bold text-[var(--text)]">{{ editingExam ? 'Cập nhật kỳ thi' : 'Tạo kỳ thi mới' }}</h3>
       </div>
-      <div v-if="error" class="crud-alert is-error" style="margin-bottom: 16px;">{{ error }}</div>
-      <div class="crud-form-grid">
-        <label class="crud-field crud-field-full">
-          <span>Tên kỳ thi <span style="color:#ef4444">*</span></span>
-          <input v-model="form.title" type="text" placeholder="Ví dụ: Kiểm tra giữa kỳ môn Lập trình Web">
-        </label>
-        <label class="crud-field crud-field-full">
-          <span>Mô tả / Hướng dẫn</span>
-          <textarea v-model="form.description" rows="3" placeholder="Hướng dẫn cho thí sinh..." />
-        </label>
-        <label class="crud-field">
-          <span>Trạng thái</span>
-          <select v-model="form.status" class="crud-select">
+      <div v-if="error" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ error }}</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex flex-col gap-1.5 md:col-span-3">
+          <span class="text-xs font-semibold text-[var(--text)]">Tên kỳ thi <span class="text-red-500">*</span></span>
+          <input v-model="form.title" type="text" placeholder="Ví dụ: Kiểm tra giữa kỳ môn Lập trình Web" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full">
+        </div>
+        <div class="flex flex-col gap-1.5 md:col-span-3">
+          <span class="text-xs font-semibold text-[var(--text)]">Mô tả / Hướng dẫn</span>
+          <textarea v-model="form.description" rows="3" placeholder="Hướng dẫn cho thí sinh..." class="p-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Trạng thái</span>
+          <select v-model="form.status" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer w-full">
             <option value="draft">Bản nháp</option>
             <option value="scheduled">Đã lên lịch</option>
             <option value="published">Đang mở</option>
             <option value="closed">Đã đóng</option>
           </select>
-        </label>
-        <label class="crud-field">
-          <span>Thời gian (phút)</span>
-          <input v-model.number="form.duration" type="number" min="1" max="600">
-        </label>
-        <label class="crud-field">
-          <span>Điểm đạt (%)</span>
-          <input v-model.number="form.pass_score" type="number" min="1" max="100">
-        </label>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Thời gian (phút)</span>
+          <input v-model.number="form.duration" type="number" min="1" max="600" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full">
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Điểm đạt (%)</span>
+          <input v-model.number="form.pass_score" type="number" min="1" max="100" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full">
+        </div>
       </div>
-      <div style="display: flex; gap: 10px; margin-top: 20px;">
-        <button type="button" class="crud-primary-btn" :disabled="saving" @click="saveExam">
+      <div class="flex gap-2 justify-end">
+        <button type="button" class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" @click="cancelForm">Huỷ</button>
+        <button type="button" class="h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50" :disabled="saving" @click="saveExam">
           {{ saving ? 'Đang lưu...' : (editingExam ? 'Cập nhật' : 'Tạo kỳ thi') }}
         </button>
-        <button type="button" class="crud-secondary-btn" @click="cancelForm">Huỷ</button>
       </div>
     </section>
 
     <!-- Danh sách kỳ thi -->
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
+    <section class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+      <div class="flex justify-between items-center border-b border-[var(--line)] pb-3">
         <div>
-          <p class="section-kicker">Khoá học #{{ courseId }}</p>
-          <h3>Danh sách kỳ thi ({{ exams.length }})</h3>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Khoá học #{{ courseId }}</p>
+          <h3 class="text-sm font-bold text-[var(--text)] mt-0.5">Danh sách kỳ thi ({{ exams.length }})</h3>
         </div>
-        <button type="button" class="crud-primary-btn" @click="openCreate">+ Thêm</button>
+        <button type="button" class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" @click="openCreate">+ Thêm</button>
       </div>
 
-      <div v-if="loading" class="crud-empty">Đang tải...</div>
+      <div v-if="loading" class="text-center py-8 text-xs text-[var(--muted)]">Đang tải...</div>
 
-      <div v-else-if="exams.length === 0" class="crud-empty">
-        <span class="material-symbols-outlined" style="font-size: 36px; display: block; margin: 0 auto 8px; opacity: 0.2;">quiz</span>
+      <div v-else-if="exams.length === 0" class="text-center py-12 flex flex-col items-center gap-2 text-xs text-[var(--muted)]">
+        <span class="material-symbols-outlined text-4xl opacity-20">quiz</span>
         Chưa có kỳ thi nào. Nhấn "Tạo kỳ thi mới" để bắt đầu.
       </div>
 
-      <div v-else class="exams-grid">
-        <div v-for="exam in exams" :key="exam.id" class="exam-card">
-          <div class="exam-card-top">
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <span class="crud-badge" :class="statusClass[exam.status] || ''">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="exam in exams" :key="exam.id" class="border border-[var(--line)] bg-[var(--surface-strong)] rounded-2xl p-4 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border" :class="{
+                'bg-emerald-50 text-emerald-600 border-emerald-100': exam.status === 'published',
+                'bg-sky-50 text-sky-600 border-sky-100': exam.status === 'scheduled',
+                'bg-[var(--surface)] text-[var(--muted)] border-[var(--line)]': exam.status === 'draft',
+                'bg-red-50 text-red-500 border-red-100': exam.status === 'closed'
+              }">
                 {{ statusLabel[exam.status] || exam.status }}
               </span>
-              <span style="font-size: 0.78rem; color: var(--muted);">
+              <span class="text-[10px] text-[var(--muted)] font-semibold">
                 {{ exam.duration || 60 }} phút · Pass {{ exam.pass_score || 80 }}%
               </span>
             </div>
-            <h4 class="exam-title">{{ exam.title }}</h4>
-            <p class="exam-desc">{{ exam.description || 'Chưa có mô tả.' }}</p>
+            <h4 class="text-sm font-bold text-[var(--text)] mt-3">{{ exam.title }}</h4>
+            <p class="text-xs text-[var(--muted)] leading-relaxed mt-1.5 line-clamp-2">{{ exam.description || 'Chưa có mô tả.' }}</p>
           </div>
-          <div class="exam-card-actions">
-            <NuxtLink :to="`/instructor/courses/${courseId}/exams/${exam.id}`" class="action-btn is-view">
+          <div class="flex flex-wrap gap-1.5 pt-3 border-t border-[var(--line)]">
+            <NuxtLink :to="`/instructor/courses/${courseId}/exams/${exam.id}`" class="h-7 px-2.5 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-[10px] font-bold text-[var(--text)] flex items-center justify-center transition-colors">
               Quản lý câu hỏi
             </NuxtLink>
-            <NuxtLink :to="`/exam/${exam.id}`" target="_blank" class="action-btn is-edit">
+            <NuxtLink :to="`/exam/${exam.id}`" target="_blank" class="h-7 px-2.5 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-[10px] font-bold text-[var(--text)] flex items-center justify-center transition-colors">
               Thi thử
             </NuxtLink>
-            <button type="button" class="action-btn is-edit" @click="openEdit(exam)">Sửa</button>
-            <button type="button" class="action-btn is-danger" @click="deleteTarget = exam">Xoá</button>
+            <button type="button" class="h-7 px-2.5 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-[10px] font-bold text-[var(--text)] transition-colors" @click="openEdit(exam)">Sửa</button>
+            <button type="button" class="h-7 px-2.5 rounded-lg bg-red-50 hover:bg-red-100 text-[10px] font-bold text-red-600 transition-colors" @click="deleteTarget = exam">Xoá</button>
           </div>
         </div>
       </div>
@@ -255,29 +263,9 @@ onMounted(loadExams)
       @close="deleteTarget = null"
       @confirm="confirmDelete"
     />
-  </InstructorWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.exams-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-  margin-top: 4px;
-}
-.exam-card {
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: rgba(255,255,255,0.6);
-  transition: box-shadow 0.2s;
-}
-.exam-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-.exam-card-top { flex: 1; }
-.exam-title { font-size: 1rem; font-weight: 700; margin: 10px 0 6px; }
-.exam-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.exam-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Scoped styles kept minimal */
 </style>

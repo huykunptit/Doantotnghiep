@@ -237,60 +237,72 @@ onMounted(fetchSettings)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản trị hệ thống', 'Cài đặt']"
-    description="Quản lý thương hiệu, liên hệ, mạng xã hội, SMTP và các thông tin pháp lý của website."
-    title="Cài đặt hệ thống"
-  >
-    <section class="crud-overview-grid">
-      <article class="dashboard-card mini-card tone-green">
-        <p class="mini-title">Website</p>
-        <div class="mini-head">
-          <strong>{{ form.site_name || 'Chưa đặt tên' }}</strong>
-          <span>{{ form.site_tagline || 'Tên hiển thị của hệ thống' }}</span>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Cấu hình hệ thống</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Cài đặt hệ thống</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Quản lý thương hiệu, liên hệ, mạng xã hội, SMTP và các thông tin pháp lý của website.</p>
+      </div>
+    </div>
+
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <article class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">Website</p>
+        <div class="flex flex-col">
+          <strong class="text-sm font-bold text-[var(--text)] truncate">{{ form.site_name || 'Chưa đặt tên' }}</strong>
+          <span class="text-xs text-[var(--muted)] truncate mt-0.5">{{ form.site_tagline || 'Tên hiển thị của hệ thống' }}</span>
         </div>
       </article>
-      <article class="dashboard-card mini-card tone-amber">
-        <p class="mini-title">Logo / Favicon</p>
-        <div class="mini-head">
-          <strong>{{ form.site_logo ? 'Đã có logo' : 'Chưa có logo' }}</strong>
-          <span>{{ form.site_favicon ? 'Đã có favicon' : 'Chưa có favicon' }}</span>
+      <article class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">Logo / Favicon</p>
+        <div class="flex flex-col">
+          <strong class="text-sm font-bold text-[var(--text)] truncate">{{ form.site_logo ? 'Đã có logo' : 'Chưa có logo' }}</strong>
+          <span class="text-xs text-[var(--muted)] truncate mt-0.5">{{ form.site_favicon ? 'Đã có favicon' : 'Chưa có favicon' }}</span>
         </div>
       </article>
-      <article class="dashboard-card mini-card">
-        <p class="mini-title">SMTP</p>
-        <div class="mini-head">
-          <strong>{{ form.smtp_host || '--' }}</strong>
-          <span>{{ form.smtp_from_address || 'Chưa cấu hình email gửi đi' }}</span>
+      <article class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">SMTP</p>
+        <div class="flex flex-col">
+          <strong class="text-sm font-bold text-[var(--text)] truncate">{{ form.smtp_host || '--' }}</strong>
+          <span class="text-xs text-[var(--muted)] truncate mt-0.5">{{ form.smtp_from_address || 'Chưa cấu hình email gửi đi' }}</span>
         </div>
       </article>
-      <article class="dashboard-card mini-card tone-violet">
-        <p class="mini-title">Liên hệ</p>
-        <div class="mini-head">
-          <strong>{{ form.contact_phone || form.contact_email || '--' }}</strong>
-          <span>{{ form.contact_address || 'Chưa có địa chỉ liên hệ' }}</span>
+      <article class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-1">Liên hệ</p>
+        <div class="flex flex-col">
+          <strong class="text-sm font-bold text-[var(--text)] truncate">{{ form.contact_phone || form.contact_email || '--' }}</strong>
+          <span class="text-xs text-[var(--muted)] truncate mt-0.5">{{ form.contact_address || 'Chưa có địa chỉ liên hệ' }}</span>
         </div>
       </article>
     </section>
 
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
+    <section class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+      <div class="flex items-center justify-between border-b border-[var(--line)] pb-4 mb-4">
         <div>
-          <p class="section-kicker">Cài đặt</p>
-          <h3>{{ TABS.find(tab => tab.id === activeTab)?.label }}</h3>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Cài đặt</p>
+          <h3 class="text-base font-bold text-[var(--text)] mt-0.5">{{ TABS.find(tab => tab.id === activeTab)?.label }}</h3>
         </div>
-        <button class="crud-primary-btn" type="button" :disabled="saving" @click="saveSettings">
+        <button 
+          class="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50" 
+          type="button" 
+          :disabled="saving" 
+          @click="saveSettings"
+        >
+          <i class="pi pi-save" />
           {{ saving ? 'Đang lưu...' : 'Lưu cài đặt' }}
         </button>
       </div>
 
-      <nav class="settings-tabs" role="tablist">
+      <nav class="flex flex-wrap gap-2 p-1.5 bg-[var(--surface)] border border-[var(--line)] rounded-2xl mb-6">
         <button
           v-for="tab in TABS"
           :key="tab.id"
           role="tab"
           type="button"
-          :class="['settings-tab', { 'is-active': activeTab === tab.id }]"
+          class="flex-1 min-w-[120px] px-4 py-2 rounded-xl text-xs font-semibold text-[var(--muted)] transition-all cursor-pointer text-center border border-transparent"
+          :class="activeTab === tab.id ? 'bg-white border-[var(--line)] text-[var(--text)] shadow-sm' : 'hover:text-[var(--text)]'"
           :aria-selected="activeTab === tab.id"
           @click="activeTab = tab.id"
         >
@@ -298,43 +310,43 @@ onMounted(fetchSettings)
         </button>
       </nav>
 
-      <div v-if="loading" class="crud-empty">Đang tải cài đặt...</div>
+      <div v-if="loading" class="text-center py-8 text-sm text-[var(--muted)]">Đang tải cài đặt...</div>
 
       <div v-else>
         <!-- Branding -->
-        <div v-show="activeTab === 'branding'" class="crud-form-grid">
-          <label class="crud-field">
-            <span>Màu chủ đạo (Primary Color)</span>
-            <input v-model="form.theme_color_primary" type="color" class="color-picker-input">
-          </label>
-          <label class="crud-field">
-            <span>Màu chủ đạo đậm (Deep Color)</span>
-            <input v-model="form.theme_color_deep" type="color" class="color-picker-input">
-          </label>
-          <label class="crud-field">
-            <span>Brand name</span>
-            <input v-model="form.brand_name" type="text" placeholder="PTIT LMS">
-          </label>
-          <label class="crud-field">
-            <span>Brand mark</span>
-            <input v-model="form.brand_mark" type="text" maxlength="32" placeholder="PTIT">
-          </label>
-          <label class="crud-field">
-            <span>Site title</span>
-            <input v-model="form.site_title" type="text" placeholder="PTIT LMS">
-          </label>
-          <label class="crud-field">
-            <span>Slogan</span>
-            <input v-model="form.site_tagline" type="text" placeholder="Học mọi lúc, mọi nơi">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Mô tả website</span>
-            <textarea v-model="form.site_description" class="crud-textarea" rows="4" maxlength="500" placeholder="Nền tảng học trực tuyến..."></textarea>
-            <small class="settings-help">{{ descriptionLength }}/500 ký tự</small>
-          </label>
+        <div v-show="activeTab === 'branding'" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Màu chủ đạo (Primary Color)</span>
+            <input v-model="form.theme_color_primary" type="color" class="w-full h-11 border border-[var(--line)] rounded-xl cursor-pointer p-0 bg-transparent">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Màu chủ đạo đậm (Deep Color)</span>
+            <input v-model="form.theme_color_deep" type="color" class="w-full h-11 border border-[var(--line)] rounded-xl cursor-pointer p-0 bg-transparent">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Brand name</span>
+            <input v-model="form.brand_name" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="PTIT LMS">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Brand mark</span>
+            <input v-model="form.brand_mark" type="text" maxlength="32" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="PTIT">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Site title</span>
+            <input v-model="form.site_title" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="PTIT LMS">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Slogan</span>
+            <input v-model="form.site_tagline" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="Học mọi lúc, mọi nơi">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Mô tả website</span>
+            <textarea v-model="form.site_description" class="p-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full resize-y" rows="4" maxlength="500" placeholder="Nền tảng học trực tuyến..."></textarea>
+            <small class="text-[10px] text-[var(--muted)] mt-1">{{ descriptionLength }}/500 ký tự</small>
+          </div>
 
-          <div class="crud-field crud-field-full">
-            <span>Brand logo</span>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Brand logo</span>
             <MediaUpload
               v-model="logoPreviewUrl"
               folder="settings"
@@ -348,8 +360,8 @@ onMounted(fetchSettings)
             />
           </div>
 
-          <div class="crud-field crud-field-full">
-            <span>Ảnh trang xác thực</span>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Ảnh trang xác thực</span>
             <MediaUpload
               v-model="authImagePreviewUrl"
               folder="settings"
@@ -363,8 +375,8 @@ onMounted(fetchSettings)
             />
           </div>
 
-          <div class="crud-field crud-field-full">
-            <span>Favicon</span>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Favicon</span>
             <MediaUpload
               v-model="faviconPreviewUrl"
               folder="settings"
@@ -380,211 +392,159 @@ onMounted(fetchSettings)
         </div>
 
         <!-- Contact -->
-        <div v-show="activeTab === 'contact'" class="crud-form-grid">
-          <label class="crud-field">
-            <span>Email liên hệ</span>
-            <input v-model="form.contact_email" type="email" placeholder="contact@example.com">
-          </label>
-          <label class="crud-field">
-            <span>Hotline / Số điện thoại</span>
-            <input v-model="form.contact_phone" type="text" placeholder="0123 456 789">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Địa chỉ</span>
-            <input v-model="form.contact_address" type="text" placeholder="Số 1, Đường ABC, Quận XYZ, TP.HCM">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Giờ hỗ trợ</span>
-            <input v-model="form.support_hours" type="text" placeholder="Thứ 2 - Thứ 7, 8:00 - 17:30">
-          </label>
+        <div v-show="activeTab === 'contact'" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Email liên hệ</span>
+            <input v-model="form.contact_email" type="email" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="contact@example.com">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Hotline / Số điện thoại</span>
+            <input v-model="form.contact_phone" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="0123 456 789">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Địa chỉ</span>
+            <input v-model="form.contact_address" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="Số 1, Đường ABC, Quận XYZ, TP.HCM">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Giờ hỗ trợ</span>
+            <input v-model="form.support_hours" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="Thứ 2 - Thứ 7, 8:00 - 17:30">
+          </div>
         </div>
 
         <!-- Social -->
-        <div v-show="activeTab === 'social'" class="crud-form-grid">
-          <label class="crud-field crud-field-full">
-            <span>Facebook</span>
-            <input v-model="form.social_facebook" type="url" placeholder="https://facebook.com/your-page">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>YouTube</span>
-            <input v-model="form.social_youtube" type="url" placeholder="https://youtube.com/@your-channel">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>TikTok</span>
-            <input v-model="form.social_tiktok" type="url" placeholder="https://tiktok.com/@your-account">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>LinkedIn</span>
-            <input v-model="form.social_linkedin" type="url" placeholder="https://linkedin.com/company/your-company">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Zalo</span>
-            <input v-model="form.social_zalo" type="url" placeholder="https://zalo.me/...">
-          </label>
+        <div v-show="activeTab === 'social'" class="flex flex-col gap-4">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Facebook</span>
+            <input v-model="form.social_facebook" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://facebook.com/your-page">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">YouTube</span>
+            <input v-model="form.social_youtube" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://youtube.com/@your-channel">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">TikTok</span>
+            <input v-model="form.social_tiktok" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://tiktok.com/@your-account">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">LinkedIn</span>
+            <input v-model="form.social_linkedin" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://linkedin.com/company/your-company">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Zalo</span>
+            <input v-model="form.social_zalo" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://zalo.me/...">
+          </div>
         </div>
 
         <!-- SMTP -->
-        <div v-show="activeTab === 'smtp'" class="crud-form-grid">
-          <label class="crud-field"><span>SMTP host</span><input v-model="form.smtp_host" type="text" placeholder="smtp.gmail.com"></label>
-          <label class="crud-field"><span>SMTP port</span><input v-model="form.smtp_port" type="text" placeholder="587"></label>
-          <label class="crud-field"><span>SMTP username</span><input v-model="form.smtp_username" type="text" placeholder="noreply@example.com"></label>
-          <label class="crud-field"><span>SMTP password</span><input v-model="form.smtp_password" type="password" placeholder="••••••••" autocomplete="new-password"></label>
-          <label class="crud-field">
-            <span>Mã hóa</span>
-            <select v-model="form.smtp_encryption">
+        <div v-show="activeTab === 'smtp'" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">SMTP host</span>
+            <input v-model="form.smtp_host" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="smtp.gmail.com">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">SMTP port</span>
+            <input v-model="form.smtp_port" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="587">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">SMTP username</span>
+            <input v-model="form.smtp_username" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="noreply@example.com">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">SMTP password</span>
+            <input v-model="form.smtp_password" type="password" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="••••••••" autocomplete="new-password">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Mã hóa</span>
+            <select v-model="form.smtp_encryption" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full cursor-pointer">
               <option value="tls">TLS</option>
               <option value="ssl">SSL</option>
               <option value="none">None</option>
             </select>
-          </label>
-          <label class="crud-field"><span>Email gửi đi</span><input v-model="form.smtp_from_address" type="email" placeholder="noreply@example.com"></label>
-          <label class="crud-field"><span>Tên người gửi</span><input v-model="form.smtp_from_name" type="text" placeholder="Sylva LMS"></label>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Email gửi đi</span>
+            <input v-model="form.smtp_from_address" type="email" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="noreply@example.com">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Tên người gửi</span>
+            <input v-model="form.smtp_from_name" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="Sylva LMS">
+          </div>
 
-          <div class="crud-field crud-field-full settings-test-block">
-            <span>Gửi email kiểm tra</span>
-            <div class="settings-test-row">
-              <input v-model="testEmail" type="email" placeholder="Email nhận thử (vd: ban@example.com)">
-              <button class="crud-secondary-btn" type="button" :disabled="sendingTest || !hasSmtpConfigured" @click="sendTestEmail">
+          <div class="flex flex-col gap-2 md:col-span-2 border-t border-[var(--line)] pt-4 mt-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Gửi email kiểm tra</span>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <input v-model="testEmail" type="email" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] flex-1" placeholder="Email nhận thử (vd: ban@example.com)">
+              <button 
+                class="inline-flex items-center justify-center h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed" 
+                type="button" 
+                :disabled="sendingTest || !hasSmtpConfigured" 
+                @click="sendTestEmail"
+              >
                 {{ sendingTest ? 'Đang gửi...' : 'Gửi thử' }}
               </button>
             </div>
-            <small class="settings-help">Hệ thống sẽ lưu cấu hình rồi gửi một email kiểm tra tới địa chỉ ở trên.</small>
+            <small class="text-[10px] text-[var(--muted)]">Hệ thống sẽ lưu cấu hình rồi gửi một email kiểm tra tới địa chỉ ở trên.</small>
           </div>
         </div>
 
         <!-- Legal / Footer -->
-        <div v-show="activeTab === 'legal'" class="crud-form-grid">
-          <label class="crud-field crud-field-full">
-            <span>Dòng bản quyền (footer)</span>
-            <input v-model="form.footer_copyright" type="text" placeholder="© 2026 Sylva LMS. All rights reserved.">
-          </label>
-          <label class="crud-field">
-            <span>Tên doanh nghiệp</span>
-            <input v-model="form.legal_company_name" type="text" placeholder="Công ty TNHH ABC">
-          </label>
-          <label class="crud-field">
-            <span>Mã số thuế</span>
-            <input v-model="form.legal_tax_code" type="text" placeholder="0312345678">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>URL Điều khoản sử dụng</span>
-            <input v-model="form.terms_url" type="url" placeholder="https://example.com/terms">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>URL Chính sách bảo mật</span>
-            <input v-model="form.privacy_url" type="url" placeholder="https://example.com/privacy">
-          </label>
+        <div v-show="activeTab === 'legal'" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Dòng bản quyền (footer)</span>
+            <input v-model="form.footer_copyright" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="© 2026 Sylva LMS. All rights reserved.">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Tên doanh nghiệp</span>
+            <input v-model="form.legal_company_name" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="Công ty TNHH ABC">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Mã số thuế</span>
+            <input v-model="form.legal_tax_code" type="text" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="0312345678">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">URL Điều khoản sử dụng</span>
+            <input v-model="form.terms_url" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://example.com/terms">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">URL Chính sách bảo mật</span>
+            <input v-model="form.privacy_url" type="url" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full" placeholder="https://example.com/privacy">
+          </div>
         </div>
 
-        <!-- Locale -->
-        <div v-show="activeTab === 'locale'" class="crud-form-grid">
-          <label class="crud-field">
-            <span>Ngôn ngữ mặc định</span>
-            <select v-model="form.default_locale">
+        <!-- Localization -->
+        <div v-show="activeTab === 'locale'" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Ngôn ngữ mặc định</span>
+            <select v-model="form.default_locale" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full cursor-pointer">
               <option value="vi">Tiếng Việt</option>
               <option value="en">English</option>
             </select>
-          </label>
-          <label class="crud-field">
-            <span>Tiền tệ mặc định</span>
-            <select v-model="form.default_currency">
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Tiền tệ mặc định</span>
+            <select v-model="form.default_currency" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full cursor-pointer">
               <option value="VND">VND - Đồng Việt Nam</option>
               <option value="USD">USD - US Dollar</option>
               <option value="EUR">EUR - Euro</option>
               <option value="JPY">JPY - Yên Nhật</option>
             </select>
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Múi giờ</span>
-            <select v-model="form.timezone">
+          </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <span class="text-xs font-semibold text-[var(--text)]">Múi giờ</span>
+            <select v-model="form.timezone" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full cursor-pointer">
               <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</option>
               <option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option>
               <option value="Asia/Singapore">Asia/Singapore (UTC+8)</option>
               <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
               <option value="UTC">UTC</option>
             </select>
-          </label>
+          </div>
         </div>
       </div>
     </section>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.settings-help {
-  display: block;
-  margin-top: 6px;
-  color: var(--color-outline, #64748b);
-  font-size: 12px;
-}
-.settings-upload-wrap { display: grid; gap: 12px; }
-.upload-dropzone {
-  position: relative;
-  display: grid;
-  gap: 6px;
-  padding: 16px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  background: #f8fafc;
-}
-.upload-dropzone-compact { min-width: 320px; }
-.upload-dropzone-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.upload-dropzone-icon { font-size: 24px; }
-
-.settings-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 4px;
-  margin: 8px 0 16px;
-  background: #f1f5f9;
-  border-radius: 12px;
-}
-.settings-tab {
-  flex: 1 1 auto;
-  min-width: 120px;
-  padding: 8px 14px;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 13px;
-  color: #475569;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.settings-tab:hover { color: #0f172a; }
-.settings-tab.is-active {
-  background: #fff;
-  color: #0f172a;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.settings-test-block { gap: 8px; }
-.settings-test-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.settings-test-row input {
-  flex: 1 1 240px;
-  min-width: 240px;
-}
-
-.color-picker-input {
-  padding: 0;
-  border: none;
-  width: 100%;
-  height: 48px;
-  border-radius: 8px;
-  cursor: pointer;
-  background-color: transparent;
-}
-.color-picker-input::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-.color-picker-input::-webkit-color-swatch {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
+/* Scoped styles kept minimal */
 </style>

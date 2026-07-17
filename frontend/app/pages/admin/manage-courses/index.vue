@@ -133,7 +133,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý khóa học', 'Danh sách khóa học']" description="Trang quản lý nội dung các khóa học đã tạo trong hệ thống. Tại đây Admin có thể thêm mới khóa học, cập nhật thông tin và tiến hành xây dựng nội dung bài giảng." title="Khóa học">
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Khóa học</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý nội dung các khóa học trong hệ thống. Thêm mới, cập nhật và xây dựng bài giảng.</p>
+    </div>
     <section class="dashboard-card crud-panel">
       <div class="crud-toolbar">
         <form class="crud-toolbar-main" @submit.prevent="fetchCourses(1)">
@@ -252,7 +258,7 @@ onMounted(() => {
     </Teleport>
 
     <CrudConfirmModal :open="confirmOpen" title="Xóa khóa học" :description="`Thao tác này sẽ xóa hoàn toàn khóa học ${selectedCourse?.title}. Không thể hoàn tác.`" confirm-text="Xóa khóa học" tone="danger" @close="confirmOpen = false" @confirm="deleteCourse" />
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

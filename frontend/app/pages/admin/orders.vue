@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 import { useAuthUserCookie, useAuthTokenCookie } from '~/composables/useAuthSession'
 import { useExport } from '~/composables/useExport'
@@ -175,127 +174,142 @@ onMounted(fetchOrders)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản trị hệ thống', 'Đơn hàng']"
-    description="Theo dõi giao dịch thanh toán theo chuẩn bảng quản trị thống nhất, có bộ lọc, thống kê nhanh và modal xem chi tiết."
-    title="Quản lý đơn hàng"
-  >
-    <div class="ds-stats mb-5">
-      <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><i class="pi pi-shopping-bag" style="font-size:1.0rem" /></div>
-        <p class="ds-stat-label">Tổng đơn</p>
-        <strong class="ds-stat-value">{{ totalOrders }}</strong>
-        <span class="ds-stat-sub">theo bộ lọc hiện tại</span>
-      </div>
-      <div class="ds-stat ds-stat--amber">
-        <div class="ds-stat-icon"><i class="pi pi-credit-card" style="font-size:1.0rem" /></div>
-        <p class="ds-stat-label">Đã thanh toán</p>
-        <strong class="ds-stat-value">{{ paidCount }}</strong>
-        <span class="ds-stat-sub">đơn thành công</span>
-      </div>
-      <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><i class="pi pi-money-bill" style="font-size:1.0rem" /></div>
-        <p class="ds-stat-label">Doanh thu</p>
-        <strong class="ds-stat-value" style="font-size:1.4rem">{{ formatMoney(totalRevenue) }}</strong>
-        <span class="ds-stat-sub">tạm tính hiện tại</span>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Quản trị hệ thống</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Quản lý đơn hàng</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Theo dõi giao dịch thanh toán theo chuẩn bảng quản trị thống nhất, có bộ lọc, thống kê nhanh và modal xem chi tiết.</p>
       </div>
     </div>
 
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <form class="crud-toolbar-main" @submit.prevent="fetchOrders(1)">
-          <input
-            v-model="search"
-            class="crud-search"
-            type="text"
-            placeholder="Tìm theo học viên, email hoặc khóa học..."
+    <!-- Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(29,158,117,0.06)] border-[rgba(29,158,117,0.2)]">
+        <p class="text-xs font-bold uppercase tracking-wider text-[#1d9e75]">Tổng đơn</p>
+        <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ totalOrders }}</strong>
+        <span class="text-xs text-[var(--muted)] font-medium">theo bộ lọc hiện tại</span>
+      </div>
+      <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(245,158,11,0.06)] border-[rgba(245,158,11,0.2)]">
+        <p class="text-xs font-bold uppercase tracking-wider text-amber-600">Đã thanh toán</p>
+        <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ paidCount }}</strong>
+        <span class="text-xs text-[var(--muted)] font-medium">đơn thành công</span>
+      </div>
+      <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(59,130,246,0.06)] border-[rgba(59,130,246,0.2)]">
+        <p class="text-xs font-bold uppercase tracking-wider text-blue-600">Doanh thu</p>
+        <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ formatMoney(totalRevenue) }}</strong>
+        <span class="text-xs text-[var(--muted)] font-medium">tạm tính hiện tại</span>
+      </div>
+    </div>
+
+    <!-- Table panel -->
+    <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+      <div class="flex flex-wrap gap-3 items-center px-5 py-4 border-b border-[var(--line)]">
+        <form class="flex flex-1 min-w-0 gap-2" @submit.prevent="fetchOrders(1)">
+          <div class="relative flex-1 min-w-[180px] max-w-xs">
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" style="font-size:0.8rem" />
+            <input
+              v-model="search"
+              class="w-full h-9 pl-8 pr-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]"
+              placeholder="Tên, email, khóa học..."
+              type="text"
+            >
+          </div>
+          <select
+            v-model="status"
+            class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer"
+            @change="fetchOrders(1)"
           >
-          <select v-model="status" class="crud-select">
             <option v-for="item in statuses" :key="item.value" :value="item.value">
               {{ item.label }}
             </option>
           </select>
-          <button class="crud-secondary-btn" type="submit">
-            Tìm kiếm
-          </button>
         </form>
 
-        <div class="crud-toolbar-right">
-          <button class="crud-export-btn" type="button" @click="exportData">
-            <i class="pi pi-download" style="font-size:1.25rem" />
-            Xuất Excel
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+            type="button"
+            @click="exportData"
+          >
+            <i class="pi pi-download" style="font-size:0.8rem" /> Xuất Excel
           </button>
         </div>
       </div>
 
-      <div class="crud-table-wrap">
+      <div class="overflow-x-auto">
         <UTable :columns="columns" :data="orders" :loading="loading">
           <!-- Header slot for select checkbox -->
           <template #select-header>
-            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll">
+            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" class="rounded border-gray-300 text-[#1d9e75] focus:ring-[#1d9e75]">
           </template>
 
           <template #select-cell="{ row }">
-            <input type="checkbox" v-model="selectedIds" :value="row.original.id">
+            <input type="checkbox" v-model="selectedIds" :value="row.original.id" class="rounded border-gray-300 text-[#1d9e75] focus:ring-[#1d9e75]">
           </template>
           
           <template #index-cell="{ row }">
-            {{ (currentPage - 1) * perPage + row.index + 1 }}
+            <span class="text-xs text-[var(--muted)]">{{ (currentPage - 1) * perPage + row.index + 1 }}</span>
           </template>
           
           <template #user-cell="{ row }">
-            <div class="crud-profile">
-              <div v-if="row.original.user?.avatar" class="crud-avatar">
-                <img :src="row.original.user.avatar" :alt="row.original.user.name">
+            <div class="flex items-center gap-3">
+              <div v-if="row.original.user?.avatar" class="w-8 h-8 rounded-full overflow-hidden border border-[var(--line)]">
+                <img :src="row.original.user.avatar" :alt="row.original.user.name" class="w-full h-full object-cover">
               </div>
-              <div v-else class="crud-avatar crud-avatar-fallback">
+              <div v-else class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-[rgba(29,158,117,0.1)] text-[#085041] border border-[rgba(29,158,117,0.2)]">
                 {{ row.original.user?.name?.slice(0,2).toUpperCase() || 'KH' }}
               </div>
-              <div>
-                <strong>{{ row.original.user?.name || '--' }}</strong>
-                <p>{{ row.original.user?.email || '--' }}</p>
+              <div class="flex flex-col">
+                <span class="text-sm font-semibold text-[var(--text)]">{{ row.original.user?.name || '--' }}</span>
+                <span class="text-xs text-[var(--muted)]">{{ row.original.user?.email || '--' }}</span>
               </div>
             </div>
           </template>
 
           <template #course-cell="{ row }">
-            <div class="crud-course">
-              <div class="crud-course-thumb">
-                <img v-if="row.original.course?.thumbnail" :src="row.original.course.thumbnail" :alt="row.original.course.title">
-                <span v-else>📘</span>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-7 rounded bg-[var(--surface)] border border-[var(--line)] flex items-center justify-center overflow-hidden shrink-0">
+                <img v-if="row.original.course?.thumbnail" :src="row.original.course.thumbnail" :alt="row.original.course.title" class="w-full h-full object-cover">
+                <span v-else class="text-xs">📘</span>
               </div>
-              <div>
-                <strong>{{ row.original.course?.title || '--' }}</strong>
-                <p>#{{ row.original.id }}</p>
+              <div class="flex flex-col min-w-0">
+                <span class="text-sm font-semibold text-[var(--text)] truncate max-w-[200px]" :title="row.original.course?.title">{{ row.original.course?.title || '--' }}</span>
+                <span class="text-xs text-[var(--muted)]">#{{ row.original.id }}</span>
               </div>
             </div>
           </template>
 
           <template #amount-cell="{ row }">
-            {{ formatMoney(row.original.amount) }}
+            <span class="text-sm font-semibold text-[var(--text)]">{{ formatMoney(row.original.amount) }}</span>
           </template>
 
           <template #status-cell="{ row }">
-            <span
-              class="crud-badge"
-              :class="['completed','paid'].includes(row.original.status) ? 'role-instructor' : 'role-admin'"
-            >
-              {{ row.original.status }}
-            </span>
-            <p>{{ row.original.payment_method || '--' }}</p>
+            <div class="flex flex-col items-start gap-1">
+              <span
+                class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
+                :class="['completed','paid'].includes(row.original.status) 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'"
+              >
+                {{ ['completed','paid'].includes(row.original.status) ? 'Thành công' : 'Đang xử lý' }}
+              </span>
+              <span class="text-xs text-[var(--muted)]">{{ row.original.payment_method || '--' }}</span>
+            </div>
           </template>
 
           <template #created_at-cell="{ row }">
-            {{ formatDate(row.original.paid_at || row.original.created_at) }}
+            <span class="text-xs text-[var(--muted)]">{{ formatDate(row.original.paid_at || row.original.created_at) }}</span>
           </template>
 
           <template #actions-cell="{ row }">
-            <div class="crud-actions-dropdown" style="text-align: right">
-              <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(row.original.id)">
-                <i class="pi pi-ellipsis-v" style="font-size:1.25rem" />
+            <div class="relative flex justify-end" style="text-align: right">
+              <button class="w-7 h-7 rounded-lg hover:bg-[var(--surface)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] transition-colors" type="button" @click.stop="toggleDropdown(row.original.id)">
+                <i class="pi pi-ellipsis-v" />
               </button>
-              <div v-if="activeDropdown === row.original.id" class="dropdown-menu">
-                <button class="dropdown-item" type="button" @click="openDetail(row.original)">
+              <div v-if="activeDropdown === row.original.id" class="absolute right-0 top-full mt-1 w-40 bg-white border border-[var(--line)] rounded-xl shadow-lg z-10 py-1 flex flex-col text-left">
+                <button class="px-4 py-2 text-xs font-semibold text-[var(--text)] hover:bg-[var(--surface)] transition-colors w-full text-left" type="button" @click="openDetail(row.original)">
                   Xem chi tiết
                 </button>
               </div>
@@ -314,53 +328,60 @@ onMounted(fetchOrders)
       />
     </section>
 
+    <!-- Detail Modal -->
     <UModal v-model:open="detailOpen" :ui="{ width: 'max-w-2xl' }">
       <template #content>
-        <div class="crud-modal modal-lnd" :style="{ width: '100%' }">
-          <div class="crud-modal-head is-neutral">
+        <div class="w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+          <div class="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[var(--line)]">
             <div>
-              <p class="section-kicker">Chi tiết đơn hàng</p>
-              <h3>Hóa đơn #{{ selectedOrder?.id }}</h3>
+              <p class="text-[0.68rem] font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Chi tiết đơn hàng</p>
+              <h3 class="text-lg font-bold tracking-tight text-[var(--text)]">Hóa đơn #{{ selectedOrder?.id }}</h3>
             </div>
-            <button class="topbar-ghost" type="button" @click="detailOpen = false">✕</button>
+            <button class="w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--line)] text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--text)] transition-colors" type="button" @click="detailOpen = false">✕</button>
           </div>
-          <div class="crud-modal-body">
-            <div class="um-view-profile">
-              <div class="um-vp-header">
-                <div class="ds-avatar ds-avatar--xl" style="display:flex; align-items:center; justify-content:center; background:rgba(29,158,117,0.1); color:var(--green-deep); border-radius:50%; width:56px; height:56px; font-weight:800; font-size:1.4rem;">
+          
+          <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+            <div class="flex flex-col gap-6">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold bg-[rgba(29,158,117,0.1)] text-[#085041] border border-[rgba(29,158,117,0.2)]">
                   {{ selectedOrder?.user?.name ? selectedOrder.user.name.charAt(0).toUpperCase() : 'U' }}
                 </div>
-                <div class="um-vp-title">
-                  <h4>{{ selectedOrder?.user?.name || 'Học viên' }}</h4>
-                  <span class="um-vp-email">{{ selectedOrder?.user?.email || '—' }}</span>
+                <div class="flex flex-col">
+                  <h4 class="text-base font-bold text-[var(--text)]">{{ selectedOrder?.user?.name || 'Học viên' }}</h4>
+                  <span class="text-sm text-[var(--muted)]">{{ selectedOrder?.user?.email || '—' }}</span>
                 </div>
               </div>
 
-              <div class="um-vp-grid" style="margin-top: 24px;">
-                <div class="um-vp-field">
-                  <label>Khóa học mua</label>
-                  <p>{{ selectedOrder?.course?.title || '—' }}</p>
+              <div class="grid grid-cols-2 gap-4 border-t border-[var(--line)] pt-5">
+                <div class="flex flex-col gap-1">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Khóa học mua</span>
+                  <p class="text-sm font-semibold text-[var(--text)]">{{ selectedOrder?.course?.title || '—' }}</p>
                 </div>
-                <div class="um-vp-field">
-                  <label>Số tiền thanh toán</label>
-                  <p style="color: var(--green-deep); font-weight: 700;">{{ selectedOrder ? formatMoney(selectedOrder.amount) : '—' }}</p>
+                <div class="flex flex-col gap-1">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Số tiền thanh toán</span>
+                  <p class="text-sm font-bold text-[#085041]">{{ selectedOrder ? formatMoney(selectedOrder.amount) : '—' }}</p>
                 </div>
-                <div class="um-vp-field">
-                  <label>Phương thức thanh toán</label>
-                  <p>{{ selectedOrder?.payment_method || '—' }}</p>
+                <div class="flex flex-col gap-1">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Phương thức thanh toán</span>
+                  <p class="text-sm font-semibold text-[var(--text)]">{{ selectedOrder?.payment_method || '—' }}</p>
                 </div>
-                <div class="um-vp-field">
-                  <label>Mã tham chiếu giao dịch</label>
-                  <p class="cell-mono">{{ selectedOrder?.payment_ref || '—' }}</p>
+                <div class="flex flex-col gap-1">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Mã tham chiếu giao dịch</span>
+                  <p class="text-sm font-mono text-[var(--text)] break-all">{{ selectedOrder?.payment_ref || '—' }}</p>
                 </div>
-                <div class="um-vp-field">
-                  <label>Thời gian giao dịch</label>
-                  <p>{{ selectedOrder?.paid_at ? formatDate(selectedOrder.paid_at) : formatDate(selectedOrder?.created_at) }}</p>
+                <div class="flex flex-col gap-1">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Thời gian giao dịch</span>
+                  <p class="text-sm font-semibold text-[var(--text)]">{{ selectedOrder?.paid_at ? formatDate(selectedOrder.paid_at) : formatDate(selectedOrder?.created_at) }}</p>
                 </div>
-                <div class="um-vp-field">
-                  <label>Trạng thái</label>
-                  <p>
-                    <span class="status-badge" :class="selectedOrder?.status === 'completed' || selectedOrder?.status === 'paid' ? 'is-success' : 'is-muted'">
+                <div class="flex flex-col gap-1">
+                  <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Trạng thái</span>
+                  <p class="mt-1">
+                    <span 
+                      class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
+                      :class="selectedOrder?.status === 'completed' || selectedOrder?.status === 'paid' 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'"
+                    >
                       {{ selectedOrder?.status === 'completed' || selectedOrder?.status === 'paid' ? 'Hoạt động / Thành công' : 'Đang xử lý' }}
                     </span>
                   </p>
@@ -368,151 +389,24 @@ onMounted(fetchOrders)
               </div>
             </div>
           </div>
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="detailOpen = false">
+          
+          <div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-[var(--line)] bg-[var(--surface)]">
+            <button class="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] transition-colors" type="button" @click="detailOpen = false">
               Đóng
             </button>
           </div>
         </div>
       </template>
     </UModal>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-/* Dropdown Styles */
-.crud-actions-dropdown {
-  position: relative;
-  display: block;
-}
-
-.action-toggle-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  transition: background-color 0.2s;
-}
-
-.action-toggle-btn:hover {
-  background-color: rgba(17, 17, 17, 0.05);
-}
-
+/* Scoped styles only for dropdown item hover and dark mode overrides as required by styling constraints */
 .dropdown-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
   background: white;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 160px;
-  z-index: 50;
-  padding: 8px 0;
-  display: flex;
-  flex-direction: column;
-  text-align: left;
 }
-
-.dropdown-item {
-  background: transparent;
-  border: none;
-  width: 100%;
-  text-align: left;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  color: #1e293b;
-  transition: all 0.2s;
-}
-
-.dropdown-item:hover {
-  background-color: rgba(var(--green-rgb), 0.08);
-  color: var(--green);
-}
-
-/* ====== DARK MODE OVERRIDES ====== */
-[data-theme="dark"] .dropdown-menu { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .dropdown-item { color: var(--text); }
-
-/* Modal layout */
-.modal-lnd {
-  width: 100% !important;
-}
-
-/* Scroll and body padding */
-.crud-modal-body {
-  padding: 24px 28px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-/* Profile Detail View classes */
-.um-view-profile {
-  padding: 0 4px;
-}
-.um-vp-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-.um-vp-title {
-  display: flex;
-  flex-direction: column;
-}
-.um-vp-title h4 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.um-vp-email {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-.um-vp-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 24px;
-  margin-top: 24px;
-  border-top: 1px solid var(--line, #dde5e1);
-  padding-top: 24px;
-}
-.um-vp-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.um-vp-field label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.um-vp-field p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--text);
-  font-weight: 500;
-}
-.status-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-.status-badge.is-success {
-  background: rgba(16, 185, 129, 0.08);
-  color: #10b981;
-}
-.status-badge.is-muted {
-  background: rgba(0, 0, 0, 0.05);
-  color: #666;
+[data-theme="dark"] .dropdown-menu {
+  background: var(--surface-strong);
 }
 </style>

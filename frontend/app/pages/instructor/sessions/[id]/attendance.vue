@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -65,88 +64,107 @@ onMounted(load)
 </script>
 
 <template>
-  <InstructorWorkspaceShell
-    title="Báo cáo điểm danh"
-    :description="data?.session ? `${data.session.title} — ${new Date(data.session.start_at).toLocaleDateString('vi-VN')}` : ''"
-    :breadcrumb="['Trang chủ', 'Học vụ', 'Phiên học', 'Điểm danh']"
-  >
-    <template #actions>
-      <NuxtLink
-        :to="`/instructor/sections/${data?.session?.class_section_id ?? ''}/sessions`"
-        class="crud-secondary-btn"
-      >
-        <span class="material-symbols-outlined">arrow_back</span>
-        Phiên học
-      </NuxtLink>
-    </template>
-
-    <div v-if="loading" class="dashboard-card crud-panel">
-      <div class="crud-empty" style="padding:3rem;">Đang tải...</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Học vụ &bull; Phiên học</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Báo cáo điểm danh</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">{{ data?.session ? `${data.session.title} — ${new Date(data.session.start_at).toLocaleDateString('vi-VN')}` : '' }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <NuxtLink
+          :to="`/instructor/sections/${data?.session?.class_section_id ?? ''}/sessions`"
+          class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors"
+        >
+          <i class="pi pi-arrow-left text-xs" />
+          <span>Phiên học</span>
+        </NuxtLink>
+      </div>
     </div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm text-center py-12 text-xs text-[var(--muted)]">
+      Đang tải...
+    </div>
+    <div v-else-if="error" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ error }}</div>
 
     <template v-else-if="data">
       <!-- KPI -->
-      <div class="ds-stats mb-0">
-        <div class="ds-stat ds-stat--blue">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">people</span></div>
-          <p class="ds-stat-label">Tổng</p>
-          <strong class="ds-stat-value">{{ data.summary.total }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 text-sky-600">
+            <span class="material-symbols-outlined text-lg">people</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Tổng số</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.total }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--green">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">how_to_reg</span></div>
-          <p class="ds-stat-label">Có mặt</p>
-          <strong class="ds-stat-value">{{ data.summary.present }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+            <span class="material-symbols-outlined text-lg">how_to_reg</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Có mặt</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.present }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--amber">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">schedule</span></div>
-          <p class="ds-stat-label">Đi muộn</p>
-          <strong class="ds-stat-value">{{ data.summary.late }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600">
+            <span class="material-symbols-outlined text-lg">schedule</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Đi muộn</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.late }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
-        <div class="ds-stat ds-stat--red">
-          <div class="ds-stat-icon"><span class="material-symbols-outlined">person_off</span></div>
-          <p class="ds-stat-label">Vắng</p>
-          <strong class="ds-stat-value">{{ data.summary.absent }}</strong>
-          <span class="ds-stat-sub">sinh viên</span>
+        <div class="bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl p-4 shadow-sm flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-red-50 text-red-600">
+            <span class="material-symbols-outlined text-lg">person_off</span>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Vắng</p>
+            <strong class="text-base font-extrabold text-[var(--text)] block mt-0.5">{{ data.summary.absent }}</strong>
+            <span class="text-[9px] text-[var(--muted)]">sinh viên</span>
+          </div>
         </div>
       </div>
 
       <!-- Table -->
-      <div class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div>
-            <p class="section-kicker">Chi tiết</p>
-            <h3 class="ds-section-title">Danh sách điểm danh</h3>
-          </div>
+      <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col">
+        <div class="px-5 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex flex-col">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Chi tiết</p>
+          <h3 class="text-xs font-bold text-[var(--text)] mt-0.5">Danh sách điểm danh</h3>
         </div>
-        <div class="crud-table-wrap">
-          <table class="crud-table">
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left border-collapse">
             <thead>
-              <tr>
-                <th>Sinh viên</th>
-                <th>MSSV</th>
-                <th>Trạng thái</th>
-                <th>Thời gian</th>
-                <th>Khoảng cách</th>
+              <tr class="border-b border-[var(--line)] bg-[var(--surface)] text-[0.72rem] font-bold uppercase tracking-wider text-[var(--muted)]">
+                <th class="px-5 py-3">Sinh viên</th>
+                <th class="px-5 py-3">MSSV</th>
+                <th class="px-5 py-3">Trạng thái</th>
+                <th class="px-5 py-3">Thời gian</th>
+                <th class="px-5 py-3">Khoảng cách</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!data.rows.length">
-                <td colspan="5" class="crud-empty">Chưa có dữ liệu điểm danh.</td>
+                <td colspan="5" class="px-5 py-8 text-center text-xs text-[var(--muted)]">Chưa có dữ liệu điểm danh.</td>
               </tr>
-              <tr v-for="row in data.rows" :key="row.user_id">
-                <td><strong>{{ row.name }}</strong></td>
-                <td class="att-mssv">{{ row.student_code ?? '—' }}</td>
-                <td>
-                  <span class="att-badge" :class="`att-badge--${row.status}`">
+              <tr v-for="row in data.rows" :key="row.user_id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+                <td class="px-5 py-4"><strong class="text-xs font-bold text-[var(--text)]">{{ row.name }}</strong></td>
+                <td class="px-5 py-4 text-xs text-[var(--muted)] font-semibold">{{ row.student_code ?? '—' }}</td>
+                <td class="px-5 py-4">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border" :class="statusClass(row.status)">
                     {{ statusLabel(row.status) }}
                   </span>
                 </td>
-                <td class="att-mssv">{{ formatTime(row.checked_in_at) }}</td>
-                <td class="att-mssv">
+                <td class="px-5 py-4 text-xs text-[var(--muted)] font-semibold">{{ formatTime(row.checked_in_at) }}</td>
+                <td class="px-5 py-4 text-xs text-[var(--muted)] font-semibold">
                   {{ row.distance_meters !== null ? `${row.distance_meters.toFixed(1)} m` : '—' }}
                 </td>
               </tr>
@@ -155,16 +173,9 @@ onMounted(load)
         </div>
       </div>
     </template>
-  </InstructorWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.att-mssv { color: var(--muted); font-size: 0.85rem; }
-.att-badge {
-  display: inline-flex; align-items: center; height: 22px; padding: 0 10px;
-  border-radius: 999px; font-size: 0.72rem; font-weight: 700; border: 1px solid transparent;
-}
-.att-badge--present { background: rgba(29,158,117,0.1); color: var(--green-deep); border-color: rgba(29,158,117,0.2); }
-.att-badge--late    { background: rgba(217,119,6,0.1);  color: #b45309;           border-color: rgba(217,119,6,0.2); }
-.att-badge--absent  { background: rgba(239,68,68,0.1);  color: #b91c1c;           border-color: rgba(239,68,68,0.2); }
+/* Scoped styles kept minimal */
 </style>

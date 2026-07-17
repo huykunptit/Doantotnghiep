@@ -64,96 +64,94 @@ function getStatusLabel(status: string) {
 }
 
 function getStatusClass(status: string) {
-  if (status === 'completed') return 'is-completed'
-  if (status === 'learning') return 'is-learning'
-  return 'is-not-started'
+  if (status === 'completed') return 'border-emerald-200 bg-emerald-50/20'
+  if (status === 'learning') return 'border-sky-200 bg-sky-50/20'
+  return 'border-[var(--line)] bg-white'
 }
 </script>
 
 <template>
-  <div class="lp-container">
+  <div class="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-2">
     <!-- Header -->
-    <div class="lp-header-section">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <p class="section-kicker">Đào tạo chính quy</p>
-        <h1 class="lp-page-title">Chương Trình Đào Tạo</h1>
-        <p class="lp-page-sub" v-if="learningPathData?.has_curriculum">
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Đào tạo chính quy</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Chương Trình Đào Tạo</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5" v-if="learningPathData?.has_curriculum">
           Lộ trình học tập chi tiết của bạn thuộc lớp hành chính khoa đào tạo
         </p>
-        <p class="lp-page-sub" v-else>
+        <p class="text-sm text-[var(--muted)] mt-0.5" v-else>
           Theo dõi tiến độ học tập và tích lũy tín chỉ trong lộ trình
         </p>
       </div>
-      <NuxtLink to="/student/recommendations" class="lp-recommend-btn">
-        <i class="pi pi-sparkles" style="font-size:0.875rem" /> Gợi ý học phần
+      <NuxtLink to="/student/recommendations" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-all">
+        <span class="material-symbols-outlined text-sm">sparkles</span> Gợi ý học phần
       </NuxtLink>
     </div>
 
     <!-- Loading Shimmer -->
-    <div v-if="loading" class="lp-loading-wrapper">
-      <div class="dashboard-card shimmer-banner"></div>
-      <div v-for="i in 3" :key="i" class="shimmer-accordion-item"></div>
+    <div v-if="loading" class="flex flex-col gap-4 animate-pulse">
+      <div class="h-32 bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl"></div>
+      <div v-for="i in 3" :key="i" class="h-16 bg-[var(--surface-strong)] border border-[var(--line)] rounded-xl"></div>
     </div>
 
     <!-- Empty/No Curriculum Error -->
-    <div v-else-if="!learningPathData?.has_curriculum" class="lp-empty-card dashboard-card">
-      <i class="pi pi-clone" style="font-size:3.0rem" />
-      <h3>Chưa gán Chương trình đào tạo</h3>
-      <p>{{ learningPathData?.message || 'Tài khoản của bạn chưa được gán lộ trình hoặc lớp học hành chính.' }}</p>
-      <NuxtLink to="/student/courses" class="primary-action-btn">Khám phá các khóa học</NuxtLink>
+    <div v-else-if="!learningPathData?.has_curriculum" class="flex flex-col items-center gap-4 text-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm px-6">
+      <span class="material-symbols-outlined text-5xl text-[var(--muted)] opacity-60">clone</span>
+      <h3 class="text-base font-bold text-[var(--text)]">Chưa gán Chương trình đào tạo</h3>
+      <p class="text-xs text-[var(--muted)] max-w-md">{{ learningPathData?.message || 'Tài khoản của bạn chưa được gán lộ trình hoặc lớp học hành chính.' }}</p>
+      <NuxtLink to="/student/courses" class="inline-flex items-center h-9 px-5 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors mt-2">Khám phá các khóa học</NuxtLink>
     </div>
 
-    <div v-else class="lp-content-layout">
+    <div v-else class="flex flex-col gap-6">
       <!-- Overall progress card -->
-      <div class="dashboard-card lp-progress-banner">
-        <div class="progress-info">
-          <div class="info-block">
-            <span class="info-label">Chương trình học</span>
-            <strong class="info-value text-primary">{{ learningPathData.curriculum_name }}</strong>
-            <span class="info-code">Mã CTĐT: {{ learningPathData.curriculum_code }}</span>
+      <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <div class="flex flex-col">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Chương trình học</span>
+            <strong class="text-lg font-extrabold text-[#1d9e75] mt-1">{{ learningPathData.curriculum_name }}</strong>
+            <span class="text-xs text-[var(--muted)] mt-1 font-semibold">Mã CTĐT: {{ learningPathData.curriculum_code }}</span>
           </div>
-          <div class="progress-bar-container">
-            <div class="progress-stat">
+          <div class="flex flex-col gap-2">
+            <div class="flex justify-between items-center text-xs font-semibold text-[var(--text)]">
               <span>Tiến độ tích lũy tín chỉ</span>
               <strong>{{ learningPathData.total_credits_earned }} / {{ learningPathData.total_credits_required }} Tín chỉ</strong>
             </div>
-            <div class="progress-track-bg">
-              <div class="progress-fill-bar" :style="{ width: `${overallCreditsProgress}%` }"></div>
+            <div class="h-2 bg-slate-100 rounded-full overflow-hidden border border-[var(--line)]">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-[#1d9e75] rounded-full transition-all" :style="{ width: `${overallCreditsProgress}%` }"></div>
             </div>
-            <span class="percentage-badge">{{ overallCreditsProgress }}% Hoàn tất chương trình</span>
+            <span class="text-[10px] font-bold text-[#1d9e75]">{{ overallCreditsProgress }}% Hoàn tất chương trình</span>
           </div>
         </div>
       </div>
 
       <!-- Semesters Accordion -->
-      <div class="lp-semesters-wrapper">
+      <div class="flex flex-col gap-4">
         <div 
           v-for="term in learningPathData.terms" 
           :key="term.term_number" 
-          class="term-accordion-item dashboard-card"
-          :class="{ 'is-open': expandedTerms.includes(term.term_number) }"
+          class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm transition-all"
         >
           <!-- Accordion Header -->
-          <div class="term-header" @click="toggleTerm(term.term_number)">
-            <div class="term-header-left">
-              <div class="term-num-badge">Học kỳ {{ term.term_number }}</div>
-              <div class="term-header-summary">
-                <span class="term-credits-stat">Số tín chỉ: <strong>{{ term.credits }}</strong></span>
-                <span class="dot-separator">•</span>
-                <span class="term-completed-stat">
+          <div class="px-5 py-4 bg-[var(--surface)] hover:bg-[var(--surface-strong)] flex justify-between items-center cursor-pointer transition-colors" @click="toggleTerm(term.term_number)">
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="bg-slate-200 text-slate-800 px-3 py-1 rounded-full text-xs font-bold">Học kỳ {{ term.term_number }}</div>
+              <div class="flex items-center gap-2 text-xs text-[var(--muted)] font-semibold">
+                <span>Số tín chỉ: <strong>{{ term.credits }}</strong></span>
+                <span class="text-slate-300">•</span>
+                <span>
                   Đã đạt: <strong>{{ getTermCompletedCount(term.courses) }} / {{ term.courses.length }}</strong> môn học
                 </span>
               </div>
             </div>
-            <div class="term-header-right">
-              <i v-if="!expandedTerms.includes(term.term_number)" class="pi pi-chevron-down" style="font-size:1.25rem" />
-              <i v-else class="pi pi-chevron-up" style="font-size:1.25rem" />
+            <div class="text-[var(--muted)]">
+              <span class="material-symbols-outlined text-lg leading-none align-middle">{{ expandedTerms.includes(term.term_number) ? 'expand_less' : 'expand_more' }}</span>
             </div>
           </div>
 
           <!-- Accordion Content -->
-          <div v-show="expandedTerms.includes(term.term_number)" class="term-courses-list">
-            <div v-if="term.courses.length === 0" class="course-row-empty">
+          <div v-show="expandedTerms.includes(term.term_number)" class="p-5 flex flex-col gap-3 border-t border-[var(--line)]">
+            <div v-if="term.courses.length === 0" class="text-center py-6 text-xs text-[var(--muted)] font-semibold italic">
               Chưa có học phần nào được thiết lập cho học kỳ này.
             </div>
             
@@ -161,23 +159,21 @@ function getStatusClass(status: string) {
               v-else 
               v-for="course in term.courses" 
               :key="course.id" 
-              class="course-row-item"
+              class="border rounded-2xl p-4 flex flex-col lg:flex-row justify-between lg:items-center gap-4 hover:shadow-sm transition-all"
               :class="getStatusClass(course.status)"
             >
-              <!-- Course Thumb / Info -->
-              <div class="course-row-meta">
-                <div class="course-status-icon">
-                  <i v-if="course.status === 'completed'" class="pi pi-check-circle completed-check" style="font-size:1.125rem" />
-                  <i v-else-if="course.status === 'learning'" class="pi pi-clock learning-clock" style="font-size:1.125rem" />
-                  <i v-else class="pi pi-question-circle notstarted-help" style="font-size:1.125rem" />
+              <!-- Course Status & Info -->
+              <div class="flex items-center gap-3 flex-1">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" :class="course.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : course.status === 'learning' ? 'bg-sky-50 text-sky-600' : 'bg-slate-100 text-slate-400'">
+                  <span class="material-symbols-outlined text-base">{{ course.status === 'completed' ? 'check_circle' : course.status === 'learning' ? 'schedule' : 'help' }}</span>
                 </div>
-                <div class="course-title-block">
-                  <NuxtLink :to="`/student/courses/${course.id}`" class="course-link-title">
+                <div class="flex flex-col gap-1.5">
+                  <NuxtLink :to="`/student/courses/${course.id}`" class="text-xs font-bold text-[var(--text)] hover:text-[#1d9e75] transition-colors">
                     {{ course.title }}
                   </NuxtLink>
-                  <div class="course-badges">
-                    <span class="badge credit-badge">{{ course.credits }} tín chỉ</span>
-                    <span class="badge mode-badge" :class="course.course_mode">
+                  <div class="flex items-center gap-2">
+                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">{{ course.credits }} tín chỉ</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border" :class="course.course_mode === 'core' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'">
                       {{ course.course_mode === 'core' ? 'Bắt buộc' : 'Tự chọn' }}
                     </span>
                   </div>
@@ -185,29 +181,31 @@ function getStatusClass(status: string) {
               </div>
 
               <!-- Course Progress & Grade -->
-              <div class="course-row-progress" v-if="course.status !== 'not_started'">
-                <div class="progress-mini-bar">
-                  <div class="progress-fill" :style="{ width: `${course.progress}%` }"></div>
+              <div class="flex items-center gap-4 w-full lg:w-48" v-if="course.status !== 'not_started'">
+                <div class="flex flex-col gap-1 flex-1">
+                  <div class="h-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-sky-500 rounded-full" :class="{ '!bg-emerald-500': course.status === 'completed' }" :style="{ width: `${course.progress}%` }"></div>
+                  </div>
+                  <span class="text-[10px] font-semibold text-[var(--muted)]">Tiến độ: {{ Math.round(course.progress) }}%</span>
                 </div>
-                <span class="progress-pct-text">Tiến độ: {{ Math.round(course.progress) }}%</span>
-                <span class="grade-badge" v-if="course.final_score !== null">
-                  Điểm: <strong>{{ course.final_score }}</strong>
-                </span>
+                <div v-if="course.final_score !== null" class="px-2 py-1 bg-slate-100 rounded-lg border border-slate-200 text-[10px] text-[var(--text)]">
+                  Điểm: <strong class="text-xs font-bold text-emerald-600">{{ course.final_score }}</strong>
+                </div>
               </div>
-              <div class="course-row-progress not-enrolled" v-else>
-                <span class="not-enrolled-text">Môn học chưa đăng ký học kỳ này</span>
+              <div class="w-full lg:w-48 text-right text-[10px] font-semibold text-[var(--muted)] italic" v-else>
+                Học phần chưa đăng ký học kỳ này
               </div>
 
               <!-- Course Row Actions -->
-              <div class="course-row-action">
-                <span class="status-tag" :class="course.status">
+              <div class="flex items-center justify-between lg:justify-end gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-[var(--line)]">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border" :class="course.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : course.status === 'learning' ? 'bg-sky-50 text-sky-600 border-sky-100' : 'bg-slate-50 text-slate-500 border-slate-200'">
                   {{ getStatusLabel(course.status) }}
                 </span>
                 
                 <NuxtLink 
                   :to="`/student/courses/${course.id}`" 
-                  class="action-button-link"
-                  :class="course.status"
+                  class="h-7 px-3 rounded-lg text-[10px] font-bold inline-flex items-center justify-center transition-colors"
+                  :class="course.status === 'completed' ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : course.status === 'learning' ? 'bg-sky-600 hover:bg-sky-700 text-white' : 'bg-white border border-[var(--line)] hover:bg-[var(--surface)] text-[var(--text)]'"
                 >
                   {{ course.status === 'completed' ? 'Ôn tập bài' : course.status === 'learning' ? 'Học tiếp' : 'Xem thông tin' }}
                 </NuxtLink>
@@ -221,523 +219,5 @@ function getStatusClass(status: string) {
 </template>
 
 <style scoped>
-.lp-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.lp-header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.section-kicker {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--green-deep, #047857);
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-
-.lp-page-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 0 0 6px 0;
-}
-
-.lp-page-sub {
-  font-size: 0.88rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.lp-recommend-btn {
-  background: #ecfdf5;
-  color: #047857;
-  padding: 8px 16px;
-  border-radius: 10px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  transition: all 160ms ease;
-}
-
-.lp-recommend-btn:hover {
-  background: #d1fae5;
-  transform: translateY(-1px);
-}
-
-/* Loading Shimmer */
-.lp-loading-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.shimmer-banner {
-  height: 120px;
-  border-radius: 16px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmerAnim 1.5s infinite;
-}
-
-.shimmer-accordion-item {
-  height: 60px;
-  border-radius: 12px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  animation: shimmerAnim 1.5s infinite;
-}
-
-@keyframes shimmerAnim {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Empty State */
-.lp-empty-card {
-  padding: 48px 24px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.empty-icon {
-  color: #94a3b8;
-}
-
-.lp-empty-card h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin: 0;
-  color: #334155;
-}
-
-.lp-empty-card p {
-  color: #64748b;
-  font-size: 0.9rem;
-  max-width: 420px;
-  margin: 0;
-}
-
-.primary-action-btn {
-  background: var(--green-deep, #047857);
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: background 150ms;
-}
-
-.primary-action-btn:hover {
-  background: #065f46;
-}
-
-/* Progress Banner */
-.lp-progress-banner {
-  padding: 24px;
-}
-
-.progress-info {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: center;
-}
-
-@media (max-width: 768px) {
-  .progress-info {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-.info-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.info-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin: 4px 0;
-}
-
-.info-code {
-  font-size: 0.8rem;
-  color: #64748b;
-}
-
-.progress-bar-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.progress-stat {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #475569;
-}
-
-.progress-track-bg {
-  height: 8px;
-  background: #e2e8f0;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.progress-fill-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #10b981, #059669);
-  border-radius: 99px;
-  transition: width 500ms ease;
-}
-
-.percentage-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #059669;
-}
-
-/* Semesters Accordions */
-.lp-semesters-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.term-accordion-item {
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-  transition: all 200ms ease;
-}
-
-.term-accordion-item.is-open {
-  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-}
-
-.term-header {
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  background: #f8fafc;
-  transition: background 150ms;
-}
-
-.term-header:hover {
-  background: #f1f5f9;
-}
-
-.term-header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.term-num-badge {
-  background: #e2e8f0;
-  color: #334155;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.term-header-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-  color: #64748b;
-}
-
-.dot-separator {
-  color: #cbd5e1;
-}
-
-.term-header-right {
-  color: #64748b;
-}
-
-.term-courses-list {
-  padding: 10px 20px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-top: 1px solid rgba(0,0,0,0.03);
-}
-
-.course-row-empty {
-  padding: 16px;
-  text-align: center;
-  color: #94a3b8;
-  font-style: italic;
-  font-size: 0.85rem;
-}
-
-/* Course Rows */
-.course-row-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  gap: 16px;
-  transition: all 150ms;
-}
-
-.course-row-item:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-}
-
-@media (max-width: 960px) {
-  .course-row-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-}
-
-.course-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.course-status-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.completed-check {
-  color: #10b981;
-}
-
-.learning-clock {
-  color: #3b82f6;
-}
-
-.notstarted-help {
-  color: #94a3b8;
-}
-
-.course-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.course-link-title {
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: #334155;
-  text-decoration: none;
-  transition: color 150ms;
-}
-
-.course-link-title:hover {
-  color: var(--green-deep, #047857);
-}
-
-.course-badges {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.credit-badge {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.mode-badge.core {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.mode-badge.elective {
-  background: #f0fdf4;
-  color: #15803d;
-}
-
-/* Progress area in course row */
-.course-row-progress {
-  display: flex;
-  flex-direction: column;
-  width: 180px;
-  gap: 4px;
-}
-
-@media (max-width: 960px) {
-  .course-row-progress {
-    width: 100%;
-  }
-}
-
-.progress-mini-bar {
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.progress-mini-bar .progress-fill {
-  height: 100%;
-  background: #3b82f6;
-  border-radius: 99px;
-}
-
-.course-row-item.is-completed .progress-mini-bar .progress-fill {
-  background: #10b981;
-}
-
-.progress-pct-text {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.grade-badge {
-  font-size: 0.72rem;
-  color: #0f172a;
-}
-
-.grade-badge strong {
-  color: #10b981;
-  font-size: 0.8rem;
-}
-
-.not-enrolled-text {
-  font-size: 0.78rem;
-  color: #94a3b8;
-  font-style: italic;
-}
-
-/* Row Actions */
-.course-row-action {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-@media (max-width: 960px) {
-  .course-row-action {
-    justify-content: space-between;
-  }
-}
-
-.status-tag {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 20px;
-  border: 1px solid #cbd5e1;
-  color: #64748b;
-  background: #f8fafc;
-}
-
-.status-tag.completed {
-  background: #ecfdf5;
-  color: #047857;
-  border-color: #a7f3d0;
-}
-
-.status-tag.learning {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
-}
-
-.action-button-link {
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 6px 14px;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: all 150ms;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.action-button-link.completed {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.action-button-link.completed:hover {
-  background: #e2e8f0;
-}
-
-.action-button-link.learning {
-  background: #3b82f6;
-  color: #fff;
-}
-
-.action-button-link.learning:hover {
-  background: #2563eb;
-}
-
-.action-button-link.not_started {
-  background: #f1f5f9;
-  color: #0f172a;
-  border: 1px solid #cbd5e1;
-}
-
-.action-button-link.not_started:hover {
-  background: #e2e8f0;
-}
-
-/* Dark mode adjustment override */
-[data-theme="dark"] .term-header {
-  background: #1e293b;
-}
-[data-theme="dark"] .course-row-item {
-  background: #0f172a;
-  border-color: #334155;
-}
-[data-theme="dark"] .lp-page-title {
-  color: #f1f5f9;
-}
+/* Scoped styles kept minimal */
 </style>

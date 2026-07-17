@@ -93,310 +93,144 @@ function formatDateShort(raw: string) {
 </script>
 
 <template>
-  <div class="cl-page">
-    <!-- Header -->
-    <div class="cl-header">
+  <div class="flex flex-col gap-5">
+    <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <p class="section-kicker">Lịch học</p>
-        <h1 class="cl-title">Lịch & Sự kiện</h1>
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Lịch học</p>
+        <h1 class="text-2xl font-extrabold text-slate-900 mt-1">Lịch & Sự kiện</h1>
       </div>
-      <div class="cl-header-actions">
-        <button class="cl-today-btn" @click="goToday">Hôm nay</button>
-        <div class="cl-view-toggle">
-          <button :class="['cl-vt-btn', {active: view==='month'}]" @click="view='month'">
-            <SylvaIcon name="calendar" :size="14" /> Tháng
+      <div class="flex items-center gap-2">
+        <button class="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors" @click="goToday">Hôm nay</button>
+        <div class="flex border border-slate-200 rounded-lg overflow-hidden">
+          <button :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors', view === 'month' ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-slate-500 hover:bg-slate-50']" @click="view='month'">
+            <span class="material-symbols-outlined text-sm">calendar_month</span> Tháng
           </button>
-          <button :class="['cl-vt-btn', {active: view==='agenda'}]" @click="view='agenda'">
-            <SylvaIcon name="list" :size="14" /> Danh sách
+          <button :class="['flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors', view === 'agenda' ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-slate-500 hover:bg-slate-50']" @click="view='agenda'">
+            <span class="material-symbols-outlined text-sm">list</span> Danh sách
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Month view -->
-    <div v-if="view==='month'" class="cl-month-layout">
-      <!-- Calendar -->
-      <div class="dashboard-card cl-cal-wrap">
-        <!-- Nav bar -->
-        <div class="cl-nav">
-          <button class="cl-nav-btn" @click="prevMonth" aria-label="Tháng trước">
-            <SylvaIcon name="chevron-left" :size="16" />
+    <div v-if="view==='month'" class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-50 hover:text-slate-900 transition-colors" @click="prevMonth" aria-label="Tháng trước">
+            <span class="material-symbols-outlined text-base">chevron_left</span>
           </button>
-          <h2 class="cl-nav-label">{{ calLabel }}</h2>
-          <button class="cl-nav-btn" @click="nextMonth" aria-label="Tháng sau">
-            <SylvaIcon name="chevron-right" :size="16" />
+          <h2 class="text-sm font-bold text-slate-900">{{ calLabel }}</h2>
+          <button class="w-8 h-8 rounded-lg border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-50 hover:text-slate-900 transition-colors" @click="nextMonth" aria-label="Tháng sau">
+            <span class="material-symbols-outlined text-base">chevron_right</span>
           </button>
         </div>
 
-        <!-- Shimmer -->
-        <div v-if="loading" class="cl-skeleton">
-          <span v-for="i in 35" :key="i" class="sd-shimmer cl-sk-cell"></span>
+        <div v-if="loading" class="grid grid-cols-7 gap-1">
+          <span v-for="i in 35" :key="i" class="h-20 bg-slate-100 animate-pulse rounded-lg"></span>
         </div>
 
-        <!-- Calendar grid -->
-        <div v-else class="cl-grid">
-          <div v-for="d in DAYS_VI" :key="d" class="cl-dow">{{ d }}</div>
+        <div v-else class="grid grid-cols-7 gap-1">
+          <div v-for="d in DAYS_VI" :key="d" class="text-center text-[10px] font-bold text-slate-400 uppercase py-1">{{ d }}</div>
           <div
             v-for="(cell, idx) in calendarDays"
             :key="idx"
-            class="cl-cell"
+            class="min-h-[84px] rounded-lg border border-transparent p-1 cursor-pointer transition-colors flex flex-col gap-1"
             :class="{
-              empty: !cell.inMonth,
-              today: cell.isToday,
-              selected: selectedDate === cell.dateStr && cell.inMonth,
-              'has-event': cell.events.length > 0
+              'bg-slate-50': !cell.inMonth,
+              'bg-emerald-50 border-emerald-500': cell.isToday || (selectedDate === cell.dateStr && cell.inMonth),
+              'hover:bg-slate-50 border-slate-100': cell.inMonth && !cell.isToday && selectedDate !== cell.dateStr,
+              'cursor-default': !cell.inMonth
             }"
             @click="cell.inMonth && (selectedDate = selectedDate === cell.dateStr ? null : cell.dateStr)"
           >
-            <span v-if="cell.inMonth" class="cl-day-num">{{ cell.day }}</span>
-            <div v-if="cell.events.length" class="cl-event-pills">
-              <span v-for="(ev, ei) in cell.events.slice(0,2)" :key="ei" class="cl-pill">
+            <span v-if="cell.inMonth" class="text-xs font-bold" :class="cell.isToday ? 'text-emerald-700' : 'text-slate-900'">{{ cell.day }}</span>
+            <div v-if="cell.events.length" class="flex flex-col gap-0.5">
+              <span v-for="(ev, ei) in cell.events.slice(0,2)" :key="ei" class="text-[9px] font-bold bg-emerald-500 text-white px-1 py-0.5 rounded truncate">
                 {{ ev.title?.slice(0,12) || 'Kỳ thi' }}
               </span>
-              <span v-if="cell.events.length > 2" class="cl-pill cl-pill-more">+{{ cell.events.length - 2 }}</span>
+              <span v-if="cell.events.length > 2" class="text-[9px] text-slate-400 pl-0.5 font-bold">+{{ cell.events.length - 2 }}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Detail panel -->
-      <div class="cl-detail-panel">
-        <div v-if="selectedDate && selectedEvents.length" class="dashboard-card cl-detail-card">
-          <h3 class="cl-detail-date">
+      <div class="flex flex-col gap-4">
+        <div v-if="selectedDate && selectedEvents.length" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-900 mb-3 border-b border-slate-100 pb-2">
             {{ new Date(selectedDate + 'T00:00:00').toLocaleDateString('vi-VN', {weekday:'long',day:'2-digit',month:'long',year:'numeric'}) }}
           </h3>
-          <div class="cl-detail-list">
-            <div v-for="ev in selectedEvents" :key="ev.id" class="cl-detail-item">
-              <div class="cl-detail-icon">
-                <SylvaIcon name="clipboard-list" :size="16" />
+          <div class="flex flex-col gap-3">
+            <div v-for="ev in selectedEvents" :key="ev.id" class="flex gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-base">assignment</span>
               </div>
-              <div class="cl-detail-info">
-                <p class="cl-detail-name">{{ ev.title || ev.name }}</p>
-                <p class="cl-detail-course">{{ ev.course?.title || 'Kỳ thi độc lập' }}</p>
-                <p class="cl-detail-time">{{ formatDateTime(ev.start_time || ev.date) }}</p>
-                <p v-if="ev.duration_minutes" class="cl-detail-dur">
-                  <SylvaIcon name="clock" :size="11" /> {{ ev.duration_minutes }} phút
-                </p>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-slate-900 truncate">{{ ev.title || ev.name }}</p>
+                <p class="text-[10px] text-slate-500 truncate">{{ ev.course?.title || 'Kỳ thi độc lập' }}</p>
+                <p class="text-[10px] text-emerald-600 font-bold mt-0.5">{{ formatDateTime(ev.start_time || ev.date) }}</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-else-if="selectedDate" class="dashboard-card cl-detail-card cl-no-event">
-          <SylvaIcon name="calendar" :size="32" />
-          <p>Không có sự kiện trong ngày này.</p>
+        <div v-else-if="selectedDate" class="bg-white border border-slate-200 rounded-2xl p-6 text-center flex flex-col items-center gap-2 text-slate-400">
+          <span class="material-symbols-outlined text-3xl">calendar_today</span>
+          <p class="text-xs font-medium">Không có sự kiện trong ngày này.</p>
         </div>
 
-        <!-- Upcoming sidebar -->
-        <div class="dashboard-card cl-upcoming">
-          <h3 class="cl-upcoming-title">Sắp tới</h3>
-          <div v-if="loading" class="cl-upcoming-list">
-            <span v-for="i in 5" :key="i" class="sd-shimmer" style="height:52px;border-radius:10px;display:block"></span>
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <h3 class="text-xs font-bold text-slate-900 mb-3">Sắp tới</h3>
+          <div v-if="loading" class="flex flex-col gap-2">
+            <span v-for="i in 5" :key="i" class="h-12 bg-slate-100 animate-pulse rounded-lg"></span>
           </div>
-          <div v-else-if="agendaExams.length" class="cl-upcoming-list">
-            <div v-for="ev in agendaExams.slice(0,6)" :key="ev.id" class="cl-upcoming-item"
+          <div v-else-if="agendaExams.length" class="flex flex-col gap-2">
+            <div v-for="ev in agendaExams.slice(0,6)" :key="ev.id" class="flex items-center gap-3 p-2 rounded-lg border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 transition-all cursor-pointer"
               @click="selectedDate = eventDateStr(ev); calYear = new Date(ev.start_time||ev.date).getFullYear(); calMonth = new Date(ev.start_time||ev.date).getMonth()">
-              <div class="cl-up-date">
-                <span class="cl-up-day">{{ new Date(ev.start_time||ev.date).getDate() }}</span>
-                <span class="cl-up-month">{{ MONTHS_VI[new Date(ev.start_time||ev.date).getMonth()].slice(2) }}</span>
+              <div class="w-9 text-center bg-emerald-50 rounded-lg py-1 flex-shrink-0">
+                <span class="block text-sm font-extrabold text-emerald-700 leading-none">{{ new Date(ev.start_time||ev.date).getDate() }}</span>
+                <span class="block text-[8px] font-bold text-emerald-600 uppercase">{{ MONTHS_VI[new Date(ev.start_time||ev.date).getMonth()].slice(6) }}</span>
               </div>
-              <div class="cl-up-info">
-                <p class="cl-up-name">{{ ev.title || ev.name }}</p>
-                <p class="cl-up-time">{{ new Date(ev.start_time||ev.date).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) }}</p>
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-bold text-slate-900 truncate">{{ ev.title || ev.name }}</p>
+                <p class="text-[10px] text-slate-500">{{ new Date(ev.start_time||ev.date).toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit'}) }}</p>
               </div>
             </div>
           </div>
-          <p v-else class="cl-no-upcoming">Không có sự kiện sắp tới.</p>
+          <p v-else class="text-xs text-slate-400 text-center py-4">Không có sự kiện sắp tới.</p>
         </div>
       </div>
     </div>
 
-    <!-- Agenda view -->
-    <div v-else class="dashboard-card cl-agenda-wrap">
-      <div v-if="loading">
-        <span v-for="i in 8" :key="i" class="sd-shimmer" style="height:60px;border-radius:10px;display:block;margin-bottom:10px"></span>
+    <div v-else class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div v-if="loading" class="flex flex-col gap-3">
+        <span v-for="i in 8" :key="i" class="h-16 bg-slate-100 animate-pulse rounded-lg"></span>
       </div>
-      <div v-else-if="agendaExams.length" class="cl-agenda-list">
-        <div v-for="ev in agendaExams" :key="ev.id" class="cl-agenda-row">
-          <div class="cl-ag-date-col">
-            <span class="cl-ag-day">{{ new Date(ev.start_time||ev.date).getDate() }}</span>
-            <span class="cl-ag-month">{{ MONTHS_VI[new Date(ev.start_time||ev.date).getMonth()] }}</span>
+      <div v-else-if="agendaExams.length" class="flex flex-col gap-4">
+        <div v-for="ev in agendaExams" :key="ev.id" class="flex items-start gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
+          <div class="w-12 text-center flex-shrink-0 pt-1">
+            <span class="block text-xl font-extrabold text-slate-900 leading-none">{{ new Date(ev.start_time||ev.date).getDate() }}</span>
+            <span class="block text-[10px] font-bold text-slate-400 uppercase mt-1">{{ MONTHS_VI[new Date(ev.start_time||ev.date).getMonth()] }}</span>
           </div>
-          <div class="cl-ag-line"></div>
-          <div class="cl-ag-content">
-            <div class="cl-ag-icon"><SylvaIcon name="clipboard-list" :size="15" /></div>
-            <div class="cl-ag-info">
-              <p class="cl-ag-name">{{ ev.title || ev.name }}</p>
-              <p class="cl-ag-sub">{{ ev.course?.title || 'Kỳ thi độc lập' }} · {{ formatDateTime(ev.start_time || ev.date) }}</p>
-              <p v-if="ev.duration_minutes" class="cl-ag-dur">{{ ev.duration_minutes }} phút</p>
+          <div class="w-px self-stretch bg-slate-200"></div>
+          <div class="flex items-start gap-3 flex-1">
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+              <span class="material-symbols-outlined text-base">assignment</span>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-900 leading-snug">{{ ev.title || ev.name }}</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">{{ ev.course?.title || 'Kỳ thi độc lập' }} &bull; {{ formatDateTime(ev.start_time || ev.date) }}</p>
+              <p v-if="ev.duration_minutes" class="text-[10px] font-bold text-emerald-600 mt-1">{{ ev.duration_minutes }} phút</p>
             </div>
           </div>
         </div>
       </div>
-      <div v-else class="sd-empty">
-        <SylvaIcon name="calendar" :size="40" />
-        <p>Không có sự kiện sắp tới.</p>
+      <div v-else class="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
+        <span class="material-symbols-outlined text-4xl">calendar_today</span>
+        <p class="text-sm font-medium">Không có sự kiện sắp tới.</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.cl-page { display: flex; flex-direction: column; gap: 20px; }
-.cl-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-.cl-title { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 4px 0 0; }
-.cl-header-actions { display: flex; align-items: center; gap: 10px; }
-.cl-today-btn {
-  padding: 7px 14px; border-radius: 8px;
-  border: 1px solid var(--line); background: var(--surface-strong);
-  color: var(--text); font-size: 0.82rem; font-weight: 600; cursor: pointer;
-  transition: background 150ms;
-}
-.cl-today-btn:hover { background: var(--bg); }
-.cl-view-toggle { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.cl-vt-btn {
-  display: flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border: none;
-  background: transparent; color: var(--muted);
-  font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  transition: background 150ms, color 150ms;
-}
-.cl-vt-btn.active { background: var(--green-soft); color: var(--green-deep); }
-
-/* Month layout */
-.cl-month-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
-
-.cl-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.cl-nav-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  border: 1px solid var(--line); background: transparent;
-  color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background 150ms;
-}
-.cl-nav-btn:hover { background: var(--bg); color: var(--text); }
-.cl-nav-label { font-size: 1rem; font-weight: 700; color: var(--text); }
-
-/* Calendar grid */
-.cl-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.cl-dow {
-  text-align: center; font-size: 0.68rem; font-weight: 700;
-  color: var(--muted); padding: 6px 0; text-transform: uppercase;
-}
-.cl-cell {
-  min-height: 84px; border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 4px 5px;
-  cursor: pointer;
-  transition: background 120ms, border-color 120ms;
-  display: flex; flex-direction: column;
-}
-.cl-cell:hover:not(.empty) { background: var(--bg); border-color: var(--line); }
-.cl-cell.today { background: var(--green-soft); border-color: var(--green); }
-.cl-cell.selected { background: var(--green-soft); border-color: var(--green); }
-.cl-cell.has-event:not(.today):not(.selected) { background: rgba(16,185,129,0.04); }
-.cl-cell.empty { cursor: default; }
-.cl-day-num {
-  font-size: 0.82rem; font-weight: 700; color: var(--text);
-  display: block; margin-bottom: 3px;
-}
-.cl-cell.today .cl-day-num {
-  background: var(--green); color: #fff;
-  width: 22px; height: 22px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.75rem;
-}
-.cl-event-pills { display: flex; flex-direction: column; gap: 2px; }
-.cl-pill {
-  font-size: 0.82rem; font-weight: 600;
-  background: var(--green); color: #fff;
-  padding: 1px 5px; border-radius: 4px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.cl-pill-more { background: var(--muted); }
-
-/* Skeleton */
-.cl-skeleton { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.cl-sk-cell { height: 84px; display: block; border-radius: 8px; }
-
-/* Detail panel */
-.cl-detail-panel { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 80px; }
-.cl-detail-card { padding: 16px; }
-.cl-detail-date { font-size: 0.88rem; font-weight: 700; color: var(--text); margin: 0 0 14px; }
-.cl-detail-list { display: flex; flex-direction: column; gap: 12px; }
-.cl-detail-item { display: flex; gap: 10px; }
-.cl-detail-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--green-soft); color: var(--green-deep);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.cl-detail-info { flex: 1; }
-.cl-detail-name { font-size: 0.86rem; font-weight: 700; color: var(--text); margin: 0 0 2px; }
-.cl-detail-course { font-size: 0.74rem; color: var(--muted); margin: 0 0 4px; }
-.cl-detail-time { font-size: 0.76rem; color: var(--green); font-weight: 600; margin: 0 0 3px; }
-.cl-detail-dur { font-size: 0.72rem; color: var(--muted); display: flex; align-items: center; gap: 4px; margin: 0; }
-.cl-no-event { padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--muted); }
-.cl-no-event p { font-size: 0.84rem; }
-
-/* Upcoming */
-.cl-upcoming { padding: 16px; }
-.cl-upcoming-title { font-size: 0.88rem; font-weight: 700; color: var(--text); margin: 0 0 12px; }
-.cl-upcoming-list { display: flex; flex-direction: column; gap: 8px; }
-.cl-upcoming-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px; border-radius: 10px;
-  border: 1px solid var(--line);
-  cursor: pointer; transition: background 150ms;
-}
-.cl-upcoming-item:hover { background: var(--green-soft); border-color: transparent; }
-.cl-up-date {
-  width: 36px; flex-shrink: 0; text-align: center;
-  background: var(--green-soft); border-radius: 8px; padding: 4px 0;
-}
-.cl-up-day { display: block; font-size: 1rem; font-weight: 800; color: var(--green-deep); line-height: 1; }
-.cl-up-month { display: block; font-size: 0.82rem; font-weight: 600; color: var(--green); text-transform: uppercase; }
-.cl-up-info { flex: 1; min-width: 0; }
-.cl-up-name { font-size: 0.8rem; font-weight: 600; color: var(--text); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cl-up-time { font-size: 0.72rem; color: var(--muted); }
-.cl-no-upcoming { font-size: 0.82rem; color: var(--muted); text-align: center; padding: 12px 0; }
-
-/* Agenda view */
-.cl-agenda-wrap { padding: 20px; }
-.cl-agenda-list { display: flex; flex-direction: column; gap: 0; }
-.cl-agenda-row { display: flex; align-items: flex-start; gap: 0; padding: 12px 0; border-bottom: 1px solid var(--line); }
-.cl-agenda-row:last-child { border-bottom: none; }
-.cl-ag-date-col { width: 60px; flex-shrink: 0; text-align: center; padding-top: 2px; }
-.cl-ag-day { display: block; font-size: 1.4rem; font-weight: 800; color: var(--text); line-height: 1; }
-.cl-ag-month { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 600; }
-.cl-ag-line { width: 1px; background: var(--line); margin: 0 16px; align-self: stretch; }
-.cl-ag-content { display: flex; gap: 10px; flex: 1; align-items: flex-start; }
-.cl-ag-icon {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: var(--green-soft); color: var(--green-deep);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.cl-ag-info { flex: 1; }
-.cl-ag-name { font-size: 0.9rem; font-weight: 700; color: var(--text); margin: 0 0 3px; }
-.cl-ag-sub { font-size: 0.78rem; color: var(--muted); margin: 0 0 2px; }
-.cl-ag-dur { font-size: 0.74rem; color: var(--green); font-weight: 600; margin: 0; }
-
-.sd-shimmer { background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%); background-size: 200% 100%; animation: sd-shimmer 1.5s infinite; border-radius: 6px; display: inline-block; }
-@keyframes sd-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.sd-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--muted); gap: 10px; }
-.sd-empty p { font-size: 0.9rem; }
-
-[data-theme="dark"] .cl-cell.today { background: rgba(52,211,153,0.18); }
-[data-theme="dark"] .cl-cell.selected { background: rgba(52,211,153,0.12); }
-[data-theme="dark"] .cl-vt-btn.active { background: rgba(52,211,153,0.15); color: #6ee7b7; }
-[data-theme="dark"] .cl-up-date { background: rgba(52,211,153,0.12); }
-[data-theme="dark"] .cl-up-day { color: #6ee7b7; }
-
-@media (max-width: 900px) {
-  .cl-month-layout { grid-template-columns: 1fr; }
-  .cl-detail-panel { position: static; }
-}
-@media (max-width: 640px) {
-  .cl-header { flex-direction: column; align-items: flex-start; }
-  .cl-cell { min-height: 52px; }
-  .cl-ag-date-col { width: 44px; }
-}
+/* Scoped styles kept minimal */
 </style>

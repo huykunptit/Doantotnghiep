@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin' })
@@ -108,27 +107,35 @@ onMounted(fetchExams)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Theo dõi kỳ thi"
-    description="Chọn một kỳ thi để xem trạng thái thí sinh theo thời gian thực. Điều hướng sang trang giám sát để thực hiện thao tác."
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Theo dõi kỳ thi']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải danh sách kỳ thi...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Theo dõi kỳ thi</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Chọn một kỳ thi để xem trạng thái thí sinh theo thời gian thực.</p>
+    </div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tải danh sách kỳ thi...</div>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
 
     <template v-else>
-      <div class="tracking-layout">
+      <div class="grid gap-5" style="grid-template-columns: 300px 1fr; align-items: start;">
         <!-- Left: exam list -->
-        <aside class="exam-sidebar">
-          <div class="dashboard-card" style="padding: 0; overflow: hidden;">
-            <div style="padding: 16px; border-bottom: 1px solid var(--line);">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <aside class="sticky top-20">
+          <div class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-4 py-4 border-b border-[var(--line)]">
+              <div class="flex justify-between items-start mb-3">
                 <div>
-                  <p class="section-kicker">Kỳ thi độc lập</p>
-                  <h3 style="margin: 4px 0 0;">Chọn kỳ thi</h3>
+                  <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-0.5" style="color:var(--muted)">Kỳ thi độc lập</p>
+                  <h3 class="text-base font-semibold" style="color:var(--text)">Chọn kỳ thi</h3>
                 </div>
-                <button class="crud-primary-btn" type="button" style="flex-shrink: 0;" @click="exportPDF">
-                  <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 2px;">picture_as_pdf</span>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white shrink-0 transition-colors"
+                  style="background:#1d9e75"
+                  @click="exportPDF"
+                >
+                  <i class="pi pi-file text-xs" />
                   PDF
                 </button>
               </div>
@@ -136,137 +143,145 @@ onMounted(fetchExams)
                 v-model="search"
                 type="text"
                 placeholder="Tìm kiếm..."
-                class="crud-search"
-                style="width: 100%;"
+                class="w-full h-9 px-3 rounded-xl text-sm border border-[var(--line)] bg-transparent focus:outline-none focus:border-[#1d9e75] transition-colors"
+                style="color:var(--text)"
               >
             </div>
-            <div style="max-height: 600px; overflow-y: auto;">
-              <div v-if="filteredExams.length === 0" class="crud-empty" style="padding: 2rem;">
+            <div class="max-h-[600px] overflow-y-auto">
+              <div v-if="filteredExams.length === 0" class="py-8 text-center text-sm" style="color:var(--muted)">
                 Không có kỳ thi nào.
               </div>
               <button
                 v-for="exam in filteredExams"
                 :key="exam.id"
                 type="button"
-                class="exam-list-item"
-                :class="{ 'is-selected': String(selectedExamId) === String(exam.id) }"
+                class="block w-full px-4 py-3.5 border-b border-[var(--line)] text-left hover:bg-[var(--surface)] transition-colors last:border-0"
+                :class="String(selectedExamId) === String(exam.id) ? 'bg-[rgba(29,158,117,0.08)] border-l-[3px] border-l-[#1d9e75] !pl-[13px]' : ''"
                 @click="selectExam(String(exam.id))"
               >
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                  <strong style="font-size: 0.875rem; text-align: left;">{{ exam.title }}</strong>
+                <div class="flex justify-between items-start gap-2">
+                  <strong class="text-sm font-semibold" style="color:var(--text)">{{ exam.title }}</strong>
                   <span
-                    class="crud-badge"
-                    :class="exam.status === 'published' ? 'role-instructor' : ''"
-                    style="flex-shrink: 0;"
+                    class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold shrink-0"
+                    :class="exam.status === 'published' ? 'bg-green-50 text-green-700' : ''"
+                    :style="exam.status !== 'published' ? 'background:rgba(17,17,17,.06);color:var(--muted)' : ''"
                   >
                     {{ exam.status === 'published' ? 'Hoạt động' : exam.status }}
                   </span>
                 </div>
-                <p style="font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-align: left;">
-                  {{ exam.enrollments_count || 0 }} thí sinh đăng ký
-                </p>
+                <p class="text-xs mt-1" style="color:var(--muted)">{{ exam.enrollments_count || 0 }} thí sinh đăng ký</p>
               </button>
             </div>
           </div>
         </aside>
 
         <!-- Right: monitor panel -->
-        <div class="monitor-panel">
+        <div class="flex flex-col gap-4">
           <!-- No exam selected -->
-          <div v-if="!selectedExamId" class="dashboard-card crud-empty" style="padding: 4rem; text-align: center;">
-            <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.2; display: block; margin-bottom: 16px;">radar</span>
-            <p>Chọn một kỳ thi từ danh sách bên trái để xem trạng thái thí sinh.</p>
+          <div v-if="!selectedExamId" class="bg-white border border-[var(--line)] rounded-2xl py-16 text-center shadow-sm">
+            <i class="pi pi-eye-slash text-4xl mb-4 block opacity-20" />
+            <p class="text-sm" style="color:var(--muted)">Chọn một kỳ thi từ danh sách bên trái để xem trạng thái thí sinh.</p>
           </div>
 
           <!-- Loading -->
-          <div v-else-if="monitorLoading" class="dashboard-card crud-empty">Đang tải dữ liệu giám sát...</div>
+          <div v-else-if="monitorLoading" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tải dữ liệu giám sát...</div>
 
           <!-- Error -->
-          <div v-else-if="monitorError" class="crud-alert is-error">{{ monitorError }}</div>
+          <div v-else-if="monitorError" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ monitorError }}</div>
 
           <!-- Monitor data -->
           <template v-else-if="monitorData">
-            <!-- Summary + full monitor link -->
-            <div class="dashboard-card" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <!-- Header + link -->
+            <div class="bg-white border border-[var(--line)] rounded-2xl px-5 py-4 shadow-sm flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p class="section-kicker">Đang xem</p>
-                <h3 style="margin: 4px 0 0;">{{ selectedExam?.title }}</h3>
+                <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-0.5" style="color:var(--muted)">Đang xem</p>
+                <h3 class="text-base font-semibold" style="color:var(--text)">{{ selectedExam?.title }}</h3>
               </div>
               <NuxtLink
                 :to="`/admin/exam-monitor?exam=${selectedExamId}`"
-                class="crud-primary-btn"
-                style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
+                class="inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white transition-colors"
+                style="background:#1d9e75;text-decoration:none"
               >
-                <span class="material-symbols-outlined" style="font-size: 18px;">open_in_new</span>
+                <i class="pi pi-external-link text-xs" />
                 Mở trang giám sát đầy đủ
               </NuxtLink>
             </div>
 
-            <!-- Stats -->
-            <section style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px;">
-              <div class="dashboard-card" style="padding: 14px; text-align: center;">
-                <div style="font-size: 1.75rem; font-weight: 800;">{{ monitorData.summary?.total || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Tổng</div>
+            <!-- Stats row -->
+            <div class="grid gap-3" style="grid-template-columns: repeat(5, 1fr)">
+              <div class="bg-white border border-[var(--line)] rounded-2xl py-3 px-2 text-center shadow-sm">
+                <div class="text-2xl font-extrabold" style="color:var(--text)">{{ monitorData.summary?.total || 0 }}</div>
+                <div class="text-xs mt-0.5" style="color:var(--muted)">Tổng</div>
               </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid var(--green);">
-                <div style="font-size: 1.75rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.in_progress || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Đang thi</div>
+              <div class="bg-white rounded-2xl py-3 px-2 text-center shadow-sm border-l-[3px]" style="border-color:#1d9e75;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)">
+                <div class="text-2xl font-extrabold" style="color:#1d9e75">{{ monitorData.summary?.in_progress || 0 }}</div>
+                <div class="text-xs mt-0.5" style="color:var(--muted)">Đang thi</div>
               </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid #f59e0b;">
-                <div style="font-size: 1.75rem; font-weight: 800; color: #f59e0b;">{{ monitorData.summary?.paused || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Tạm dừng</div>
+              <div class="bg-white rounded-2xl py-3 px-2 text-center shadow-sm border-l-[3px]" style="border-color:#f59e0b;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)">
+                <div class="text-2xl font-extrabold text-amber-500">{{ monitorData.summary?.paused || 0 }}</div>
+                <div class="text-xs mt-0.5" style="color:var(--muted)">Tạm dừng</div>
               </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid #3b82f6;">
-                <div style="font-size: 1.75rem; font-weight: 800; color: #3b82f6;">{{ monitorData.summary?.submitted || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Đã nộp</div>
+              <div class="bg-white rounded-2xl py-3 px-2 text-center shadow-sm border-l-[3px]" style="border-color:#3b82f6;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)">
+                <div class="text-2xl font-extrabold text-blue-500">{{ monitorData.summary?.submitted || 0 }}</div>
+                <div class="text-xs mt-0.5" style="color:var(--muted)">Đã nộp</div>
               </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid #ef4444;">
-                <div style="font-size: 1.75rem; font-weight: 800; color: #ef4444;">{{ monitorData.summary?.force_stopped || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Bị dừng</div>
+              <div class="bg-white rounded-2xl py-3 px-2 text-center shadow-sm border-l-[3px]" style="border-color:#ef4444;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)">
+                <div class="text-2xl font-extrabold text-red-500">{{ monitorData.summary?.force_stopped || 0 }}</div>
+                <div class="text-xs mt-0.5" style="color:var(--muted)">Bị dừng</div>
               </div>
-            </section>
+            </div>
 
-            <!-- Attempts table (read-only) -->
-            <section class="dashboard-card crud-panel">
-              <div class="crud-toolbar">
+            <!-- Attempts table -->
+            <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+              <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--line)]">
                 <div>
-                  <h3 style="margin: 0;">Danh sách thí sinh</h3>
-                  <p style="font-size: 0.8rem; color: var(--muted); margin: 4px 0 0;">Chỉ xem · Dùng trang giám sát để thao tác</p>
+                  <h3 class="text-base font-semibold" style="color:var(--text)">Danh sách thí sinh</h3>
+                  <p class="text-xs mt-0.5" style="color:var(--muted)">Chỉ xem · Dùng trang giám sát để thao tác</p>
                 </div>
-                <div class="crud-toolbar-right">
-                  <button class="crud-export-btn" type="button" :disabled="!monitorData.attempts?.length" @click="exportCSV">
-                    <span class="material-symbols-outlined">download</span>
-                    Xuất Excel
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  :disabled="!monitorData.attempts?.length"
+                  class="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] disabled:opacity-40 transition-colors"
+                  style="color:var(--muted)"
+                  @click="exportCSV"
+                >
+                  <i class="pi pi-download" />
+                  Xuất Excel
+                </button>
               </div>
-              <div class="crud-table-wrap">
-                <table class="crud-table">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
                   <thead>
-                    <tr>
-                      <th>Tên thí sinh</th>
-                      <th>Trạng thái bài thi</th>
-                      <th>Thời gian còn lại</th>
-                      <th>Số vi phạm</th>
+                    <tr class="border-b border-[var(--line)]" style="background:var(--surface)">
+                      <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Tên thí sinh</th>
+                      <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Trạng thái</th>
+                      <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Thời gian còn lại</th>
+                      <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Số vi phạm</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-if="!monitorData.attempts?.length">
-                      <td colspan="4" class="crud-empty">Chưa có thí sinh nào.</td>
+                      <td colspan="4" class="py-12 text-center text-sm" style="color:var(--muted)">Chưa có thí sinh nào.</td>
                     </tr>
-                    <tr v-for="a in (monitorData.attempts || [])" :key="a.id" :style="{ background: statusBg[a.status] || 'transparent' }">
-                      <td>
-                        <strong>{{ a.user?.name || '—' }}</strong>
-                        <p style="font-size: 0.75rem; color: var(--muted);">{{ a.user?.email }}</p>
+                    <tr
+                      v-for="a in (monitorData.attempts || [])"
+                      :key="a.id"
+                      class="border-b border-[var(--line)] transition-colors"
+                      :style="{ background: statusBg[a.status] || 'transparent' }"
+                    >
+                      <td class="px-5 py-3">
+                        <p class="font-semibold" style="color:var(--text)">{{ a.user?.name || '—' }}</p>
+                        <p class="text-xs" style="color:var(--muted)">{{ a.user?.email }}</p>
                       </td>
-                      <td><span style="font-weight: 600;">{{ statusLabel[a.status] || a.status }}</span></td>
-                      <td style="font-family: monospace; font-weight: 700;" :style="{ color: (a.remaining_time || 0) < 300 ? '#ef4444' : 'inherit' }">
+                      <td class="px-5 py-3 font-semibold text-sm" style="color:var(--text)">{{ statusLabel[a.status] || a.status }}</td>
+                      <td
+                        class="px-5 py-3 font-mono font-bold text-sm"
+                        :style="{ color: (a.remaining_time || 0) < 300 ? '#ef4444' : 'var(--text)' }"
+                      >
                         {{ a.remaining_time !== null ? formatTime(a.remaining_time) : '∞' }}
                       </td>
-                      <td>
-                        <span :style="{ color: a.violations_count > 0 ? '#ef4444' : 'var(--green)', fontWeight: '700' }">
-                          {{ a.violations_count > 0 ? `⚠ ${a.violations_count}` : '0' }}
-                        </span>
+                      <td class="px-5 py-3 font-bold text-sm" :style="{ color: a.violations_count > 0 ? '#ef4444' : '#1d9e75' }">
+                        {{ a.violations_count > 0 ? `⚠ ${a.violations_count}` : '0' }}
                       </td>
                     </tr>
                   </tbody>
@@ -277,32 +292,14 @@ onMounted(fetchExams)
         </div>
       </div>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.tracking-layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 24px;
-  align-items: start;
-}
-.exam-sidebar { position: sticky; top: 80px; }
-.exam-list-item {
-  display: block;
-  width: 100%;
-  padding: 14px 16px;
-  border: none;
-  background: transparent;
-  border-bottom: 1px solid var(--line);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.exam-list-item:hover { background: rgba(var(--green-rgb), 0.05); }
-.exam-list-item.is-selected { background: rgba(var(--green-rgb), 0.1); border-left: 3px solid var(--green); }
-.exam-list-item:last-child { border-bottom: none; }
 @media (max-width: 900px) {
-  .tracking-layout { grid-template-columns: 1fr; }
-  .exam-sidebar { position: static; }
+  .grid[style*="grid-template-columns: 300px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  aside.sticky { position: static !important; }
 }
 </style>

@@ -13,14 +13,14 @@ const showModal = ref(false)
 
 onMounted(async () => {
   const h = { Authorization: `Bearer ${auth.token}` }
-  const [r0] = await Promise.allSettled([
-    useApi<any>('/orders', { headers: h }),
-  ])
-  if (r0.status === 'fulfilled') {
-    const d = r0.value
-    orders.value = Array.isArray(d) ? d : (d?.data || [])
+  try {
+    const res = await useApi<any>('/orders', { headers: h })
+    orders.value = Array.isArray(res) ? res : (res?.data || [])
+  } catch {
+    // fallback
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 })
 
 const totalPaid = computed(() => orders.value.filter(o => o.status === 'paid' || o.status === 'completed').reduce((s, o) => s + (o.amount || o.total || 0), 0))
@@ -41,9 +41,9 @@ function statusLabel(s: string) {
 }
 
 function statusClass(s: string) {
-  if (s === 'paid' || s === 'completed') return 'paid'
-  if (s === 'pending') return 'pending'
-  return 'failed'
+  if (s === 'paid' || s === 'completed') return 'bg-emerald-50 text-emerald-700 border-emerald-100'
+  if (s === 'pending') return 'bg-amber-50 text-amber-700 border-amber-100'
+  return 'bg-red-50 text-red-700 border-red-100'
 }
 
 function openInvoice(order: any) {
@@ -53,125 +53,134 @@ function openInvoice(order: any) {
 </script>
 
 <template>
-  <div class="tu-page">
+  <div class="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-2">
     <!-- Header -->
     <div>
-      <p class="section-kicker">Học vụ</p>
-      <h1 class="tu-title">Học phí & Thanh toán</h1>
+      <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Học vụ</p>
+      <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Học phí & Thanh toán</h1>
     </div>
 
     <!-- Summary strip -->
-    <div class="tu-summary">
-      <div class="dashboard-card tu-sum-card">
-        <div class="tu-sum-icon tone-green"><SylvaIcon name="credit-card" :size="20" /></div>
-        <div>
-          <p class="tu-sum-val">{{ loading ? '…' : formatPrice(totalPaid) }}</p>
-          <p class="tu-sum-lbl">Tổng đã thanh toán</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-[#1d9e75] flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-xl">payments</span>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <p class="text-xl font-extrabold text-[var(--text)] leading-none">{{ loading ? '…' : formatPrice(totalPaid) }}</p>
+          <p class="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">Tổng đã thanh toán</p>
         </div>
       </div>
-      <div class="dashboard-card tu-sum-card">
-        <div class="tu-sum-icon tone-blue"><SylvaIcon name="file-text" :size="20" /></div>
-        <div>
-          <p class="tu-sum-val">{{ loading ? '…' : orders.length }}</p>
-          <p class="tu-sum-lbl">Tổng đơn hàng</p>
+      <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-xl">receipt_long</span>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <p class="text-xl font-extrabold text-[var(--text)] leading-none">{{ loading ? '…' : orders.length }}</p>
+          <p class="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">Tổng đơn hàng</p>
         </div>
       </div>
-      <div class="dashboard-card tu-sum-card">
-        <div class="tu-sum-icon tone-amber"><SylvaIcon name="check-circle" :size="20" /></div>
-        <div>
-          <p class="tu-sum-val">{{ loading ? '…' : paidCount }}</p>
-          <p class="tu-sum-lbl">Đơn thành công</p>
+      <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex items-center gap-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+          <span class="material-symbols-outlined text-xl">verified</span>
+        </div>
+        <div class="flex flex-col gap-0.5">
+          <p class="text-xl font-extrabold text-[var(--text)] leading-none">{{ loading ? '…' : paidCount }}</p>
+          <p class="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">Đơn thành công</p>
         </div>
       </div>
     </div>
 
     <!-- Table -->
-    <div class="dashboard-card tu-table-wrap">
-      <div class="card-head">
-        <h2 class="tu-section-title">Lịch sử giao dịch</h2>
+    <div class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+      <h2 class="text-xs font-bold text-[var(--text)]">Lịch sử giao dịch</h2>
+
+      <!-- Skeleton Loading -->
+      <div v-if="loading" class="flex flex-col gap-3 animate-pulse">
+        <span v-for="i in 4" :key="i" class="h-12 bg-[var(--surface-strong)] border border-[var(--line)] rounded-xl" />
       </div>
 
-      <div v-if="loading" class="tu-table-skeleton">
-        <span v-for="i in 5" :key="i" class="sd-shimmer" style="height:48px;border-radius:8px;display:block;margin-bottom:8px"></span>
-      </div>
-
-      <div v-else-if="orders.length" class="tu-table-scroll">
-        <table class="tu-table">
+      <div v-else-if="orders.length" class="overflow-x-auto">
+        <table class="w-full text-sm text-left border-collapse">
           <thead>
-            <tr>
-              <th>Mã đơn</th>
-              <th>Khóa học</th>
-              <th>Ngày</th>
-              <th>Số tiền</th>
-              <th>Trạng thái</th>
-              <th></th>
+            <tr class="border-b border-[var(--line)] bg-[var(--surface)] text-[0.72rem] font-bold uppercase tracking-wider text-[var(--muted)]">
+              <th class="px-5 py-3">Mã đơn</th>
+              <th class="px-5 py-3">Khóa học</th>
+              <th class="px-5 py-3 text-center">Ngày</th>
+              <th class="px-5 py-3 text-center">Số tiền</th>
+              <th class="px-5 py-3 text-center">Trạng thái</th>
+              <th class="px-5 py-3 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="order in orders" :key="order.id">
-              <td><span class="tu-order-id">#{{ order.order_number || order.id }}</span></td>
-              <td class="tu-course-cell">
-                <p class="tu-course-name">{{ order.course?.title || order.items?.[0]?.title || 'Khóa học' }}</p>
-                <p v-if="order.items?.length > 1" class="tu-course-more">+{{ order.items.length - 1 }} khóa khác</p>
+            <tr v-for="order in orders" :key="order.id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
+              <td class="px-5 py-4"><span class="font-mono text-xs font-bold text-[var(--muted)]">#{{ order.order_number || order.id }}</span></td>
+              <td class="px-5 py-4 min-w-[200px]">
+                <p class="text-xs font-bold text-[var(--text)] leading-snug">{{ order.course?.title || order.items?.[0]?.title || 'Khóa học' }}</p>
+                <p v-if="order.items?.length > 1" class="text-[9px] text-[var(--muted)] mt-1 font-semibold">+{{ order.items.length - 1 }} khóa khác</p>
               </td>
-              <td>{{ formatDate(order.created_at || order.paid_at) }}</td>
-              <td><strong class="tu-amount">{{ formatPrice(order.amount || order.total || 0) }}</strong></td>
-              <td>
-                <span class="tu-status-badge" :class="statusClass(order.status)">
+              <td class="px-5 py-4 text-center text-xs text-[var(--muted)] font-semibold">{{ formatDate(order.created_at || order.paid_at) }}</td>
+              <td class="px-5 py-4 text-center"><strong class="text-xs font-bold text-[var(--text)]">{{ formatPrice(order.amount || order.total || 0) }}</strong></td>
+              <td class="px-5 py-4 text-center">
+                <span class="inline-block px-2.5 py-0.5 rounded text-[10px] font-bold border" :class="statusClass(order.status)">
                   {{ statusLabel(order.status) }}
                 </span>
               </td>
-              <td>
-                <button class="tu-btn-detail" @click="openInvoice(order)">Chi tiết</button>
+              <td class="px-5 py-4 text-right">
+                <button class="h-8 px-4 rounded-xl border border-[var(--line)] hover:bg-[var(--surface)] text-xs font-bold text-[var(--muted)] hover:text-[var(--text)] transition-colors" @click="openInvoice(order)">Chi tiết</button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-else class="sd-empty">
-        <SylvaIcon name="credit-card" :size="40" />
-        <p>Chưa có giao dịch nào.</p>
-        <NuxtLink to="/student/recommendations" class="tu-btn-cta">Đăng ký khóa học</NuxtLink>
+      <div v-else class="flex flex-col items-center gap-3 text-center py-12">
+        <span class="material-symbols-outlined text-3xl text-[var(--muted)] opacity-60">payments</span>
+        <p class="text-xs font-semibold text-[var(--muted)]">Chưa có giao dịch nào.</p>
+        <NuxtLink to="/student/recommendations" class="h-9 px-4 rounded-xl bg-[#1d9e75] hover:bg-[#157959] text-white text-xs font-bold flex items-center transition-colors mt-2">Đăng ký khóa học</NuxtLink>
       </div>
     </div>
 
     <!-- Invoice modal -->
     <Teleport to="body">
-      <div v-if="showModal" class="tu-modal-overlay" @click.self="showModal=false">
-        <div class="tu-modal">
-          <div class="tu-modal-head">
-            <h3>Chi tiết đơn hàng</h3>
-            <button class="tu-modal-close" @click="showModal=false">
-              <SylvaIcon name="x" :size="18" />
+      <div v-if="showModal" class="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm flex items-center justify-center p-4" @click.self="showModal = false">
+        <div class="bg-white border border-[var(--line)] rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between px-5 py-4 bg-[var(--surface)] border-b border-[var(--line)]">
+            <h3 class="text-xs font-bold text-[var(--text)]">Chi tiết đơn hàng</h3>
+            <button class="w-8 h-8 rounded-lg border border-[var(--line)] hover:bg-[var(--surface)] flex items-center justify-center text-[var(--muted)]" @click="showModal = false">
+              <span class="material-symbols-outlined text-sm leading-none">close</span>
             </button>
           </div>
-          <div v-if="selectedOrder" class="tu-modal-body">
-            <div class="tu-invoice-row">
-              <span>Mã đơn</span>
-              <strong>#{{ selectedOrder.order_number || selectedOrder.id }}</strong>
+          <div v-if="selectedOrder" class="p-5 flex flex-col gap-3 text-xs text-[var(--text)]">
+            <div class="flex justify-between items-center">
+              <span class="text-[var(--muted)] font-semibold">Mã đơn</span>
+              <strong class="font-mono font-bold text-slate-800">#{{ selectedOrder.order_number || selectedOrder.id }}</strong>
             </div>
-            <div class="tu-invoice-row">
-              <span>Ngày</span>
-              <strong>{{ formatDate(selectedOrder.created_at || selectedOrder.paid_at) }}</strong>
+            <div class="flex justify-between items-center">
+              <span class="text-[var(--muted)] font-semibold">Ngày</span>
+              <strong class="font-bold text-slate-800">{{ formatDate(selectedOrder.created_at || selectedOrder.paid_at) }}</strong>
             </div>
-            <div class="tu-invoice-row">
-              <span>Trạng thái</span>
-              <span class="tu-status-badge" :class="statusClass(selectedOrder.status)">{{ statusLabel(selectedOrder.status) }}</span>
+            <div class="flex justify-between items-center">
+              <span class="text-[var(--muted)] font-semibold">Trạng thái</span>
+              <span class="px-2.5 py-0.5 rounded text-[10px] font-bold border" :class="statusClass(selectedOrder.status)">{{ statusLabel(selectedOrder.status) }}</span>
             </div>
-            <div v-if="selectedOrder.payment_method" class="tu-invoice-row">
-              <span>Phương thức</span>
-              <strong>{{ selectedOrder.payment_method }}</strong>
+            <div v-if="selectedOrder.payment_method" class="flex justify-between items-center">
+              <span class="text-[var(--muted)] font-semibold">Phương thức</span>
+              <strong class="font-bold text-slate-800">{{ selectedOrder.payment_method }}</strong>
             </div>
-            <div class="tu-invoice-divider"></div>
-            <div v-for="(item, idx) in (selectedOrder.items || [{title: selectedOrder.course?.title || 'Khóa học', price: selectedOrder.amount || selectedOrder.total}])" :key="idx" class="tu-invoice-item">
-              <span>{{ item.title || item.name }}</span>
-              <strong>{{ formatPrice(item.price || item.amount || 0) }}</strong>
+            
+            <div class="h-px bg-[var(--line)] my-1"></div>
+            
+            <div v-for="(item, idx) in (selectedOrder.items || [{title: selectedOrder.course?.title || 'Khóa học', price: selectedOrder.amount || selectedOrder.total}])" :key="idx" class="flex justify-between items-start gap-4">
+              <span class="text-[var(--muted)] font-semibold leading-relaxed flex-1">{{ item.title || item.name }}</span>
+              <strong class="font-bold text-slate-800 flex-shrink-0">{{ formatPrice(item.price || item.amount || 0) }}</strong>
             </div>
-            <div class="tu-invoice-divider"></div>
-            <div class="tu-invoice-row tu-invoice-total">
-              <span>Tổng cộng</span>
-              <strong class="tu-total-val">{{ formatPrice(selectedOrder.amount || selectedOrder.total || 0) }}</strong>
+            
+            <div class="h-px bg-[var(--line)] my-1"></div>
+            
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-bold text-[var(--text)]">Tổng cộng</span>
+              <strong class="text-base font-black text-[#1d9e75]">{{ formatPrice(selectedOrder.amount || selectedOrder.total || 0) }}</strong>
             </div>
           </div>
         </div>
@@ -181,105 +190,5 @@ function openInvoice(order: any) {
 </template>
 
 <style scoped>
-.tu-page { display: flex; flex-direction: column; gap: 20px; }
-.tu-title { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 4px 0 0; }
-
-.tu-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.tu-sum-card { display: flex; align-items: center; gap: 14px; padding: 16px; }
-.tu-sum-icon {
-  width: 44px; height: 44px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.tu-sum-icon.tone-green { background: var(--green-soft); color: var(--green-deep); }
-.tu-sum-icon.tone-blue { background: var(--secondary-soft); color: var(--secondary); }
-.tu-sum-icon.tone-amber { background: var(--accent-soft); color: #92400e; }
-.tu-sum-val { font-size: 1.3rem; font-weight: 800; color: var(--text); margin: 0 0 2px; }
-.tu-sum-lbl { font-size: 0.72rem; color: var(--muted); font-weight: 600; margin: 0; }
-
-.tu-table-wrap { padding: 20px; }
-.tu-section-title { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
-.tu-table-scroll { overflow-x: auto; margin-top: 16px; }
-.tu-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-.tu-table th {
-  padding: 10px 12px; text-align: left;
-  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--muted); border-bottom: 2px solid var(--line);
-}
-.tu-table td { padding: 12px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-.tu-table tr:last-child td { border-bottom: none; }
-.tu-table tr:hover td { background: var(--bg); }
-.tu-order-id { font-family: monospace; font-size: 0.82rem; color: var(--muted); }
-.tu-course-name { font-weight: 600; color: var(--text); margin: 0; }
-.tu-course-more { font-size: 0.72rem; color: var(--muted); margin: 2px 0 0; }
-.tu-amount { color: var(--text); font-size: 0.9rem; }
-.tu-status-badge {
-  display: inline-flex; align-items: center;
-  font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px;
-  background: var(--bg); color: var(--muted);
-}
-.tu-status-badge.paid { background: var(--green-soft); color: var(--green-deep); }
-.tu-status-badge.pending { background: var(--accent-soft); color: #92400e; }
-.tu-status-badge.failed { background: rgba(239,68,68,0.1); color: var(--danger, #ef4444); }
-.tu-btn-detail {
-  padding: 5px 12px; border-radius: 7px; border: 1px solid var(--line);
-  background: transparent; color: var(--muted); font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  transition: background 150ms, color 150ms;
-}
-.tu-btn-detail:hover { background: var(--green-soft); color: var(--green-deep); border-color: transparent; }
-.tu-btn-cta {
-  display: inline-flex; align-items: center; margin-top: 8px;
-  padding: 7px 16px; border-radius: 8px;
-  background: var(--green); color: #fff;
-  font-size: 0.82rem; font-weight: 700; text-decoration: none;
-}
-
-/* Modal */
-.tu-modal-overlay {
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.tu-modal {
-  background: var(--surface-strong); border-radius: 16px;
-  width: 100%; max-width: 480px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-}
-.tu-modal-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--line);
-}
-.tu-modal-head h3 { font-size: 1rem; font-weight: 700; color: var(--text); margin: 0; }
-.tu-modal-close {
-  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line);
-  background: transparent; color: var(--muted); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 150ms;
-}
-.tu-modal-close:hover { background: var(--bg); color: var(--text); }
-.tu-modal-body { padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-.tu-invoice-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.86rem; }
-.tu-invoice-row span:first-child { color: var(--muted); }
-.tu-invoice-row strong { color: var(--text); }
-.tu-invoice-divider { height: 1px; background: var(--line); margin: 4px 0; }
-.tu-invoice-item { display: flex; justify-content: space-between; font-size: 0.86rem; }
-.tu-invoice-item span { color: var(--text); flex: 1; }
-.tu-invoice-total span:first-child { font-weight: 700; font-size: 0.9rem; color: var(--text); }
-.tu-total-val { font-size: 1.1rem; color: var(--green, #0F6E8C); }
-
-.sd-shimmer { background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%); background-size: 200% 100%; animation: sd-shimmer 1.5s infinite; border-radius: 6px; }
-@keyframes sd-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.sd-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; color: var(--muted); gap: 10px; }
-.sd-empty p { font-size: 0.9rem; }
-
-[data-theme="dark"] .tu-modal { background: var(--surface-strong); }
-[data-theme="dark"] .tu-table tr:hover td { background: var(--surface); }
-
-@media (max-width: 768px) {
-  .tu-summary { grid-template-columns: 1fr 1fr; }
-  .tu-table { min-width: 600px; }
-}
-@media (max-width: 480px) {
-  .tu-summary { grid-template-columns: 1fr; }
-}
+/* Scoped styles kept minimal */
 </style>

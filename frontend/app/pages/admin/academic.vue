@@ -18,29 +18,41 @@ const activeDesc = computed(() => tabs.find(t => t.id === activeTab.value)?.desc
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Danh mục Đào tạo"
-    :description="activeDesc"
-    :breadcrumb="['Trang chủ', 'Đào tạo & Học vụ', 'Danh mục']"
-  >
-    <div class="catalog-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        class="catalog-tab"
-        :class="{ 'is-active': activeTab === tab.id }"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
+  <div class="flex flex-col gap-5">
+
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Danh mục Đào tạo</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">{{ activeDesc }}</p>
+      </div>
     </div>
 
-    <AcademicResourceManager
-      :key="activeTab"
-      :initial-resource="activeTab"
-      :allow-resource-switch="false"
-    />
-  </AdminWorkspaceShell>
+    <!-- Tabs + content panel -->
+    <div class="bg-white border rounded-2xl shadow-sm overflow-hidden" style="border-color:var(--line)">
+      <div class="catalog-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          class="catalog-tab"
+          :class="{ 'is-active': activeTab === tab.id }"
+          @click="activeTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="p-6">
+        <AcademicResourceManager
+          :key="activeTab"
+          :initial-resource="activeTab"
+          :allow-resource-switch="false"
+        />
+      </div>
+    </div>
+
+  </div>
 </template>
 
 <style scoped>

@@ -14,14 +14,14 @@ const search = ref('')
 
 onMounted(async () => {
   const h = { Authorization: `Bearer ${auth.token}` }
-  const [r0] = await Promise.allSettled([
-    useApi<any>('/me/recommendations/extensions', { headers: h }),
-  ])
-  if (r0.status === 'fulfilled') {
-    const d = r0.value
-    courses.value = Array.isArray(d) ? d : (d?.data || d?.courses || [])
+  try {
+    const res = await useApi<any>('/me/recommendations/extensions', { headers: h })
+    courses.value = Array.isArray(res) ? res : (res?.data || res?.courses || [])
+  } catch {
+    // fallback
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 })
 
 const categories = computed(() => {
@@ -48,162 +48,94 @@ function formatPrice(p?: number) {
 </script>
 
 <template>
-  <div class="rc-page">
+  <div class="flex flex-col gap-6 max-w-7xl mx-auto px-4 py-2">
     <!-- Header -->
-    <div class="rc-hero">
-      <div class="rc-hero-text">
-        <p class="section-kicker">Khám phá</p>
-        <h1 class="rc-title">Gợi ý dành cho bạn</h1>
-        <p class="rc-subtitle">Các khóa học được AI chọn lọc dựa trên lộ trình học và kỹ năng của bạn.</p>
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Khám phá</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Gợi ý dành cho bạn</h1>
+        <p class="text-xs text-[var(--muted)] mt-1">Các khóa học được AI chọn lọc dựa trên lộ trình học và kỹ năng của bạn.</p>
       </div>
-      <div class="rc-search-wrap">
-        <SylvaIcon name="search" :size="15" class="rc-search-icon" />
-        <input v-model="search" type="search" placeholder="Tìm khóa học..." class="rc-search" />
+      <div class="relative w-full md:w-80">
+        <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg leading-none">search</span>
+        <input v-model="search" type="search" placeholder="Tìm khóa học..." class="w-full h-10 pl-10 pr-4 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="rc-filters">
-      <div class="rc-filter-group">
-        <span class="rc-filter-label">Danh mục:</span>
-        <div class="rc-tabs">
-          <button v-for="cat in categories" :key="cat" class="rc-tab" :class="{active: categoryFilter===cat}"
-            @click="categoryFilter=cat">{{ cat === 'all' ? 'Tất cả' : cat }}</button>
+    <div class="flex flex-wrap gap-4 items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-[var(--muted)]">Danh mục:</span>
+        <div class="flex gap-1.5 border border-[var(--line)] bg-[var(--surface)] p-1 rounded-xl">
+          <button 
+            v-for="cat in categories" 
+            :key="cat" 
+            class="h-7 px-3 rounded-lg text-xs font-bold transition-all"
+            :class="categoryFilter === cat ? 'bg-white text-[var(--text)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--text)]'"
+            @click="categoryFilter = cat"
+          >
+            {{ cat === 'all' ? 'Tất cả' : cat }}
+          </button>
         </div>
       </div>
-      <div class="rc-filter-group">
-        <span class="rc-filter-label">Giá:</span>
-        <div class="rc-tabs">
-          <button v-for="t in [{k:'all',l:'Tất cả'},{k:'free',l:'Miễn phí'},{k:'paid',l:'Có phí'}]"
-            :key="t.k" class="rc-tab" :class="{active: freeFilter===t.k}"
-            @click="freeFilter=t.k as any">{{ t.l }}</button>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-[var(--muted)]">Giá:</span>
+        <div class="flex gap-1.5 border border-[var(--line)] bg-[var(--surface)] p-1 rounded-xl">
+          <button 
+            v-for="t in [{k:'all',l:'Tất cả'},{k:'free',l:'Miễn phí'},{k:'paid',l:'Có phí'}]"
+            :key="t.k" 
+            class="h-7 px-3 rounded-lg text-xs font-bold transition-all"
+            :class="freeFilter === t.k ? 'bg-white text-[var(--text)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--text)]'"
+            @click="freeFilter = t.k as any"
+          >
+            {{ t.l }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="rc-grid">
-      <div v-for="i in 8" :key="i" class="rc-skeleton">
-        <span class="sd-shimmer" style="width:100%;height:150px;display:block;border-radius:0"></span>
-        <div style="padding:14px;display:flex;flex-direction:column;gap:7px">
-          <span class="sd-shimmer" style="height:13px;width:75%;display:block"></span>
-          <span class="sd-shimmer" style="height:11px;width:50%;display:block"></span>
-          <span class="sd-shimmer" style="height:11px;width:35%;display:block"></span>
-        </div>
-      </div>
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+      <div v-for="i in 4" :key="i" class="h-64 bg-[var(--surface-strong)] border border-[var(--line)] rounded-2xl" />
     </div>
 
     <!-- Grid -->
-    <div v-else-if="filtered.length" class="rc-grid">
-      <div v-for="course in filtered" :key="course.id" class="rc-card">
-        <div class="rc-card-thumb">
-          <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title" loading="lazy">
-          <div v-else class="rc-thumb-fallback">
-            <SylvaIcon name="book-open" :size="28" />
-          </div>
-          <div v-if="course.match_score" class="rc-score-badge">
-            <SylvaIcon name="sparkles" :size="10" /> {{ Math.round(course.match_score * 100) }}% phù hợp
+    <div v-else-if="filtered.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div v-for="course in filtered" :key="course.id" class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+        <div class="relative aspect-video bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+          <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title" loading="lazy" class="w-full h-full object-cover">
+          <span v-else class="material-symbols-outlined text-3xl text-slate-300">book</span>
+          
+          <div v-if="course.match_score" class="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-slate-900/80 text-amber-300 border border-slate-700 backdrop-blur-sm">
+            <span class="material-symbols-outlined text-[10px] leading-none">auto_awesome</span> {{ Math.round(course.match_score * 100) }}% phù hợp
           </div>
         </div>
-        <div class="rc-card-body">
-          <p v-if="course.category?.name || course.category" class="rc-card-cat">{{ course.category?.name || course.category }}</p>
-          <h3 class="rc-card-title">{{ course.title }}</h3>
-          <p class="rc-card-instructor">{{ course.instructor?.name || course.teacher_name || '' }}</p>
+        
+        <div class="p-4 flex-1 flex flex-col gap-2">
+          <p v-if="course.category?.name || course.category" class="text-[9px] font-extrabold text-[var(--muted)] uppercase tracking-widest">{{ course.category?.name || course.category }}</p>
+          <h3 class="text-xs font-bold text-[var(--text)] line-clamp-2 leading-relaxed">{{ course.title }}</h3>
+          <p class="text-[10px] text-[var(--muted)] font-semibold">{{ course.instructor?.name || course.teacher_name || '' }}</p>
 
           <!-- Skill chips -->
-          <div v-if="course.matched_skills?.length" class="rc-skills">
-            <span v-for="s in course.matched_skills.slice(0,3)" :key="s" class="rc-skill-chip">{{ s }}</span>
+          <div v-if="course.matched_skills?.length" class="flex flex-wrap gap-1 mt-1">
+            <span v-for="s in course.matched_skills.slice(0, 3)" :key="s" class="px-1.5 py-0.5 rounded bg-sky-50 text-[9px] font-bold text-sky-700 border border-sky-100">{{ s }}</span>
           </div>
 
-          <div class="rc-card-footer">
-            <span class="rc-price" :class="{free: !course.price || course.price===0}">{{ formatPrice(course.price) }}</span>
-            <NuxtLink :to="`/courses/${course.id}`" class="rc-btn-enroll">Xem khóa học</NuxtLink>
+          <div class="flex items-center justify-between gap-3 pt-3 border-t border-[var(--line)] mt-auto">
+            <span class="text-xs font-bold" :class="!course.price || course.price === 0 ? 'text-emerald-600' : 'text-[var(--text)]'">{{ formatPrice(course.price) }}</span>
+            <NuxtLink :to="`/courses/${course.id}`" class="h-8 px-4 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-[#1d9e75] hover:text-white font-bold text-xs flex items-center justify-center transition-colors">Xem khóa học</NuxtLink>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-else class="sd-empty">
-      <SylvaIcon name="sparkles" :size="40" />
-      <p>Không tìm thấy gợi ý nào.</p>
+    <div v-else class="flex flex-col items-center gap-3 text-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm">
+      <span class="material-symbols-outlined text-4xl text-[var(--muted)] opacity-60">auto_awesome</span>
+      <p class="text-xs font-semibold text-[var(--muted)]">Không tìm thấy gợi ý nào.</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.rc-page { display: flex; flex-direction: column; gap: 20px; }
-.rc-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.rc-title { font-size: 1.5rem; font-weight: 800; color: var(--text); margin: 4px 0 6px; }
-.rc-subtitle { font-size: 0.86rem; color: var(--muted); margin: 0; max-width: 500px; }
-.rc-search-wrap { position: relative; }
-.rc-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); }
-.rc-search {
-  padding: 9px 14px 9px 34px; border: 1px solid var(--line); border-radius: 10px;
-  background: var(--surface-strong); color: var(--text); font-size: 0.84rem; outline: none; width: 240px;
-}
-.rc-search:focus { border-color: var(--green); }
-
-.rc-filters { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
-.rc-filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.rc-filter-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
-.rc-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-.rc-tab {
-  padding: 4px 10px; border-radius: 7px; border: 1px solid var(--line);
-  background: transparent; color: var(--muted);
-  font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background 150ms;
-}
-.rc-tab:hover { background: var(--bg); color: var(--text); }
-.rc-tab.active { background: var(--green-soft); color: var(--green-deep); border-color: var(--green); }
-
-.rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-.rc-card { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface-strong); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.08)); transition: transform 150ms, box-shadow 150ms; }
-.rc-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-.rc-skeleton { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-
-.rc-card-thumb { position: relative; aspect-ratio: 16/9; background: var(--bg); overflow: hidden; }
-.rc-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.rc-thumb-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: var(--green-soft); color: var(--green); }
-.rc-score-badge {
-  position: absolute; top: 8px; right: 8px;
-  display: flex; align-items: center; gap: 3px;
-  font-size: 0.68rem; font-weight: 700;
-  background: rgba(0,0,0,0.6); color: #fbbf24;
-  padding: 2px 8px; border-radius: 20px; backdrop-filter: blur(4px);
-}
-
-.rc-card-body { padding: 12px 14px 14px; }
-.rc-card-cat { font-size: 0.68rem; font-weight: 700; color: var(--muted); margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-.rc-card-title { font-size: 0.9rem; font-weight: 700; color: var(--text); margin: 0 0 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.rc-card-instructor { font-size: 0.75rem; color: var(--muted); margin: 0 0 8px; }
-.rc-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
-.rc-skill-chip {
-  font-size: 0.66rem; font-weight: 600;
-  padding: 2px 8px; border-radius: 20px;
-  background: var(--secondary-soft); color: var(--secondary);
-}
-.rc-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
-.rc-price { font-size: 0.88rem; font-weight: 800; color: var(--text); }
-.rc-price.free { color: var(--green, #0F6E8C); }
-.rc-btn-enroll {
-  padding: 5px 12px; border-radius: 7px;
-  background: var(--green-soft); color: var(--green-deep);
-  font-size: 0.76rem; font-weight: 700; text-decoration: none;
-  transition: background 150ms;
-}
-.rc-btn-enroll:hover { background: rgba(15,110,140,0.2); }
-
-.sd-shimmer { background: linear-gradient(90deg, var(--line) 25%, var(--bg) 50%, var(--line) 75%); background-size: 200% 100%; animation: sd-shimmer 1.5s infinite; border-radius: 6px; }
-@keyframes sd-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.sd-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; color: var(--muted); gap: 10px; }
-.sd-empty p { font-size: 0.9rem; }
-
-[data-theme="dark"] .rc-card { background: var(--surface); }
-[data-theme="dark"] .rc-search { background: var(--surface); }
-[data-theme="dark"] .rc-tab.active { background: rgba(52,211,153,0.15); color: #6ee7b7; border-color: rgba(52,211,153,0.4); }
-
-@media (max-width: 640px) {
-  .rc-hero { flex-direction: column; align-items: flex-start; }
-  .rc-search { width: 100%; }
-  .rc-search-wrap { width: 100%; }
-}
+/* Scoped styles kept minimal */
 </style>

@@ -162,11 +162,13 @@ function resetWizard() {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Ghi Danh Học Viên Bằng Tệp"
-    description="Nhập hàng loạt sinh viên vào các lớp học phần/môn học từ bảng tính CSV/Excel"
-    :breadcrumb="['Trang chủ', 'Đào tạo', 'Ghi Danh Bằng Tệp']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Ghi Danh Học Viên Bằng Tệp</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Nhập hàng loạt sinh viên vào các lớp học phần/môn học từ bảng tính CSV/Excel</p>
+    </div>
 
     <!-- Stepper Navigation -->
     <div class="import-stepper dashboard-card">
@@ -329,7 +331,7 @@ function resetWizard() {
         </div>
       </div>
     </div>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

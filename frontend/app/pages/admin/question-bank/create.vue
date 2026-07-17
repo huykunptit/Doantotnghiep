@@ -196,11 +196,13 @@ onMounted(fetchBank)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Ngân hàng câu hỏi', 'Thêm câu hỏi']"
-    description="Tạo câu hỏi mới với đầy đủ nội dung, đáp án, phản hồi và giải thích."
-    title="Thêm câu hỏi mới"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Thêm câu hỏi mới</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Tạo câu hỏi mới với đầy đủ nội dung, đáp án, phản hồi và giải thích.</p>
+    </div>
     <div class="qf-topbar">
       <button class="crud-secondary-btn" type="button" @click="goBack">← Quay lại</button>
       <div class="qf-topbar-right">
@@ -349,7 +351,7 @@ onMounted(fetchBank)
         </div>
       </aside>
     </div>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

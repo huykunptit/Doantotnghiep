@@ -141,5 +141,229 @@
 
   /* Responsive grid */
   .grid-responsive { @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6; }
+
+  /* ─── Legacy shim classes (Phase 0) ─────────────────────────────
+   * These provide visual definitions for classes used across LnD/admin
+   * pages that were ported from admin-ui without their CSS.
+   * They will be removed file-by-file as each page is redesigned.
+   * ──────────────────────────────────────────────────────────────── */
+
+  /* Card / Panel */
+  .dashboard-card {
+    @apply bg-white rounded-2xl border border-[var(--line)] shadow-sm;
+    padding: 20px 24px;
+  }
+  .crud-panel { @apply bg-white rounded-2xl border border-[var(--line)] shadow-sm overflow-hidden; }
+
+  /* Page / section typography */
+  .section-kicker {
+    @apply text-[0.68rem] font-bold uppercase tracking-widest mb-1;
+    color: var(--muted);
+  }
+  .ds-section-title { @apply text-lg font-bold tracking-tight; color: var(--text); }
+
+  /* Toolbar */
+  .crud-toolbar {
+    @apply flex flex-wrap gap-3 items-center px-5 py-4;
+    border-bottom: 1px solid var(--line);
+  }
+  .crud-toolbar-main { @apply flex flex-1 gap-2 min-w-0; }
+  .crud-toolbar-right { @apply flex items-center gap-2 shrink-0; }
+
+  /* Search / Select inputs */
+  .crud-search {
+    @apply h-9 px-3 rounded-xl border text-sm min-w-[180px] max-w-xs flex-1;
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+  }
+  .crud-search:focus { border-color: #1d9e75; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
+  .crud-select {
+    @apply h-9 px-3 rounded-xl border text-sm cursor-pointer;
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+  }
+  .crud-select:focus { border-color: #1d9e75; }
+
+  /* Buttons */
+  .crud-primary-btn {
+    @apply inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold text-white transition-colors;
+    background: #1d9e75;
+  }
+  .crud-primary-btn:hover:not(:disabled) { background: #17876a; }
+  .crud-primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .crud-danger-btn { background: #dc2626 !important; }
+  .crud-danger-btn:hover:not(:disabled) { background: #b91c1c !important; }
+
+  .crud-secondary-btn {
+    @apply inline-flex items-center gap-2 h-9 px-4 rounded-xl border text-sm font-semibold transition-colors;
+    border-color: var(--line);
+    background: transparent;
+    color: var(--muted);
+  }
+  .crud-secondary-btn:hover:not(:disabled) { background: var(--surface); color: var(--text); }
+  .crud-secondary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .crud-export-btn {
+    @apply inline-flex items-center gap-2 h-9 px-3 rounded-xl border text-sm font-semibold transition-colors;
+    border-color: var(--line);
+    background: transparent;
+    color: var(--muted);
+  }
+  .crud-export-btn:hover { background: var(--surface); color: var(--text); }
+
+  /* Ghost close button (modal header) */
+  .topbar-ghost {
+    @apply w-8 h-8 rounded-xl flex items-center justify-center border text-sm font-bold transition-colors;
+    border-color: var(--line);
+    color: var(--muted);
+    background: transparent;
+  }
+  .topbar-ghost:hover { background: var(--surface); color: var(--text); }
+
+  /* Alerts */
+  .crud-alert { @apply flex items-center gap-2 px-4 py-3 rounded-xl text-sm mx-5 mt-4; }
+  .crud-alert.is-error  { @apply bg-red-50 border border-red-200 text-red-700; }
+  .crud-alert.is-success { @apply bg-emerald-50 border border-emerald-200 text-emerald-700; }
+
+  /* Modal backdrop */
+  .crud-modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+  }
+  .crud-modal {
+    @apply relative w-full flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden;
+    max-width: 720px;
+    max-height: 90vh;
+  }
+  .crud-modal-head {
+    @apply flex items-start justify-between gap-4 px-6 pt-5 pb-4 shrink-0;
+    border-bottom: 1px solid var(--line);
+  }
+  .crud-modal-head h3 { @apply text-lg font-bold tracking-tight; color: var(--text); }
+  .crud-modal-body { @apply flex-1 overflow-y-auto px-6 py-5; }
+  .crud-modal-foot {
+    @apply flex items-center justify-end gap-2 px-6 py-4 shrink-0;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  /* Form fields */
+  .crud-form-grid { @apply grid grid-cols-2 gap-4; }
+  .crud-field {
+    @apply flex flex-col gap-1.5;
+  }
+  .crud-field-full { grid-column: 1 / -1; }
+  .crud-field > span, .crud-field > label > span {
+    @apply text-xs font-semibold;
+    color: var(--text);
+  }
+  .crud-field input,
+  .crud-field select,
+  .crud-field textarea {
+    @apply h-9 px-3 rounded-xl border text-sm outline-none transition-colors;
+    border-color: var(--line);
+    background: white;
+    color: var(--text);
+  }
+  .crud-field textarea { height: auto; padding-top: 8px; padding-bottom: 8px; }
+  .crud-field input:focus,
+  .crud-field select:focus,
+  .crud-field textarea:focus { border-color: #1d9e75; box-shadow: 0 0 0 3px rgba(29,158,117,0.12); }
+
+  /* Table */
+  .crud-table-wrap { @apply overflow-x-auto; }
+  .crud-table { @apply w-full text-sm; border-collapse: collapse; }
+  .crud-table thead tr { border-bottom: 1px solid var(--line); background: var(--surface); }
+  .crud-table th {
+    @apply px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide;
+    color: var(--muted);
+  }
+  .crud-table td { @apply px-4 py-3; border-bottom: 1px solid var(--line); color: var(--text); }
+  .crud-table tbody tr:last-child td { border-bottom: none; }
+  .crud-table tbody tr:hover { background: var(--surface); }
+  .crud-empty { @apply text-center py-8 text-sm; color: var(--muted); }
+
+  /* Mini action buttons */
+  .ds-btn {
+    @apply inline-flex items-center justify-center h-7 px-2.5 rounded-lg border text-xs font-semibold transition-colors;
+  }
+  .ds-btn--view { border-color: var(--line); background: transparent; color: var(--muted); }
+  .ds-btn--view:hover { background: var(--surface); color: var(--text); }
+  .ds-btn--edit { border-color: rgba(29,158,117,0.3); background: rgba(29,158,117,0.07); color: #085041; }
+  .ds-btn--edit:hover { background: rgba(29,158,117,0.13); }
+  .ds-btn--delete { @apply border-red-200 bg-red-50 text-red-600; }
+  .ds-btn--delete:hover { @apply bg-red-100; }
+  .ds-btn--icon { @apply w-7 px-0; }
+
+  /* Badges */
+  .ds-badge {
+    @apply inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .ds-badge--active   { background: rgba(29,158,117,0.1);  color: #085041;  border-color: rgba(29,158,117,0.2); }
+  .ds-badge--info     { background: rgba(55,138,221,0.1);  color: #1a5fa8;  border-color: rgba(55,138,221,0.2); }
+  .ds-badge--pending  { background: rgba(245,158,11,0.1);  color: #92400e;  border-color: rgba(245,158,11,0.2); }
+  .ds-badge--closed   { background: rgba(239,68,68,0.1);   color: #b91c1c;  border-color: rgba(239,68,68,0.2); }
+  .ds-badge--draft    { background: var(--surface);        color: var(--muted); border-color: var(--line); }
+  .ds-badge--archived { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+  .ds-badge--violet   { background: rgba(139,92,246,0.1);  color: #5b21b6;  border-color: rgba(139,92,246,0.2); }
+
+  /* Avatar */
+  .ds-avatar {
+    @apply flex items-center justify-center rounded-full font-extrabold shrink-0 overflow-hidden;
+    background: rgba(29,158,117,0.1);
+    color: #085041;
+    border: 1px solid rgba(29,158,117,0.2);
+    font-size: 0.72rem;
+  }
+  .ds-avatar--sm  { @apply w-6 h-6;  }
+  .ds-avatar--md  { @apply w-8 h-8;  }
+  .ds-avatar--lg  { @apply w-10 h-10; font-size: 0.84rem; }
+  .ds-avatar--xl  { @apply w-14 h-14; font-size: 1.25rem; }
+
+  /* Spinner */
+  .ds-spin { @apply inline-block rounded-full border-2; border-color: var(--line); border-top-color: #1d9e75; animation: ds-spin 0.7s linear infinite; }
+  .ds-spin--sm { @apply w-4 h-4; }
+  @keyframes ds-spin { to { transform: rotate(360deg); } }
+
+  /* Empty state */
+  .ds-empty {
+    @apply flex flex-col items-center justify-center py-16 gap-3 text-center;
+    color: var(--muted);
+  }
+  .ds-empty-icon { @apply mb-1; opacity: 0.4; }
+  .ds-empty strong { @apply text-sm font-semibold; color: var(--text); }
+  .ds-empty p { @apply text-xs; }
+
+  /* KPI stat cards */
+  .ds-stats { @apply grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2; }
+  .ds-stat {
+    @apply rounded-2xl p-5 flex flex-col gap-2 border;
+  }
+  .ds-stat--green  { background: rgba(29,158,117,0.08); border-color: rgba(29,158,117,0.2); }
+  .ds-stat--blue   { background: rgba(55,138,221,0.08); border-color: rgba(55,138,221,0.2); }
+  .ds-stat--amber  { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); }
+  .ds-stat--violet { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.2); }
+  .ds-stat-label { @apply text-xs font-bold uppercase tracking-wider; color: var(--muted); margin: 0; }
+  .ds-stat-value { @apply text-3xl font-extrabold tracking-tight; color: var(--text); }
+  .ds-stat-sub   { @apply text-xs font-medium; color: var(--muted); }
+
+  /* Mini stat card */
+  .mini-card {
+    @apply rounded-2xl p-4 flex flex-col gap-1 border;
+    background: white;
+  }
+  .mini-card.tone-green { border-color: rgba(29,158,117,0.25); }
+  .mini-card.tone-amber { border-color: rgba(245,158,11,0.25); }
+
+  /* Stack layout */
+  .ds-stack { @apply flex flex-col gap-4; }
 }
 

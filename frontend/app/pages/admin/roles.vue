@@ -177,7 +177,7 @@ onMounted(loadData)
       <template v-else>
 
         <!-- Role summary -->
-        <div class="dashboard-card rl-summary">
+        <div class="bg-white border border-[var(--line)] rounded-2xl shadow-sm p-5 rl-summary">
           <p class="rl-summary-label">Tổng quan vai trò</p>
           <div class="rl-role-chips">
             <div v-for="role in roles" :key="role.id" class="rl-role-chip" :class="roleColor(role.name)">
@@ -196,7 +196,7 @@ onMounted(loadData)
         </div>
 
         <!-- Sticky action bar -->
-        <div class="rl-actionbar dashboard-card">
+        <div class="rl-actionbar bg-white border border-[var(--line)] rounded-2xl shadow-sm">
           <div class="rl-actionbar-status">
             <template v-if="hasUnsavedChanges">
               <i class="pi pi-shield" style="font-size:0.9375rem" />
@@ -231,7 +231,7 @@ onMounted(loadData)
         <div
           v-for="group in permissionGroups"
           :key="group.key"
-          class="dashboard-card rl-group"
+          class="bg-white border border-[var(--line)] rounded-2xl shadow-sm rl-group"
         >
           <div class="rl-group-header">
             <strong class="rl-group-title">{{ group.label }}</strong>

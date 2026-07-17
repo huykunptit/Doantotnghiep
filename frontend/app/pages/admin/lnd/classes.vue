@@ -399,11 +399,13 @@ watch(filterStatus, () => fetchClasses(1))
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý Lớp Hành Chính"
-    description="Tạo, cập nhật, và quản lý danh sách lớp hành chính. Mỗi lớp gắn với khóa đào tạo, chương trình học và cố vấn."
-    :breadcrumb="['Trang chủ', 'Đào tạo & Học vụ', 'Lớp Hành Chính']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý Lớp Hành Chính</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Tạo, cập nhật, và quản lý danh sách lớp hành chính. Mỗi lớp gắn với khóa đào tạo, chương trình học và cố vấn.</p>
+    </div>
     <!-- Overview cards -->
     <section class="crud-overview-grid">
       <article class="dashboard-card mini-card tone-green">
@@ -963,7 +965,7 @@ watch(filterStatus, () => fetchClasses(1))
         </div>
       </div>
     </Teleport>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

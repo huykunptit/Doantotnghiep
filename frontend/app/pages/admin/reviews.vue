@@ -99,11 +99,13 @@ onMounted(() => fetchReviews(1))
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Kiểm duyệt đánh giá"
-    description="Quản lý chất lượng khoá học qua nhận xét của học viên. Gỡ bỏ đánh giá vi phạm tiêu chuẩn cộng đồng."
-    :breadcrumb="['Trang chủ', 'Nội dung', 'Đánh giá']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Kiểm duyệt đánh giá</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý chất lượng khoá học qua nhận xét của học viên. Gỡ bỏ đánh giá vi phạm tiêu chuẩn cộng đồng.</p>
+    </div>
     <!-- KPI Strip -->
     <div class="ds-stats mb-5">
       <div class="ds-stat ds-stat--green">
@@ -241,7 +243,7 @@ onMounted(() => fetchReviews(1))
         </div>
       </div>
     </section>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

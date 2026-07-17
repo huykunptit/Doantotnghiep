@@ -214,11 +214,13 @@ function riskLevel(days: number | null) {
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Báo Cáo & Phân Tích L&D"
-    description="Giám sát tiến độ học tập, tích lũy tín chỉ và cảnh báo học vụ theo lộ trình đào tạo"
-    :breadcrumb="['Trang chủ', 'Đào tạo', 'Báo Cáo']"
-  >
+  <div class="flex flex-col gap-4">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Báo Cáo & Phân Tích L&D</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Giám sát tiến độ học tập, tích lũy tín chỉ và cảnh báo học vụ theo lộ trình đào tạo</p>
+    </div>
     <div class="page-body">
     <!-- Filter strip -->
     <div class="filter-card dashboard-card">
@@ -649,8 +651,7 @@ function riskLevel(days: number | null) {
       </template>
     </div><!-- /tab completion -->
     </div><!-- /page-body -->
-
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

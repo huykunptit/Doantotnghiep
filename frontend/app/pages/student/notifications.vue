@@ -62,131 +62,84 @@ function formatDate(d: string) {
 }
 
 function typeIcon(type: string) {
-  if (!type) return '📢'
-  if (type.includes('course') || type.includes('Course')) return '📚'
-  if (type.includes('exam') || type.includes('Exam')) return '📋'
-  if (type.includes('grade') || type.includes('Grade')) return '📊'
-  if (type.includes('cert') || type.includes('Cert')) return '🏆'
-  if (type.includes('payment') || type.includes('Payment')) return '💳'
-  return '🔔'
+  if (!type) return 'notifications'
+  if (type.includes('course') || type.includes('Course')) return 'school'
+  if (type.includes('exam') || type.includes('Exam')) return 'assignment'
+  if (type.includes('grade') || type.includes('Grade')) return 'analytics'
+  if (type.includes('cert') || type.includes('Cert')) return 'verified'
+  if (type.includes('payment') || type.includes('Payment')) return 'payments'
+  return 'notifications_active'
+}
+
+function typeIconClass(type: string) {
+  if (!type) return 'bg-slate-50 text-slate-500 border-slate-100'
+  if (type.includes('course') || type.includes('Course')) return 'bg-emerald-50 text-emerald-700 border-emerald-100'
+  if (type.includes('exam') || type.includes('Exam')) return 'bg-sky-50 text-sky-700 border-sky-100'
+  if (type.includes('grade') || type.includes('Grade')) return 'bg-amber-50 text-amber-700 border-amber-100'
+  if (type.includes('cert') || type.includes('Cert')) return 'bg-purple-50 text-purple-700 border-purple-100'
+  if (type.includes('payment') || type.includes('Payment')) return 'bg-rose-50 text-rose-700 border-rose-100'
+  return 'bg-blue-50 text-blue-700 border-blue-100'
 }
 </script>
 
 <template>
-  <div class="nn-page">
-    <div class="nn-header">
-      <div class="nn-header-left">
-        <p class="nn-kicker">Kênh hỗ trợ</p>
-        <h1 class="nn-title">Thông báo</h1>
+  <div class="flex flex-col gap-6 max-w-3xl mx-auto px-4 py-2">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Kênh hỗ trợ</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Thông báo</h1>
       </div>
-      <div class="nn-header-right">
-        <span v-if="unread > 0" class="nn-unread-badge">{{ unread }} chưa đọc</span>
-        <button v-if="unread > 0" class="nn-mark-all" :disabled="marking" @click="markAllRead">
-          <i class="pi pi-check" style="font-size:0.875rem" />
+      <div class="flex items-center gap-3">
+        <span v-if="unread > 0" class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">{{ unread }} chưa đọc</span>
+        <button v-if="unread > 0" class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-bold text-[var(--text)] flex items-center gap-1.5 transition-colors" :disabled="marking" @click="markAllRead">
+          <span class="material-symbols-outlined text-sm leading-none">done_all</span>
           {{ marking ? 'Đang xử lý...' : 'Đánh dấu đã đọc' }}
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="nn-list">
-      <div v-for="i in 6" :key="i" class="nn-skeleton" />
+    <!-- Loading -->
+    <div v-if="loading" class="flex flex-col gap-2.5 animate-pulse">
+      <div v-for="i in 5" :key="i" class="h-16 bg-[var(--surface-strong)] border border-[var(--line)] rounded-xl" />
     </div>
-    <div v-else-if="notifications.length === 0" class="nn-empty">
-      <i class="pi pi-bell" style="font-size:2.75rem" />
-      <h3>Không có thông báo nào</h3>
-      <p>Các thông báo về khóa học, kỳ thi và điểm số sẽ xuất hiện ở đây.</p>
+
+    <!-- Empty State -->
+    <div v-else-if="notifications.length === 0" class="flex flex-col items-center gap-3 text-center py-16 bg-white border border-[var(--line)] rounded-2xl shadow-sm">
+      <span class="material-symbols-outlined text-4xl text-[var(--muted)] opacity-60">notifications_off</span>
+      <h3 class="text-base font-bold text-[var(--text)]">Không có thông báo nào</h3>
+      <p class="text-xs text-[var(--muted)] max-w-[280px]">Các thông báo về khóa học, kỳ thi và điểm số sẽ xuất hiện ở đây.</p>
     </div>
-    <div v-else class="nn-list">
+
+    <!-- Notifications List -->
+    <div v-else class="flex flex-col gap-2">
       <button
         v-for="n in notifications"
         :key="n.id"
-        class="nn-item"
-        :class="{ 'is-unread': !n.read_at }"
+        class="flex items-start gap-4 p-4 rounded-xl border w-full text-left transition-colors relative"
+        :class="!n.read_at ? 'bg-emerald-50/20 border-emerald-200/50 hover:bg-emerald-50/30' : 'bg-white border-[var(--line)] hover:bg-[var(--surface)]'"
         @click="markRead(n)"
       >
-        <div class="nn-icon">{{ typeIcon(n.type || n.data?.type) }}</div>
-        <div class="nn-body">
-          <p class="nn-msg">{{ n.data?.message || n.data?.title || n.data?.body || 'Thông báo mới' }}</p>
-          <p v-if="n.data?.description || n.data?.body" class="nn-desc">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0" :class="typeIconClass(n.type || n.data?.type)">
+          <span class="material-symbols-outlined text-base">{{ typeIcon(n.type || n.data?.type) }}</span>
+        </div>
+        
+        <div class="flex-1 min-w-0 pr-4">
+          <p class="text-xs font-semibold text-[var(--text)] leading-snug" :class="{ 'font-bold text-slate-900': !n.read_at }">
+            {{ n.data?.message || n.data?.title || n.data?.body || 'Thông báo mới' }}
+          </p>
+          <p v-if="n.data?.description || n.data?.body" class="text-[11px] text-[var(--muted)] mt-1.5 leading-relaxed line-clamp-2">
             {{ n.data.description || n.data.body }}
           </p>
-          <span class="nn-time">{{ formatDate(n.created_at) }}</span>
+          <span class="text-[9px] text-[var(--muted)] font-semibold mt-2 block">{{ formatDate(n.created_at) }}</span>
         </div>
-        <div class="nn-unread-dot" v-if="!n.read_at" />
+        
+        <div class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 self-center" v-if="!n.read_at" />
       </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.nn-page { max-width: 760px; margin: 0 auto; }
-.nn-header {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
-}
-.nn-kicker { margin: 0 0 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-.nn-title { margin: 0; font-size: 1.7rem; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
-.nn-header-right { display: flex; align-items: center; gap: 10px; }
-.nn-unread-badge {
-  padding: 4px 12px; border-radius: 99px;
-  background: rgba(29,158,117,0.12); color: var(--green-deep);
-  font-size: 0.75rem; font-weight: 700;
-}
-.nn-mark-all {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line);
-  background: var(--surface-strong); color: var(--muted);
-  font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  transition: background 150ms, color 150ms;
-}
-.nn-mark-all:hover:not(:disabled) { background: var(--green-soft); color: var(--green-deep); border-color: rgba(29,158,117,0.3); }
-.nn-mark-all:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* List */
-.nn-list { display: flex; flex-direction: column; gap: 2px; }
-.nn-skeleton {
-  height: 72px; border-radius: 12px;
-  background: linear-gradient(90deg, var(--line) 25%, rgba(221,229,225,0.5) 50%, var(--line) 75%);
-  background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite;
-  margin-bottom: 2px;
-}
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-/* Item */
-.nn-item {
-  display: flex; align-items: flex-start; gap: 14px;
-  padding: 14px 16px; border-radius: 12px; width: 100%; text-align: left;
-  background: var(--surface-strong); border: 1px solid var(--line);
-  cursor: pointer; transition: background 150ms;
-}
-.nn-item:hover { background: var(--bg); }
-.nn-item.is-unread {
-  background: rgba(29,158,117,0.04);
-  border-color: rgba(29,158,117,0.18);
-}
-.nn-item.is-unread:hover { background: rgba(29,158,117,0.08); }
-
-.nn-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 1px; }
-.nn-body { flex: 1; min-width: 0; }
-.nn-msg { margin: 0 0 4px; font-size: 0.875rem; font-weight: 600; color: var(--text); line-height: 1.4; }
-.nn-item.is-unread .nn-msg { font-weight: 700; }
-.nn-desc { margin: 0 0 6px; font-size: 0.78rem; color: var(--muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.nn-time { font-size: 0.7rem; color: var(--muted); }
-.nn-unread-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--green); flex-shrink: 0; margin-top: 6px;
-}
-
-/* Empty */
-.nn-empty {
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  padding: 80px 20px; text-align: center; color: var(--muted);
-}
-.nn-empty h3 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
-.nn-empty p { margin: 0; font-size: 0.875rem; max-width: 320px; }
-
-[data-theme="dark"] .nn-item { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07); }
-[data-theme="dark"] .nn-item:hover { background: rgba(255,255,255,0.06); }
-[data-theme="dark"] .nn-item.is-unread { background: rgba(29,158,117,0.07); border-color: rgba(29,158,117,0.25); }
-[data-theme="dark"] .nn-mark-all { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+/* Scoped styles kept minimal */
 </style>

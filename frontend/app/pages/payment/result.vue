@@ -33,7 +33,7 @@
           </div>
 
           <div class="flex flex-col gap-3 sm:flex-row">
-            <NuxtLink v-if="isSuccess" to="/my-courses" class="flex-1"><UiButton block>Đến khóa học của tôi</UiButton></NuxtLink>
+            <NuxtLink v-if="isSuccess" to="/student/courses" class="flex-1"><UiButton block>Đến khóa học của tôi</UiButton></NuxtLink>
             <NuxtLink v-else :to="retryLink" class="flex-1"><UiButton block>{{ retryLabel }}</UiButton></NuxtLink>
             <NuxtLink to="/courses" class="flex-1"><UiButton block variant="secondary">Quay lại danh sách khóa học</UiButton></NuxtLink>
           </div>

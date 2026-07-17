@@ -427,11 +427,13 @@ await fetchCourses()
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý thi', { label: 'Quiz / Đề thi', to: '/admin/quiz' }, 'Tạo đề thi mới']"
-    description="Điền thông tin theo từng bước để tạo đề thi."
-    title="Tạo đề thi mới"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khảo thí</p>
+      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Tạo đề thi mới</h1>
+      <p class="text-sm mt-0.5" style="color:var(--muted)">Điền thông tin theo từng bước để tạo đề thi.</p>
+    </div>
     <div class="create-layout">
 
       <!-- Left: step sidebar -->
@@ -768,7 +770,7 @@ await fetchCourses()
       </div>
 
     </div>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>

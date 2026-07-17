@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import { useExport } from '~/composables/useExport'
 
 definePageMeta({ layout: 'admin' })
@@ -93,46 +92,80 @@ onMounted(fetchExams)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Báo cáo kỳ thi"
-    description="Tổng hợp đề thi, tỷ lệ đăng ký và thống kê kết quả của các kỳ thi độc lập."
-    :breadcrumb="['Trang chủ', 'Báo cáo', 'Báo cáo kỳ thi']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải dữ liệu kỳ thi...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Báo cáo</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Báo cáo kỳ thi</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Tổng hợp đề thi, tỷ lệ đăng ký và thống kê kết quả của các kỳ thi độc lập.</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+          style="color:var(--muted)"
+          @click="exportCSV"
+        >
+          <i class="pi pi-download" />
+          Xuất Excel
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 h-9 px-5 rounded-xl text-sm font-semibold text-white transition-colors"
+          style="background:#1d9e75"
+          @click="exportPDF"
+        >
+          <i class="pi pi-file" />
+          Xuất PDF
+        </button>
+      </div>
+    </div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tải dữ liệu kỳ thi...</div>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
 
     <template v-else>
       <!-- KPI -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article class="dashboard-card mini-card tone-blue">
-          <p class="mini-title">Tổng đề thi</p>
-          <div class="mini-head"><strong>{{ stats.total }}</strong><span>Đề thi độc lập</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-green">
-          <p class="mini-title">Đang hoạt động</p>
-          <div class="mini-head"><strong>{{ stats.published }}</strong><span>Đề đã xuất bản</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-amber">
-          <p class="mini-title">Bản nháp</p>
-          <div class="mini-head"><strong>{{ stats.draft }}</strong><span>Chưa xuất bản</span></div>
-        </article>
-        <article class="dashboard-card mini-card">
-          <p class="mini-title">Tổng lượt đăng ký</p>
-          <div class="mini-head"><strong>{{ stats.totalEnrolled }}</strong><span>Thí sinh đăng ký</span></div>
-        </article>
-      </section>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(59,130,246,0.06);border-color:rgba(59,130,246,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider text-blue-500">Tổng đề thi</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ stats.total }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Đề thi độc lập</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(29,158,117,0.06);border-color:rgba(29,158,117,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider" style="color:#1d9e75">Đang hoạt động</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ stats.published }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Đề đã xuất bản</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border" style="background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.2)">
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-500">Bản nháp</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ stats.draft }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Chưa xuất bản</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border border-[var(--line)]" style="background:var(--surface)">
+          <p class="text-xs font-bold uppercase tracking-wider" style="color:var(--muted)">Tổng lượt đăng ký</p>
+          <strong class="text-3xl font-extrabold tracking-tight" style="color:var(--text)">{{ stats.totalEnrolled }}</strong>
+          <span class="text-xs font-medium" style="color:var(--muted)">Thí sinh đăng ký</span>
+        </div>
+      </div>
 
       <!-- Table -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <form class="crud-toolbar-main" @submit.prevent>
+      <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-[var(--line)]">
+          <form class="flex flex-wrap items-center gap-2" @submit.prevent>
             <input
               v-model="search"
-              class="crud-search"
               type="text"
               placeholder="Tìm tên đề thi..."
+              class="h-9 px-4 rounded-xl text-sm border border-[var(--line)] bg-transparent focus:outline-none focus:border-[#1d9e75] transition-colors w-52"
+              style="color:var(--text)"
             >
-            <select v-model="statusFilter" class="crud-select">
+            <select
+              v-model="statusFilter"
+              class="h-9 px-3 rounded-xl text-sm border border-[var(--line)] bg-transparent focus:outline-none focus:border-[#1d9e75] transition-colors"
+              style="color:var(--text)"
+            >
               <option value="">Tất cả trạng thái</option>
               <option value="published">Đã xuất bản</option>
               <option value="draft">Bản nháp</option>
@@ -140,57 +173,64 @@ onMounted(fetchExams)
               <option value="closed">Đã đóng</option>
             </select>
           </form>
-          <div class="crud-toolbar-right">
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <span class="material-symbols-outlined">download</span>
-              Xuất Excel
-            </button>
-            <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span class="material-symbols-outlined">picture_as_pdf</span>
-              Xuất PDF
-            </button>
-            <NuxtLink to="/admin/quiz" class="crud-secondary-btn" style="display: inline-flex; align-items: center; justify-content: center; min-height: 48px;">Quản lý đề thi →</NuxtLink>
-          </div>
+          <NuxtLink
+            to="/admin/quiz"
+            class="inline-flex items-center h-9 px-4 rounded-xl text-sm font-semibold border border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+            style="color:var(--muted);text-decoration:none"
+          >
+            Quản lý đề thi →
+          </NuxtLink>
         </div>
 
-        <div class="crud-table-wrap">
-          <table class="crud-table">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
             <thead>
-              <tr>
-                <th>Tên đề thi</th>
-                <th>Trạng thái</th>
-                <th>Thời gian (phút)</th>
-                <th>Điểm đạt</th>
-                <th>Số thí sinh</th>
-                <th>Ngày tạo</th>
-                <th style="text-align: right;">Thao tác</th>
+              <tr class="border-b border-[var(--line)]" style="background:var(--surface)">
+                <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Tên đề thi</th>
+                <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Trạng thái</th>
+                <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Thời gian (phút)</th>
+                <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Điểm đạt</th>
+                <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Số thí sinh</th>
+                <th class="text-left px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Ngày tạo</th>
+                <th class="text-right px-5 py-3 text-[0.72rem] font-bold uppercase tracking-wide" style="color:var(--muted)">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="filteredExams.length === 0">
-                <td colspan="7" class="crud-empty">Không có đề thi nào.</td>
+                <td colspan="7" class="py-12 text-center text-sm" style="color:var(--muted)">Không có đề thi nào.</td>
               </tr>
-              <tr v-for="exam in filteredExams" :key="exam.id">
-                <td>
-                  <strong>{{ exam.title }}</strong>
-                  <p style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;">{{ exam.description?.slice(0, 60) }}{{ exam.description?.length > 60 ? '...' : '' }}</p>
+              <tr
+                v-for="exam in filteredExams"
+                :key="exam.id"
+                class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+              >
+                <td class="px-5 py-3">
+                  <p class="font-semibold" style="color:var(--text)">{{ exam.title }}</p>
+                  <p class="text-xs mt-0.5 truncate max-w-[28ch]" style="color:var(--muted)">{{ exam.description?.slice(0, 60) }}{{ exam.description?.length > 60 ? '...' : '' }}</p>
                 </td>
-                <td>
-                  <span class="crud-badge" :class="statusClass[exam.status] || ''">
+                <td class="px-5 py-3">
+                  <span
+                    class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
+                    :class="{
+                      'bg-green-50 text-green-700': exam.status === 'published',
+                      'bg-blue-50 text-blue-700': exam.status === 'scheduled',
+                      'bg-red-50 text-red-600': exam.status === 'closed',
+                    }"
+                    :style="!['published','scheduled','closed'].includes(exam.status) ? 'background:rgba(17,17,17,.06);color:var(--muted)' : ''"
+                  >
                     {{ statusLabel[exam.status] || exam.status }}
                   </span>
                 </td>
-                <td>{{ exam.duration || exam.quiz?.time_limit || '—' }}</td>
-                <td>{{ exam.pass_score ?? exam.quiz?.pass_score ?? '—' }}</td>
-                <td>{{ exam.enrollments_count ?? '—' }}</td>
-                <td>{{ formatDate(exam.created_at) }}</td>
-                <td style="text-align: right;">
+                <td class="px-5 py-3 text-sm" style="color:var(--text)">{{ exam.duration || exam.quiz?.time_limit || '—' }}</td>
+                <td class="px-5 py-3 text-sm" style="color:var(--text)">{{ exam.pass_score ?? exam.quiz?.pass_score ?? '—' }}</td>
+                <td class="px-5 py-3 text-sm font-semibold" style="color:var(--text)">{{ exam.enrollments_count ?? '—' }}</td>
+                <td class="px-5 py-3 text-sm" style="color:var(--muted)">{{ formatDate(exam.created_at) }}</td>
+                <td class="px-5 py-3 text-right">
                   <NuxtLink
                     :to="`/admin/exam-monitor?exam=${exam.id}`"
-                    class="action-btn is-view"
-                    style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem;"
+                    class="inline-flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-semibold border border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+                    style="color:var(--text);text-decoration:none"
                   >
-                    <span class="material-symbols-outlined" style="font-size: 14px;">visibility</span>
                     Giám sát
                   </NuxtLink>
                 </td>
@@ -200,5 +240,5 @@ onMounted(fetchExams)
         </div>
       </section>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>

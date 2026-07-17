@@ -2,7 +2,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '~/composables/useApi'
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
 
 definePageMeta({ layout: 'instructor', middleware: 'instructor' })
 
@@ -169,76 +168,79 @@ onUnmounted(closeQr)
 </script>
 
 <template>
-  <InstructorWorkspaceShell
-    title="Phiên học & điểm danh QR"
-    description="Quản lý các buổi học offline và tạo mã QR điểm danh cho sinh viên."
-    :breadcrumb="['Trang chủ', 'Học vụ', 'Lớp học phần', 'Phiên học']"
-  >
-    <template #actions>
-      <NuxtLink :to="`/instructor/sections/${sectionId}/attendance-stats`" class="crud-secondary-btn">
-        <span class="material-symbols-outlined">bar_chart</span>
-        Thống kê điểm danh
-      </NuxtLink>
-      <button class="crud-primary-btn" type="button" @click="openCreate">
-        <span class="material-symbols-outlined">add</span>
-        Tạo phiên học
-      </button>
-    </template>
-
-    <div v-if="loading" class="dashboard-card crud-panel">
-      <div class="crud-empty" style="padding:3rem;">Đang tải...</div>
-    </div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
-    <div v-else-if="sessions.length === 0" class="dashboard-card crud-panel">
-      <div class="crud-empty" style="padding:3rem;">Chưa có phiên học nào. Hãy tạo phiên học đầu tiên.</div>
-    </div>
-
-    <div v-else class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <div>
-          <p class="section-kicker">Lớp học offline</p>
-          <h3 class="ds-section-title">Danh sách phiên học ({{ sessions.length }})</h3>
-        </div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Học vụ &bull; Điểm danh QR</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Phiên học & điểm danh QR</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Quản lý các buổi học offline và tạo mã QR điểm danh cho sinh viên.</p>
       </div>
-      <div class="sessions-list">
+      <div class="flex items-center gap-2">
+        <NuxtLink :to="`/instructor/sections/${sectionId}/attendance-stats`" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors">
+          <span class="material-symbols-outlined text-sm">bar_chart</span>
+          <span>Thống kê điểm danh</span>
+        </NuxtLink>
+        <button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" type="button" @click="openCreate">
+          <span class="material-symbols-outlined text-sm">add</span>
+          <span>Tạo phiên học</span>
+        </button>
+      </div>
+    </div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm text-center py-12 text-xs text-[var(--muted)]">
+      Đang tải...
+    </div>
+    <div v-else-if="error" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ error }}</div>
+    <div v-else-if="sessions.length === 0" class="bg-white border border-[var(--line)] rounded-2xl p-8 shadow-sm text-center text-xs text-[var(--muted)]">
+      Chưa có phiên học nào. Hãy tạo phiên học đầu tiên.
+    </div>
+
+    <div v-else class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col">
+      <div class="px-5 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex flex-col">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Lớp học offline</p>
+        <h3 class="text-xs font-bold text-[var(--text)] mt-0.5">Danh sách phiên học ({{ sessions.length }})</h3>
+      </div>
+      <div class="flex flex-col p-4 gap-3">
         <div
           v-for="s in sessions"
           :key="s.id"
-          class="session-row"
+          class="border border-[var(--line)] bg-[var(--surface-strong)] rounded-2xl p-4 flex flex-col md:flex-row justify-between md:items-center gap-4 hover:shadow-sm transition-shadow"
         >
-          <div class="session-row__info">
-            <div class="session-row__top">
-              <span class="session-badge" :class="s.is_active ? 'session-badge--open' : 'session-badge--closed'">
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border" :class="s.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--line)]'">
                 {{ s.is_active ? 'Đang mở' : 'Chưa mở' }}
               </span>
-              <strong class="session-row__title">{{ s.title }}</strong>
+              <strong class="text-sm font-bold text-[var(--text)]">{{ s.title }}</strong>
             </div>
-            <div class="session-row__meta">
-              <span><span class="material-symbols-outlined">location_on</span> {{ s.location }}</span>
-              <span><span class="material-symbols-outlined">schedule</span> {{ formatDate(s.start_at) }}</span>
-              <span><span class="material-symbols-outlined">timer</span> {{ s.duration }} phút</span>
-              <span><span class="material-symbols-outlined">how_to_reg</span> {{ s.attendances_count ?? 0 }} điểm danh</span>
+            <div class="flex items-center gap-4 mt-3 flex-wrap text-xs text-[var(--muted)] font-semibold">
+              <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-sm">location_on</span> {{ s.location }}</span>
+              <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-sm">schedule</span> {{ formatDate(s.start_at) }}</span>
+              <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-sm">timer</span> {{ s.duration }} phút</span>
+              <span class="inline-flex items-center gap-1"><span class="material-symbols-outlined text-sm">how_to_reg</span> {{ s.attendances_count ?? 0 }} điểm danh</span>
             </div>
           </div>
-          <div class="session-row__actions">
+          <div class="flex flex-wrap items-center gap-1.5 pt-3 border-t md:border-t-0 border-[var(--line)] md:pt-0">
             <button
-              :class="s.is_active ? 'sess-btn sess-btn--pause' : 'sess-btn sess-btn--open'"
+              class="h-7 px-3 rounded-lg text-[10px] font-bold text-white transition-colors"
+              :class="s.is_active ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'"
               type="button"
               @click="toggleActive(s)"
             >
               {{ s.is_active ? 'Đóng' : 'Mở điểm danh' }}
             </button>
-            <button class="sess-btn sess-btn--qr" type="button" @click="openQr(s)">
-              <span class="material-symbols-outlined">qr_code_2</span> QR
+            <button class="inline-flex items-center gap-1 h-7 px-3 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-[10px] font-bold text-[var(--text)] transition-colors" type="button" @click="openQr(s)">
+              <span class="material-symbols-outlined text-sm">qr_code_2</span> QR
             </button>
-            <NuxtLink :to="`/instructor/sessions/${s.id}/attendance`" class="sess-btn sess-btn--view">
-              <span class="material-symbols-outlined">list_alt</span> Báo cáo
+            <NuxtLink :to="`/instructor/sessions/${s.id}/attendance`" class="inline-flex items-center gap-1 h-7 px-3 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-[10px] font-bold text-[var(--text)] flex items-center justify-center transition-colors">
+              <span class="material-symbols-outlined text-sm">list_alt</span> Báo cáo
             </NuxtLink>
-            <button class="ds-btn ds-btn--edit" type="button" @click="openEdit(s)">
-              <span class="material-symbols-outlined">edit</span>
+            <button class="w-7 h-7 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-[var(--muted)] flex items-center justify-center transition-colors" type="button" @click="openEdit(s)">
+              <span class="material-symbols-outlined text-sm">edit</span>
             </button>
-            <button class="ds-btn ds-btn--delete" type="button" @click="deleteSession(s)">
-              <span class="material-symbols-outlined">delete</span>
+            <button class="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition-colors" type="button" @click="deleteSession(s)">
+              <span class="material-symbols-outlined text-sm">delete</span>
             </button>
           </div>
         </div>
@@ -247,50 +249,50 @@ onUnmounted(closeQr)
 
     <!-- Create/Edit Modal -->
     <Teleport to="body">
-      <div v-if="showForm" class="modal-overlay" @click.self="showForm = false">
-        <div class="modal-box">
-          <header class="modal-header">
-            <h3>{{ editTarget ? 'Sửa phiên học' : 'Tạo phiên học mới' }}</h3>
-            <button class="modal-close" type="button" @click="showForm = false">
-              <span class="material-symbols-outlined">close</span>
+      <div v-if="showForm" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[999]" @click.self="showForm = false">
+        <div class="bg-white border border-[var(--line)] rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
+          <header class="px-6 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex justify-between items-center">
+            <h3 class="text-sm font-bold text-[var(--text)]">{{ editTarget ? 'Sửa phiên học' : 'Tạo phiên học mới' }}</h3>
+            <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--line)] text-[var(--muted)]" type="button" @click="showForm = false">
+              <span class="material-symbols-outlined text-sm">close</span>
             </button>
           </header>
-          <form class="modal-body" @submit.prevent="saveForm">
-            <label class="form-field">
-              <span>Tiêu đề *</span>
-              <input v-model="form.title" required class="form-input" />
-            </label>
-            <label class="form-field">
-              <span>Địa điểm *</span>
-              <input v-model="form.location" required class="form-input" />
-            </label>
-            <div class="form-row">
-              <label class="form-field">
-                <span>Thời gian bắt đầu *</span>
-                <input v-model="form.start_at" type="datetime-local" required class="form-input" />
-              </label>
-              <label class="form-field">
-                <span>Thời lượng (phút) *</span>
-                <input v-model.number="form.duration" type="number" min="1" required class="form-input" />
-              </label>
+          <form class="p-6 flex flex-col gap-4" @submit.prevent="saveForm">
+            <div class="flex flex-col gap-1.5">
+              <span class="text-xs font-semibold text-[var(--text)]">Tiêu đề *</span>
+              <input v-model="form.title" required class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
             </div>
-            <div class="form-row">
-              <label class="form-field">
-                <span>Vĩ độ (Latitude) *</span>
-                <input v-model.number="form.latitude" type="number" step="any" required class="form-input" />
-              </label>
-              <label class="form-field">
-                <span>Kinh độ (Longitude) *</span>
-                <input v-model.number="form.longitude" type="number" step="any" required class="form-input" />
-              </label>
+            <div class="flex flex-col gap-1.5">
+              <span class="text-xs font-semibold text-[var(--text)]">Địa điểm *</span>
+              <input v-model="form.location" required class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
             </div>
-            <p class="form-hint">Toạ độ được tự động điền theo vị trí hiện tại. Sinh viên phải ở trong phạm vi 10m.</p>
-            <div v-if="formError" class="crud-alert is-error">{{ formError }}</div>
-            <div class="modal-footer">
-              <button type="button" class="crud-secondary-btn" @click="showForm = false">Huỷ</button>
-              <button type="submit" :disabled="saving" class="crud-primary-btn">
-                <span class="material-symbols-outlined">save</span>
-                {{ saving ? 'Đang lưu...' : 'Lưu' }}
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-semibold text-[var(--text)]">Thời gian bắt đầu *</span>
+                <input v-model="form.start_at" type="datetime-local" required class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-semibold text-[var(--text)]">Thời lượng (phút) *</span>
+                <input v-model.number="form.duration" type="number" min="1" required class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-semibold text-[var(--text)]">Vĩ độ (Latitude) *</span>
+                <input v-model.number="form.latitude" type="number" step="any" required class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <span class="text-xs font-semibold text-[var(--text)]">Kinh độ (Longitude) *</span>
+                <input v-model.number="form.longitude" type="number" step="any" required class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75]" />
+              </div>
+            </div>
+            <p class="text-[10px] text-[var(--muted)] leading-relaxed">Toạ độ được tự động điền theo vị trí hiện tại. Sinh viên phải ở trong phạm vi 10m.</p>
+            <div v-if="formError" class="p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold">{{ formError }}</div>
+            <div class="flex justify-end gap-2 border-t border-[var(--line)] pt-4 mt-2">
+              <button type="button" class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors" @click="showForm = false">Huỷ</button>
+              <button type="submit" :disabled="saving" class="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50">
+                <span class="material-symbols-outlined text-sm">save</span>
+                <span>{{ saving ? 'Đang lưu...' : 'Lưu' }}</span>
               </button>
             </div>
           </form>
@@ -298,156 +300,41 @@ onUnmounted(closeQr)
       </div>
 
       <!-- QR Modal -->
-      <div v-if="qrSession" class="modal-overlay" @click.self="closeQr">
-        <div class="modal-box modal-box--sm">
-          <header class="modal-header">
-            <h3>Mã QR điểm danh</h3>
-            <button class="modal-close" type="button" @click="closeQr">
-              <span class="material-symbols-outlined">close</span>
+      <div v-if="qrSession" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[999]" @click.self="closeQr">
+        <div class="bg-white border border-[var(--line)] rounded-2xl w-full max-w-sm shadow-xl overflow-hidden flex flex-col">
+          <header class="px-6 py-4 border-b border-[var(--line)] bg-[var(--surface)] flex justify-between items-center">
+            <h3 class="text-sm font-bold text-[var(--text)]">Mã QR điểm danh</h3>
+            <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--line)] text-[var(--muted)]" type="button" @click="closeQr">
+              <span class="material-symbols-outlined text-sm">close</span>
             </button>
           </header>
-          <div class="qr-body">
-            <p class="qr-session-title">{{ qrSession.title }}</p>
-            <p class="qr-session-loc">
-              <span class="material-symbols-outlined">location_on</span> {{ qrSession.location }}
+          <div class="p-6 flex flex-col items-center gap-4 text-center">
+            <p class="text-xs font-bold text-[var(--text)]">{{ qrSession.title }}</p>
+            <p class="text-[11px] text-[var(--muted)] font-semibold flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs">location_on</span> {{ qrSession.location }}
             </p>
-            <div v-if="qrLoading" class="qr-placeholder">Đang tạo mã QR...</div>
-            <div v-else class="qr-img-wrap">
+            <div v-if="qrLoading" class="w-[200px] h-[200px] bg-[var(--surface)] border border-[var(--line)] rounded-2xl flex items-center justify-center text-xs text-[var(--muted)]">Đang tạo mã QR...</div>
+            <div v-else class="w-[200px] h-[200px] border border-[var(--line)] bg-white p-2 rounded-2xl flex items-center justify-center shadow-inner">
               <img
                 :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrPayload)}`"
                 alt="QR Code"
-                class="qr-img"
+                class="w-full h-full object-contain"
               />
             </div>
-            <p class="qr-expire">
-              Hết hạn lúc: <strong>{{ qrExpiresAt ? new Date(qrExpiresAt).toLocaleTimeString('vi-VN') : '—' }}</strong>
+            <p class="text-xs text-[var(--muted)] font-semibold">
+              Hết hạn lúc: <strong class="text-[var(--text)]">{{ qrExpiresAt ? new Date(qrExpiresAt).toLocaleTimeString('vi-VN') : '—' }}</strong>
             </p>
-            <p class="qr-note">QR tự động làm mới sau 5 phút</p>
-            <button class="crud-primary-btn w-full" type="button" @click="refreshQr(qrSession!)">
-              <span class="material-symbols-outlined">refresh</span> Làm mới QR ngay
+            <p class="text-[10px] text-[var(--muted)]">QR tự động làm mới sau 5 phút</p>
+            <button class="inline-flex items-center justify-center gap-1.5 h-9 w-full px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" type="button" @click="refreshQr(qrSession!)">
+              <span class="material-symbols-outlined text-sm">refresh</span> Làm mới QR ngay
             </button>
           </div>
         </div>
       </div>
     </Teleport>
-  </InstructorWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-/* Session list */
-.sessions-list { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
-
-.session-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--bg);
-  transition: border-color 150ms, box-shadow 150ms;
-}
-.session-row:hover { border-color: rgba(var(--green-rgb),0.3); box-shadow: 0 2px 8px rgba(31,49,43,0.06); }
-
-.session-row__info { flex: 1; min-width: 0; }
-.session-row__top  { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.session-row__title { font-size: 0.9rem; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.session-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 9px;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.session-badge--open   { background: rgba(29,158,117,0.1); color: var(--green-deep); }
-.session-badge--closed { background: rgba(17,17,17,0.06); color: var(--muted); }
-
-.session-row__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-.session-row__meta span { display: inline-flex; align-items: center; gap: 4px; }
-.session-row__meta .material-symbols-outlined { font-size: 15px; }
-
-.session-row__actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
-.sess-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-size: 0.78rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background 120ms, border-color 120ms;
-}
-.sess-btn .material-symbols-outlined { font-size: 15px; }
-.sess-btn--open  { background: rgba(29,158,117,0.1); color: var(--green-deep); border-color: rgba(29,158,117,0.2); }
-.sess-btn--pause { background: rgba(217,119,6,0.1); color: #b45309; border-color: rgba(217,119,6,0.2); }
-.sess-btn--qr    { background: rgba(99,102,241,0.1); color: #4338ca; border-color: rgba(99,102,241,0.2); }
-.sess-btn--view  { background: rgba(55,138,221,0.08); color: #1a5fa8; border-color: rgba(55,138,221,0.18); }
-.sess-btn--open:hover  { background: rgba(29,158,117,0.18); }
-.sess-btn--pause:hover { background: rgba(217,119,6,0.18); }
-.sess-btn--qr:hover    { background: rgba(99,102,241,0.18); }
-.sess-btn--view:hover  { background: rgba(55,138,221,0.15); }
-
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(15,23,42,0.5);
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem; z-index: 70;
-}
-.modal-box {
-  width: min(100%, 520px); background: var(--surface-lowest);
-  border: 1px solid var(--line); border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(15,23,42,0.2);
-  overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;
-}
-.modal-box--sm { width: min(100%, 380px); }
-.modal-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 1.1rem 1.25rem; border-bottom: 1px solid var(--line);
-}
-.modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text); }
-.modal-close { background: transparent; border: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; }
-.modal-close:hover { color: var(--text); }
-.modal-body { padding: 1.25rem; overflow: auto; display: flex; flex-direction: column; gap: 14px; }
-
-.form-field { display: grid; gap: 5px; }
-.form-field span { font-size: 0.8rem; font-weight: 700; color: var(--muted); }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-input {
-  width: 100%; padding: 7px 10px; border: 1px solid var(--line);
-  border-radius: 10px; font: inherit; font-size: 0.875rem;
-  background: var(--bg); color: var(--text);
-}
-.form-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(var(--green-rgb),0.12); }
-.form-hint { font-size: 0.78rem; color: var(--muted); margin: 0; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px; }
-
-/* QR modal */
-.qr-body { padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.qr-session-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin: 0; }
-.qr-session-loc { font-size: 0.82rem; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; margin: 0; }
-.qr-session-loc .material-symbols-outlined { font-size: 15px; }
-.qr-placeholder { height: 200px; display: grid; place-items: center; color: var(--muted); font-size: 0.875rem; }
-.qr-img-wrap { display: flex; justify-content: center; }
-.qr-img { width: 200px; height: 200px; border-radius: 12px; border: 1px solid var(--line); }
-.qr-expire { font-size: 0.78rem; color: var(--muted); margin: 0; }
-.qr-note { font-size: 0.75rem; color: #b45309; margin: 0; }
-.w-full { width: 100%; justify-content: center; }
+/* Scoped styles kept minimal */
 </style>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
 definePageMeta({ layout: 'admin' })
 
@@ -185,80 +184,90 @@ selectTemplate('welcome')
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Mẫu Email"
-    description="Xem và tuỳ chỉnh các template email hệ thống gửi tự động cho người dùng theo từng sự kiện."
-    :breadcrumb="['Trang chủ', 'Hỗ trợ', 'Mẫu Email']"
-  >
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Cấu hình hệ thống</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Mẫu Email</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Xem và tuỳ chỉnh các template email hệ thống gửi tự động cho người dùng theo từng sự kiện.</p>
+      </div>
+    </div>
+
     <!-- Notice -->
-    <div class="dashboard-card" style="margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #3b82f6; background: #eff6ff; display: flex; gap: 12px;">
-      <i class="pi pi-info-circle" style="font-size:1.125rem" />
-      <p style="font-size: 0.875rem; color: #1e40af; margin: 0; line-height: 1.6;">
+    <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl p-5 flex gap-3">
+      <i class="pi pi-info-circle text-lg shrink-0 mt-0.5" />
+      <p class="text-xs leading-relaxed">
         Đây là các template email mặc định. Để chỉnh sửa nội dung thực tế, cần cấu hình template engine trong backend (Laravel Mail).
         Trang này cho phép <strong>xem trước</strong> và <strong>kiểm tra biến</strong> cho mỗi template.
       </p>
     </div>
 
-    <div class="email-layout">
+    <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5 items-start">
       <!-- Sidebar: template list -->
-      <aside class="email-sidebar">
-        <div class="dashboard-card" style="padding: 0; overflow: hidden;">
-          <div style="padding: 14px 16px; border-bottom: 1px solid var(--line);">
-            <p class="section-kicker">Hệ thống</p>
-            <h3 style="margin: 4px 0 12px;">Danh sách template</h3>
+      <aside class="w-full lg:w-70 bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-[var(--line)] flex flex-col gap-2">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Hệ thống</p>
+            <h3 class="text-sm font-semibold text-[var(--text)] mt-0.5">Danh sách template</h3>
+          </div>
+          <div class="relative">
+            <i class="pi pi-search absolute left-3 top-2.5 text-xs text-[var(--muted)]" />
             <input
               v-model="search"
               type="text"
-              class="crud-search"
-              style="width: 100%;"
+              class="h-8 pl-8 pr-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#1d9e75] w-full"
               placeholder="Tìm template..."
             >
           </div>
-          <div>
-            <button
-              v-for="tpl in filteredTemplates"
-              :key="tpl.id"
-              type="button"
-              class="tpl-list-item"
-              :class="{ 'is-active': selectedId === tpl.id }"
-              @click="selectTemplate(tpl.id)"
-            >
-              <strong style="font-size: 0.875rem;">{{ tpl.name }}</strong>
-              <p style="font-size: 0.72rem; color: var(--muted); margin: 3px 0 0; text-align: left; line-height: 1.4;">{{ tpl.trigger }}</p>
-            </button>
-          </div>
+        </div>
+        <div class="flex flex-col">
+          <button
+            v-for="tpl in filteredTemplates"
+            :key="tpl.id"
+            type="button"
+            class="w-full text-left p-4 border-b border-[var(--line)] last:border-0 hover:bg-[rgba(29,158,117,0.04)] transition-colors"
+            :class="{ 'bg-[rgba(29,158,117,0.08)] border-l-4 border-l-[#1d9e75] pl-3': selectedId === tpl.id }"
+            @click="selectTemplate(tpl.id)"
+          >
+            <span class="block text-xs font-bold text-[var(--text)]">{{ tpl.name }}</span>
+            <span class="block text-[10px] text-[var(--muted)] mt-1 leading-relaxed">{{ tpl.trigger }}</span>
+          </button>
         </div>
       </aside>
 
       <!-- Right: template detail + preview -->
-      <div v-if="selectedTemplate" class="email-main">
+      <div v-if="selectedTemplate" class="flex flex-col gap-5">
         <!-- Meta -->
-        <section class="dashboard-card" style="margin-bottom: 16px;">
-          <div class="card-head" style="margin-bottom: 16px;">
-            <div>
-              <p class="section-kicker">{{ selectedTemplate.trigger }}</p>
-              <h3>{{ selectedTemplate.name }}</h3>
-            </div>
+        <section class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">{{ selectedTemplate.trigger }}</p>
+            <h3 class="text-base font-bold text-[var(--text)] mt-0.5">{{ selectedTemplate.name }}</h3>
           </div>
-          <div class="crud-form-grid">
-            <div class="crud-field crud-field-full">
-              <span>Subject line</span>
-              <input :value="selectedTemplate.subject" type="text" readonly style="opacity: 0.7;">
-            </div>
+          
+          <div class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Tiêu đề email (Subject line)</span>
+            <input 
+              :value="selectedTemplate.subject" 
+              type="text" 
+              readonly 
+              class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] opacity-70 w-full outline-none"
+            >
           </div>
+
           <!-- Variables -->
-          <div style="margin-top: 16px;">
-            <p style="font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">
+          <div class="mt-2 border-t border-[var(--line)] pt-4 flex flex-col gap-3">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
               Biến mẫu — nhập giá trị xem trước
             </p>
-            <div class="vars-grid">
-              <div v-for="v in selectedTemplate.variables" :key="v" class="var-field">
-                <label style="font-size: 0.72rem; color: var(--muted); font-family: monospace;">{{ v }}</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div v-for="v in selectedTemplate.variables" :key="v" class="flex flex-col gap-1.5">
+                <label class="text-[10px] text-[var(--muted)] font-mono">{{ v }}</label>
                 <input
                   v-model="previewVars[v]"
                   type="text"
                   :placeholder="v"
-                  style="font-size: 0.8rem; padding: 6px 10px;"
+                  class="h-8 px-2.5 rounded-lg border border-[var(--line)] bg-white text-xs text-[var(--text)] focus:outline-none focus:border-[#1d9e75] w-full"
                 >
               </div>
             </div>
@@ -266,75 +275,21 @@ selectTemplate('welcome')
         </section>
 
         <!-- Preview -->
-        <section class="dashboard-card">
-          <div class="crud-toolbar" style="margin-bottom: 16px;">
-            <h3>Xem trước email</h3>
-            <span style="font-size: 0.78rem; color: var(--muted);">Các biến được highlight bằng màu vàng</span>
+        <section class="bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-[var(--text)]">Xem trước email</h3>
+            <span class="text-[10px] text-[var(--muted)]">Các biến được highlight bằng màu vàng</span>
           </div>
-          <div class="email-preview-frame">
+          <div class="border border-[var(--line)] rounded-2xl p-5 bg-[#f9fafb] overflow-auto">
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div v-html="renderedPreview" />
           </div>
         </section>
       </div>
     </div>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.email-layout {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width: 900px) {
-  .email-layout { grid-template-columns: 1fr; }
-}
-
-.tpl-list-item {
-  display: block;
-  width: 100%;
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  border-bottom: 1px solid var(--line);
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-}
-.tpl-list-item:last-child { border-bottom: none; }
-.tpl-list-item:hover { background: rgba(var(--green-rgb), 0.04); }
-.tpl-list-item.is-active {
-  background: rgba(var(--green-rgb), 0.08);
-  border-left: 3px solid var(--green);
-}
-
-.vars-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-}
-.var-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.var-field input {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 0.8rem;
-  font-family: inherit;
-  outline: none;
-}
-.var-field input:focus { border-color: var(--green); }
-
-.email-preview-frame {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 20px;
-  background: #f9fafb;
-  overflow: auto;
-}
+/* Scoped styles kept minimal */
 </style>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import DataTableFooter from '~/components/common/DataTableFooter.vue'
 
 definePageMeta({ layout: 'admin' })
@@ -155,148 +154,164 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Chi trả giảng viên (Payouts)"
-    description="Tổng hợp doanh thu từ đơn hàng đã thanh toán. Payout mặc định 70% doanh thu. Đánh dấu để theo dõi trạng thái chi trả."
-    :breadcrumb="['Trang chủ', 'Tài chính', 'Chi trả giảng viên']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tính toán dữ liệu payout...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="flex flex-col gap-5">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-[var(--muted)] mb-1">Tài chính</p>
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">Chi trả giảng viên (Payouts)</h1>
+        <p class="text-sm text-[var(--muted)] mt-0.5">Tổng hợp doanh thu từ đơn hàng đã thanh toán. Payout mặc định 70% doanh thu. Đánh dấu để theo dõi trạng thái chi trả.</p>
+      </div>
+    </div>
+
+    <div v-if="loading" class="bg-white border border-[var(--line)] rounded-2xl p-12 text-center text-sm" style="color:var(--muted)">Đang tính toán dữ liệu payout...</div>
+    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 rounded-2xl px-5 py-4 text-sm">{{ error }}</div>
 
     <template v-else>
       <!-- KPI Cards -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article class="dashboard-card mini-card tone-green">
-          <p class="mini-title">Giảng viên có doanh thu</p>
-          <div class="mini-head">
-            <strong>{{ payoutRows.length }}</strong>
-            <span>Người</span>
-          </div>
-        </article>
-        <article class="dashboard-card mini-card tone-blue">
-          <p class="mini-title">Tổng doanh thu lọc</p>
-          <div class="mini-head">
-            <strong>{{ formatMoney(totalRevenue) }}</strong>
-            <span>Đã thanh toán</span>
-          </div>
-        </article>
-        <article class="dashboard-card mini-card">
-          <p class="mini-title">Tổng payout (70%)</p>
-          <div class="mini-head">
-            <strong>{{ formatMoney(totalPayout) }}</strong>
-            <span>Cần chi trả</span>
-          </div>
-        </article>
-        <article class="dashboard-card mini-card tone-amber">
-          <p class="mini-title">Đã đánh dấu chi trả</p>
-          <div class="mini-head">
-            <strong>{{ paidCount }} / {{ payoutRows.length }}</strong>
-            <span>Giảng viên</span>
-          </div>
-        </article>
-      </section>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(29,158,117,0.08)] border-[rgba(29,158,117,0.2)]">
+          <p class="text-xs font-bold uppercase tracking-wider text-[#1d9e75]">Giảng viên có doanh thu</p>
+          <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ payoutRows.length }}</strong>
+          <span class="text-xs text-[var(--muted)] font-medium">Người</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(59,130,246,0.08)] border-[rgba(59,130,246,0.2)]">
+          <p class="text-xs font-bold uppercase tracking-wider text-blue-600">Tổng doanh thu lọc</p>
+          <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ formatMoney(totalRevenue) }}</strong>
+          <span class="text-xs text-[var(--muted)] font-medium">Đã thanh toán</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(139,92,246,0.08)] border-[rgba(139,92,246,0.2)]">
+          <p class="text-xs font-bold uppercase tracking-wider text-violet-600">Tổng payout (70%)</p>
+          <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ formatMoney(totalPayout) }}</strong>
+          <span class="text-xs text-[var(--muted)] font-medium">Cần chi trả</span>
+        </div>
+        <div class="rounded-2xl p-5 flex flex-col gap-2 border bg-[rgba(245,158,11,0.08)] border-[rgba(245,158,11,0.2)]">
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-600">Đã đánh dấu chi trả</p>
+          <strong class="text-3xl font-extrabold tracking-tight text-[var(--text)]">{{ paidCount }} / {{ payoutRows.length }}</strong>
+          <span class="text-xs text-[var(--muted)] font-medium">Giảng viên</span>
+        </div>
+      </div>
 
       <!-- Filter & toolbar -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <input
-              v-model="search"
-              class="crud-search"
-              type="text"
-              placeholder="Tìm tên hoặc email giảng viên..."
+      <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
+        <div class="flex flex-wrap gap-3 items-center px-5 py-4 border-b border-[var(--line)]">
+          <div class="flex flex-1 min-w-0 gap-2">
+            <div class="relative flex-1 min-w-[180px] max-w-xs">
+              <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" style="font-size:0.8rem" />
+              <input
+                v-model="search"
+                class="w-full h-9 pl-8 pr-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:border-[#1d9e75] focus:ring-2 focus:ring-[rgba(29,158,117,0.15)]"
+                type="text"
+                placeholder="Tìm tên hoặc email giảng viên..."
+              >
+            </div>
+            <select
+              v-model="periodFilter"
+              class="h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer"
             >
-            <select v-model="periodFilter" class="crud-select">
               <option value="all">Tất cả thời gian</option>
               <option value="this_month">Tháng này</option>
               <option value="last_month">Tháng trước</option>
               <option value="this_year">Năm nay</option>
             </select>
           </div>
-          <div class="crud-toolbar-right">
-            <button class="crud-secondary-btn" type="button" @click="markAllAsPaid">
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+              type="button"
+              @click="markAllAsPaid"
+            >
               Đánh dấu tất cả đã trả
             </button>
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <span class="material-symbols-outlined">download</span>
-              Xuất Excel
+            <button
+              class="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+              type="button"
+              @click="exportCSV"
+            >
+              <i class="pi pi-download" style="font-size:0.8rem" /> Xuất Excel
             </button>
           </div>
         </div>
 
-        <div v-if="payoutRows.length === 0" class="crud-empty">
+        <div v-if="payoutRows.length === 0" class="text-center py-8 text-sm" style="color:var(--muted)">
           Không có dữ liệu payout cho kỳ được chọn.
         </div>
 
-        <div v-else class="crud-table-wrap">
-          <table class="crud-table">
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm border-collapse">
             <thead>
-              <tr>
-                <th>Giảng viên</th>
-                <th>Khoá học</th>
-                <th>Số đơn hàng</th>
-                <th>Doanh thu</th>
-                <th>Thanh toán (70%)</th>
-                <th>Trạng thái chi trả</th>
-                <th>Thao tác</th>
+              <tr class="border-b border-[var(--line)] bg-[var(--surface)]">
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Giảng viên</th>
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Khoá học</th>
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Số đơn hàng</th>
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Doanh thu</th>
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Thanh toán (70%)</th>
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Trạng thái chi trả</th>
+                <th class="px-4 py-3 text-left text-[0.72rem] font-bold uppercase tracking-wide text-[var(--muted)]">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="row in pagedPayoutRows"
                 :key="row.instructorId"
-                :class="{ 'row-paid': markedPaid.has(row.instructorId) }"
+                class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors"
+                :class="{ 'opacity-65 line-through decoration-gray-300': markedPaid.has(row.instructorId) }"
               >
-                <td>
-                  <div class="crud-profile">
-                    <div class="crud-avatar crud-avatar-fallback">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-[rgba(29,158,117,0.1)] text-[#085041] border border-[rgba(29,158,117,0.2)]">
                       {{ row.instructorName.slice(0, 2).toUpperCase() }}
                     </div>
-                    <div>
-                      <strong>{{ row.instructorName }}</strong>
-                      <p>{{ row.email || 'Không có email' }}</p>
+                    <div class="flex flex-col no-underline">
+                      <strong class="text-sm font-semibold text-[var(--text)]">{{ row.instructorName }}</strong>
+                      <p class="text-xs text-[var(--muted)]">{{ row.email || 'Không có email' }}</p>
                     </div>
                   </div>
                 </td>
-                <td>
-                  <div style="max-width: 22ch;">
+                <td class="px-4 py-3">
+                  <div class="flex flex-col max-w-[200px]">
                     <p
                       v-for="(title, i) in row.courseTitles.slice(0, 2)"
                       :key="i"
-                      style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0;"
+                      class="text-xs text-[var(--text)] truncate"
+                      :title="title"
                     >
                       {{ title }}
                     </p>
                     <p
                       v-if="row.courseTitles.length > 2"
-                      style="font-size: 0.75rem; color: var(--muted); margin: 0;"
+                      class="text-xs text-[var(--muted)] font-medium mt-0.5"
                     >
                       +{{ row.courseTitles.length - 2 }} khoá khác
                     </p>
                   </div>
                 </td>
-                <td>
-                  <strong>{{ row.orderCount }}</strong>
+                <td class="px-4 py-3">
+                  <span class="text-sm font-semibold text-[var(--text)]">{{ row.orderCount }}</span>
                 </td>
-                <td>
-                  <strong>{{ formatMoney(row.revenue) }}</strong>
+                <td class="px-4 py-3">
+                  <span class="text-sm font-semibold text-[var(--text)]">{{ formatMoney(row.revenue) }}</span>
                 </td>
-                <td>
-                  <strong style="color: var(--green-deep);">{{ formatMoney(row.payout) }}</strong>
+                <td class="px-4 py-3">
+                  <span class="text-sm font-bold text-[#085041]">{{ formatMoney(row.payout) }}</span>
                 </td>
-                <td>
+                <td class="px-4 py-3">
                   <span
-                    class="crud-badge"
-                    :class="markedPaid.has(row.instructorId) ? 'role-instructor' : 'role-student'"
+                    class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold"
+                    :class="markedPaid.has(row.instructorId) 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'"
                   >
                     {{ markedPaid.has(row.instructorId) ? 'Đã chi trả' : 'Chưa chi trả' }}
                   </span>
                 </td>
-                <td>
+                <td class="px-4 py-3">
                   <button
                     type="button"
-                    class="action-btn"
-                    :class="markedPaid.has(row.instructorId) ? 'is-view' : 'is-edit'"
+                    class="inline-flex items-center justify-center h-7 px-3 rounded-lg border text-xs font-semibold transition-colors no-underline"
+                    :class="markedPaid.has(row.instructorId) 
+                      ? 'border-[var(--line)] bg-transparent hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)]'
+                      : 'border-[rgba(29,158,117,0.3)] bg-[rgba(29,158,117,0.07)] hover:bg-[rgba(29,158,117,0.13)] text-[#085041]'"
                     @click="togglePaid(row.instructorId)"
                   >
                     {{ markedPaid.has(row.instructorId) ? 'Hoàn tác' : 'Đánh dấu đã trả' }}
@@ -317,19 +332,16 @@ onMounted(fetchData)
         />
 
         <!-- Note -->
-        <div style="margin-top: 16px; padding: 12px 16px; background: rgba(var(--green-rgb), 0.04); border-radius: 12px; font-size: 0.8rem; color: var(--muted); line-height: 1.6;">
-          <strong style="color: var(--text);">Lưu ý:</strong>
+        <div class="m-5 p-4 bg-[rgba(29,158,117,0.04)] border border-[rgba(29,158,117,0.15)] rounded-2xl text-xs text-[var(--muted)] leading-relaxed">
+          <strong class="text-[var(--text)]">Lưu ý:</strong>
           Trạng thái "Đã chi trả" chỉ được lưu trên trình duyệt trong phiên hiện tại. Để lưu trạng thái vĩnh viễn cần tích hợp API payout vào backend.
-          Tỉ lệ payout mặc định: <strong>70%</strong> doanh thu (có thể điều chỉnh trong Cài đặt hệ thống).
+          Tỉ lệ payout mặc định: <strong class="text-[#085041]">70%</strong> doanh thu (có thể điều chỉnh trong Cài đặt hệ thống).
         </div>
       </section>
     </template>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.row-paid { opacity: 0.6; }
-.row-paid td { text-decoration: line-through; text-decoration-color: rgba(17,17,17,0.2); }
-.row-paid td strong, .row-paid td .crud-profile strong { text-decoration: none; }
-.row-paid td:last-child { text-decoration: none; }
+/* Scoped styles kept minimal */
 </style>
