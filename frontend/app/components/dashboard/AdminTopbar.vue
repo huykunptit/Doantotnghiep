@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useDarkMode } from '~/composables/useDarkMode'
+import { useAdminMenuConfig } from '~/composables/useAdminMenuConfig'
+import { searchMenuItems } from '~/composables/useSearchUtils'
+import type { FlattenedMenuItem } from '~/composables/useSearchUtils'
 
 const emit = defineEmits<{ toggleSidebar: [] }>()
 
@@ -17,46 +20,58 @@ defineProps<{
 const auth = useAuthStore()
 const { isDark, toggle: toggleDark, init: initDark } = useDarkMode()
 
+// ── Search State ──
+const searchQuery = ref('')
+const { menuItems } = useAdminMenuConfig()
+
+const searchResults = computed<FlattenedMenuItem[]>(() => {
+  return searchMenuItems(searchQuery.value, menuItems.value)
+})
+
+function handleSearchSelect(item: FlattenedMenuItem) {
+  searchQuery.value = ''
+  navigateTo(item.to)
+}
+
+function handleEscapeKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    searchQuery.value = ''
+    closeAll()
+  }
+}
+
+// ── Language Selector State ──
+const langOpen = ref(false)
+const currentLang = ref('vi') // default
+const languages = [
+  { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+]
+
+const activeLanguage = computed(() => {
+  return languages.find((l) => l.code === currentLang.value) || languages[0]
+})
+
+function toggleLang() {
+  langOpen.value = !langOpen.value
+  notifOpen.value = false
+  userOpen.value = false
+}
+
+function selectLanguage(code: string) {
+  currentLang.value = code
+  langOpen.value = false
+  if (import.meta.client) {
+    localStorage.setItem('sylva-locale', code)
+  }
+}
+
+// ── Notifications State ──
 const notifOpen = ref(false)
 const notifLoading = ref(false)
 const notifications = ref<any[]>([])
 const unreadCount = ref(0)
 const userOpen = ref(false)
-
-// ── Points / Quests panel ────────────────────────────────────────────────────
-const questOpen = ref(false)
-const questLoading = ref(false)
-const questData = ref<any>(null)
-
-const questIconMap: Record<string, string> = {
-  'calendar-check': 'calendar',
-  'flame': 'bolt',
-  'trophy': 'trophy',
-  'book-open-check': 'book',
-  'graduation-cap': 'graduation-cap',
-  'medal': 'star',
-  'shopping-bag': 'shopping-bag',
-  'clipboard-list': 'list',
-  'star': 'star',
-}
-function questIcon(key: string) { return questIconMap[key] || 'star' }
-
-async function openQuestPanel() {
-  questOpen.value = !questOpen.value
-  notifOpen.value = false
-  userOpen.value = false
-  if (!questOpen.value || questData.value) return
-  questLoading.value = true
-  try {
-    questData.value = await useApi<any>('/points/quests', { headers: authHeaders() })
-  } catch {}
-  questLoading.value = false
-}
-
-const questCatLabel: Record<string, string> = {
-  daily: 'Hàng ngày', milestone: 'Cột mốc', learning: 'Học tập', engagement: 'Tương tác',
-}
-
 
 const authHeaders = () => ({ Authorization: `Bearer ${auth.token}` })
 
@@ -71,6 +86,7 @@ async function fetchUnreadCount() {
 async function openNotif() {
   notifOpen.value = !notifOpen.value
   userOpen.value = false
+  langOpen.value = false
   if (!notifOpen.value) return
   notifLoading.value = true
   try {
@@ -114,17 +130,19 @@ function relativeTime(date: string) {
 function closeAll() {
   notifOpen.value = false
   userOpen.value = false
-  questOpen.value = false
+  langOpen.value = false
 }
 
 function openUser() {
   userOpen.value = !userOpen.value
   notifOpen.value = false
+  langOpen.value = false
 }
 
-function handleKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') closeAll()
-}
+// ── Role Switch items ──
+const rolesList = computed(() => auth.user?.roles || [])
+const canSwitchToStudent = computed(() => rolesList.value.includes('student') || rolesList.value.includes('instructor'))
+const canSwitchToInstructor = computed(() => rolesList.value.includes('instructor'))
 
 async function handleLogout() {
   closeAll()
@@ -143,121 +161,111 @@ async function handleLogout() {
 onMounted(() => {
   fetchUnreadCount()
   initDark()
-  document.addEventListener('keydown', handleKey)
-  if (import.meta.client) setInterval(fetchUnreadCount, 60_000)
+  document.addEventListener('keydown', handleEscapeKey)
+  if (import.meta.client) {
+    setInterval(fetchUnreadCount, 60_000)
+    const savedLocale = localStorage.getItem('sylva-locale')
+    if (savedLocale) currentLang.value = savedLocale
+  }
 })
 
-onUnmounted(() => document.removeEventListener('keydown', handleKey))
+onUnmounted(() => document.removeEventListener('keydown', handleEscapeKey))
 </script>
 
 <template>
   <header class="tb">
     <!-- Left -->
     <div class="tb-left">
-      <button type="button" class="tb-icon-btn" aria-label="Mở sidebar" @click="emit('toggleSidebar')">
+      <button type="button" class="tb-icon-btn" aria-label="Mở menu điều hướng" @click="emit('toggleSidebar')">
         <i class="pi pi-bars" style="font-size:1.1875rem" />
       </button>
     </div>
 
-    <!-- Search -->
-    <label class="tb-search">
-      <i class="pi pi-search" style="font-size:0.875rem" />
-      <input type="search" :placeholder="searchPlaceholder" class="tb-search-input" aria-label="Tìm kiếm">
-      <kbd class="tb-search-kbd">⌘K</kbd>
-    </label>
+    <!-- Search container (scoped popup) -->
+    <div class="tb-search-container">
+      <label class="tb-search">
+        <i class="pi pi-search" style="font-size:0.875rem" aria-hidden="true" />
+        <input
+          v-model="searchQuery"
+          type="search"
+          :placeholder="searchPlaceholder"
+          class="tb-search-input"
+          aria-label="Tìm kiếm trong hệ thống"
+        >
+        <kbd class="tb-search-kbd" aria-label="Phím tắt Command K">⌘K</kbd>
+      </label>
+
+      <!-- Search results -->
+      <Transition name="pop">
+        <div v-if="searchQuery" class="tb-search-results">
+          <div v-if="searchResults.length > 0" class="tb-search-results-list">
+            <div
+              v-for="item in searchResults"
+              :key="item.to"
+              class="tb-search-result-item"
+              @click="handleSearchSelect(item)"
+            >
+              <i :class="[item.icon, 'tb-search-result-icon']" />
+              <div class="tb-search-result-text">
+                <span class="tb-search-result-label">{{ item.label }}</span>
+                <span class="tb-search-result-path">{{ item.path }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="tb-search-results-empty">
+            <i class="pi pi-search-minus text-xl mb-1 block" />
+            Không tìm thấy trang nào trùng khớp
+          </div>
+        </div>
+      </Transition>
+    </div>
 
     <!-- Right -->
     <div class="tb-right">
-      <!-- Dark mode -->
-      <button type="button" class="tb-icon-btn" :title="isDark ? 'Chế độ sáng' : 'Chế độ tối'" @click="toggleDark">
-        <Transition name="mode" mode="out-in">
-          <i v-if="isDark" class="pi pi-sun" style="font-size:1.062rem" />
-          <i v-else class="pi pi-moon" style="font-size:1.062rem" />
-        </Transition>
-      </button>
-
-      <!-- Quest / Points -->
+      <!-- Language switcher -->
       <div class="tb-popover">
         <button
           type="button"
-          class="tb-icon-btn tb-quest-btn"
-          :class="{ 'is-active': questOpen }"
-          title="Nhiệm vụ tích điểm"
-          @click="openQuestPanel"
+          class="tb-icon-btn"
+          :class="{ 'is-active': langOpen }"
+          aria-label="Chọn ngôn ngữ"
+          @click="toggleLang"
         >
-          <i class="pi pi-money-bill" style="font-size:1.0625rem" />
-          <span v-if="questData?.balance" class="tb-quest-pts">{{ questData.balance > 9999 ? '9999+' : questData.balance }}</span>
+          <span class="text-sm font-semibold">{{ activeLanguage.flag }}</span>
         </button>
 
         <Transition name="pop">
-          <div v-if="questOpen" class="tb-panel tb-quest-panel" @click.stop>
-            <div class="tb-panel-head">
-              <div class="tb-panel-head-left">
-                <i class="pi pi-money-bill" style="font-size:0.9375rem" />
-                <span class="tb-panel-title">Điểm & Nhiệm vụ</span>
-              </div>
-              <button class="tb-close-panel" @click="questOpen = false"><i class="pi pi-times" style="font-size:0.875rem" /></button>
-            </div>
-
-            <!-- Balance bar -->
-            <div v-if="questData" class="tb-quest-balance">
-              <div class="tb-qbal-item">
-                <i class="pi pi-money-bill" style="font-size:0.875rem" />
-                <span><strong>{{ questData.balance.toLocaleString('vi-VN') }}</strong> điểm</span>
-              </div>
-              <div class="tb-qbal-item">
-                <i class="pi pi-bolt" style="font-size:0.875rem" />
-                <span>Streak <strong>{{ questData.streak_days }}</strong></span>
-              </div>
-            </div>
-
-            <div class="tb-quest-body">
-              <div v-if="questLoading" class="tb-notif-empty">
-                <i class="pi pi-spinner" style="font-size:1.25rem" />
-                <p>Đang tải...</p>
-              </div>
-              <template v-else-if="questData">
-                <template v-for="cat in ['daily','milestone','learning','engagement']" :key="cat">
-                  <template v-if="questData.quests.filter((q:any)=>q.category===cat).length">
-                    <p class="tb-quest-cat-label">{{ questCatLabel[cat] }}</p>
-                    <div
-                      v-for="q in questData.quests.filter((q:any)=>q.category===cat)"
-                      :key="q.key"
-                      class="tb-quest-row"
-                      :class="{ 'is-done': q.done_today }"
-                    >
-                      <div class="tb-quest-ico" :class="`qcat-${q.category}`">
-                        <i :class="`pi pi-${questIcon(q.icon)}`" style="font-size:0.8125rem" />
-                      </div>
-                      <div class="tb-quest-info">
-                        <p class="tb-quest-name">{{ q.title }}</p>
-                        <div v-if="q.progress !== undefined" class="tb-qprog">
-                          <div class="tb-qprog-track"><div class="tb-qprog-fill" :style="{ width: `${Math.round((q.progress/q.target)*100)}%` }"/></div>
-                          <span>{{ q.progress }}/{{ q.target }}</span>
-                        </div>
-                      </div>
-                      <span class="tb-quest-pts">+{{ q.points }}</span>
-                      <span v-if="q.done_today" class="tb-quest-check">✓</span>
-                    </div>
-                  </template>
-                </template>
-              </template>
-            </div>
-
-            <div class="tb-quest-foot">
-              <NuxtLink to="/student/points" class="tb-quest-shop-link" @click="questOpen = false">
-                Xem shop đổi quà <i class="pi pi-chevron-right" style="font-size:0.8125rem" />
-              </NuxtLink>
+          <div v-if="langOpen" class="tb-panel tb-lang-panel" @click.stop>
+            <div class="tb-menu">
+              <button
+                v-for="lang in languages"
+                :key="lang.code"
+                type="button"
+                class="tb-menu-item"
+                :class="{ 'is-active-lang': currentLang === lang.code }"
+                @click="selectLanguage(lang.code)"
+              >
+                <span class="mr-2">{{ lang.flag }}</span>
+                <span>{{ lang.label }}</span>
+              </button>
             </div>
           </div>
         </Transition>
       </div>
 
+      <!-- Dark mode -->
+      <button type="button" class="tb-icon-btn" :aria-label="isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'" @click="toggleDark">
+        <Transition name="mode" mode="out-in">
+          <i v-if="isDark" class="pi pi-sun" style="font-size:1.062rem" aria-hidden="true" />
+          <i v-else class="pi pi-moon" style="font-size:1.062rem" aria-hidden="true" />
+        </Transition>
+      </button>
+
       <!-- Notifications -->
       <div class="tb-popover">
-        <button type="button" class="tb-icon-btn" :class="{ 'is-active': notifOpen }" aria-label="Thông báo" @click="openNotif">
-          <i class="pi pi-bell" style="font-size:1.0625rem" />
-          <span v-if="unreadCount > 0" class="tb-badge">
+        <button type="button" class="tb-icon-btn" :class="{ 'is-active': notifOpen }" :aria-label="unreadCount > 0 ? `Thông báo (${unreadCount} chưa đọc)` : 'Thông báo'" :aria-expanded="notifOpen" @click="openNotif">
+          <i class="pi pi-bell" style="font-size:1.0625rem" aria-hidden="true" />
+          <span v-if="unreadCount > 0" class="tb-badge" aria-hidden="true">
             {{ unreadCount > 9 ? '9+' : unreadCount }}
           </span>
         </button>
@@ -346,6 +354,20 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
             <div class="tb-sep" />
 
             <div class="tb-menu">
+              <!-- Switch to Student portal -->
+              <NuxtLink v-if="canSwitchToStudent" to="/student" class="tb-menu-item" @click="userOpen = false">
+                <i class="pi pi-graduation-cap text-emerald-600" style="font-size:0.875rem" />
+                <span>Giao diện học viên</span>
+              </NuxtLink>
+
+              <!-- Switch to Instructor portal -->
+              <NuxtLink v-if="canSwitchToInstructor" to="/instructor" class="tb-menu-item" @click="userOpen = false">
+                <i class="pi pi-briefcase text-sky-600" style="font-size:0.875rem" />
+                <span>Giao diện giảng viên</span>
+              </NuxtLink>
+
+              <div v-if="canSwitchToStudent || canSwitchToInstructor" class="tb-sep" />
+
               <NuxtLink :to="settingsPath || '/admin/settings'" class="tb-menu-item" @click="userOpen = false">
                 <i class="pi pi-cog" style="font-size:0.875rem" />
                 Tài khoản & cài đặt
@@ -354,6 +376,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
                 <i class="pi pi-th-large" style="font-size:0.875rem" />
                 Bảng điều khiển
               </NuxtLink>
+              
               <div class="tb-sep" />
               <button type="button" class="tb-menu-item tb-menu-danger" @click="handleLogout">
                 <i class="pi pi-sign-out" style="font-size:0.875rem" />
@@ -366,7 +389,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
     </div>
 
     <!-- Backdrop -->
-    <div v-if="notifOpen || userOpen" class="tb-backdrop" @click="closeAll" />
+    <div v-if="notifOpen || userOpen || langOpen || searchQuery" class="tb-backdrop" @click="closeAll" />
   </header>
 </template>
 
@@ -381,7 +404,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
   gap: 10px;
   height: 60px;
   padding: 0 20px;
-  background: rgba(240, 250, 247, 0.85);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
@@ -396,13 +419,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 /* ── Left ── */
 .tb-left { flex-shrink: 0; }
 
-/* ── Search ── */
+/* ── Search Container & Results ── */
+.tb-search-container {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+
 .tb-search {
   display: flex;
   align-items: center;
   gap: 9px;
-  flex: 1;
-  max-width: 420px;
   height: 38px;
   padding: 0 12px;
   border-radius: 10px;
@@ -417,8 +444,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
   box-shadow: 0 0 0 3px rgba(var(--green-rgb), 0.08);
   background: var(--surface-strong);
 }
-
-.tb-search-icon { color: var(--muted); flex-shrink: 0; }
 
 .tb-search-input {
   flex: 1;
@@ -446,6 +471,80 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
   font-weight: 600;
   color: var(--muted);
   font-family: inherit;
+}
+
+.tb-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.tb-search-results-list {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tb-search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.tb-search-result-item:hover {
+  background: var(--sidebar-hover-bg);
+}
+
+.tb-search-result-icon {
+  font-size: 1rem;
+  color: var(--color-primary);
+}
+
+.tb-search-result-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.tb-search-result-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tb-search-result-path {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+}
+
+.tb-search-results-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Language Panel ── */
+.tb-lang-panel {
+  width: 160px;
+}
+
+.tb-menu-item.is-active-lang {
+  background: rgba(var(--green-rgb), 0.08);
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* ── Right ── */
@@ -567,13 +666,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 .tb-user-name { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--text); line-height: 1.25; }
 .tb-user-role { font-size: 0.66rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 
-.tb-chevron {
-  color: var(--muted);
-  transition: transform 200ms ease;
-  flex-shrink: 0;
-}
-.tb-chevron.is-open { transform: rotate(180deg); }
-
 /* ── Backdrop ── */
 .tb-backdrop {
   position: fixed;
@@ -666,9 +758,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
   text-align: center;
 }
 
-.tb-spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
 .tb-notif-item {
   display: flex;
   align-items: flex-start;
@@ -755,99 +844,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKey))
 .mode-enter-active, .mode-leave-active { transition: opacity 150ms, transform 150ms; }
 .mode-enter-from, .mode-leave-to { opacity: 0; transform: rotate(20deg) scale(0.7); }
 
-/* ── Quest button ── */
-.tb-quest-btn { position: relative; }
-.tb-quest-pts {
-  position: absolute;
-  bottom: -5px; right: -6px;
-  min-width: 18px; height: 14px;
-  border-radius: 999px;
-  background: #f59e0b;
-  color: #fff;
-  font-size: 0.56rem;
-  font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 3px;
-  border: 2px solid var(--surface-strong);
-}
-
-/* ── Quest panel ── */
-.tb-quest-panel { width: 320px; max-height: 480px; display: flex; flex-direction: column; }
-.tb-close-panel {
-  width: 24px; height: 24px; border-radius: 6px; border: none;
-  background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
-}
-.tb-close-panel:hover { background: var(--surface); }
-
-.tb-quest-balance {
-  display: flex; gap: 0;
-  border-bottom: 1px solid var(--line);
-}
-.tb-qbal-item {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
-  padding: 8px; font-size: 0.75rem; color: var(--text);
-  border-right: 1px solid var(--line);
-}
-.tb-qbal-item:last-child { border-right: none; }
-.tb-qbal-item strong { font-weight: 800; }
-
-.tb-quest-body { flex: 1; overflow-y: auto; padding: 8px 12px; max-height: 320px; }
-.tb-quest-cat-label {
-  font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--muted); margin: 8px 0 4px;
-}
-.tb-quest-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 8px; margin-bottom: 3px;
-  border: 1px solid var(--line); background: var(--surface);
-}
-.tb-quest-row.is-done { background: #f0fdf4; border-color: #bbf7d0; opacity: 0.8; }
-
-.tb-quest-ico {
-  width: 26px; height: 26px; border-radius: 7px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.qcat-daily { background: #dbeafe; color: #2563eb; }
-.qcat-milestone { background: #fef3c7; color: #d97706; }
-.qcat-learning { background: #d1fae5; color: #059669; }
-.qcat-engagement { background: #ede9fe; color: #7c3aed; }
-
-.tb-quest-info { flex: 1; min-width: 0; }
-.tb-quest-name { margin: 0; font-size: 0.76rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.tb-qprog { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
-.tb-qprog-track { flex: 1; height: 3px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
-.tb-qprog-fill { height: 100%; background: #f59e0b; }
-.tb-qprog span { font-size: 0.6rem; color: var(--muted); white-space: nowrap; }
-
-.tb-quest-pts {
-  font-size: 0.72rem; font-weight: 800; color: #f59e0b;
-  background: #fffbeb; padding: 1px 6px; border-radius: 999px; border: 1px solid #fde68a;
-  flex-shrink: 0;
-}
-.tb-quest-check { font-size: 0.7rem; font-weight: 800; color: #16a34a; flex-shrink: 0; }
-
-.tb-quest-foot {
-  padding: 10px 12px;
-  border-top: 1px solid var(--line);
-}
-.tb-quest-shop-link {
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  font-size: 0.8rem; font-weight: 700;
-  padding: 8px; border-radius: 8px;
-  background: linear-gradient(135deg, #0F6E8C, #1D9E75);
-  color: #fff; text-decoration: none;
-  transition: opacity 150ms;
-}
-.tb-quest-shop-link:hover { opacity: 0.9; }
-
 /* ── Responsive ── */
-@media (max-width: 1080px) { .tb-search { max-width: none; } }
+@media (max-width: 1080px) {
+  .tb-search-container { max-width: none; }
+}
 @media (max-width: 640px) {
   .tb { padding: 0 12px; gap: 6px; }
   .tb-user-info { display: none; }
   .tb-search-kbd { display: none; }
   .tb-notif-panel { width: calc(100vw - 24px); right: -12px; }
-  .tb-quest-panel { width: calc(100vw - 24px); right: -12px; }
 }
 </style>

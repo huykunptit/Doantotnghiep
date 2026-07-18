@@ -7,6 +7,7 @@ import AppToast from '~/components/AppToast.vue'
 import PointsQuestModal from '~/components/PointsQuestModal.vue'
 import { useAuthStore } from '~/stores/auth'
 import { getDashboardPath } from '~/composables/useAuthSession'
+import { useAdminMenuConfig } from '~/composables/useAdminMenuConfig'
 
 const auth = useAuthStore()
 
@@ -20,6 +21,9 @@ if (auth.user && !(auth.user.roles || []).includes('admin') && !(auth.user.roles
 const user = computed(() => auth.user)
 const route = useRoute()
 const sidebarOpen = ref(false)
+
+// Breadcrumbs from menu config
+const { breadcrumbs } = useAdminMenuConfig()
 
 const searchPlaceholder = computed(() =>
   typeof route.meta.adminSearchPlaceholder === 'string'
@@ -60,6 +64,25 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
         :user-role="user?.role === 'admin' ? 'Quản trị viên' : 'Giảng viên'"
         @toggle-sidebar="sidebarOpen = !sidebarOpen"
       />
+
+      <!-- Breadcrumb -->
+      <nav v-if="breadcrumbs.length > 0" class="admin-breadcrumb" aria-label="Breadcrumb">
+        <ol class="admin-breadcrumb-list">
+          <li class="admin-breadcrumb-home">
+            <NuxtLink to="/admin" class="admin-breadcrumb-link">
+              <i class="pi pi-home" style="font-size:0.8125rem" />
+            </NuxtLink>
+          </li>
+          <li v-for="(crumb, idx) in breadcrumbs" :key="idx" class="admin-breadcrumb-item">
+            <i class="pi pi-chevron-right admin-breadcrumb-sep" />
+            <NuxtLink v-if="crumb.to" :to="crumb.to" class="admin-breadcrumb-link">
+              {{ crumb.label }}
+            </NuxtLink>
+            <span v-else class="admin-breadcrumb-current">{{ crumb.label }}</span>
+          </li>
+        </ol>
+      </nav>
+
       <div class="admin-content">
         <slot />
       </div>
@@ -76,7 +99,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
 .admin-shell {
   display: flex;
   min-height: 100vh;
-  background-color: var(--page-bg, #f6f6f6);
+  background-color: #f6f6f6;
 }
 
 /* ── Sidebar slot ── */
@@ -84,7 +107,6 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 40;
-  width: 240px;
   transform: translateX(0);
   transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 220ms ease;
 }
@@ -95,16 +117,62 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  margin-left: 240px;
+  margin-left: calc(var(--sidebar-width) + 16px); /* sidebar width + sidebar margin */
   min-width: 0;
   background: #ffffff;
-  transition: margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .admin-content {
   flex: 1;
-  padding: 16px 24px 40px;
+  padding: 12px 24px 40px;
   min-width: 0;
+  overflow-x: auto;
+}
+
+/* ── Breadcrumb ── */
+.admin-breadcrumb {
+  padding: 12px 24px 0;
+  flex-shrink: 0;
+}
+
+.admin-breadcrumb-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-breadcrumb-sep {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.admin-breadcrumb-link {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 150ms;
+}
+
+.admin-breadcrumb-link:hover {
+  color: var(--color-primary);
+}
+
+.admin-breadcrumb-current {
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 /* ── Mobile overlay ── */
@@ -129,6 +197,7 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
 }
 @media (max-width: 640px) {
   .admin-content { padding: 12px 12px 32px; }
+  .admin-breadcrumb { padding: 8px 12px 0; }
 }
 
 /* ── Transitions ── */
@@ -136,6 +205,8 @@ watch(() => route.fullPath, () => { sidebarOpen.value = false })
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
 /* ── Dark mode ── */
-:global(.dark) .admin-main { background: #1a1a1e; }
-:global(.dark) .admin-shell { background-color: #111113; }
+:global([data-theme="dark"]) .admin-main { background: #1a1a1e; }
+:global([data-theme="dark"]) .admin-shell { background-color: #111113; }
+:global([data-theme="dark"]) .admin-breadcrumb-link { color: #94a3b8; }
+:global([data-theme="dark"]) .admin-breadcrumb-current { color: #e2e8f0; }
 </style>

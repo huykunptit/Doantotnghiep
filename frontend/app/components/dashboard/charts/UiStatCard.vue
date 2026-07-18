@@ -18,10 +18,10 @@ withDefaults(
     delta: null,
     deltaLabel: 'so với kỳ trước',
     icon: '',
-    iconBg: 'rgba(var(--theme-primary-rgb, 14,165,233), 0.10)',
-    iconColor: 'var(--theme-primary, #0ea5e9)',
+    iconBg: 'var(--color-primary-soft)',
+    iconColor: 'var(--color-primary)',
     sparkline: () => [],
-    sparkColor: 'var(--theme-primary, #0ea5e9)',
+    sparkColor: 'var(--color-primary)',
     loading: false,
   },
 )
@@ -48,7 +48,7 @@ withDefaults(
       </header>
 
       <div v-if="sparkline?.length" class="stat-spark">
-        <UiSparkline :values="sparkline" :color="sparkColor" :height="40" />
+        <UiSparkline :values="sparkline" :color="sparkColor" :height="48" />
       </div>
 
       <footer v-if="delta !== null || deltaLabel" class="stat-foot">

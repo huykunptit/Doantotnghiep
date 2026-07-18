@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
- * AdminSidebar — White sidebar with PanelMenu (ported from admin-ui)
- * Features: PanelMenu, PrimeIcons, collapse mode, hover accordion, mobile Drawer
+ * StudentSidebar — White sidebar with PanelMenu (matches AdminSidebar)
  */
 import { ref, computed, watch, onMounted } from 'vue'
 import PanelMenu from 'primevue/panelmenu'
 import Badge from 'primevue/badge'
-import { useAdminMenuConfig } from '~/composables/useAdminMenuConfig'
+import { useStudentMenuConfig } from '~/composables/useStudentMenuConfig'
 import type { MenuItem } from '~/composables/useAdminMenuConfig'
 
 defineProps<{
@@ -16,7 +15,7 @@ defineProps<{
 
 const route = useRoute()
 const { siteName, siteLogo } = useSiteSettings()
-const { menuItems } = useAdminMenuConfig()
+const { menuItems } = useStudentMenuConfig()
 
 // ── Collapse state ──
 const isCollapsed = ref(false)
@@ -24,13 +23,13 @@ const isCollapsed = ref(false)
 function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
   if (import.meta.client) {
-    localStorage.setItem('admin-sidebar-collapsed', isCollapsed.value ? '1' : '0')
+    localStorage.setItem('student-sidebar-collapsed', isCollapsed.value ? '1' : '0')
   }
 }
 
 onMounted(() => {
   if (import.meta.client) {
-    const stored = localStorage.getItem('admin-sidebar-collapsed')
+    const stored = localStorage.getItem('student-sidebar-collapsed')
     if (stored === '1') isCollapsed.value = true
   }
 })
@@ -55,7 +54,7 @@ watch(() => route.path, updateExpandedKeys, { immediate: true })
 
 // ── Active route detection ──
 function isActive(to: string) {
-  if (to === '/admin') return route.path === '/admin'
+  if (to === '/student') return route.path === '/student'
   return route.path === to || route.path.startsWith(to + '/')
 }
 
@@ -119,7 +118,7 @@ async function handleLogout() {
   >
     <!-- Logo -->
     <div class="sb-brand">
-      <NuxtLink to="/admin" class="sb-brand-link">
+      <NuxtLink to="/student" class="sb-brand-link">
         <img v-if="siteLogo && !isCollapsed" :src="siteLogo" :alt="siteName" class="sb-brand-img" />
         <img v-else-if="siteLogo && isCollapsed" :src="siteLogo" :alt="siteName" class="sb-brand-favicon" />
         <span v-else class="sb-brand-fallback">{{ defaultLogoIcon }}</span>
@@ -274,9 +273,7 @@ async function handleLogout() {
 </template>
 
 <style scoped>
-/* ═══════════════════════════════════════════════════════════════
-   SIDEBAR SHELL — White background, border, rounded (admin-ui)
-   ═══════════════════════════════════════════════════════════════ */
+/* Reuse sidebar styles from AdminSidebar */
 .sb {
   display: flex;
   flex-direction: column;
@@ -296,7 +293,6 @@ async function handleLogout() {
   width: var(--sidebar-width-collapsed);
 }
 
-/* ── Brand / Logo ── */
 .sb-brand {
   display: flex;
   align-items: center;
@@ -335,7 +331,6 @@ async function handleLogout() {
   font-weight: 800;
 }
 
-/* ── Gradient divider ── */
 .sb-divider {
   border: 0;
   height: 1px;
@@ -344,7 +339,6 @@ async function handleLogout() {
   flex-shrink: 0;
 }
 
-/* ── Navigation ── */
 .sb-nav {
   flex: 1;
   min-height: 0;
@@ -365,7 +359,6 @@ async function handleLogout() {
   border-radius: 999px;
 }
 
-/* ── PanelMenu overrides ── */
 .sb-panel-menu :deep(.p-panelmenu-submenu) {
   padding-left: 2rem !important;
   position: relative;
@@ -381,7 +374,6 @@ async function handleLogout() {
   left: 24px;
 }
 
-/* ── Link item (inside PanelMenu) ── */
 .sb-link {
   display: flex;
   align-items: center;
@@ -404,7 +396,6 @@ async function handleLogout() {
   color: var(--sidebar-active-text) !important;
 }
 
-/* Tree dot indicator for submenu active items */
 .sb-panel-menu :deep(.p-panelmenu-submenu) .sb-link::before {
   content: '';
   position: absolute;
@@ -440,7 +431,6 @@ async function handleLogout() {
   text-overflow: ellipsis;
 }
 
-/* ── Group header (non-clickable parent) ── */
 .sb-group-header {
   display: flex;
   align-items: center;
@@ -448,9 +438,6 @@ async function handleLogout() {
   color: var(--sidebar-text-muted);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COLLAPSED MODE — Icon grid + hover accordion
-   ═══════════════════════════════════════════════════════════════ */
 .sb-collapsed-nav {
   display: flex;
   flex-direction: column;
@@ -494,7 +481,6 @@ async function handleLogout() {
   color: #fff !important;
 }
 
-/* ── Hover accordion panel ── */
 .sb-hover-panel {
   position: absolute;
   left: 52px;
@@ -551,9 +537,6 @@ async function handleLogout() {
   font-weight: 600;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   COLLAPSE TOGGLE BUTTON
-   ═══════════════════════════════════════════════════════════════ */
 .sb-toggle {
   position: absolute;
   top: 20px;
@@ -580,9 +563,6 @@ async function handleLogout() {
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FOOTER (User info)
-   ═══════════════════════════════════════════════════════════════ */
 .sb-footer {
   border-top: 1px solid var(--sidebar-border);
   padding: 8px;
@@ -679,9 +659,7 @@ async function handleLogout() {
   color: var(--color-danger);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DARK MODE
-   ═══════════════════════════════════════════════════════════════ */
+/* ── Dark Mode Support ── */
 :global([data-theme="dark"]) .sb {
   background: #0f1f17;
   border-color: rgba(255,255,255,0.06);
@@ -724,9 +702,6 @@ async function handleLogout() {
   border-top-color: rgba(255,255,255,0.06);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 1080px) {
   .sb {
     position: fixed;

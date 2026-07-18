@@ -6,6 +6,7 @@ export default defineNuxtConfig({
   modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@primevue/nuxt-module'],
   css: [
     'primeicons/primeicons.css',
+    '~/assets/css/design-tokens.css',
     '~/assets/css/main.css',
     '~/assets/css/theme-overrides.css',
     '~/assets/css/dark-theme.css',

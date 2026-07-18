@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useApi } from '~/composables/useApi'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
+
+// Lazy load chart components
+const UiAreaChartLazy = defineAsyncComponent(() => import('~/components/dashboard/charts/UiAreaChart.vue'))
+const UiBarChartLazy = defineAsyncComponent(() => import('~/components/dashboard/charts/UiBarChart.vue'))
+const UiDonutLazy = defineAsyncComponent(() => import('~/components/dashboard/charts/UiDonut.vue'))
 
 definePageMeta({
   layout: 'admin',
@@ -33,6 +38,31 @@ const loading = ref(true)
 const stats = ref<StatsResponse>({})
 const error = ref('')
 const now = ref(new Date())
+const errorDismissed = ref(false)
+
+// Cache management for SWR pattern
+const cacheTimestamp = ref(0)
+const CACHE_TTL = 60000 // 60 seconds
+
+// Auto-dismiss error after 8 seconds
+watch(error, (newError) => {
+  if (newError) {
+    errorDismissed.value = false
+    setTimeout(() => {
+      errorDismissed.value = true
+      setTimeout(() => {
+        error.value = ''
+      }, 300) // Wait for fade out animation
+    }, 8000)
+  }
+})
+
+function dismissError() {
+  errorDismissed.value = true
+  setTimeout(() => {
+    error.value = ''
+  }, 300)
+}
 
 const greeting = computed(() => {
   const greetingHour = now.value.getHours()
@@ -106,6 +136,17 @@ const loadStats = async () => {
   loading.value = true
   error.value = ''
   now.value = new Date()
+
+  // Check cache validity for stale-while-revalidate
+  const cacheAge = Date.now() - cacheTimestamp.value
+  const isStale = cacheAge > CACHE_TTL
+
+  // Show cached data if available and still fresh
+  if (!isStale && stats.value.total_revenue !== undefined) {
+    loading.value = false
+    return
+  }
+
   try {
     const [statsRes, extraRes] = await Promise.all([
       useApi<StatsResponse>('/admin/stats', {
@@ -142,6 +183,9 @@ const loadStats = async () => {
       recentNotifications.value = extraRes.notifications ?? []
     }
 
+    // Update cache timestamp on successful fetch
+    cacheTimestamp.value = Date.now()
+
   } catch (e: any) {
     error.value = e?.data?.message || 'Không thể đồng bộ dữ liệu hệ thống.'
   } finally {
@@ -153,8 +197,6 @@ onMounted(loadStats)
 
 const quickActions = [
   { label: 'Thêm lớp hành chính', icon: 'plus', to: '/admin/lnd/classes' },
-  { label: 'Danh sách lộ trình', icon: 'clone', to: '/admin/lnd/learning-paths' },
-  { label: 'Báo cáo đào tạo', icon: 'chart-bar', to: '/admin/lnd/reports' },
   { label: 'Quản trị nhân sự', icon: 'users', to: '/admin/users' },
   { label: 'Theo dõi doanh thu', icon: 'credit-card', to: '/admin/orders' },
   { label: 'Cấu hình hệ thống', icon: 'cog', to: '/admin/settings' },
@@ -165,6 +207,10 @@ const trafficLabels = computed(() => dailyEnrollments.value.map(d => d.label))
 const trafficValues = computed(() => dailyEnrollments.value.map(d => d.value))
 const classProgressLabels = computed(() => classProgressData.value.map(d => d.label))
 const classProgressValues = computed(() => classProgressData.value.map(d => d.value))
+
+// Memoized sparkline computations
+const revenueSparklineLine = computed(() => sparklineLine(revenueValues.value, 100, 48))
+const revenueSparklinePath = computed(() => sparklinePath(revenueValues.value, 100, 48))
 
 function sparklineLine(values: number[], w: number, h: number): string {
   if (!values.length) return ''
@@ -230,8 +276,8 @@ function notifTypeClass(type: string): string {
           <span>Hệ thống bình thường</span>
         </div>
         <button class="action-btn-refresh" :disabled="loading" title="Đồng bộ dữ liệu" @click="loadStats">
-          <i class="pi pi-refresh { " style="font-size:1rem" />
-          <span>Đồng bộ</span>
+          <i class="pi" :class="loading ? 'pi-spin pi-spinner' : 'pi-refresh'" style="font-size:1rem" />
+          <span>{{ loading ? 'Đang đồng bộ...' : 'Đồng bộ' }}</span>
         </button>
       </div>
     </header>
@@ -253,39 +299,48 @@ function notifTypeClass(type: string): string {
     </div>
 
     <!-- ══ ERROR STATUS ══ -->
-    <div v-if="error" class="error-banner">
-      <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
-      <span class="error-msg">{{ error }}</span>
-      <button class="btn-retry" @click="loadStats">Thử lại</button>
-    </div>
+    <Transition name="error-fade">
+      <div v-if="error && !errorDismissed" class="error-banner">
+        <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
+        <span class="error-msg">{{ error }}</span>
+        <button class="btn-retry" @click="loadStats">Thử lại</button>
+        <button class="btn-dismiss" @click="dismissError" aria-label="Đóng thông báo lỗi">
+          <i class="pi pi-times" style="font-size:0.875rem" />
+        </button>
+      </div>
+    </Transition>
 
     <!-- ══ METRICS WORKSPACE ══ -->
     <section class="metrics-grid">
       
       <!-- CARD 1: REVENUE -->
-      <div class="metric-block is-revenue">
+      <div class="metric-block is-revenue" role="region" aria-label="Thông tin doanh thu">
         <div class="metric-header">
           <span class="metric-title">Doanh thu tích lũy</span>
           <span v-if="revenueDelta !== null" class="metric-delta" :class="revenueDelta >= 0 ? 'is-positive' : 'is-negative'">
-            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" style="font-size:0.75rem" />
+            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" style="font-size:0.75rem" aria-hidden="true" />
+            <span class="sr-only">{{ revenueDelta >= 0 ? 'Tăng' : 'Giảm' }}</span>
             {{ Math.abs(revenueDelta) }}% tháng trước
           </span>
         </div>
-        
+
         <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <h2 v-else class="metric-value">{{ formatVndFull(stats.total_revenue || 0) }}</h2>
+          <div class="skeleton-h3" v-if="loading" aria-label="Đang tải dữ liệu" />
+          <h2 v-else class="metric-value">
+            {{ formatVndFull(stats.total_revenue || 0) }}
+            <span class="sr-only">đồng Việt Nam</span>
+          </h2>
           
           <div class="metric-sparkline" v-if="!loading && revenueValues.length">
-            <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none">
+            <svg width="100%" height="48" viewBox="0 0 100 48" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="glow-rev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="var(--green)" stop-opacity="0.3"/>
-                  <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
+                  <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.3"/>
+                  <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
                 </linearGradient>
               </defs>
-              <path :d="sparklinePath(revenueValues, 100, 32)" fill="url(#glow-rev)" />
-              <path :d="sparklineLine(revenueValues, 100, 32)" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"/>
+              <path :d="revenueSparklinePath" fill="url(#glow-rev)" />
+              <path :d="revenueSparklineLine" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round"/>
             </svg>
           </div>
         </div>
@@ -644,6 +699,19 @@ function notifTypeClass(type: string): string {
   color: var(--text);
 }
 
+/* Screen reader only - Accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 /* ── Header Hub ── */
 .dash-header {
   display: flex;
@@ -686,9 +754,9 @@ function notifTypeClass(type: string): string {
   gap: 8px;
   padding: 8px 16px;
   border-radius: 99px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #10B981;
+  background: var(--color-success-soft);
+  border: 1px solid rgba(var(--color-success-rgb), 0.2);
+  color: var(--color-success);
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -721,12 +789,17 @@ function notifTypeClass(type: string): string {
 
 .action-btn-refresh:hover:not(:disabled) {
   background: var(--surface);
-  border-color: #10B981;
-  color: #10B981;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
   transform: translateY(-1px);
 }
 
-.spin-anim {
+.action-btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pi-spin {
   animation: spin 1s linear infinite;
 }
 
@@ -757,9 +830,9 @@ function notifTypeClass(type: string): string {
 
 .action-card:hover {
   transform: translateY(-3px);
-  border-color: #10B981;
+  border-color: var(--color-primary);
   box-shadow: var(--shadow);
-  background: linear-gradient(to bottom, var(--surface-strong), rgba(16, 185, 129, 0.02));
+  background: linear-gradient(to bottom, var(--surface-strong), var(--color-primary-soft));
 }
 
 .action-card:hover .action-label {
@@ -778,13 +851,13 @@ function notifTypeClass(type: string): string {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(16, 185, 129, 0.06);
-  color: #10B981;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
   transition: all 200ms;
 }
 
 .action-card:hover .action-icon-wrap {
-  background: #10B981;
+  background: var(--color-primary);
   color: #ffffff;
 }
 
@@ -807,10 +880,10 @@ function notifTypeClass(type: string): string {
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--color-danger-soft);
+  border: 1px solid rgba(var(--color-danger-rgb), 0.2);
   border-radius: 14px;
-  color: #EF4444;
+  color: var(--color-danger);
   font-size: 0.88rem;
 }
 
@@ -821,9 +894,9 @@ function notifTypeClass(type: string): string {
 
 .btn-retry {
   padding: 6px 14px;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
+  border: 1px solid rgba(var(--color-danger-rgb), 0.2);
+  background: rgba(var(--color-danger-rgb), 0.1);
+  color: var(--color-danger);
   border-radius: 8px;
   font-weight: 700;
   font-size: 0.8rem;
@@ -832,15 +905,73 @@ function notifTypeClass(type: string): string {
 }
 
 .btn-retry:hover {
-  background: #EF4444;
+  background: var(--color-danger);
   color: #fff;
+}
+
+.btn-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-danger);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.btn-dismiss:hover {
+  background: rgba(var(--color-danger-rgb), 0.1);
+}
+
+.btn-dismiss:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+/* Error fade transition */
+.error-fade-enter-active,
+.error-fade-leave-active {
+  transition: all 300ms ease;
+}
+
+.error-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.error-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* ── Metrics Cards Grid ── */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 640px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1439px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .metric-block {
@@ -853,18 +984,18 @@ function notifTypeClass(type: string): string {
   padding: 24px;
   min-height: 170px;
   box-shadow: var(--shadow-sm);
-  transition: border-color 250ms, box-shadow 250ms, transform 250ms;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  cursor: default;
 }
 
 .metric-block:hover {
   box-shadow: var(--shadow);
-  transform: translateY(-2px);
 }
 
-.metric-block.is-revenue:hover { border-color: rgba(16, 185, 129, 0.3); }
-.metric-block.is-classes:hover { border-color: rgba(14, 165, 233, 0.3); }
+.metric-block.is-revenue:hover { border-color: var(--color-primary); }
+.metric-block.is-classes:hover { border-color: var(--color-info); }
 .metric-block.is-completion:hover { border-color: rgba(139, 92, 246, 0.3); }
-.metric-block.is-users:hover { border-color: rgba(245, 158, 11, 0.3); }
+.metric-block.is-users:hover { border-color: var(--color-warning); }
 
 .metric-header {
   display: flex;
@@ -891,9 +1022,9 @@ function notifTypeClass(type: string): string {
   font-weight: 700;
 }
 
-.metric-delta.is-positive { background: rgba(16, 185, 129, 0.08); color: #10B981; }
-.metric-delta.is-negative { background: rgba(239, 68, 68, 0.08); color: #EF4444; }
-.metric-delta.is-info { background: rgba(14, 165, 233, 0.08); color: #0EA5E9; }
+.metric-delta.is-positive { background: var(--color-success-soft); color: var(--color-success); }
+.metric-delta.is-negative { background: var(--color-danger-soft); color: var(--color-danger); }
+.metric-delta.is-info { background: var(--color-info-soft); color: var(--color-info); }
 .metric-delta.is-success-alt { background: rgba(139, 92, 246, 0.08); color: #8B5CF6; }
 
 .metric-content {
@@ -917,7 +1048,7 @@ function notifTypeClass(type: string): string {
 
 .metric-sparkline {
   margin-top: 10px;
-  height: 36px;
+  height: 48px;
 }
 
 .metric-footer {
@@ -1104,7 +1235,7 @@ function notifTypeClass(type: string): string {
 
 /* Skeletons */
 .skeleton-h3 {
-  height: 28px;
+  height: 32px;
   border-radius: 6px;
   background: var(--line);
   width: 70%;
@@ -1513,5 +1644,58 @@ function notifTypeClass(type: string): string {
 
 .leaderboard-value svg {
   color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE OPTIMIZATIONS
+   ═══════════════════════════════════════════════════════ */
+
+/* Minimum touch target size: 44x44px (Apple HIG, WCAG 2.5.5) */
+@media (max-width: 768px) {
+  /* Touch targets */
+  button,
+  a,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Metrics grid - full width on mobile */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Reduce padding on mobile for better space usage */
+  .metric-block {
+    padding: 20px;
+    min-height: 150px;
+  }
+
+  /* Quick actions - stack vertically */
+  .quick-actions-wrap {
+    gap: 12px;
+  }
+
+  /* Chart sections - better spacing */
+  .chart-section {
+    padding: 20px;
+  }
+
+  /* Touch-friendly spacing for interactive elements */
+  .schedule-item-row,
+  .leaderboard-item {
+    padding: 16px;
+    min-height: 60px;
+  }
+}
+
+/* Tablet breakpoint adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>
