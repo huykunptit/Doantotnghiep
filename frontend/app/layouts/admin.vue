@@ -48,9 +48,10 @@ const navigation: NavItem[] = [
     label: 'Người dùng',
     icon: 'pi pi-users',
     items: [
-      { label: 'Sinh viên', to: '/admin/users?role=student' },
+            { label: 'Sinh viên', to: '/admin/users?role=student' },
       { label: 'Giảng viên', to: '/admin/users?role=instructor' },
-      { label: 'Quản trị viên', to: '/admin/users?role=admin' }
+      { label: 'Quản trị viên', to: '/admin/users?role=admin' },
+      { label: 'Phân quyền', to: '/admin/roles' }
     ]
   },
   {
@@ -91,6 +92,7 @@ const navigation: NavItem[] = [
     label: 'Báo cáo',
     icon: 'pi pi-chart-line',
     items: [
+            { label: 'Tổng quan báo cáo', to: '/admin/reports' },
       { label: 'Báo cáo khóa học', to: '/admin/reports/courses' },
       { label: 'Tiến độ học tập', to: '/admin/reports/progress' },
       { label: 'Nhật ký hoạt động', to: '/admin/reports/activity' }
@@ -101,6 +103,7 @@ const navigation: NavItem[] = [
     label: 'Hệ thống',
     icon: 'pi pi-cog',
     items: [
+            { label: 'Thông báo', to: '/admin/notifications' },
       { label: 'Mẫu email', to: '/admin/email-templates' },
       { label: 'Cài đặt hệ thống', to: '/admin/settings' }
     ]

@@ -12,9 +12,8 @@ models:
     provider: openai
     model: nghi/gpt-5.5
     apiBase: https://api.nghimmo.com/v1
-    apiKey: sk-7kS3Y8O43vXQHcQpddbdPxeCze0NSOXKI
+    apiKey: sk-r7Bgf2GeIZ5nZzHI6HEzzPD0vnbBIFp39
     roles:
-      - autocomplete
       - chat
       - edit
       - apply
