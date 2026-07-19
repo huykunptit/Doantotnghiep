@@ -8,7 +8,7 @@ import 'secure_storage.dart';
 part 'offline_sync_manager.g.dart';
 
 @riverpod
-OfflineSyncManager offlineSyncManager(Ref ref) => OfflineSyncManager(
+OfflineSyncManager offlineSyncManager(OfflineSyncManagerRef ref) => OfflineSyncManager(
       storage: ref.read(secureStorageProvider),
       dio: ref.read(apiClientProvider),
     );

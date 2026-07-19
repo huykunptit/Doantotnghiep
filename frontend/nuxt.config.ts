@@ -57,6 +57,8 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    pageTransition: { name: 'page-flip', mode: 'out-in' },
+    layoutTransition: { name: 'layout-fade', mode: 'out-in' },
     head: {
       title: 'Sylva LMS',
       meta: [

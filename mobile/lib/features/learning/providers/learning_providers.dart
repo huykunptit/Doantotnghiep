@@ -8,7 +8,7 @@ import '../data/repositories/learning_repository.dart';
 part 'learning_providers.g.dart';
 
 @riverpod
-Future<LessonDetailModel> lessonDetail(Ref ref, int courseId, int lessonId) {
+Future<LessonDetailModel> lessonDetail(LessonDetailRef ref, int courseId, int lessonId) {
   return ref.read(learningRepositoryProvider).getLessonDetail(courseId, lessonId);
 }
 
@@ -36,6 +36,6 @@ class LessonNotes extends _$LessonNotes {
 }
 
 @riverpod
-Future<List<AttachmentModel>> lessonAttachments(Ref ref, int courseId, int lessonId) {
+Future<List<AttachmentModel>> lessonAttachments(LessonAttachmentsRef ref, int courseId, int lessonId) {
   return ref.read(learningRepositoryProvider).getLessonAttachments(courseId, lessonId);
 }

@@ -38,6 +38,7 @@ class MyTasksProvider extends AutoDisposeFutureProvider<List<TaskModel>> {
       : super.internal(
           (ref) => myTasks(ref, done: done),
           from: myTasksProvider,
+          name: r'myTasksProvider',
           argument: done,
           debugGetCreateSourceHash:
               const bool.fromEnvironment('dart.vm.product')

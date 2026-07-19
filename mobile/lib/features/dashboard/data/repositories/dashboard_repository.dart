@@ -11,7 +11,7 @@ import '../models/attendance_model.dart';
 part 'dashboard_repository.g.dart';
 
 @riverpod
-DashboardRepository dashboardRepository(Ref ref) =>
+DashboardRepository dashboardRepository(DashboardRepositoryRef ref) =>
     DashboardRepository(dio: ref.read(apiClientProvider));
 
 class DashboardRepository {

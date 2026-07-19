@@ -5,6 +5,9 @@ import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
 import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
 import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
+import UiKpiCards from '~/components/ui/UiKpiCards.vue'
+import UiFilters from '~/components/ui/UiFilters.vue'
+import UiTable from '~/components/ui/UiTable.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -216,30 +219,37 @@ function riskLevel(days: number | null) {
 <template>
   <div class="flex flex-col gap-4">
     <!-- Page header -->
-    <div>
-      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
-      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Báo Cáo & Phân Tích L&D</h1>
-      <p class="text-sm mt-0.5" style="color:var(--muted)">Giám sát tiến độ học tập, tích lũy tín chỉ và cảnh báo học vụ theo lộ trình đào tạo</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Báo Cáo & Phân Tích L&D</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Giám sát tiến độ học tập, tích lũy tín chỉ và cảnh báo học vụ theo lộ trình đào tạo</p>
+      </div>
     </div>
-    <div class="page-body">
-    <!-- Filter strip -->
-    <div class="filter-card dashboard-card">
-      <div class="filter-grid">
-        <label class="crud-field">
-          <span>Khóa đào tạo</span>
-          <select v-model="selectedCohortId" :disabled="loading">
+
+    <!-- Filters & Toolbar (Always Open) -->
+    <UiFilters
+      :always-open="true"
+    >
+      <template #advanced>
+        <label class="flex flex-col gap-1">
+          <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Khóa đào tạo</span>
+          <select v-model="selectedCohortId" :disabled="loading" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer">
             <option v-for="c in cohorts" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
         </label>
-        <label class="crud-field">
-          <span>Lớp hành chính</span>
-          <select v-model="selectedClassId" :disabled="loading || !selectedCohortId">
-            <option value="">-- Chọn lớp --</option>
+        
+        <label class="flex flex-col gap-1">
+          <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Lớp hành chính</span>
+          <select v-model="selectedClassId" :disabled="loading || !selectedCohortId" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option value="">— Chọn lớp hành chính —</option>
             <option v-for="c in adminClasses" :key="c.id" :value="c.id">{{ c.code }} — {{ c.name }}</option>
           </select>
         </label>
-      </div>
-    </div>
+      </template>
+    </UiFilters>
+
+    <div class="page-body">
 
     <!-- Tab nav -->
     <div class="tab-nav">
@@ -266,40 +276,15 @@ function riskLevel(days: number | null) {
       </div>
       <template v-else-if="overviewData">
         <!-- KPI row -->
-        <div class="kpi-row-grid">
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Tổng ghi danh</span>
-              <strong class="kpi-number">{{ overviewData.totals.enrollments.toLocaleString('vi-VN') }}</strong>
-              <span class="kpi-subtext">Tất cả khóa học</span>
-            </div>
-            <i class="pi pi-book" style="font-size:2.5rem" />
-          </div>
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Bài học hoàn thành</span>
-              <strong class="kpi-number text-success">{{ overviewData.totals.completed_lessons.toLocaleString('vi-VN') }}</strong>
-              <span class="kpi-subtext">lesson_progress.completed</span>
-            </div>
-            <i class="pi pi-check-circle" style="font-size:2.5rem" />
-          </div>
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Tổng sinh viên</span>
-              <strong class="kpi-number">{{ overviewData.totals.total_students.toLocaleString('vi-VN') }}</strong>
-              <span class="kpi-subtext">Tất cả hệ thống</span>
-            </div>
-            <i class="pi pi-users" style="font-size:2.5rem" />
-          </div>
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Nguy cơ bỏ học</span>
-              <strong class="kpi-number text-danger">{{ overviewData.totals.at_risk_students.toLocaleString('vi-VN') }}</strong>
-              <span class="kpi-subtext">Không hoạt động 14 ngày</span>
-            </div>
-            <i class="pi pi-exclamation-triangle" style="font-size:2.5rem" />
-          </div>
-        </div>
+        <UiKpiCards
+          :items="[
+            { label: 'Tổng ghi danh', value: overviewData.totals.enrollments.toLocaleString('vi-VN'), subText: 'Tất cả khóa học', color: 'primary', icon: 'pi-book' },
+            { label: 'Bài học hoàn thành', value: overviewData.totals.completed_lessons.toLocaleString('vi-VN'), subText: 'Tiến độ học tập', color: 'success', icon: 'pi-check-circle' },
+            { label: 'Tổng sinh viên', value: overviewData.totals.total_students.toLocaleString('vi-VN'), subText: 'Tất cả hệ thống', color: 'info', icon: 'pi-users' },
+            { label: 'Nguy cơ bỏ học', value: overviewData.totals.at_risk_students.toLocaleString('vi-VN'), subText: 'Không hoạt động 14 ngày', color: 'warning', icon: 'pi-exclamation-triangle' },
+          ]"
+          class="mb-5"
+        />
 
         <!-- Trend + Top courses -->
         <div class="charts-row-2">
@@ -349,32 +334,14 @@ function riskLevel(days: number | null) {
         <span class="text-small text-muted mt-5">Hãy gán lộ trình đào tạo cho lớp này trong mục Quản lý lớp học.</span>
       </div>
       <div v-else-if="reportData" class="report-layout-grid">
-        <div class="kpi-row-grid">
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Sĩ số sinh viên</span>
-              <strong class="kpi-number">{{ reportData.stats.total_students }}</strong>
-              <span class="kpi-subtext">Học viên chính quy</span>
-            </div>
-            <i class="pi pi-users" style="font-size:2.5rem" />
-          </div>
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Cần cảnh báo tiến độ</span>
-              <strong class="kpi-number text-danger">{{ reportData.stats.at_risk_students }}</strong>
-              <span class="kpi-subtext">Hoàn thành &lt; 50%</span>
-            </div>
-            <i class="pi pi-exclamation-triangle" style="font-size:2.5rem" />
-          </div>
-          <div class="dashboard-card kpi-card-box">
-            <div class="kpi-card-left">
-              <span class="kpi-label">Tỷ lệ hoàn thành lớp</span>
-              <strong class="kpi-number text-success">{{ reportData.stats.average_completion_rate }}%</strong>
-              <span class="kpi-subtext">Trung bình toàn lớp</span>
-            </div>
-            <i class="pi pi-arrow-up" style="font-size:2.5rem" />
-          </div>
-        </div>
+        <UiKpiCards
+          :items="[
+            { label: 'Sĩ số sinh viên', value: reportData.stats.total_students, subText: 'Học viên chính quy', color: 'primary', icon: 'pi-users' },
+            { label: 'Cần cảnh báo tiến độ', value: reportData.stats.at_risk_students, subText: 'Hoàn thành < 50%', color: 'warning', icon: 'pi-exclamation-triangle' },
+            { label: 'Tỷ lệ hoàn thành lớp', value: reportData.stats.average_completion_rate + '%', subText: 'Trung bình toàn lớp', color: 'success', icon: 'pi-chart-line' },
+          ]"
+          class="mb-5"
+        />
 
         <div class="dashboard-card class-info-banner">
           <div class="banner-summary">
@@ -524,55 +491,78 @@ function riskLevel(days: number | null) {
       </div>
 
       <div v-if="atRiskLoading" class="shimmer-block" style="height:300px; border-radius:14px;" />
-      <div v-else class="dashboard-card">
-        <div class="column-header" style="padding: 16px 20px;">
-          <h3 class="column-title"><i class="pi pi-exclamation-triangle" style="font-size:1rem" /> {{ atRiskData.length }} học viên cần chú ý</h3>
-          <div class="search-wrap" style="width:220px;">
-            <i class="pi pi-search" style="font-size:0.875rem" />
-            <input type="text" v-model="atRiskSearch" placeholder="Tìm theo tên, mã SV..." />
-          </div>
+      <div v-else class="flex flex-col gap-4">
+        <div class="flex items-center justify-between gap-4 mt-2">
+          <h3 class="text-base font-bold text-[var(--text)] flex items-center gap-2"><i class="pi pi-exclamation-triangle" /> {{ atRiskData.length }} học viên cần chú ý</h3>
+          <input type="text" v-model="atRiskSearch" placeholder="Tìm theo tên, mã SV..." class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
         </div>
-        <div class="crud-table-wrap">
-          <table class="crud-table">
-            <thead>
-              <tr>
-                <th>Mã SV</th>
-                <th>Họ và tên</th>
-                <th>Email</th>
-                <th>Lớp hành chính</th>
-                <th>Khóa</th>
-                <th>Số khóa ghi danh</th>
-                <th>Hoạt động cuối</th>
-                <th>Mức độ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="filteredAtRisk.length === 0">
-                <td colspan="8" class="crud-empty">
-                  <i class="pi pi-check-circle" style="font-size:1.25rem" /> Không có học viên nào cần cảnh báo.
-                </td>
-              </tr>
-              <tr v-else v-for="s in filteredAtRisk" :key="s.id" :class="{ 'row-danger': riskLevel(s.days_inactive) === 'high', 'row-warn': riskLevel(s.days_inactive) === 'medium' }">
-                <td><span class="student-code">{{ s.student_code }}</span></td>
-                <td><strong>{{ s.name }}</strong></td>
-                <td class="text-muted" style="font-size: 0.78rem;">{{ s.email }}</td>
-                <td>{{ s.admin_class ?? '—' }}</td>
-                <td>{{ s.cohort ?? '—' }}</td>
-                <td><strong>{{ s.enrollment_count }}</strong></td>
-                <td>
-                  <span class="last-activity" :class="riskLevel(s.days_inactive)">
-                    <i class="pi pi-clock" style="font-size:0.75rem" /> {{ daysLabel(s.days_inactive) }}
-                  </span>
-                </td>
-                <td>
-                  <span class="risk-badge" :class="riskLevel(s.days_inactive)">
-                    {{ riskLevel(s.days_inactive) === 'high' ? 'Nghiêm trọng' : riskLevel(s.days_inactive) === 'medium' ? 'Cần theo dõi' : 'Chú ý' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col gap-5">
+          <UiTable
+            :columns="[
+              { id: 'student_code', accessorKey: 'student_code', header: 'Mã SV' },
+              { id: 'name', accessorKey: 'name', header: 'Họ và tên' },
+              { id: 'email', accessorKey: 'email', header: 'Email' },
+              { id: 'admin_class', accessorKey: 'admin_class', header: 'Lớp hành chính' },
+              { id: 'cohort', accessorKey: 'cohort', header: 'Khóa' },
+              { id: 'enrollment_count', accessorKey: 'enrollment_count', header: 'Số khóa ghi danh', class: 'text-center' },
+              { id: 'days_inactive', accessorKey: 'days_inactive', header: 'Hoạt động cuối' },
+              { id: 'risk', accessorKey: 'days_inactive', header: 'Mức độ', class: 'text-center' }
+            ]"
+            :data="filteredAtRisk"
+            :loading="atRiskLoading"
+          >
+            <!-- Student Code Cell -->
+            <template #student_code-cell="{ row }">
+              <span class="mono-code font-mono text-xs font-semibold">{{ row.original.student_code }}</span>
+            </template>
+
+            <!-- Name Cell -->
+            <template #name-cell="{ row }">
+              <strong class="text-sm font-semibold text-[var(--text)]">{{ row.original.name }}</strong>
+            </template>
+
+            <!-- Email Cell -->
+            <template #email-cell="{ row }">
+              <span class="text-xs text-[var(--muted)]">{{ row.original.email }}</span>
+            </template>
+
+            <!-- Admin Class Cell -->
+            <template #admin_class-cell="{ row }">
+              <span class="text-sm">{{ row.original.admin_class ?? '—' }}</span>
+            </template>
+
+            <!-- Cohort Cell -->
+            <template #cohort-cell="{ row }">
+              <span class="text-sm">{{ row.original.cohort ?? '—' }}</span>
+            </template>
+
+            <!-- Enrollment Count Cell -->
+            <template #enrollment_count-cell="{ row }">
+              <span class="text-sm font-bold">{{ row.original.enrollment_count }}</span>
+            </template>
+
+            <!-- Days Inactive Cell -->
+            <template #days_inactive-cell="{ row }">
+              <span class="last-activity font-medium text-xs flex items-center gap-1.5" :class="riskLevel(row.original.days_inactive)">
+                <i class="pi pi-clock" style="font-size:0.75rem" /> {{ daysLabel(row.original.days_inactive) }}
+              </span>
+            </template>
+
+            <!-- Risk Cell -->
+            <template #risk-cell="{ row }">
+              <span class="risk-badge font-bold text-[10px] uppercase px-2 py-0.5 rounded-md" :class="riskLevel(row.original.days_inactive)">
+                {{ riskLevel(row.original.days_inactive) === 'high' ? 'Nghiêm trọng' : riskLevel(row.original.days_inactive) === 'medium' ? 'Cần theo dõi' : 'Chú ý' }}
+              </span>
+            </template>
+
+            <template #empty>
+              <div class="flex flex-col items-center justify-center py-16 gap-2 text-[var(--color-text-muted)]">
+                <i class="pi pi-check-circle text-3xl opacity-40 text-emerald-500" />
+                <p class="text-sm font-medium">Không có học viên nào cần cảnh báo</p>
+              </div>
+            </template>
+          </UiTable>
+        </section>
       </div>
     </div>
 

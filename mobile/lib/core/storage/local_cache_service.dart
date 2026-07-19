@@ -6,7 +6,7 @@ import 'secure_storage.dart';
 part 'local_cache_service.g.dart';
 
 @riverpod
-LocalCacheService localCacheService(Ref ref) =>
+LocalCacheService localCacheService(LocalCacheServiceRef ref) =>
     LocalCacheService(storage: ref.read(secureStorageProvider));
 
 class LocalCacheService {

@@ -1,75 +1,46 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import AcademicResourceManager from '~/components/admin/AcademicResourceManager.vue'
+import AdminFeatureScaffold from '~/components/admin/AdminFeatureScaffold.vue'
 
-definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
+definePageMeta({ layout: 'admin' })
 
-type Tab = 'majors' | 'programs' | 'cohorts'
-const activeTab = ref<Tab>('majors')
+const breadcrumbs = [{ label: 'Người dùng & Tổ chức' }, { label: 'Sơ đồ tổ chức' }]
 
-const tabs: { id: Tab; label: string; desc: string }[] = [
-  { id: 'majors',   label: 'Ngành học',              desc: 'Danh sách ngành và chuyên ngành đào tạo (UC01)' },
-  { id: 'programs', label: 'Chương trình đào tạo',   desc: 'Các chương trình đào tạo theo ngành (UC02)' },
-  { id: 'cohorts',  label: 'Khóa tuyển sinh',        desc: 'Các khóa sinh viên theo chương trình đào tạo' },
+const kpis = [
+  { label: 'Đơn vị đào tạo', value: 12, sub: 'khoa, viện, trung tâm', icon: 'pi pi-building', tone: 'green' },
+  { label: 'Chương trình', value: 38, sub: 'đang áp dụng', icon: 'pi pi-sitemap', tone: 'blue' },
+  { label: 'Lớp hành chính', value: 126, sub: 'theo khóa tuyển sinh', icon: 'pi pi-users', tone: 'amber' },
+  { label: 'Chức danh', value: 18, sub: 'vị trí học vụ', icon: 'pi pi-id-card', tone: 'violet' }
 ]
 
-const activeDesc = computed(() => tabs.find(t => t.id === activeTab.value)?.desc ?? '')
+const actions = [
+  { label: 'Thêm đơn vị', description: 'Tạo khoa, bộ môn, trung tâm', icon: 'pi pi-plus', tone: 'green' },
+  { label: 'Thêm lớp hành chính', description: 'Gán khóa, ngành, chương trình', icon: 'pi pi-users', tone: 'blue' },
+  { label: 'Quản lý chức danh', description: 'Thiết lập vị trí cán bộ', icon: 'pi pi-id-card', tone: 'violet' },
+  { label: 'Import cơ cấu', description: 'Nhập dữ liệu từ Excel/CSV', icon: 'pi pi-upload', tone: 'amber' }
+]
+
+const records = [
+  { id: 1, title: 'Khoa Công nghệ thông tin', subtitle: 'CNTT • 12 bộ môn trực thuộc', owner: 'PGS. Nguyễn Minh', count: 2450, status: 'Đang hoạt động', statusTone: 'green', updated: 'Hôm nay' },
+  { id: 2, title: 'Khoa Điện tử Viễn thông', subtitle: 'DTVT • 8 chương trình đào tạo', owner: 'TS. Trần Hoàng', count: 1320, status: 'Đang hoạt động', statusTone: 'green', updated: '1 ngày trước' },
+  { id: 3, title: 'Chương trình Kỹ thuật phần mềm', subtitle: 'SE • Đại học chính quy', owner: 'Bộ môn CNPM', count: 860, status: 'Đang tuyển sinh', statusTone: 'blue', updated: '2 ngày trước' },
+  { id: 4, title: 'Lớp D21CQCN01-B', subtitle: 'Khóa D21 • Ngành CNTT', owner: 'Cố vấn học tập A', count: 68, status: 'Đang học', statusTone: 'amber', updated: '3 ngày trước' },
+  { id: 5, title: 'Phòng Đào tạo', subtitle: 'Đơn vị quản lý học vụ', owner: 'Trưởng phòng ĐT', count: 24, status: 'Đang hoạt động', statusTone: 'violet', updated: 'Tuần này' }
+]
 </script>
 
 <template>
-  <div class="flex flex-col gap-5">
-
-    <!-- Page header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <div>
-        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Đào tạo & Học vụ</p>
-        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Danh mục Đào tạo</h1>
-        <p class="text-sm mt-0.5" style="color:var(--muted)">{{ activeDesc }}</p>
-      </div>
-    </div>
-
-    <!-- Tabs + content panel -->
-    <div class="bg-white border rounded-2xl shadow-sm overflow-hidden" style="border-color:var(--line)">
-      <div class="catalog-tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          class="catalog-tab"
-          :class="{ 'is-active': activeTab === tab.id }"
-          @click="activeTab = tab.id"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
-      <div class="p-6">
-        <AcademicResourceManager
-          :key="activeTab"
-          :initial-resource="activeTab"
-          :allow-resource-switch="false"
-        />
-      </div>
-    </div>
-
-  </div>
+  <AdminFeatureScaffold
+    title="Sơ đồ tổ chức"
+    subtitle="Quản lý cơ cấu đơn vị, chương trình, khóa, ngành và lớp hành chính."
+    kicker="Người dùng & Tổ chức"
+    hero-title="Cấu trúc học vụ và tổ chức đào tạo"
+    hero-description="Thiết lập cây đơn vị, chương trình đào tạo, khóa tuyển sinh, lớp hành chính và vị trí chức danh phục vụ phân quyền học vụ."
+    :breadcrumbs="breadcrumbs"
+    :kpis="kpis"
+    :actions="actions"
+    :records="records"
+    search-placeholder="Tìm đơn vị, chương trình, lớp hành chính..."
+    primary-action-label="Thêm cấu trúc"
+    primary-action-icon="pi pi-plus"
+  />
 </template>
-
-<style scoped>
-.catalog-tabs {
-  display: flex; gap: 4px; flex-wrap: wrap;
-  border-bottom: 2px solid var(--line); padding-bottom: 2px;
-}
-.catalog-tab {
-  display: inline-flex; align-items: center; padding: 9px 18px;
-  border: none; background: none; border-radius: 10px 10px 0 0;
-  font-size: 0.88rem; font-weight: 600; color: var(--muted);
-  cursor: pointer; position: relative; transition: color 0.15s, background 0.15s;
-}
-.catalog-tab:hover { color: var(--green-deep); background: rgba(var(--green-rgb), 0.04); }
-.catalog-tab.is-active { color: var(--green-deep); }
-.catalog-tab.is-active::after {
-  content: ''; position: absolute; bottom: -4px; left: 0; right: 0;
-  height: 3px; background: var(--green-deep); border-radius: 99px;
-}
-</style>

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../providers/points_providers.dart';
-import '../../../data/models/points_model.dart';
-import '../../../data/repositories/points_repository.dart';
+import '../../providers/points_providers.dart';
+import '../../data/models/points_model.dart';
+import '../../data/repositories/points_repository.dart';
 
 class PointsScreen extends ConsumerStatefulWidget {
   const PointsScreen({super.key});

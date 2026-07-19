@@ -58,7 +58,7 @@ export const useAuthStore = defineStore('auth', {
 
     async loginWithGoogleCallback(queryString: string) {
       const path = queryString ? `/auth/google/callback?${queryString}` : '/auth/google/callback'
-      const data = await useApi<AuthPayload>(path, {
+      const data = await useApi<AuthResponse>(path, {
         method: 'GET',
       })
 
@@ -74,7 +74,7 @@ export const useAuthStore = defineStore('auth', {
       }
 
       try {
-        const user = await useApi<User>('/auth/me', {
+        const user = await useApi<AuthUser>('/auth/me', {
           method: 'GET',
           headers: { Authorization: `Bearer ${this.token}` },
         })

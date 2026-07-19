@@ -8,6 +8,16 @@ schema: v1
 # Define which models can be used
 # https://docs.continue.dev/customization/models
 models:
+  - name: Nghimmo Codex
+    provider: openai
+    model: nghi/gpt-5.5
+    apiBase: https://api.nghimmo.com/v1
+    apiKey: sk-7kS3Y8O43vXQHcQpddbdPxeCze0NSOXKI
+    roles:
+      - autocomplete
+      - chat
+      - edit
+      - apply
   - name: my gpt-5
     provider: openai
     model: gpt-5

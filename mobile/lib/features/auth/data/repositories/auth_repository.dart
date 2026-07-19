@@ -10,7 +10,7 @@ import '../models/user_model.dart';
 part 'auth_repository.g.dart';
 
 @riverpod
-AuthRepository authRepository(Ref ref) => AuthRepository(
+AuthRepository authRepository(AuthRepositoryRef ref) => AuthRepository(
       dio: ref.read(apiClientProvider),
       storage: ref.read(secureStorageProvider),
     );

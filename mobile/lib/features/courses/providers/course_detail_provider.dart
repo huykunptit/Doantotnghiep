@@ -6,5 +6,5 @@ import '../data/repositories/course_repository.dart';
 part 'course_detail_provider.g.dart';
 
 @riverpod
-Future<CourseDetailModel> courseDetail(Ref ref, int courseId) =>
+Future<CourseDetailModel> courseDetail(CourseDetailRef ref, int courseId) =>
     ref.read(courseRepositoryProvider).getCourseDetail(courseId);

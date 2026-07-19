@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import { useToast } from '~/composables/useToast'
+import UiKpiCards from '~/components/ui/UiKpiCards.vue'
+import UiFilters from '~/components/ui/UiFilters.vue'
 
 type ResourceKey =
   | 'institutions'
@@ -658,37 +660,7 @@ onMounted(async () => {
 
 <template>
   <div class="academic-manager">
-    <section class="dashboard-card academic-hero">
-      <div class="academic-hero-copy">
-        <p class="section-kicker">Workspace học vụ</p>
-        <h2>{{ currentOption.label }}</h2>
-        <p class="academic-hero-desc">{{ currentOption.description }}</p>
-        <div class="academic-hero-chips">
-          <span class="academic-hero-chip">
-            <span class="material-symbols-outlined">dataset</span>
-            {{ totalRows }} bản ghi
-          </span>
-          <span class="academic-hero-chip">
-            <span class="material-symbols-outlined">verified</span>
-            {{ activeCount }} đang hoạt động
-          </span>
-          <span class="academic-hero-chip">
-            <span class="material-symbols-outlined">update</span>
-            {{ formatRelative(lastUpdatedAt) }}
-          </span>
-        </div>
-      </div>
-      <div class="academic-hero-panel">
-        <div class="academic-hero-icon">
-          <span class="material-symbols-outlined">{{ currentOption.icon }}</span>
-        </div>
-        <div>
-          <strong>{{ currentOption.label }}</strong>
-          <p>Quản lý theo module, hỗ trợ lọc, sửa, tạo mới và thao tác nhanh.</p>
-        </div>
-      </div>
-    </section>
-
+   
     <section v-if="allowResourceSwitch" class="dashboard-card academic-tabs-card">
       <div class="academic-tabs-head">
         <div>
@@ -717,69 +689,56 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="dashboard-card crud-panel academic-panel">
-      <header class="academic-panel-head">
-        <div class="academic-panel-title">
-          <div class="academic-panel-icon">
-            <span class="material-symbols-outlined">{{ currentOption.icon }}</span>
-          </div>
-          <div>
-            <p class="section-kicker">Bản ghi hiện tại</p>
-            <h3>{{ currentOption.label }}</h3>
-            <p class="academic-panel-desc">{{ currentOption.description }}</p>
-          </div>
-        </div>
-        <div class="academic-stats">
-          <article>
-            <span>Tổng số</span>
-            <strong>{{ totalRows }}</strong>
-          </article>
-          <article>
-            <span>Đang hoạt động</span>
-            <strong>{{ activeCount }}</strong>
-          </article>
-          <article>
-            <span>Cập nhật</span>
-            <strong>{{ formatRelative(lastUpdatedAt) }}</strong>
-          </article>
-        </div>
-      </header>
+    <!-- Stats KPI Cards -->
+    <UiKpiCards
+      :items="[
+        { label: 'Tổng số ' + currentOption.label.toLowerCase(), value: totalRows, subText: currentOption.description, color: 'primary', icon: 'pi-folder' },
+        { label: 'Đang hoạt động', value: activeCount, subText: 'Bản ghi khả dụng', color: 'success', icon: 'pi-check-circle' },
+        { label: 'Cập nhật gần nhất', value: formatRelative(lastUpdatedAt), subText: 'Theo thời gian thực', color: 'info', icon: 'pi-clock' },
+      ]"
+      class="mb-4"
+    />
 
-      <div class="crud-toolbar academic-toolbar">
-        <div class="crud-toolbar-main">
-          <div class="academic-search">
-            <span class="material-symbols-outlined">search</span>
-            <input
-              v-model="searchTerm"
-              type="text"
-              :placeholder="`Tìm theo tên, mã hoặc ID trong ${currentOption.label.toLowerCase()}...`"
-            >
-          </div>
-          <select v-model="statusFilter" class="crud-select academic-status-select">
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Ngừng hoạt động</option>
-          </select>
-          <button class="crud-secondary-btn academic-refresh" type="button" :disabled="loading" @click="fetchRows(currentPage)">
-            <span class="material-symbols-outlined">refresh</span>
-            <span>{{ loading ? 'Đang tải...' : 'Làm mới' }}</span>
+    <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col gap-5">
+      
+      <!-- Toolbar & Filters -->
+      <UiFilters
+        v-model:search="searchTerm"
+        :search-placeholder="`Tìm theo tên, mã hoặc ID trong ${currentOption.label.toLowerCase()}...`"
+        :always-open="true"
+        @submit-search="fetchRows(1)"
+      >
+        <template #actions>
+          <button v-if="!readonly" class="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#1d9e75] hover:bg-[#178762] text-white text-xs font-semibold transition-colors shrink-0 cursor-pointer mr-2" type="button" @click="openCreate">
+            <i class="pi pi-plus" />
+            <span>Thêm {{ currentOption.label.toLowerCase() }}</span>
+          </button>
+          <button class="h-9 px-3 rounded-xl border border-[var(--line)] hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] transition-colors flex items-center justify-center mr-2 cursor-pointer" type="button" :disabled="loading" @click="fetchRows(currentPage)" title="Làm mới">
+            <i class="pi pi-refresh" />
           </button>
           <template v-if="isTreeView">
-            <button class="crud-secondary-btn academic-tree-btn" type="button" @click="expandAllUnits">
-              <span class="material-symbols-outlined">unfold_more</span>
+            <button class="h-9 px-3 rounded-xl border border-[var(--line)] hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] transition-colors flex items-center gap-1.5 cursor-pointer mr-2 text-xs font-semibold" type="button" @click="expandAllUnits" title="Mở rộng tất cả">
+              <i class="pi pi-angle-double-down" />
               <span>Mở tất cả</span>
             </button>
-            <button class="crud-secondary-btn academic-tree-btn" type="button" @click="collapseAllUnits">
-              <span class="material-symbols-outlined">unfold_less</span>
+            <button class="h-9 px-3 rounded-xl border border-[var(--line)] hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] transition-colors flex items-center gap-1.5 cursor-pointer mr-2 text-xs font-semibold" type="button" @click="collapseAllUnits" title="Thu gọn tất cả">
+              <i class="pi pi-angle-double-up" />
               <span>Thu gọn</span>
             </button>
           </template>
-        </div>
-        <button v-if="!readonly" class="crud-primary-btn academic-add" type="button" @click="openCreate">
-          <span class="material-symbols-outlined">add</span>
-          <span>Thêm {{ currentOption.label.toLowerCase() }}</span>
-        </button>
-      </div>
+        </template>
+
+        <template #advanced>
+          <label class="flex flex-col gap-1">
+            <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Trạng thái</span>
+            <select v-model="statusFilter" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer" @change="fetchRows(1)">
+              <option value="all">Tất cả</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="inactive">Ngừng hoạt động</option>
+            </select>
+          </label>
+        </template>
+      </UiFilters>
 
 
 

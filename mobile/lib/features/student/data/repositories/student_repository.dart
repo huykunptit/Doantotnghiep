@@ -8,7 +8,7 @@ import '../models/student_models.dart';
 part 'student_repository.g.dart';
 
 @riverpod
-StudentRepository studentRepository(Ref ref) =>
+StudentRepository studentRepository(StudentRepositoryRef ref) =>
     StudentRepository(dio: ref.read(apiClientProvider));
 
 class StudentRepository {

@@ -42,6 +42,7 @@ class MyExamsProvider extends AutoDisposeFutureProvider<List<ExamListItemModel>>
       : super.internal(
           (ref) => myExams(ref, tab: tab),
           from: myExamsProvider,
+          name: r'myExamsProvider',
           argument: tab,
           debugGetCreateSourceHash:
               const bool.fromEnvironment('dart.vm.product')
@@ -97,6 +98,7 @@ class ExamAttemptResultProvider
       : super.internal(
           (ref) => examAttemptResult(ref, attemptId),
           from: examAttemptResultProvider,
+          name: r'examAttemptResultProvider',
           argument: attemptId,
           debugGetCreateSourceHash:
               const bool.fromEnvironment('dart.vm.product')

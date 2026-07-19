@@ -3,9 +3,13 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import CategoryNode from '~/components/categories/CategoryNode.vue'
-import { useAuthUserCookie } from '~/composables/useAuthSession'
-import { useAuthTokenCookie } from '~/composables/useAuthSession'
+import { useAuthUserCookie, useAuthTokenCookie } from '~/composables/useAuthSession'
 import { useExport } from '~/composables/useExport'
+
+// Unified UI Components
+import UiKpiCards from '~/components/ui/UiKpiCards.vue'
+import UiFilters from '~/components/ui/UiFilters.vue'
+import UModal from '~/components/UModal.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -45,6 +49,8 @@ const modalMode = ref<'create' | 'edit'>('create')
 const selectedCategory = ref<CategoryItem | null>(null)
 const selectedIds = ref<number[]>([])
 
+const search = ref('')
+
 const form = reactive({
   name: '',
   icon: '',
@@ -56,7 +62,14 @@ const authHeaders = () => ({
   Authorization: `Bearer ${token.value}`
 })
 
-const rootCategories = computed(() => categories.value.filter(item => !item.parent_id))
+const rootCategories = computed(() => {
+  let list = categories.value.filter(item => !item.parent_id)
+  if (search.value.trim()) {
+    const q = search.value.toLowerCase()
+    list = list.filter(item => item.name.toLowerCase().includes(q))
+  }
+  return list
+})
 
 const childrenByParent = computed(() => {
   const map: Record<number, CategoryItem[]> = { 0: [] }
@@ -224,64 +237,50 @@ onMounted(fetchCategories)
 <template>
   <div class="flex flex-col gap-5">
     <!-- Page header -->
-    <div>
-      <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
-      <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý danh mục</h1>
-      <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý cấu trúc danh mục học tập theo dạng cây thư mục. Mở rộng, thu gọn và tương tác trực quan với các danh mục.</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p class="text-[0.68rem] font-bold uppercase tracking-widest mb-1" style="color:var(--muted)">Khóa học</p>
+        <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Quản lý danh mục</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Quản lý cấu trúc danh mục học tập theo dạng cây thư mục. Mở rộng, thu gọn và tương tác trực quan với các danh mục.</p>
+      </div>
+      <button
+        class="inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-[#1d9e75] hover:bg-[#178762] text-white text-sm font-semibold transition-colors shrink-0 cursor-pointer"
+        type="button"
+        @click="openCreateModal"
+      >
+        Tạo danh mục
+      </button>
     </div>
-    <section class="crud-overview-grid">
-      <article class="dashboard-card mini-card tone-green">
-        <p class="mini-title">Tổng danh mục</p>
-        <div class="mini-head">
-          <strong>{{ categories.length }}</strong>
-          <span>Đang hoạt động trên hệ thống</span>
-        </div>
-      </article>
 
-      <article class="dashboard-card mini-card tone-amber">
-        <p class="mini-title">Danh mục gốc</p>
-        <div class="mini-head">
-          <strong>{{ rootCategories.length }}</strong>
-          <span>Dùng để tổ chức cây danh mục</span>
-        </div>
-      </article>
+    <!-- Stats KPI Cards -->
+    <UiKpiCards
+      :items="[
+        { label: 'Tổng danh mục', value: categories.length, subText: 'Đang hoạt động trên hệ thống', color: 'primary', icon: 'pi-folder' },
+        { label: 'Danh mục gốc', value: rootCategories.length, subText: 'Dùng để tổ chức cây danh mục', color: 'warning', icon: 'pi-folder-open' },
+        { label: 'Kiểu hiển thị', value: 'Collapsible Tree', subText: 'Cây danh mục đóng/mở trực quan', color: 'info', icon: 'pi-sitemap' }
+      ]"
+    />
 
-      <article class="dashboard-card mini-card">
-        <p class="mini-title">Mô hình</p>
-        <div class="mini-head">
-          <strong>Collapsible Tree</strong>
-          <span>Cây danh mục có khả năng đóng/mở trực quan</span>
-        </div>
-      </article>
-    </section>
+    <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col gap-5">
+      
+      <!-- Toolbar & Filters -->
+      <UiFilters
+        v-model:search="search"
+        search-placeholder="Tìm kiếm danh mục khóa học..."
+        :show-export="true"
+        @export="exportData"
+      />
 
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <div>
-          <p class="section-kicker">Danh mục khóa học</p>
-          <h3>Cấu trúc danh mục hiện tại</h3>
-        </div>
-        <div class="crud-toolbar-right">
-          <button class="crud-export-btn" type="button" @click="exportData">
-            <span class="material-symbols-outlined">download</span>
-            Xuất Excel
-          </button>
-          <button class="crud-primary-btn" type="button" @click="openCreateModal">
-            Tạo danh mục
-          </button>
-        </div>
+      <div v-if="errorMessage" class="mx-5 flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+        <i class="pi pi-exclamation-circle shrink-0" />{{ errorMessage }}
+      </div>
+      <div v-if="successMessage" class="mx-5 flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+        <i class="pi pi-check-circle shrink-0" />{{ successMessage }}
       </div>
 
-      <div v-if="errorMessage" class="crud-alert is-error">
-        {{ errorMessage }}
-      </div>
-      <div v-if="successMessage" class="crud-alert is-success">
-        {{ successMessage }}
-      </div>
-
-      <div class="categories-tree-container">
-        <div v-if="loading" class="crud-empty">Đang tải danh mục...</div>
-        <div v-else-if="categories.length === 0" class="crud-empty">Chưa có danh mục nào.</div>
+      <div class="categories-tree-container px-5 pb-5">
+        <div v-if="loading" class="text-center py-12 text-sm text-[var(--muted)]">Đang tải danh mục...</div>
+        <div v-else-if="categories.length === 0" class="text-center py-12 text-sm text-[var(--muted)]">Chưa có danh mục nào.</div>
         <div v-else class="tree-root">
           <CategoryNode
             v-for="item in rootCategories"
@@ -296,53 +295,51 @@ onMounted(fetchCategories)
       </div>
     </section>
 
-    <UModal v-model:open="modalOpen" :ui="{ width: 'max-w-lg' }">
-      <template #content>
-        <div class="crud-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ modalMode === 'create' ? 'Tạo mới' : 'Chỉnh sửa' }}</p>
-              <h3>{{ modalMode === 'create' ? 'Tạo danh mục' : 'Cập nhật danh mục' }}</h3>
-            </div>
-            <button class="topbar-ghost" type="button" @click="modalOpen = false">✕</button>
-          </div>
+    <!-- Standardized Modal -->
+    <UModal 
+      v-model:open="modalOpen" 
+      :title="modalMode === 'create' ? 'Tạo danh mục mới' : 'Cập nhật danh mục'"
+      :subtitle="modalMode === 'create' ? 'Tạo mới' : 'Chỉnh sửa'"
+      :ui="{ width: 'max-w-lg' }"
+    >
+      <div class="flex flex-col gap-4">
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Tên danh mục</span>
+          <input v-model="form.name" type="text" placeholder="Ví dụ: Lập trình web" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+        </label>
+        
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Icon đại diện</span>
+          <input v-model="form.icon" type="text" placeholder="Ví dụ: 💻" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+        </label>
+        
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Danh mục cha</span>
+          <select v-model="form.parent_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option value="">Danh mục gốc</option>
+            <option v-for="item in parentOptions" :key="item.id" :value="String(item.id)">
+              {{ `${'— '.repeat(item.depth)}${item.name}` }}
+            </option>
+          </select>
+        </label>
+        
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Thứ tự sắp xếp</span>
+          <input v-model="form.sort_order" type="number" placeholder="Ví dụ: 1" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]">
+        </label>
+      </div>
 
-          <div class="crud-form-grid" style="padding: 24px 28px;">
-            <label class="crud-field">
-              <span>Tên danh mục</span>
-              <input v-model="form.name" type="text" placeholder="Ví dụ: Lập trình web">
-            </label>
-            <label class="crud-field">
-              <span>Icon</span>
-              <input v-model="form.icon" type="text" placeholder="Ví dụ: 💻">
-            </label>
-            <label class="crud-field">
-              <span>Danh mục cha</span>
-              <select v-model="form.parent_id">
-                <option value="">Danh mục gốc</option>
-                <option v-for="item in parentOptions" :key="item.id" :value="String(item.id)">
-                  {{ `${'— '.repeat(item.depth)}${item.name}` }}
-                </option>
-              </select>
-            </label>
-            <label class="crud-field">
-              <span>Thứ tự sắp xếp</span>
-              <input v-model="form.sort_order" type="number" placeholder="Ví dụ: 1">
-            </label>
-          </div>
-
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" :disabled="saving" @click="modalOpen = false">
-              Hủy
-            </button>
-            <button class="crud-primary-btn" type="button" :disabled="saving" @click="submitForm">
-              {{ saving ? 'Đang lưu...' : 'Lưu' }}
-            </button>
-          </div>
-        </div>
+      <template #footer>
+        <button class="btn-secondary" type="button" :disabled="saving" @click="modalOpen = false">
+          Hủy
+        </button>
+        <button class="btn-primary" type="button" :disabled="saving" @click="submitForm">
+          {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+        </button>
       </template>
     </UModal>
 
+    <!-- Delete Confirm Dialog -->
     <CrudConfirmModal
       :open="confirmOpen"
       title="Xóa danh mục"
@@ -355,22 +352,11 @@ onMounted(fetchCategories)
 
 <style scoped>
 .categories-tree-container {
-  padding: 12px 0;
+  padding: 12px 20px;
 }
 
 .tree-root {
   display: flex;
   flex-direction: column;
 }
-
-.dropdown-item.is-danger:hover {
-  background-color: #fef2f2;
-}
-
-.dropdown-divider {
-  height: 1px;
-  background-color: rgba(17, 17, 17, 0.1);
-  margin: 4px 0;
-}
 </style>
-

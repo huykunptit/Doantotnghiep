@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useToast } from '~/composables/useToast'
-import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
+import DataTableFooter from '~/components/common/DataTableFooter.vue'
+
+// Unified UI Components
+import UiFilters from '~/components/ui/UiFilters.vue'
+import UiTable from '~/components/ui/UiTable.vue'
+import UModal from '~/components/UModal.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -73,8 +78,6 @@ const loadStudentsForAdminClass = async () => {
     studentsInAdminClass.value = resIn.data || []
     
     // 2. Get students in this cohort but NO admin class
-    const resUn = await useNuxtApp().$api(`/user/users?cohort_id=${selectedCohortIdForAdmin.value}&administrative_class_id_null=1&per_page=100`)
-    // The backend might not support `administrative_class_id_null=1` directly, so we just fetch all for cohort and filter:
     const resAllCohort = await useNuxtApp().$api(`/user/users?cohort_id=${selectedCohortIdForAdmin.value}&per_page=500`)
     unassignedStudents.value = (resAllCohort.data || []).filter((u: any) => !u.administrative_class_id)
   } catch (error: any) {
@@ -119,6 +122,9 @@ const enrollCourseId = ref<number | ''>('')
 const enrollmentsList = ref<any[]>([])
 const loadingEnrollments = ref(false)
 
+const sortBy = ref('')
+const sortOrder = ref<'asc' | 'desc' | ''>('')
+
 const loadClassSectionsForEnrollment = async () => {
   if (!enrollTermId.value) return
   try {
@@ -138,6 +144,11 @@ const loadEnrollments = async () => {
     if (enrollTermId.value) q.append('term_id', String(enrollTermId.value))
     if (enrollCohortId.value) q.append('cohort_id', String(enrollCohortId.value))
     if (enrollCourseId.value) q.append('course_id', String(enrollCourseId.value))
+    
+    if (sortBy.value && sortOrder.value) {
+      q.append('sort_by', sortBy.value)
+      q.append('sort_order', sortOrder.value)
+    }
     
     const res = await useNuxtApp().$api(`/user/academic/enrollments?${q.toString()}`)
     enrollmentsList.value = res.data || []
@@ -277,6 +288,22 @@ const unenrollRecord = async (id: number) => {
   }
 }
 
+// Columns for Enrollments list using UiTable
+const enrollmentColumns = [
+  { id: 'code', accessorKey: 'user.student_code', header: 'Mã SV', sortable: true },
+  { id: 'name', accessorKey: 'user.name', header: 'Họ tên', sortable: true },
+  { id: 'course', accessorKey: 'course.title', header: 'Môn học' },
+  { id: 'cohort', accessorKey: 'cohort.code', header: 'Khóa' },
+  { id: 'source', accessorKey: 'enrollment_source', header: 'Nguồn' },
+  { id: 'actions', accessorKey: 'actions', header: 'Thao tác', class: 'text-right' }
+]
+
+function handleSort(event: { key: string; order: 'asc' | 'desc' | '' }) {
+  sortBy.value = event.key
+  sortOrder.value = event.order
+  loadEnrollments()
+}
+
 onMounted(() => {
   fetchSharedData()
 })
@@ -287,7 +314,9 @@ watch(enrollTermId, () => { loadClassSectionsForEnrollment(); loadEnrollments() 
 watch(enrollCohortId, loadEnrollments)
 watch(enrollCourseId, loadEnrollments)
 
-</script><template>
+</script>
+
+<template>
   <div class="flex flex-col gap-5">
     <!-- Page header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -352,7 +381,7 @@ watch(enrollCourseId, loadEnrollments)
                 <span class="text-[10px] text-[var(--muted)] mt-0.5">{{ st.student_code }} - {{ st.email }}</span>
               </div>
               <button 
-                class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors" 
+                class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors cursor-pointer" 
                 title="Xóa khỏi lớp" 
                 @click="removeStudentFromAdminClass(st.id)"
               >
@@ -376,7 +405,7 @@ watch(enrollCourseId, loadEnrollments)
                 <span class="text-[10px] text-[var(--muted)] mt-0.5">{{ st.student_code }} - {{ st.email }}</span>
               </div>
               <button 
-                class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors" 
+                class="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors cursor-pointer" 
                 title="Thêm vào lớp" 
                 @click="assignStudentToAdminClass(st.id)"
               >
@@ -427,7 +456,7 @@ watch(enrollCourseId, loadEnrollments)
             <p class="text-[10px] text-[var(--muted)] mt-1 leading-relaxed">Đẩy toàn bộ SV trong Khóa vào các Môn học Bắt buộc (Core) được phép mở.</p>
           </div>
           <button 
-            class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50 w-full mt-auto" 
+            class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50 w-full mt-auto cursor-pointer" 
             :disabled="!enrollCohortId || bulkEnrollLoading" 
             @click="handleBulkEnrollCore"
           >
@@ -446,7 +475,7 @@ watch(enrollCourseId, loadEnrollments)
               <option v-for="c in courses" :key="c.id" :value="c.id">{{ c.title }}</option>
             </select>
             <button 
-              class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors disabled:opacity-40" 
+              class="h-9 px-4 rounded-xl border border-[var(--line)] bg-white hover:bg-[var(--surface)] text-xs font-semibold text-[var(--text)] transition-colors disabled:opacity-40 cursor-pointer" 
               :disabled="manualEnrollLoading" 
               @click="handleManualEnroll"
             >
@@ -467,7 +496,7 @@ watch(enrollCourseId, loadEnrollments)
               <i class="pi pi-upload" /> {{ importFile ? 'Đã chọn file' : 'Chọn Tệp' }}
             </label>
             <button 
-              class="inline-flex items-center justify-center h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50" 
+              class="inline-flex items-center justify-center h-9 px-4 rounded-xl text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors disabled:opacity-50 cursor-pointer" 
               :disabled="!importFile || importLoading" 
               @click="handlePreviewImport"
             >
@@ -477,13 +506,13 @@ watch(enrollCourseId, loadEnrollments)
         </div>
       </div>
 
-      <!-- Import Preview Modal/Section -->
+      <!-- Import Preview Section -->
       <div v-if="importPreviewData.length" class="border border-[var(--line)] rounded-2xl p-5 bg-white shadow-sm flex flex-col gap-4">
         <div class="flex justify-between items-center">
           <h3 class="text-sm font-semibold text-[var(--text)]">Xem trước Import CSV ({{ importPreviewData.length }} dòng)</h3>
           <div class="flex gap-2">
-            <button class="h-8 px-3 rounded-lg border border-[var(--line)] text-xs font-semibold hover:bg-[var(--surface)] transition-colors" @click="importPreviewData = []; importFile = null">Hủy</button>
-            <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors" @click="handleExecuteImport">
+            <button class="h-8 px-3 rounded-lg border border-[var(--line)] text-xs font-semibold hover:bg-[var(--surface)] transition-colors cursor-pointer" @click="importPreviewData = []; importFile = null">Hủy</button>
+            <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold text-white bg-[#1d9e75] hover:bg-[#17876a] transition-colors cursor-pointer" @click="handleExecuteImport">
               <i class="pi pi-check-circle" /> Xác nhận Import
             </button>
           </div>
@@ -513,55 +542,67 @@ watch(enrollCourseId, loadEnrollments)
         </div>
       </div>
 
-      <!-- Enrollments Table -->
+      <!-- Standardized Enrollments Table -->
       <div v-if="enrollTermId" class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col">
         <div class="px-5 py-4 border-b border-[var(--line)] bg-[var(--surface)] font-bold text-xs uppercase tracking-wider text-[var(--text)] flex justify-between items-center">
           <span>Danh sách Ghi danh</span>
-          <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] transition-colors" @click="loadEnrollments" title="Tải lại">
+          <button class="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer" @click="loadEnrollments" title="Tải lại">
             <i class="pi pi-refresh text-xs" />
           </button>
         </div>
-        <div v-if="loadingEnrollments" class="text-center py-12 text-sm text-[var(--muted)]">Đang tải...</div>
-        <div v-else-if="!enrollmentsList.length" class="text-center py-12 text-sm text-[var(--muted)]">
-          Chương trình chưa ghi nhận danh sách tín chỉ.
-        </div>
-        <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm border-collapse text-left">
-            <thead>
-              <tr class="border-b border-[var(--line)] bg-[var(--surface)] text-[0.72rem] font-bold uppercase tracking-wider text-[var(--muted)]">
-                <th class="px-4 py-3">Mã SV</th>
-                <th class="px-4 py-3">Họ tên</th>
-                <th class="px-4 py-3">Môn học</th>
-                <th class="px-4 py-3">Khóa</th>
-                <th class="px-4 py-3">Nguồn</th>
-                <th class="px-4 py-3 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="e in enrollmentsList" :key="e.id" class="border-b border-[var(--line)] hover:bg-[var(--surface)] transition-colors">
-                <td class="px-4 py-3 text-xs font-bold text-[var(--text)]"><strong>{{ e.user?.student_code }}</strong></td>
-                <td class="px-4 py-3 text-xs text-[var(--text)]">{{ e.user?.name }}</td>
-                <td class="px-4 py-3 text-xs">
-                  <div class="flex items-center gap-2">
-                    <span class="text-[var(--text)]">{{ e.course?.title }}</span>
-                    <span class="inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" :class="e.course?.course_mode === 'core' ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">{{ e.course?.course_mode }}</span>
-                  </div>
-                </td>
-                <td class="px-4 py-3 text-xs text-[var(--text)]">{{ e.cohort?.code || '-' }}</td>
-                <td class="px-4 py-3 text-xs">
-                  <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[var(--text)]">{{ e.enrollment_source }}</span>
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <button class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors ml-auto" title="Hủy ghi danh" @click="unenrollRecord(e.id)">
-                    <i class="pi pi-trash text-xs" />
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        
+        <UiTable
+          :columns="enrollmentColumns"
+          :data="enrollmentsList"
+          :loading="loadingEnrollments"
+          :sort-by="sortBy"
+          :sort-order="sortOrder"
+          @sort="handleSort"
+        >
+          <!-- Code cell -->
+          <template #code-cell="{ row }">
+            <strong class="text-xs font-bold text-[var(--text)]">{{ row.original.user?.student_code }}</strong>
+          </template>
+          
+          <!-- Name cell -->
+          <template #name-cell="{ row }">
+            <span class="text-xs text-[var(--text)]">{{ row.original.user?.name }}</span>
+          </template>
+
+          <!-- Course cell -->
+          <template #course-cell="{ row }">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-[var(--text)]">{{ row.original.course?.title }}</span>
+              <span class="inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" :class="row.original.course?.course_mode === 'core' ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">{{ row.original.course?.course_mode }}</span>
+            </div>
+          </template>
+
+          <!-- Cohort cell -->
+          <template #cohort-cell="{ row }">
+            <span class="text-xs text-[var(--text)]">{{ row.original.cohort?.code || '-' }}</span>
+          </template>
+
+          <!-- Source cell -->
+          <template #source-cell="{ row }">
+            <span class="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--line)] text-[var(--text)]">{{ row.original.enrollment_source }}</span>
+          </template>
+
+          <!-- Actions cell -->
+          <template #actions-cell="{ row }">
+            <button class="w-8 h-8 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-600 transition-colors ml-auto cursor-pointer" title="Hủy ghi danh" @click="unenrollRecord(row.original.id)">
+              <i class="pi pi-trash text-xs" />
+            </button>
+          </template>
+          
+          <template #empty>
+            <div class="flex flex-col items-center justify-center py-16 gap-2 text-[var(--color-text-muted)]">
+              <i class="pi pi-inbox text-3xl opacity-40" />
+              <p class="text-sm font-medium">Chương trình chưa ghi nhận danh sách tín chỉ</p>
+            </div>
+          </template>
+        </UiTable>
       </div>
-      
+
       <div v-if="!enrollTermId" class="text-center py-12 px-6 text-[var(--muted)] border border-dashed border-[var(--line)] rounded-2xl bg-white flex flex-col items-center gap-3">
         <i class="pi pi-bookmark text-4xl opacity-30" />
         <p class="text-sm">Vui lòng chọn Học kỳ để tải danh sách và thực hiện các thao tác ghi danh.</p>
@@ -571,5 +612,5 @@ watch(enrollCourseId, loadEnrollments)
 </template>
 
 <style scoped>
-/* Scoped styles kept minimal */
+/* Scoped styles kept minimal to match design aesthetics */
 </style>

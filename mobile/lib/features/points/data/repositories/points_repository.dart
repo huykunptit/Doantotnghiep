@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../models/points_model.dart';
-import '../../../../core/network/dio_client.dart';
+import '../../../../core/api/api_client.dart';
 
 part 'points_repository.g.dart';
 
 @riverpod
 PointsRepository pointsRepository(PointsRepositoryRef ref) {
-  return PointsRepository(ref.watch(dioClientProvider));
+  return PointsRepository(ref.watch(apiClientProvider));
 }
 
 class PointsRepository {

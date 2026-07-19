@@ -1,55 +1,34 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
-const props = withDefaults(defineProps<{
+defineProps<{
   title?: string
-  description?: string
-  breadcrumb?: string[]
-}>(), {
-  title: '',
-  description: '',
-  breadcrumb: () => [],
-})
-
-const breadcrumbItems = computed(() => {
-  return props.breadcrumb.map((item, index) => ({
-    label: item,
-    url: index === 0 ? '/admin' : undefined,
-    icon: index === 0 ? 'pi pi-home' : undefined
-  }))
-})
-
-const breadcrumbHome = computed(() => ({
-  icon: 'pi pi-home',
-  url: '/admin'
-}))
+  subtitle?: string
+  breadcrumbs?: { label: string; to?: string }[]
+}>()
 </script>
 
 <template>
-  <section class="crud-page">
-    <header class="crud-page-header dashboard-card">
-      <div>
-        <Breadcrumb
-          v-if="breadcrumb.length"
-          :home="breadcrumbHome"
-          :model="breadcrumbItems"
-          class="workspace-breadcrumb"
-        />
-        <p class="section-kicker">Khu vực quản trị</p>
-        <h2>{{ title }}</h2>
-        <p v-if="description">{{ description }}</p>
-      </div>
-      <div v-if="$slots.actions" class="crud-page-header-actions">
-        <slot name="actions" />
-      </div>
-    </header>
+  <div class="flex flex-col gap-6">
+    <!-- Page Header & Breadcrumbs -->
+    <div v-if="title || breadcrumbs" class="flex flex-col gap-1.5">
+      <!-- Breadcrumbs -->
+      <nav v-if="breadcrumbs && breadcrumbs.length" class="flex items-center gap-2 text-xs text-[var(--muted)] font-medium">
+        <template v-for="(bc, idx) in breadcrumbs" :key="bc.label">
+          <NuxtLink v-if="bc.to" :to="bc.to" class="hover:text-[var(--primary)] transition-colors">{{ bc.label }}</NuxtLink>
+          <span v-else>{{ bc.label }}</span>
+          <i v-if="idx < breadcrumbs.length - 1" class="pi pi-angle-right text-[10px]" />
+        </template>
+      </nav>
 
-    <slot />
-  </section>
+      <!-- Title / Subtitle -->
+      <div v-if="title" class="flex flex-col">
+        <h1 class="text-2xl font-bold tracking-tight text-[var(--text)]">{{ title }}</h1>
+        <p v-if="subtitle" class="text-sm text-[var(--muted)] mt-0.5">{{ subtitle }}</p>
+      </div>
+    </div>
+
+    <!-- Main Content Slot -->
+    <div>
+      <slot />
+    </div>
+  </div>
 </template>
-
-<style scoped>
-.workspace-breadcrumb {
-  margin-bottom: 1rem;
-}
-</style>

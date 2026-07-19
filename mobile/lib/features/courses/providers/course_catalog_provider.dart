@@ -18,6 +18,6 @@ Future<List<CourseListItemModel>> courseCatalog(
 }
 
 @riverpod
-Future<List<CategoryModel>> courseCategories(Ref ref) {
+Future<List<CategoryModel>> courseCategories(CourseCategoriesRef ref) {
   return ref.read(courseRepositoryProvider).getCategories();
 }

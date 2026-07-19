@@ -4,6 +4,10 @@ import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
 import { useAuthTokenCookie } from '~/composables/useAuthSession'
 import { useToast } from '~/composables/useToast'
+import UiKpiCards from '~/components/ui/UiKpiCards.vue'
+import UiFilters from '~/components/ui/UiFilters.vue'
+import UiTable from '~/components/ui/UiTable.vue'
+import UModal from '~/components/UModal.vue'
 
 definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
 
@@ -230,103 +234,125 @@ onMounted(load)
         <h1 class="text-2xl font-bold tracking-tight" style="color:var(--text)">Lớp tín chỉ</h1>
         <p class="text-sm mt-0.5" style="color:var(--muted)">Mở lớp học phần theo học kỳ, phân công giảng viên và quản lý sĩ số.</p>
       </div>
-      <button class="crud-primary-btn shrink-0" @click="openCreate">
-        <i class="pi pi-plus" style="font-size:1.0rem" />
-        Mở lớp tín chỉ
-      </button>
     </div>
+    
+    <!-- Stats KPI Cards -->
+    <UiKpiCards
+      :items="[
+        { label: 'Tổng lớp tín chỉ', value: kpi.total, subText: 'Đã thiết lập', color: 'primary', icon: 'pi-book' },
+        { label: 'Đang mở đăng ký', value: kpi.open, subText: 'Lớp đang hoạt động', color: 'success', icon: 'pi-check-circle' },
+        { label: 'Tổng sĩ số học viên', value: kpi.enrolled + ' / ' + kpi.capacity, subText: 'Tổng số chỗ ngồi', color: 'info', icon: 'pi-users' },
+      ]"
+      class="mb-4"
+    />
 
-    <!-- KPI -->
-    <div class="ds-stats mb-0">
-      <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><i class="pi pi-book" style="font-size:1.375rem" /></div>
-        <p class="ds-stat-label">Tổng lớp tín chỉ</p>
-        <strong class="ds-stat-value">{{ kpi.total }}</strong>
-        <span class="ds-stat-sub">đã tạo</span>
-      </div>
-      <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><span class="material-symbols-outlined">lock_open</span></div>
-        <p class="ds-stat-label">Đang mở đăng ký</p>
-        <strong class="ds-stat-value">{{ kpi.open }}</strong>
-        <span class="ds-stat-sub">lớp</span>
-      </div>
-      <div class="ds-stat ds-stat--violet">
-        <div class="ds-stat-icon"><i class="pi pi-users" style="font-size:1.375rem" /></div>
-        <p class="ds-stat-label">Sĩ số / Tổng chỗ</p>
-        <strong class="ds-stat-value">{{ kpi.enrolled }} / {{ kpi.capacity }}</strong>
-        <span class="ds-stat-sub">sinh viên</span>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <div class="crud-toolbar-main">
-          <select v-model="filterTerm" class="crud-search" style="max-width:220px;">
+    <!-- Filters & Toolbar (Always Open) -->
+    <UiFilters
+      :always-open="true"
+    >
+      <template #actions>
+        <button class="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#1d9e75] hover:bg-[#178762] text-white text-xs font-semibold transition-colors shrink-0 cursor-pointer mr-2" type="button" @click="openCreate">
+          <i class="pi pi-plus" />
+          <span>Mở lớp tín chỉ</span>
+        </button>
+      </template>
+      <template #advanced>
+        <label class="flex flex-col gap-1">
+          <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Học kỳ</span>
+          <select v-model="filterTerm" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer">
             <option value="">Tất cả học kỳ</option>
             <option v-for="t in terms" :key="t.id" :value="String(t.id)">{{ t.name }}</option>
           </select>
-          <select v-model="filterStatus" class="crud-search" style="max-width:180px;">
+        </label>
+        
+        <label class="flex flex-col gap-1">
+          <span class="text-[0.68rem] font-bold uppercase tracking-wide text-[var(--muted)]">Trạng thái</span>
+          <select v-model="filterStatus" class="h-8 px-2 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--text)] focus:outline-none focus:border-[#1d9e75] cursor-pointer">
             <option value="">Tất cả trạng thái</option>
             <option v-for="(label, key) in STATUS_LABELS" :key="key" :value="key">{{ label }}</option>
           </select>
-        </div>
-        <span class="crud-count">{{ filtered.length }} lớp</span>
-      </div>
-    </div>
+        </label>
+      </template>
+    </UiFilters>
 
     <!-- Table -->
-    <div class="dashboard-card crud-panel">
-      <div v-if="loading" class="crud-empty" style="padding:3rem;">Đang tải...</div>
-      <div v-else-if="filtered.length === 0" class="crud-empty">
-        <i class="pi pi-book" style="font-size:3.0rem" />
-        <div><strong>Chưa có lớp tín chỉ</strong><p>Nhấn "Mở lớp tín chỉ" để bắt đầu.</p></div>
-      </div>
-      <div v-else class="crud-table-wrap">
-        <table class="crud-table">
-          <thead>
-            <tr>
-              <th>Mã lớp</th>
-              <th>Khóa học</th>
-              <th>Học kỳ</th>
-              <th>Giảng viên</th>
-              <th style="text-align:center;">Sĩ số</th>
-              <th style="text-align:center;">Trạng thái</th>
-              <th style="text-align:right;"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in filtered" :key="s.id">
-              <td>
-                <strong>{{ s.code }}</strong>
-                <span v-if="s.name" style="display:block;font-size:0.78rem;color:var(--muted);">{{ s.name }}</span>
-              </td>
-              <td style="max-width:200px;">
-                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">{{ s.course?.title ?? '—' }}</span>
-                <span v-if="s.cohort" style="font-size:0.76rem;color:var(--muted);">{{ s.cohort.name }}</span>
-              </td>
-              <td>{{ s.term?.name ?? '—' }}</td>
-              <td>{{ s.lecturer?.name ?? '—' }}</td>
-              <td style="text-align:center;">
-                <span :class="s.enrolled_count >= s.capacity && s.capacity > 0 ? 'full-badge' : ''">
-                  {{ s.enrolled_count }} / {{ s.capacity || '∞' }}
-                </span>
-              </td>
-              <td style="text-align:center;">
-                <span class="ds-badge" :class="STATUS_BADGE[s.status]">{{ STATUS_LABELS[s.status] ?? s.status }}</span>
-              </td>
-              <td style="text-align:right;">
-                <div class="row-actions">
-                  <button class="icon-btn is-calendar" :class="{ 'is-active': scheduleSection?.id === s.id }" title="Lịch học" @click="scheduleSection?.id === s.id ? scheduleSection = null : openSchedule(s)"><i class="pi pi-calendar" style="font-size:0.9375rem" /></button>
-                  <button class="icon-btn" title="Sửa" @click="openEdit(s)"><i class="pi pi-pencil" style="font-size:0.9375rem" /></button>
-                  <button class="icon-btn is-danger" title="Xoá" @click="deleting = s"><i class="pi pi-trash" style="font-size:0.9375rem" /></button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm flex flex-col gap-5">
+      <UiTable
+        :columns="[
+          { id: 'code', accessorKey: 'code', header: 'Mã lớp' },
+          { id: 'course', accessorKey: 'course.title', header: 'Khóa học' },
+          { id: 'term', accessorKey: 'term.name', header: 'Học kỳ' },
+          { id: 'lecturer', accessorKey: 'lecturer.name', header: 'Giảng viên' },
+          { id: 'enrolled', accessorKey: 'enrolled_count', header: 'Sĩ số', class: 'text-center' },
+          { id: 'status', accessorKey: 'status', header: 'Trạng thái', class: 'text-center' },
+          { id: 'actions', accessorKey: 'actions', header: 'Thao tác', class: 'text-right' }
+        ]"
+        :data="filtered"
+        :loading="loading"
+      >
+        <!-- Code Cell -->
+        <template #code-cell="{ row }">
+          <div class="flex flex-col gap-0.5">
+            <strong class="text-sm font-semibold text-[var(--text)]">{{ row.original.code }}</strong>
+            <span v-if="row.original.name" class="text-xs text-[var(--muted)]">{{ row.original.name }}</span>
+          </div>
+        </template>
+
+        <!-- Course Cell -->
+        <template #course-cell="{ row }">
+          <div class="flex flex-col gap-0.5 max-w-[200px]">
+            <span class="text-sm font-medium truncate block" :title="row.original.course?.title">{{ row.original.course?.title ?? '—' }}</span>
+            <span v-if="row.original.cohort" class="text-xs text-[var(--muted)]">{{ row.original.cohort.name }}</span>
+          </div>
+        </template>
+
+        <!-- Term Cell -->
+        <template #term-cell="{ row }">
+          <span class="text-sm">{{ row.original.term?.name ?? '—' }}</span>
+        </template>
+
+        <!-- Lecturer Cell -->
+        <template #lecturer-cell="{ row }">
+          <span class="text-sm font-semibold">{{ row.original.lecturer?.name ?? '—' }}</span>
+        </template>
+
+        <!-- Enrolled Cell -->
+        <template #enrolled-cell="{ row }">
+          <span class="text-sm font-bold" :class="row.original.enrolled_count >= row.original.capacity && row.original.capacity > 0 ? 'text-red-600 font-extrabold' : ''">
+            {{ row.original.enrolled_count }} / {{ row.original.capacity || '∞' }}
+          </span>
+        </template>
+
+        <!-- Status Cell -->
+        <template #status-cell="{ row }">
+          <span class="inline-flex items-center h-5 px-2 rounded-full text-[0.7rem] font-bold" :class="STATUS_BADGE[row.original.status] ? (STATUS_BADGE[row.original.status].replace('ds-badge--', 'badge-').replace('active', 'ongoing').replace('draft', 'completed').replace('closed', 'completed')) : 'badge-pending'">
+            {{ STATUS_LABELS[row.original.status] ?? row.original.status }}
+          </span>
+        </template>
+
+        <!-- Actions Cell -->
+        <template #actions-cell="{ row }">
+          <div class="flex justify-end gap-1.5">
+            <button class="w-7 h-7 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer" :class="{ 'bg-emerald-50 text-emerald-600 border-emerald-200': scheduleSection?.id === row.original.id }" title="Lịch học" type="button" @click="scheduleSection?.id === row.original.id ? scheduleSection = null : openSchedule(row.original)">
+              <i class="pi pi-calendar" />
+            </button>
+            <button class="w-7 h-7 rounded-lg border border-[var(--line)] bg-white hover:bg-[var(--surface)] flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] transition-colors cursor-pointer" title="Sửa" type="button" @click="openEdit(row.original)">
+              <i class="pi pi-pencil" />
+            </button>
+            <button class="w-7 h-7 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-600 transition-colors cursor-pointer" title="Xoá" type="button" @click="deleting = row.original">
+              <i class="pi pi-trash" />
+            </button>
+          </div>
+        </template>
+
+        <template #empty>
+          <div class="flex flex-col items-center justify-center py-16 gap-2 text-[var(--color-text-muted)]">
+            <i class="pi pi-book text-3xl opacity-40" />
+            <p class="text-sm font-medium">Chưa có lớp tín chỉ nào</p>
+          </div>
+        </template>
+      </UiTable>
+    </section>
 
     <!-- Schedule panel -->
     <div v-if="scheduleSection" class="dashboard-card crud-panel">
@@ -367,118 +393,108 @@ onMounted(load)
     </div>
 
     <!-- Session create/edit modal -->
-    <Teleport to="body">
-      <div v-if="showSessionModal" class="crud-modal-backdrop" @click.self="showSessionModal = false">
-        <div class="crud-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ editingSession ? 'Chỉnh sửa buổi học' : 'Thêm buổi học' }}</p>
-              <h3>{{ scheduleSection?.code }}</h3>
-            </div>
-            <button class="topbar-ghost" @click="showSessionModal = false"><i class="pi pi-times" style="font-size:1.125rem" /></button>
-          </div>
-          <div class="crud-modal-body">
-            <div class="crud-form-grid">
-              <div class="form-field" style="grid-column:1/-1;">
-                <label>Tiêu đề buổi học <span class="req">*</span></label>
-                <input v-model="sessionForm.title" type="text" class="crud-search" placeholder="VD: Buổi 1 — Giới thiệu môn học" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Thời gian bắt đầu <span class="req">*</span></label>
-                <input v-model="sessionForm.start_at" type="datetime-local" class="crud-search" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Thời lượng (phút)</label>
-                <input v-model.number="sessionForm.duration" type="number" min="15" step="15" class="crud-search" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Phòng học / Địa điểm</label>
-                <input v-model="sessionForm.location" type="text" class="crud-search" placeholder="VD: A201, Online, …" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Sĩ số tối đa (tuỳ chọn)</label>
-                <input v-model="sessionForm.max_participants" type="number" min="0" class="crud-search" style="width:100%;">
-              </div>
-            </div>
-          </div>
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" @click="showSessionModal = false">Huỷ</button>
-            <button class="crud-primary-btn" :disabled="savingSession" @click="saveSession">
-              {{ savingSession ? 'Đang lưu...' : (editingSession ? 'Lưu thay đổi' : 'Thêm buổi học') }}
-            </button>
-          </div>
+    <UModal
+      v-model:open="showSessionModal"
+      :title="editingSession ? 'Chỉnh sửa buổi học' : 'Thêm buổi học'"
+      :subtitle="scheduleSection?.code || 'Lớp tín chỉ'"
+      :ui="{ width: 'max-w-lg' }"
+    >
+      <div class="flex flex-col gap-4 text-left">
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Tiêu đề buổi học *</span>
+          <input v-model="sessionForm.title" type="text" placeholder="VD: Buổi 1 — Giới thiệu môn học" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+        </label>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Thời gian bắt đầu *</span>
+            <input v-model="sessionForm.start_at" type="datetime-local" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Thời lượng (phút)</span>
+            <input v-model.number="sessionForm.duration" type="number" min="15" step="15" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Phòng học / Địa điểm</span>
+            <input v-model="sessionForm.location" type="text" placeholder="VD: A201, Online, …" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+          </label>
+          <label class="flex flex-col gap-1.5">
+            <span class="text-xs font-semibold text-[var(--text)]">Sĩ số tối đa (tuỳ chọn)</span>
+            <input v-model="sessionForm.max_participants" type="number" min="0" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+          </label>
         </div>
       </div>
-    </Teleport>
-    <Teleport to="body">
-      <div v-if="showModal" class="crud-modal-backdrop" @click.self="showModal = false">
-        <div class="crud-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ editing ? 'Chỉnh sửa' : 'Mở lớp mới' }}</p>
-              <h3>{{ editing ? `Lớp ${editing.code}` : 'Mở lớp tín chỉ' }}</h3>
-            </div>
-            <button class="topbar-ghost" @click="showModal = false"><i class="pi pi-times" style="font-size:1.125rem" /></button>
-          </div>
-          <div class="crud-modal-body">
-            <div class="crud-form-grid">
-              <div class="form-field">
-                <label>Khóa học (Học phần) <span class="req">*</span></label>
-                <select v-model="form.course_id" class="crud-search" style="width:100%;">
-                  <option value="">— Chọn khóa học —</option>
-                  <option v-for="c in courses" :key="c.id" :value="String(c.id)">{{ c.title }}</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label>Mã lớp tín chỉ <span class="req">*</span></label>
-                <input v-model="form.code" type="text" class="crud-search" placeholder="VD: CNTT301-01" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Tên lớp (tuỳ chọn)</label>
-                <input v-model="form.name" type="text" class="crud-search" placeholder="VD: Lập trình Web nhóm 1" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Học kỳ</label>
-                <select v-model="form.term_id" class="crud-search" style="width:100%;">
-                  <option value="">— Chọn học kỳ —</option>
-                  <option v-for="t in terms" :key="t.id" :value="String(t.id)">{{ t.name }}</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label>Khóa / Nhóm</label>
-                <select v-model="form.cohort_id" class="crud-search" style="width:100%;">
-                  <option value="">— Không giới hạn —</option>
-                  <option v-for="c in cohorts" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label>Giảng viên phụ trách</label>
-                <select v-model="form.lecturer_id" class="crud-search" style="width:100%;">
-                  <option value="">— Chưa phân công —</option>
-                  <option v-for="i in instructors" :key="i.id" :value="String(i.id)">{{ i.name }}</option>
-                </select>
-              </div>
-              <div class="form-field">
-                <label>Sĩ số tối đa</label>
-                <input v-model.number="form.capacity" type="number" min="0" class="crud-search" style="width:100%;">
-              </div>
-              <div class="form-field">
-                <label>Trạng thái</label>
-                <select v-model="form.status" class="crud-search" style="width:100%;">
-                  <option v-for="(label, key) in STATUS_LABELS" :key="key" :value="key">{{ label }}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" @click="showModal = false">Huỷ</button>
-            <button class="crud-primary-btn" :disabled="saving" @click="save">
-              {{ saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Mở lớp') }}
-            </button>
-          </div>
-        </div>
+      <template #footer>
+        <button class="btn-secondary" @click="showSessionModal = false">Huỷ</button>
+        <button class="btn-primary" :disabled="savingSession" @click="saveSession">
+          {{ savingSession ? 'Đang lưu...' : (editingSession ? 'Lưu thay đổi' : 'Thêm buổi học') }}
+        </button>
+      </template>
+    </UModal>
+
+    <!-- Course Section Modal -->
+    <UModal
+      v-model:open="showModal"
+      :title="editing ? `Lớp ${editing.code}` : 'Mở lớp tín chỉ'"
+      :subtitle="editing ? 'Chỉnh sửa' : 'Mở lớp mới'"
+      :ui="{ width: 'max-w-2xl' }"
+    >
+      <div class="grid grid-cols-2 gap-4 text-left">
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Khóa học (Học phần) *</span>
+          <select v-model="form.course_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option value="">— Chọn khóa học —</option>
+            <option v-for="c in courses" :key="c.id" :value="String(c.id)">{{ c.title }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Mã lớp tín chỉ *</span>
+          <input v-model="form.code" type="text" placeholder="VD: CNTT301-01" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+        </label>
+        <label class="flex flex-col gap-1.5 col-span-2">
+          <span class="text-xs font-semibold text-[var(--text)]">Tên lớp (tuỳ chọn)</span>
+          <input v-model="form.name" type="text" placeholder="VD: Lập trình Web nhóm 1" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Học kỳ</span>
+          <select v-model="form.term_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option value="">— Chọn học kỳ —</option>
+            <option v-for="t in terms" :key="t.id" :value="String(t.id)">{{ t.name }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Khóa / Nhóm</span>
+          <select v-model="form.cohort_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option value="">— Không giới hạn —</option>
+            <option v-for="c in cohorts" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Giảng viên phụ trách</span>
+          <select v-model="form.lecturer_id" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option value="">— Chưa phân công —</option>
+            <option v-for="i in instructors" :key="i.id" :value="String(i.id)">{{ i.name }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1.5">
+          <span class="text-xs font-semibold text-[var(--text)]">Sĩ số tối đa</span>
+          <input v-model.number="form.capacity" type="number" min="0" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75]" />
+        </label>
+        <label class="flex flex-col gap-1.5 col-span-2">
+          <span class="text-xs font-semibold text-[var(--text)]">Trạng thái</span>
+          <select v-model="form.status" class="h-9 px-3 rounded-xl border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[#1d9e75] cursor-pointer">
+            <option v-for="(label, key) in STATUS_LABELS" :key="key" :value="key">{{ label }}</option>
+          </select>
+        </label>
       </div>
-    </Teleport>
+      <template #footer>
+        <button class="btn-secondary" @click="showModal = false">Huỷ</button>
+        <button class="btn-primary" :disabled="saving" @click="save">
+          {{ saving ? 'Đang lưu...' : (editing ? 'Lưu thay đổi' : 'Mở lớp') }}
+        </button>
+      </template>
+    </UModal>
 
     <!-- Delete confirm -->
     <CrudConfirmModal

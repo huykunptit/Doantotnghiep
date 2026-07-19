@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../providers/points_providers.dart';
-import '../../../data/models/points_model.dart';
+import '../../providers/points_providers.dart';
+import '../../data/models/points_model.dart';
 
 class MyVouchersScreen extends ConsumerStatefulWidget {
   const MyVouchersScreen({super.key});

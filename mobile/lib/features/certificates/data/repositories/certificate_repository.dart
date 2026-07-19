@@ -8,7 +8,7 @@ import '../models/certificate_model.dart';
 part 'certificate_repository.g.dart';
 
 @riverpod
-CertificateRepository certificateRepository(Ref ref) =>
+CertificateRepository certificateRepository(CertificateRepositoryRef ref) =>
     CertificateRepository(dio: ref.read(apiClientProvider));
 
 class CertificateRepository {

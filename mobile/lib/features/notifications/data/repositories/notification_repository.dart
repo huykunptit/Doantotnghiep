@@ -8,7 +8,7 @@ import '../models/notification_model.dart';
 part 'notification_repository.g.dart';
 
 @riverpod
-NotificationRepository notificationRepository(Ref ref) =>
+NotificationRepository notificationRepository(NotificationRepositoryRef ref) =>
     NotificationRepository(dio: ref.read(apiClientProvider));
 
 class NotificationRepository {

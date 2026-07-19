@@ -9,7 +9,7 @@ import '../../../auth/data/models/user_model.dart';
 part 'profile_repository.g.dart';
 
 @riverpod
-ProfileRepository profileRepository(Ref ref) =>
+ProfileRepository profileRepository(ProfileRepositoryRef ref) =>
     ProfileRepository(dio: ref.read(apiClientProvider));
 
 class ProfileRepository {

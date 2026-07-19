@@ -39,7 +39,7 @@ import '../../features/points/presentation/screens/my_vouchers_screen.dart';
 part 'app_router.g.dart';
 
 @riverpod
-GoRouter appRouter(Ref ref) {
+GoRouter appRouter(AppRouterRef ref) {
   final authState = ref.watch(authNotifierProvider);
 
   return GoRouter(

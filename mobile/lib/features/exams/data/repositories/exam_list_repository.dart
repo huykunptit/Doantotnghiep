@@ -8,7 +8,7 @@ import '../models/exam_list_model.dart';
 part 'exam_list_repository.g.dart';
 
 @riverpod
-ExamListRepository examListRepository(Ref ref) =>
+ExamListRepository examListRepository(ExamListRepositoryRef ref) =>
     ExamListRepository(dio: ref.read(apiClientProvider));
 
 class ExamListRepository {

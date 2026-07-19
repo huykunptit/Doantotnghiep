@@ -1,1701 +1,367 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useAuthStore } from '~/stores/auth'
-import { useApi } from '~/composables/useApi'
-import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
-import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
-import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
-
-// Lazy load chart components
-const UiAreaChartLazy = defineAsyncComponent(() => import('~/components/dashboard/charts/UiAreaChart.vue'))
-const UiBarChartLazy = defineAsyncComponent(() => import('~/components/dashboard/charts/UiBarChart.vue'))
-const UiDonutLazy = defineAsyncComponent(() => import('~/components/dashboard/charts/UiDonut.vue'))
+import { computed } from 'vue'
+import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
 
 definePageMeta({
-  layout: 'admin',
-  middleware: ['auth', 'admin'],
-  adminSearchPlaceholder: 'Tra cứu học viên, lớp học, lịch học, doanh thu...',
+  layout: 'admin'
 })
 
-interface MonthPoint { month: string; label: string; value: number }
-interface TopCourse { id: number; title: string; enrollments_count: number }
-interface StatsResponse {
-  total_users?: number
-  total_courses?: number
-  total_orders?: number
-  total_revenue?: number
-  total_students?: number
-  total_instructors?: number
-  courses_by_status?: Record<string, number>
-  revenue_by_month?: MonthPoint[]
-  new_users_by_month?: MonthPoint[]
-  top_courses?: TopCourse[]
-  engagement?: { avg_quiz_score?: number; total_completions?: number; active_students_this_week?: number }
-}
+const user = useAuthUserCookie()
 
-const auth = useAuthStore()
-const loading = ref(true)
-const stats = ref<StatsResponse>({})
-const error = ref('')
-const now = ref(new Date())
-const errorDismissed = ref(false)
-
-// Cache management for SWR pattern
-const cacheTimestamp = ref(0)
-const CACHE_TTL = 60000 // 60 seconds
-
-// Auto-dismiss error after 8 seconds
-watch(error, (newError) => {
-  if (newError) {
-    errorDismissed.value = false
-    setTimeout(() => {
-      errorDismissed.value = true
-      setTimeout(() => {
-        error.value = ''
-      }, 300) // Wait for fade out animation
-    }, 8000)
-  }
-})
-
-function dismissError() {
-  errorDismissed.value = true
-  setTimeout(() => {
-    error.value = ''
-  }, 300)
-}
-
-const greeting = computed(() => {
-  const greetingHour = now.value.getHours()
-  return greetingHour < 12 ? 'Chào buổi sáng' : greetingHour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'
-})
-const todayLabel = computed(() =>
-  now.value.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-)
-
-const formatVnd = (n: number) => {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} tỷ`
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} tr`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`
-  return n.toLocaleString('vi-VN')
-}
-const formatVndFull = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n || 0)
-
-const revenuePoints = computed<MonthPoint[]>(() => stats.value.revenue_by_month ?? [])
-const userPoints = computed<MonthPoint[]>(() => stats.value.new_users_by_month ?? [])
-const monthLabels = computed(() => revenuePoints.value.map((p) => p.label))
-const revenueValues = computed(() => revenuePoints.value.map((p) => p.value))
-const userValues = computed(() => userPoints.value.map((p) => p.value))
-
-const computeDelta = (values: number[]): number | null => {
-  if (values.length < 2) return null
-  const last = values[values.length - 1] ?? 0
-  const prev = values[values.length - 2] ?? 0
-  if (prev === 0) return last > 0 ? 100 : 0
-  return Math.round(((last - prev) / prev) * 100)
-}
-
-const revenueDelta = computed(() => computeDelta(revenueValues.value))
-const userDelta = computed(() => computeDelta(userValues.value))
-
-const courseStatusSegments = computed(() => {
-  const map = stats.value.courses_by_status ?? {}
-  const colorMap: Record<string, { label: string; color: string }> = {
-    published: { label: 'Đã xuất bản', color: '#10B981' },
-    pending_review: { label: 'Chờ duyệt', color: '#F59E0B' },
-    draft: { label: 'Bản nháp', color: '#6B7280' },
-    rejected: { label: 'Từ chối', color: '#EF4444' },
-    archived: { label: 'Lưu trữ', color: '#374151' },
-  }
-  return Object.entries(map)
-    .map(([key, value]) => ({
-      label: colorMap[key]?.label || key,
-      value: Number(value),
-      color: colorMap[key]?.color || '#10B981',
-    }))
-    .filter((s) => s.value > 0)
-})
-
-const totalCoursesFromStatus = computed(() =>
-  courseStatusSegments.value.reduce((sum, s) => sum + s.value, 0),
-)
-
-const engagement = computed(() => stats.value.engagement ?? {})
-
-// Administrative & Credit Class counts
-const adminClassesCount = ref(0)
-const creditClassesCount = ref(0)
-
-// Extra dashboard data (replaces mock)
-const dailyEnrollments = ref<{ date: string; label: string; value: number }[]>([])
-const classProgressData = ref<{ label: string; value: number }[]>([])
-const upcomingSections = ref<any[]>([])
-const recentNotifications = ref<any[]>([])
-
-const loadStats = async () => {
-  loading.value = true
-  error.value = ''
-  now.value = new Date()
-
-  // Check cache validity for stale-while-revalidate
-  const cacheAge = Date.now() - cacheTimestamp.value
-  const isStale = cacheAge > CACHE_TTL
-
-  // Show cached data if available and still fresh
-  if (!isStale && stats.value.total_revenue !== undefined) {
-    loading.value = false
-    return
-  }
-
-  try {
-    const [statsRes, extraRes] = await Promise.all([
-      useApi<StatsResponse>('/admin/stats', {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      }),
-      useApi<any>('/admin/dashboard-extra', {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      }).catch(() => null),
-    ])
-
-    stats.value = statsRes
-
-    // Administrative & credit class counts
-    try {
-      const [adminRes, creditRes] = await Promise.all([
-        useApi<{ total?: number }>('/admin/academic/administrative-classes?per_page=1', {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }),
-        useApi<{ total?: number }>('/admin/academic/class-sections?per_page=1', {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }),
-      ])
-      adminClassesCount.value = adminRes?.total ?? 0
-      creditClassesCount.value = creditRes?.total ?? 0
-    } catch {
-      adminClassesCount.value = 0
-      creditClassesCount.value = 0
-    }
-
-    if (extraRes) {
-      dailyEnrollments.value = extraRes.daily_enrollments ?? []
-      classProgressData.value = extraRes.class_progress ?? []
-      upcomingSections.value = extraRes.upcoming_sections ?? []
-      recentNotifications.value = extraRes.notifications ?? []
-    }
-
-    // Update cache timestamp on successful fetch
-    cacheTimestamp.value = Date.now()
-
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Không thể đồng bộ dữ liệu hệ thống.'
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadStats)
-
-const quickActions = [
-  { label: 'Thêm lớp hành chính', icon: 'plus', to: '/admin/lnd/classes' },
-  { label: 'Quản trị nhân sự', icon: 'users', to: '/admin/users' },
-  { label: 'Theo dõi doanh thu', icon: 'credit-card', to: '/admin/orders' },
-  { label: 'Cấu hình hệ thống', icon: 'cog', to: '/admin/settings' },
+const breadcrumbs = [
+  { label: 'Trang chủ' }
 ]
 
-// Chart data from real API
-const trafficLabels = computed(() => dailyEnrollments.value.map(d => d.label))
-const trafficValues = computed(() => dailyEnrollments.value.map(d => d.value))
-const classProgressLabels = computed(() => classProgressData.value.map(d => d.label))
-const classProgressValues = computed(() => classProgressData.value.map(d => d.value))
+const adminName = computed(() => user.value?.name || 'Administrator')
 
-// Memoized sparkline computations
-const revenueSparklineLine = computed(() => sparklineLine(revenueValues.value, 100, 48))
-const revenueSparklinePath = computed(() => sparklinePath(revenueValues.value, 100, 48))
-
-function sparklineLine(values: number[], w: number, h: number): string {
-  if (!values.length) return ''
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1
-  const pad = 2
-  return values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w
-    const y = h - pad - ((v - min) / range) * (h - pad * 2)
-    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
-  }).join(' ')
-}
-function sparklinePath(values: number[], w: number, h: number): string {
-  if (!values.length) return ''
-  const line = sparklineLine(values, w, h)
-  return `${line} L ${w} ${h} L 0 ${h} Z`
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Vừa xong'
-  if (mins < 60) return `${mins} phút trước`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours} giờ trước`
-  const days = Math.floor(hours / 24)
-  if (days === 1) return 'Hôm qua'
-  return `${days} ngày trước`
-}
-
-function notifTypeLabel(type: string): string {
-  const map: Record<string, string> = {
-    course_approved: 'Học vụ', course_rejected: 'Học vụ',
-    new_enrollment: 'Ghi danh', system: 'Hệ thống',
-    payment: 'Thanh toán', info: 'Tin tức',
+const kpiCards = [
+  {
+    label: 'Tổng khóa học',
+    value: '128',
+    sub: '+12 khóa học trong tháng',
+    icon: 'pi pi-book',
+    tone: 'blue',
+    to: '/admin/courses'
+  },
+  {
+    label: 'Học viên hoạt động',
+    value: '1,020',
+    sub: '82% đang học tập',
+    icon: 'pi pi-users',
+    tone: 'green',
+    to: '/admin/users'
+  },
+  {
+    label: 'Giảng viên',
+    value: '180',
+    sub: '24 giảng viên online',
+    icon: 'pi pi-user',
+    tone: 'violet',
+    to: '/admin/users?role=instructor'
+  },
+  {
+    label: 'Tỷ lệ hoàn thành',
+    value: '74.8%',
+    sub: '+5.2% so với kỳ trước',
+    icon: 'pi pi-chart-line',
+    tone: 'amber',
+    to: '/admin/reports/progress'
+  },
+  {
+    label: 'Ghi danh mới',
+    value: '342',
+    sub: '64 ghi danh tuần này',
+    icon: 'pi pi-user-plus',
+    tone: 'rose',
+    to: '/admin/lnd/file-based-enrollment'
+  },
+  {
+    label: 'Doanh thu tháng',
+    value: '45,2M ₫',
+    sub: '18 đơn hàng cần soát xét',
+    icon: 'pi pi-wallet',
+    tone: 'cyan',
+    to: '/admin/orders'
   }
-  return map[type] ?? 'Thông báo'
-}
+]
 
-function notifTypeClass(type: string): string {
-  if (['payment', 'new_enrollment'].includes(type)) return 'priority-info'
-  if (type === 'system') return 'priority-system'
-  if (['course_approved', 'course_rejected'].includes(type)) return 'priority-academic'
-  return 'priority-urgent'
+const quickActions = [
+  { label: 'Thêm học viên', desc: 'Tạo hoặc import tài khoản', to: '/admin/users?action=create', icon: 'pi pi-user-plus', tone: 'green' },
+  { label: 'Tạo khóa học', desc: 'Thiết lập nội dung đào tạo', to: '/admin/courses?action=create', icon: 'pi pi-book', tone: 'blue' },
+  { label: 'Mở lớp học phần', desc: 'Phân lớp và lịch học', to: '/admin/lnd/classes?action=create', icon: 'pi pi-building', tone: 'amber' },
+  { label: 'Cấu hình hệ thống', desc: 'Logo, email, quyền truy cập', to: '/admin/settings', icon: 'pi pi-cog', tone: 'violet' }
+]
+
+const pendingTasks = [
+  { label: 'Khóa học chờ kiểm duyệt', value: 12, icon: 'pi pi-verified', tone: 'blue', to: '/admin/manage-courses' },
+  { label: 'Yêu cầu rút tiền', value: 8, icon: 'pi pi-credit-card', tone: 'amber', to: '/admin/payouts' },
+  { label: 'Báo lỗi chưa xử lý', value: 19, icon: 'pi pi-exclamation-triangle', tone: 'rose', to: '/admin/reports/errors' },
+  { label: 'Bài thi cần giám sát', value: 6, icon: 'pi pi-pencil', tone: 'violet', to: '/admin/exam-monitor' }
+]
+
+const activities = [
+  { title: 'Nguyễn Văn An hoàn thành khóa “Kỹ năng số cơ bản”', time: '5 phút trước', icon: 'pi pi-check-circle', tone: 'green' },
+  { title: 'Giảng viên Trần Minh tạo mới ngân hàng câu hỏi', time: '18 phút trước', icon: 'pi pi-file-edit', tone: 'blue' },
+  { title: 'Hệ thống ghi nhận 3 lần đăng nhập thất bại', time: '42 phút trước', icon: 'pi pi-shield', tone: 'amber' },
+  { title: 'Khóa “Lập trình Web nâng cao” được gửi kiểm duyệt', time: '1 giờ trước', icon: 'pi pi-send', tone: 'violet' }
+]
+
+const schedule = [
+  { time: '08:00', title: 'Lớp PTIT-LMS-01', meta: 'Phòng online • 126 học viên' },
+  { time: '10:30', title: 'Kiểm duyệt khóa học mới', meta: '3 khóa đang chờ duyệt' },
+  { time: '14:00', title: 'Báo cáo tiến độ học tập', meta: 'Khoa CNTT • Học kỳ 2025' }
+]
+
+const trafficBars = [58, 72, 46, 83, 64, 91, 76, 88, 69, 95, 82, 73]
+
+function toneClasses(tone: string) {
+  const map: Record<string, { icon: string; bg: string; border: string; text: string; soft: string }> = {
+    green: {
+      icon: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+      bg: 'bg-emerald-50',
+      border: 'border-emerald-100',
+      text: 'text-emerald-700',
+      soft: 'from-emerald-500 to-teal-500'
+    },
+    blue: {
+      icon: 'text-blue-600 bg-blue-50 border-blue-100',
+      bg: 'bg-blue-50',
+      border: 'border-blue-100',
+      text: 'text-blue-700',
+      soft: 'from-blue-500 to-sky-500'
+    },
+    amber: {
+      icon: 'text-amber-600 bg-amber-50 border-amber-100',
+      bg: 'bg-amber-50',
+      border: 'border-amber-100',
+      text: 'text-amber-700',
+      soft: 'from-amber-500 to-orange-500'
+    },
+    violet: {
+      icon: 'text-violet-600 bg-violet-50 border-violet-100',
+      bg: 'bg-violet-50',
+      border: 'border-violet-100',
+      text: 'text-violet-700',
+      soft: 'from-violet-500 to-fuchsia-500'
+    },
+    rose: {
+      icon: 'text-rose-600 bg-rose-50 border-rose-100',
+      bg: 'bg-rose-50',
+      border: 'border-rose-100',
+      text: 'text-rose-700',
+      soft: 'from-rose-500 to-red-500'
+    },
+    cyan: {
+      icon: 'text-cyan-600 bg-cyan-50 border-cyan-100',
+      bg: 'bg-cyan-50',
+      border: 'border-cyan-100',
+      text: 'text-cyan-700',
+      soft: 'from-cyan-500 to-blue-500'
+    }
+  }
+
+  return map[tone] || map.green
 }
 </script>
 
 <template>
-  <div class="dash-container">
-    
-    <!-- ══ HEADER HUB ══ -->
-    <header class="dash-header">
-      <div class="header-main-info">
-        <h1 class="header-title">Trung Tâm Điều Hành</h1>
-        <p class="header-subtitle">
-          {{ greeting }}, <strong>{{ auth.user?.name || 'Quản trị viên' }}</strong> &bull; {{ todayLabel }}
-        </p>
-      </div>
-      <div class="header-action-meta">
-        <div class="status-badge">
-          <i class="pi pi-chart-line icon-pulse" style="font-size:1rem" />
-          <span>Hệ thống bình thường</span>
-        </div>
-        <button class="action-btn-refresh" :disabled="loading" title="Đồng bộ dữ liệu" @click="loadStats">
-          <i class="pi" :class="loading ? 'pi-spin pi-spinner' : 'pi-refresh'" style="font-size:1rem" />
-          <span>{{ loading ? 'Đang đồng bộ...' : 'Đồng bộ' }}</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- ══ QUICK RUNWAY ══ -->
-    <div class="action-grid">
-      <NuxtLink
-        v-for="action in quickActions"
-        :key="action.to"
-        :to="action.to"
-        class="action-card"
-      >
-        <div class="action-icon-wrap">
-          <i :class="`pi pi-${action.icon}`" style="font-size:1.125rem" />
-        </div>
-        <span class="action-label">{{ action.label }}</span>
-        <i class="pi pi-chevron-right action-arrow" />
-      </NuxtLink>
-    </div>
-
-    <!-- ══ ERROR STATUS ══ -->
-    <Transition name="error-fade">
-      <div v-if="error && !errorDismissed" class="error-banner">
-        <i class="pi pi-exclamation-triangle" style="font-size:1.25rem" />
-        <span class="error-msg">{{ error }}</span>
-        <button class="btn-retry" @click="loadStats">Thử lại</button>
-        <button class="btn-dismiss" @click="dismissError" aria-label="Đóng thông báo lỗi">
-          <i class="pi pi-times" style="font-size:0.875rem" />
-        </button>
-      </div>
-    </Transition>
-
-    <!-- ══ METRICS WORKSPACE ══ -->
-    <section class="metrics-grid">
-      
-      <!-- CARD 1: REVENUE -->
-      <div class="metric-block is-revenue" role="region" aria-label="Thông tin doanh thu">
-        <div class="metric-header">
-          <span class="metric-title">Doanh thu tích lũy</span>
-          <span v-if="revenueDelta !== null" class="metric-delta" :class="revenueDelta >= 0 ? 'is-positive' : 'is-negative'">
-            <i :class="`pi pi-arrow-${revenueDelta >= 0 ? 'up' : 'down'}`" style="font-size:0.75rem" aria-hidden="true" />
-            <span class="sr-only">{{ revenueDelta >= 0 ? 'Tăng' : 'Giảm' }}</span>
-            {{ Math.abs(revenueDelta) }}% tháng trước
-          </span>
-        </div>
-
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" aria-label="Đang tải dữ liệu" />
-          <h2 v-else class="metric-value">
-            {{ formatVndFull(stats.total_revenue || 0) }}
-            <span class="sr-only">đồng Việt Nam</span>
-          </h2>
-          
-          <div class="metric-sparkline" v-if="!loading && revenueValues.length">
-            <svg width="100%" height="48" viewBox="0 0 100 48" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="glow-rev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.3"/>
-                  <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <path :d="revenueSparklinePath" fill="url(#glow-rev)" />
-              <path :d="revenueSparklineLine" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-footer">
-          <span class="footer-note">Doanh số thực tế ghi nhận qua ví liên kết</span>
-        </div>
-      </div>
-
-      <!-- CARD 2: CLASSES (Lớp Hành chính & Tín chỉ) -->
-      <div class="metric-block is-classes">
-        <div class="metric-header">
-          <span class="metric-title">Tổng số lớp học</span>
-          <span class="metric-delta is-info">
-            <i class="pi pi-clone" style="font-size:0.75rem" /> L&D Active
-          </span>
-        </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <div v-else class="classes-split-row">
-            <div class="class-split-col">
-              <div class="split-num-wrap">
-                <i class="pi pi-graduation-cap text-sky" style="font-size:1.125rem" />
-                <span class="split-value">{{ adminClassesCount }}</span>
-              </div>
-              <span class="split-lbl">Lớp hành chính</span>
-            </div>
-            <div class="split-divider"></div>
-            <div class="class-split-col">
-              <div class="split-num-wrap">
-                <i class="pi pi-book text-indigo" style="font-size:1.125rem" />
-                <span class="split-value">{{ creditClassesCount }}</span>
-              </div>
-              <span class="split-lbl">Lớp tín chỉ</span>
-            </div>
-          </div>
-        </div>
-        <div class="metric-footer">
-          <NuxtLink to="/admin/lnd/classes" class="footer-link-action">
-            <span>Quản lý học vụ lớp học</span>
-            <i class="pi pi-arrow-right" style="font-size:0.75rem" />
-          </NuxtLink>
-        </div>
-      </div>
-
-      <!-- CARD 3: STUDY RATE & COMPLETION -->
-      <div class="metric-block is-completion">
-        <div class="metric-header">
-          <span class="metric-title">Tỉ lệ & hiệu số học tập</span>
-          <span class="metric-delta is-success-alt">
-            <i class="pi pi-verified" style="font-size:0.75rem" /> Đạt chuẩn đầu ra
-          </span>
-        </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <template v-else>
-            <div class="completion-hero-row">
-              <div class="score-display">
-                <span class="score-value">{{ Math.round((engagement.avg_quiz_score || 0) * 10) / 10 }}</span>
-                <span class="score-max">/10 GPA</span>
-              </div>
-              <div class="progress-ring-mini">
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="var(--line)" stroke-width="3"/>
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="#8B5CF6" stroke-width="3" 
-                    stroke-dasharray="100" :stroke-dashoffset="100 - (engagement.avg_quiz_score || 0) * 10"
-                    stroke-linecap="round" transform="rotate(-90 18 18)"/>
-                </svg>
-              </div>
-            </div>
-            <div class="metric-indicators">
-              <span class="indicator-tag">
-                <i class="pi pi-check-circle text-green" style="font-size:0.75rem" />
-                {{ (engagement.total_completions || 0).toLocaleString('vi-VN') }} bài học hoàn thành
-              </span>
-            </div>
-          </template>
-        </div>
-        <div class="metric-footer">
-          <span class="footer-note">Điểm Quiz trung bình toàn hệ thống</span>
-        </div>
-      </div>
-
-      <!-- CARD 4: TRAFFIC / USERS -->
-      <div class="metric-block is-users">
-        <div class="metric-header">
-          <span class="metric-title">Tài khoản & Truy cập</span>
-          <span v-if="userDelta !== null" class="metric-delta is-positive">
-            <i class="pi pi-users" style="font-size:0.75rem" /> +{{ Math.abs(userDelta) }}% tháng này
-          </span>
-        </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <div v-else class="users-total-wrap">
-            <h2 class="metric-value">{{ (stats.total_users || 0).toLocaleString('vi-VN') }}</h2>
-            <div class="live-counter-badge">
-              <span class="ping-dot"></span>
-              <span>{{ (engagement.active_students_this_week || 0).toLocaleString('vi-VN') }} Active</span>
-            </div>
-          </div>
-          
-          <div class="ratio-progress-bar" v-if="!loading">
-            <div 
-              class="bar-fill is-student" 
-              :style="`width: ${((stats.total_students || 0) / (stats.total_users || 1)) * 100}%`"
-              title="Học viên"
-            />
-            <div 
-              class="bar-fill is-instructor" 
-              :style="`width: ${((stats.total_instructors || 0) / (stats.total_users || 1)) * 100}%`"
-              title="Giảng viên"
-            />
-          </div>
-        </div>
-        <div class="metric-footer text-split">
-          <span>{{ (stats.total_students || 0).toLocaleString('vi-VN') }} Học viên</span>
-          <span>{{ (stats.total_instructors || 0).toLocaleString('vi-VN') }} Giảng viên</span>
-        </div>
-      </div>
-
-    </section>
-
-    <!-- ══ ANALYTIC WORKSPACE ══ -->
-    <div class="workspace-layout">
-      
-      <!-- COLUMN 1: ANALYTICS HUB (LEFT) -->
-      <main class="workspace-main">
-        
-        <!-- Graph 1: Ghi danh theo ngày (14 ngày) -->
-        <div class="workspace-card main-chart-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Ghi danh theo ngày</h3>
-              <p class="card-desc">Số lượt ghi danh mới trong 14 ngày gần đây</p>
-            </div>
-            <span class="chart-badge bg-orange-soft text-orange">Enrollments/Day</span>
-          </div>
-          <div class="card-body">
-            <div class="skeleton-chart" v-if="loading" />
-            <div v-else-if="!trafficValues.length" class="chart-empty-state" style="height:260px;">
-              <i class="pi pi-chart-line" style="font-size:2rem" /><span>Chưa có dữ liệu ghi danh</span>
-            </div>
-            <UiAreaChart
-              v-else
-              :series="[{ name: 'Ghi danh', values: trafficValues, color: '#F59E0B' }]"
-              :labels="trafficLabels"
-              :height="260"
-            />
-          </div>
-        </div>
-
-        <!-- Graph 2: Biểu đồ tiến độ hoàn thành theo lớp (Bar Chart) -->
-        <div class="workspace-card main-chart-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Tỉ lệ hoàn thành học tập theo lớp hành chính</h3>
-              <p class="card-desc">Tiến độ tích lũy trung bình (%) của các lớp hành chính tiêu biểu</p>
-            </div>
-            <span class="chart-badge bg-violet-soft text-violet">Tiến độ %</span>
-          </div>
-          <div class="card-body">
-            <div class="skeleton-chart" v-if="loading" />
-            <div v-else-if="!classProgressValues.length" class="chart-empty-state" style="height:220px;">
-              <i class="pi pi-graduation-cap" style="font-size:2.0rem" /><span>Chưa có dữ liệu tiến độ</span>
-            </div>
-            <UiBarChart
-              v-else
-              :values="classProgressValues"
-              :labels="classProgressLabels"
-              color="#8B5CF6"
-              :height="220"
-              :format-value="(n) => n + '%'"
-            />
-          </div>
-        </div>
-
-        <!-- Lớp tín chỉ đang mở -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Lớp tín chỉ đang mở</h3>
-              <p class="card-desc">Các lớp học phần có trạng thái đang mở gần nhất</p>
-            </div>
-            <span class="calendar-indicator">
-              <i class="pi pi-calendar" style="font-size:0.875rem" />
-              <span>Đang mở</span>
-            </span>
-          </div>
-          <div class="card-body is-nopad">
-            <div v-if="loading" class="schedule-list">
-              <div v-for="i in 3" :key="i" style="padding:20px 24px; border-bottom:1px solid var(--line);">
-                <div style="height:14px; background:var(--line); border-radius:4px; width:60%; animation:pulse 1.4s infinite;"></div>
-                <div style="height:11px; background:var(--line); border-radius:4px; width:40%; margin-top:8px; animation:pulse 1.4s infinite;"></div>
-              </div>
-            </div>
-            <div v-else-if="!upcomingSections.length" class="chart-empty-state">
-              <i class="pi pi-book" style="font-size:2.0rem" /><span>Không có lớp tín chỉ đang mở</span>
-            </div>
-            <div v-else class="schedule-list">
-              <div
-                v-for="sec in upcomingSections"
-                :key="sec.id"
-                class="schedule-item-row is-lecture"
-              >
-                <div class="schedule-type-badge">
-                  <span class="type-dot"></span>
-                  <span class="type-text">Lớp tín chỉ</span>
-                </div>
-                <div class="schedule-main-info">
-                  <h4 class="schedule-item-title">{{ sec.course?.title ?? sec.name }}</h4>
-                  <p class="schedule-item-class">{{ sec.code }} · {{ sec.cohort?.name ?? sec.term?.name }}</p>
-                </div>
-                <div class="schedule-meta-cols">
-                  <div class="schedule-meta-cell">
-                    <i class="pi pi-users" style="font-size:0.75rem" />
-                    <span>{{ sec.enrolled_count }}/{{ sec.capacity }}</span>
+  <AdminWorkspaceShell
+    title="Bảng điều khiển"
+    :subtitle="`Chào mừng ${adminName} quay trở lại hệ thống quản trị Sylva LMS.`"
+    :breadcrumbs="breadcrumbs"
+  >
+    <div class="space-y-6">
+      <!-- Overview Hero -->
+      <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div class="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr]">
+          <div class="relative p-6 md:p-7">
+            <div class="absolute right-0 top-0 h-40 w-40 rounded-full bg-[rgba(29,158,117,0.08)] blur-2xl" />
+            <div class="relative flex flex-col gap-5">
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                    Hệ thống đang vận hành ổn định
                   </div>
-                  <div v-if="sec.lecturer" class="schedule-meta-cell">
-                    <i class="pi pi-graduation-cap" style="font-size:0.75rem" />
-                    <span>{{ sec.lecturer.name }}</span>
-                  </div>
+                  <h2 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+                    Tổng quan hoạt động đào tạo hôm nay
+                  </h2>
+                  <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                    Theo dõi nhanh người dùng, khóa học, lớp học phần, khảo thí và các tác vụ quản trị cần xử lý trong ngày.
+                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-      </main>
-
-      <!-- COLUMN 2: LEADERBOARD & STATUS (RIGHT) -->
-      <aside class="workspace-side">
-        
-        <!-- Announcements (Thông báo mới nhất) -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Thông báo hệ thống</h3>
-              <p class="card-desc">Tin tức học vụ, lịch bảo trì và vận hành mới ban hành</p>
-            </div>
-            <div class="announcement-bell-icon">
-              <i class="pi pi-bell" style="font-size:1.125rem" />
-            </div>
-          </div>
-          <div class="card-body is-nopad">
-            <div class="announcements-timeline">
-              <div v-if="loading">
-                <div v-for="i in 3" :key="i" class="announcement-card-item">
-                  <div style="height:11px; background:var(--line); border-radius:4px; width:30%; animation:pulse 1.4s infinite;"></div>
-                  <div style="height:14px; background:var(--line); border-radius:4px; width:80%; margin-top:6px; animation:pulse 1.4s infinite;"></div>
-                </div>
-              </div>
-              <div v-else-if="!recentNotifications.length" class="chart-empty-state" style="padding:30px 0;">
-                <i class="pi pi-bell" style="font-size:1.75rem" /><span>Chưa có thông báo nào</span>
-              </div>
-              <div
-                v-else
-                v-for="notif in recentNotifications"
-                :key="notif.id"
-                class="announcement-card-item"
-                :class="notifTypeClass(notif.type)"
-              >
-                <div class="announce-header-row">
-                  <span class="announce-tag">{{ notifTypeLabel(notif.type) }}</span>
-                  <span class="announce-time">{{ timeAgo(notif.created_at) }}</span>
-                </div>
-                <h4 class="announce-item-title">{{ notif.title }}</h4>
-                <p class="announce-item-desc">{{ notif.message }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Course status breakdown (Donut Chart) -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Cơ cấu bài giảng</h3>
-              <p class="card-desc">Tỉ lệ phân bổ các học phần theo trạng thái kiểm duyệt</p>
-            </div>
-          </div>
-          <div class="card-body is-centered">
-            <div class="skeleton-donut" v-if="loading" />
-            <UiDonut
-              v-else-if="courseStatusSegments.length"
-              :segments="courseStatusSegments"
-              :size="150"
-              :thickness="20"
-              center-label="Khóa học"
-              :center-value="totalCoursesFromStatus"
-            />
-            <div v-else class="chart-empty-state">
-              <i class="pi pi-bookmark" style="font-size:2rem" />
-              <span>Không có dữ liệu bài giảng</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Leaderboard (Top Khóa học thịnh hành) -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Khóa học thịnh hành</h3>
-              <p class="card-desc">Các học phần trực tuyến có lượt ghi danh cao nhất</p>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="skeleton-leaderboard" v-if="loading">
-              <div class="leaderboard-skeleton-item" v-for="i in 3" :key="i" />
-            </div>
-            <div class="leaderboard-list" v-else-if="stats.top_courses?.length">
-              <div 
-                v-for="(course, idx) in stats.top_courses.slice(0, 5)" 
-                :key="course.id"
-                class="leaderboard-row"
-              >
-                <div class="leaderboard-rank" :class="`is-rank-${idx}`">
-                  {{ idx + 1 }}
-                </div>
-                <div class="leaderboard-details">
-                  <NuxtLink :to="`/admin/manage-courses/${course.id}`" class="leaderboard-name-link">
-                    {{ course.title }}
+                <div class="flex shrink-0 flex-wrap gap-2">
+                  <NuxtLink to="/admin/reports/progress" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                    <i class="pi pi-chart-bar text-slate-400" />
+                    Xem báo cáo
                   </NuxtLink>
-                  <div class="leaderboard-visual">
-                    <div 
-                      class="visual-bar" 
-                      :style="`width: ${Math.round((course.enrollments_count / (stats.top_courses[0]?.enrollments_count || 1)) * 100)}%`"
-                    />
-                  </div>
+                  <NuxtLink to="/admin/settings" class="inline-flex h-10 items-center gap-2 rounded-xl bg-[#1d9e75] px-4 text-sm font-semibold text-white transition hover:bg-[#178563]">
+                    <i class="pi pi-sliders-h" />
+                    Thiết lập
+                  </NuxtLink>
                 </div>
-                <div class="leaderboard-value">
-                  <i class="pi pi-users" style="font-size:0.75rem" />
-                  <span>{{ course.enrollments_count.toLocaleString('vi-VN') }}</span>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <p class="text-xs font-semibold text-slate-400">Phiên học hôm nay</p>
+                  <p class="mt-1 text-xl font-bold text-slate-900">36</p>
+                </div>
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <p class="text-xs font-semibold text-slate-400">Người dùng online</p>
+                  <p class="mt-1 text-xl font-bold text-slate-900">248</p>
+                </div>
+                <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                  <p class="text-xs font-semibold text-slate-400">Tỷ lệ lỗi hệ thống</p>
+                  <p class="mt-1 text-xl font-bold text-emerald-600">0.12%</p>
                 </div>
               </div>
             </div>
-            <div v-else class="chart-empty-state">
-              <i class="pi pi-verified" style="font-size:2.0rem" />
-              <span>Chưa có xếp hạng học phần</span>
+          </div>
+
+          <div class="border-t border-slate-100 bg-slate-50 p-6 xl:border-l xl:border-t-0">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-slate-800">Lịch vận hành</h3>
+                <p class="text-xs text-slate-400">Các mốc quan trọng trong ngày</p>
+              </div>
+              <i class="pi pi-calendar rounded-xl border border-slate-200 bg-white p-2 text-slate-400" />
+            </div>
+
+            <div class="space-y-3">
+              <div v-for="item in schedule" :key="`${item.time}-${item.title}`" class="flex gap-3 rounded-2xl border border-slate-100 bg-white p-3">
+                <div class="w-14 shrink-0 rounded-xl bg-emerald-50 py-2 text-center text-xs font-bold text-emerald-700">
+                  {{ item.time }}
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-slate-800">{{ item.title }}</p>
+                  <p class="mt-0.5 text-xs text-slate-400">{{ item.meta }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI cards -->
+      <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <NuxtLink
+          v-for="item in kpiCards"
+          :key="item.label"
+          :to="item.to"
+          class="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="truncate text-xs font-semibold text-slate-500">{{ item.label }}</p>
+              <p class="mt-2 text-2xl font-bold tracking-tight text-slate-900">{{ item.value }}</p>
+            </div>
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" :class="toneClasses(item.tone).icon">
+              <i :class="[item.icon, 'text-base']" />
+            </div>
+          </div>
+          <div class="mt-4 flex items-center justify-between gap-3">
+            <p class="truncate text-xs text-slate-400">{{ item.sub }}</p>
+            <i class="pi pi-arrow-right text-xs text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />
+          </div>
+        </NuxtLink>
+      </section>
+
+      <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <!-- Chart -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2">
+          <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+              <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
+                <i class="pi pi-chart-line" />
+              </div>
+              <div>
+                <h3 class="text-base font-semibold text-slate-800">Hoạt động đăng nhập</h3>
+                <p class="text-xs text-slate-400">12 tháng gần nhất</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-slate-500">
+              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-[#1d9e75]" /> Học viên</span>
+              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-blue-500" /> Giảng viên</span>
+            </div>
+          </div>
+
+          <div class="flex h-72 items-end gap-3 rounded-2xl border border-slate-100 bg-gradient-to-b from-slate-50 to-white p-4">
+            <div v-for="(bar, index) in trafficBars" :key="index" class="flex flex-1 flex-col items-center gap-2">
+              <div class="flex h-56 w-full max-w-9 items-end gap-1">
+                <div class="w-1/2 rounded-t-lg bg-[#1d9e75]" :style="{ height: `${bar}%` }" />
+                <div class="w-1/2 rounded-t-lg bg-blue-400" :style="{ height: `${Math.max(24, bar - 18)}%` }" />
+              </div>
+              <span class="text-[10px] font-semibold text-slate-400">T{{ index + 1 }}</span>
             </div>
           </div>
         </div>
 
-      </aside>
+        <!-- Pending tasks -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6">
+          <div class="mb-5 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-slate-800">Cần xử lý</h3>
+              <p class="text-xs text-slate-400">Các tác vụ ưu tiên</p>
+            </div>
+            <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">45 việc</span>
+          </div>
 
+          <div class="space-y-3">
+            <NuxtLink
+              v-for="task in pendingTasks"
+              :key="task.label"
+              :to="task.to"
+              class="group flex items-center gap-3 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
+            >
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" :class="toneClasses(task.tone).icon">
+                <i :class="task.icon" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-slate-700">{{ task.label }}</p>
+                <p class="text-xs text-slate-400">Nhấn để xem chi tiết</p>
+              </div>
+              <strong class="text-lg font-bold text-slate-900">{{ task.value }}</strong>
+            </NuxtLink>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <!-- Quick actions -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2">
+          <div class="mb-5 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-slate-800">Lối tắt nhanh</h3>
+              <p class="text-xs text-slate-400">Truy cập nhanh các chức năng thường dùng</p>
+            </div>
+            <i class="pi pi-bolt rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-400" />
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <NuxtLink
+              v-for="action in quickActions"
+              :key="action.label"
+              :to="action.to"
+              class="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
+            >
+              <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border" :class="toneClasses(action.tone).icon">
+                <i :class="[action.icon, 'text-lg']" />
+              </div>
+              <p class="font-semibold text-slate-800">{{ action.label }}</p>
+              <p class="mt-1 text-xs leading-5 text-slate-400">{{ action.desc }}</p>
+              <div class="mt-4 inline-flex items-center gap-2 text-xs font-bold" :class="toneClasses(action.tone).text">
+                Thực hiện
+                <i class="pi pi-arrow-right text-[10px] transition group-hover:translate-x-0.5" />
+              </div>
+            </NuxtLink>
+          </div>
+        </div>
+
+        <!-- Activity -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-6">
+          <div class="mb-5 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-semibold text-slate-800">Hoạt động gần đây</h3>
+              <p class="text-xs text-slate-400">Realtime activity feed</p>
+            </div>
+            <NuxtLink to="/admin/reports/activity" class="text-xs font-semibold text-[#1d9e75] hover:underline">Xem tất cả</NuxtLink>
+          </div>
+
+          <div class="space-y-4">
+            <div v-for="activity in activities" :key="activity.title" class="flex gap-3">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border" :class="toneClasses(activity.tone).icon">
+                <i :class="[activity.icon, 'text-sm']" />
+              </div>
+              <div class="min-w-0 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
+                <p class="text-sm font-medium leading-5 text-slate-700">{{ activity.title }}</p>
+                <p class="mt-1 text-xs text-slate-400">{{ activity.time }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
-
-  </div>
+  </AdminWorkspaceShell>
 </template>
-
-<style scoped>
-/* ── General Scrollbars ── */
-.dash-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-height: 100vh;
-  color: var(--text);
-}
-
-/* Screen reader only - Accessibility */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* ── Header Hub ── */
-.dash-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--surface-strong), rgba(var(--surface-strong-rgb), 0.7));
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
-}
-
-.header-title {
-  margin: 0 0 6px;
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-}
-
-.header-subtitle {
-  margin: 0;
-  font-size: 0.88rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.header-action-meta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 99px;
-  background: var(--color-success-soft);
-  border: 1px solid rgba(var(--color-success-rgb), 0.2);
-  color: var(--color-success);
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.icon-pulse {
-  animation: pulse-ring 2s infinite ease-in-out;
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.5; }
-}
-
-.action-btn-refresh {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-strong);
-  color: var(--text);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 200ms ease;
-  box-shadow: var(--shadow-sm);
-}
-
-.action-btn-refresh:hover:not(:disabled) {
-  background: var(--surface);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  transform: translateY(-1px);
-}
-
-.action-btn-refresh:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.pi-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── Runway Quick Actions ── */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  text-decoration: none;
-  color: var(--text-secondary);
-  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
-}
-
-.action-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow);
-  background: linear-gradient(to bottom, var(--surface-strong), var(--color-primary-soft));
-}
-
-.action-card:hover .action-label {
-  color: #10B981;
-}
-
-.action-card:hover .action-arrow {
-  transform: translateX(4px);
-  color: #10B981;
-}
-
-.action-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  transition: all 200ms;
-}
-
-.action-card:hover .action-icon-wrap {
-  background: var(--color-primary);
-  color: #ffffff;
-}
-
-.action-label {
-  flex: 1;
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text);
-  transition: color 200ms;
-}
-
-.action-arrow {
-  color: var(--muted);
-  transition: transform 200ms, color 200ms;
-}
-
-/* ── Error Banner ── */
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  background: var(--color-danger-soft);
-  border: 1px solid rgba(var(--color-danger-rgb), 0.2);
-  border-radius: 14px;
-  color: var(--color-danger);
-  font-size: 0.88rem;
-}
-
-.error-msg {
-  flex: 1;
-  font-weight: 600;
-}
-
-.btn-retry {
-  padding: 6px 14px;
-  border: 1px solid rgba(var(--color-danger-rgb), 0.2);
-  background: rgba(var(--color-danger-rgb), 0.1);
-  color: var(--color-danger);
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 150ms;
-}
-
-.btn-retry:hover {
-  background: var(--color-danger);
-  color: #fff;
-}
-
-.btn-dismiss {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--color-danger);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.btn-dismiss:hover {
-  background: rgba(var(--color-danger-rgb), 0.1);
-}
-
-.btn-dismiss:focus-visible {
-  outline: 2px solid var(--color-danger);
-  outline-offset: 2px;
-}
-
-/* Error fade transition */
-.error-fade-enter-active,
-.error-fade-leave-active {
-  transition: all 300ms ease;
-}
-
-.error-fade-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.error-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* ── Metrics Cards Grid ── */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-5);
-}
-
-@media (min-width: 640px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (min-width: 1024px) {
-  .metrics-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (min-width: 1280px) and (max-width: 1439px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.metric-block {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px;
-  min-height: 170px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
-  cursor: default;
-}
-
-.metric-block:hover {
-  box-shadow: var(--shadow);
-}
-
-.metric-block.is-revenue:hover { border-color: var(--color-primary); }
-.metric-block.is-classes:hover { border-color: var(--color-info); }
-.metric-block.is-completion:hover { border-color: rgba(139, 92, 246, 0.3); }
-.metric-block.is-users:hover { border-color: var(--color-warning); }
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.metric-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.metric-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 99px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.metric-delta.is-positive { background: var(--color-success-soft); color: var(--color-success); }
-.metric-delta.is-negative { background: var(--color-danger-soft); color: var(--color-danger); }
-.metric-delta.is-info { background: var(--color-info-soft); color: var(--color-info); }
-.metric-delta.is-success-alt { background: rgba(139, 92, 246, 0.08); color: #8B5CF6; }
-
-.metric-content {
-  margin: 16px 0;
-  position: relative;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.metric-value {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 850;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.metric-sparkline {
-  margin-top: 10px;
-  height: 48px;
-}
-
-.metric-footer {
-  font-size: 0.78rem;
-  color: var(--muted);
-  font-weight: 500;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  margin-top: auto;
-}
-
-.footer-note {
-  opacity: 0.8;
-}
-
-.footer-link-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  color: #0EA5E9;
-  font-weight: 700;
-  transition: opacity 150ms;
-}
-
-.footer-link-action:hover {
-  opacity: 0.8;
-}
-
-.text-split {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* ── Class Card Split Layout ── */
-.classes-split-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.class-split-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.split-num-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.split-value {
-  font-size: 1.6rem;
-  font-weight: 850;
-  color: var(--text);
-}
-
-.split-lbl {
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.split-divider {
-  width: 1px;
-  height: 36px;
-  background: var(--line);
-  flex-shrink: 0;
-}
-
-.text-sky { color: #0EA5E9; }
-.text-indigo { color: #8B5CF6; }
-
-/* ── Completion Score Layout ── */
-.completion-hero-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.score-display {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.score-value {
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: var(--text);
-  letter-spacing: -0.04em;
-}
-
-.score-max {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.progress-ring-mini {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.metric-indicators {
-  margin-top: 10px;
-}
-
-.indicator-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text-secondary);
-  font-size: 0.74rem;
-  font-weight: 600;
-}
-
-.text-green { color: #10B981; }
-.text-orange { color: #F59E0B; }
-.text-violet { color: #8B5CF6; }
-
-/* ── Users Card Live Stats ── */
-.users-total-wrap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.live-counter-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  color: #F59E0B;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.ping-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #F59E0B;
-  animation: live-ping 1.4s infinite ease-in-out;
-}
-
-@keyframes live-ping {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.8); opacity: 0.5; }
-}
-
-.ratio-progress-bar {
-  display: flex;
-  height: 7px;
-  background: var(--line);
-  border-radius: 99px;
-  overflow: hidden;
-  margin-top: 14px;
-}
-
-.bar-fill {
-  height: 100%;
-  transition: width 0.6s ease;
-}
-
-.bar-fill.is-student { background: #F59E0B; }
-.bar-fill.is-instructor { background: rgba(245, 158, 11, 0.4); }
-
-/* Skeletons */
-.skeleton-h3 {
-  height: 32px;
-  border-radius: 6px;
-  background: var(--line);
-  width: 70%;
-  animation: pulse 1.4s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-}
-
-/* ── Workspace Layout Grid ── */
-.workspace-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-@media (min-width: 1024px) {
-  .workspace-layout { grid-template-columns: 1fr 360px; }
-}
-
-.workspace-main {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-}
-
-.workspace-side {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.workspace-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: border-color 200ms, box-shadow 200ms;
-}
-
-.workspace-card:hover {
-  border-color: rgba(var(--text-rgb), 0.1);
-}
-
-.main-chart-card:hover {
-  border-color: rgba(139, 92, 246, 0.15);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 24px 24px 16px;
-  border-bottom: 1px solid rgba(var(--line-rgb), 0.3);
-}
-
-.card-title {
-  margin: 0 0 4px;
-  font-size: 1.05rem;
-  font-weight: 850;
-  color: var(--text);
-  letter-spacing: -0.02em;
-}
-
-.card-desc {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.chart-badge {
-  font-size: 0.74rem;
-  font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 99px;
-}
-
-.bg-orange-soft { background: rgba(245, 158, 11, 0.08); }
-.bg-violet-soft { background: rgba(139, 92, 246, 0.08); }
-
-.card-body {
-  padding: 20px 24px 24px;
-}
-
-.card-body.is-nopad {
-  padding: 0;
-}
-
-.card-body.is-centered {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 30px 24px;
-}
-
-/* Skeletons */
-.skeleton-chart { height: 260px; background: var(--surface); border-radius: 12px; animation: pulse 1.4s infinite ease-in-out; }
-.skeleton-donut { width: 150px; height: 150px; border-radius: 50%; background: var(--surface); animation: pulse 1.4s infinite ease-in-out; }
-.skeleton-leaderboard { display: flex; flex-direction: column; gap: 10px; }
-.leaderboard-skeleton-item { height: 52px; border-radius: 10px; background: var(--surface); animation: pulse 1.4s infinite ease-in-out; }
-
-/* Empty state styling */
-.chart-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 50px 24px;
-  color: var(--muted);
-  gap: 12px;
-  font-size: 0.86rem;
-}
-.chart-empty-state i, .chart-empty-state svg {
-  opacity: 0.5;
-  color: var(--muted);
-}
-
-/* ── Upcoming Schedules List ── */
-.calendar-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #8B5CF6;
-  background: rgba(139, 92, 246, 0.08);
-  padding: 5px 12px;
-  border-radius: 99px;
-}
-
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 0;
-}
-
-.schedule-item-row {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--line);
-  transition: background 150ms;
-}
-
-.schedule-item-row:last-child {
-  border-bottom: none;
-}
-
-.schedule-item-row:hover {
-  background: rgba(var(--text-rgb), 0.01);
-}
-
-@media (min-width: 768px) {
-  .schedule-item-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-  }
-}
-
-.schedule-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  width: fit-content;
-  flex-shrink: 0;
-}
-
-.is-exam .schedule-type-badge { background: rgba(239, 68, 68, 0.08); color: #EF4444; }
-.is-lecture .schedule-type-badge { background: rgba(14, 165, 233, 0.08); color: #0EA5E9; }
-.is-meeting .schedule-type-badge { background: rgba(245, 158, 11, 0.08); color: #F59E0B; }
-
-.type-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-}
-.is-exam .type-dot { background-color: #EF4444; }
-.is-lecture .type-dot { background-color: #0EA5E9; }
-.is-meeting .type-dot { background-color: #F59E0B; }
-
-.schedule-main-info {
-  flex: 1;
-}
-
-.schedule-item-title {
-  margin: 0 0 4px;
-  font-size: 0.9rem;
-  font-weight: 750;
-  color: var(--text);
-}
-
-.schedule-item-class {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.schedule-meta-cols {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-
-.schedule-meta-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.schedule-meta-cell svg {
-  color: var(--muted);
-}
-
-/* ── Announcements Feed ── */
-.announcement-bell-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(245, 158, 11, 0.08);
-  color: #F59E0B;
-}
-
-.bell-ringing {
-  animation: bell-swing 3s infinite ease-in-out;
-}
-
-@keyframes bell-swing {
-  0%, 100% { transform: rotate(0); }
-  5%, 15%, 25% { transform: rotate(8deg); }
-  10%, 20%, 30% { transform: rotate(-8deg); }
-  35% { transform: rotate(0); }
-}
-
-.announcements-timeline {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 16px 20px;
-  gap: 12px;
-}
-
-.announcement-card-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  transition: transform 200ms, border-color 200ms;
-}
-
-.announcement-card-item:hover {
-  transform: translateX(3px);
-}
-
-.announcement-card-item.priority-urgent { border-left: 3px solid #EF4444; }
-.announcement-card-item.priority-system { border-left: 3px solid #F59E0B; }
-.announcement-card-item.priority-academic { border-left: 3px solid #8B5CF6; }
-.announcement-card-item.priority-info { border-left: 3px solid #10B981; }
-
-.announce-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.announce-tag {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.priority-urgent .announce-tag { color: #EF4444; }
-.priority-system .announce-tag { color: #F59E0B; }
-.priority-academic .announce-tag { color: #8B5CF6; }
-.priority-info .announce-tag { color: #10B981; }
-
-.announce-time {
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.announce-item-title {
-  margin: 0;
-  font-size: 0.84rem;
-  font-weight: 750;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.announce-item-desc {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  font-weight: 500;
-}
-
-/* ── Leaderboard List ── */
-.leaderboard-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.leaderboard-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.leaderboard-row:hover {
-  border-color: #10B981;
-  transform: translateX(4px);
-}
-
-.leaderboard-rank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: var(--line);
-  color: var(--muted);
-  font-weight: 800;
-  font-size: 0.8rem;
-  flex-shrink: 0;
-}
-
-.leaderboard-rank.is-rank-0 { background: linear-gradient(135deg, #FBBF24, #D97706); color: #fff; }
-.leaderboard-rank.is-rank-1 { background: linear-gradient(135deg, #94A3B8, #475569); color: #fff; }
-.leaderboard-rank.is-rank-2 { background: linear-gradient(135deg, #CD7F32, #A16207); color: #fff; }
-
-.leaderboard-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.leaderboard-name-link {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 750;
-  color: var(--text);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 4px;
-  transition: color 150ms;
-}
-
-.leaderboard-name-link:hover {
-  color: #10B981;
-}
-
-.leaderboard-visual {
-  height: 5px;
-  background: var(--line);
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.visual-bar {
-  height: 100%;
-  border-radius: 99px;
-  background: #10B981;
-  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.leaderboard-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.leaderboard-value svg {
-  color: var(--muted);
-}
-
-/* ═══════════════════════════════════════════════════════
-   MOBILE OPTIMIZATIONS
-   ═══════════════════════════════════════════════════════ */
-
-/* Minimum touch target size: 44x44px (Apple HIG, WCAG 2.5.5) */
-@media (max-width: 768px) {
-  /* Touch targets */
-  button,
-  a,
-  [role="button"],
-  input[type="button"],
-  input[type="submit"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  /* Metrics grid - full width on mobile */
-  .metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  /* Reduce padding on mobile for better space usage */
-  .metric-block {
-    padding: 20px;
-    min-height: 150px;
-  }
-
-  /* Quick actions - stack vertically */
-  .quick-actions-wrap {
-    gap: 12px;
-  }
-
-  /* Chart sections - better spacing */
-  .chart-section {
-    padding: 20px;
-  }
-
-  /* Touch-friendly spacing for interactive elements */
-  .schedule-item-row,
-  .leaderboard-item {
-    padding: 16px;
-    min-height: 60px;
-  }
-}
-
-/* Tablet breakpoint adjustments */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-</style>
