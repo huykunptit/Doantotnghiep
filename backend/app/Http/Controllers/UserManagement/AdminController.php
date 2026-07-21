@@ -17,9 +17,12 @@ use App\Support\Enums\StudyStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -108,6 +111,14 @@ class AdminController extends Controller
             'new_users_by_month' => $this->hydrateMonthlySeries($monthKeys, $userRows),
             'top_courses'       => $this->getTopCourses(),
             'engagement'        => $this->getEngagementStats(),
+            'pending_courses'   => Course::where('status', 'pending_review')->count(),
+            'published_courses' => Course::where('status', 'published')->count(),
+            'paid_orders'       => Order::whereIn('status', $paidStatuses)->count(),
+            'enrollments_week'  => Enrollment::where('enrolled_at', '>=', now()->subDays(7))->count(),
+            'enrollments_today' => Enrollment::whereDate('enrolled_at', now()->toDateString())->count(),
+            'new_users_week'    => User::where('created_at', '>=', now()->subDays(7))->count(),
+            'reviews_count'     => Review::count(),
+            'open_sections'     => ClassSection::where('status', 'open')->count(),
         ]);
     }
 
@@ -153,6 +164,327 @@ class AdminController extends Controller
             return $forbidden;
         }
 
+        $users = $this->filteredUsersQuery($request)
+            ->paginate($request->integer('per_page', 15));
+
+        return response()->json($users);
+    }
+
+    public function exportUsers(Request $request): StreamedResponse|JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $query = $this->filteredUsersQuery($request);
+        $filename = 'users_' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($query) {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, [
+                'id', 'name', 'email', 'role', 'student_code', 'staff_code', 'phone',
+                'gender', 'date_of_birth', 'study_status', 'unit', 'program', 'major',
+                'cohort', 'administrative_class', 'created_at',
+            ]);
+
+            $query->chunk(500, function ($users) use ($out) {
+                foreach ($users as $user) {
+                    fputcsv($out, [
+                        $user->id,
+                        $user->name ?? '',
+                        $user->email ?? '',
+                        $user->roles->pluck('name')->implode('|'),
+                        $user->student_code ?? '',
+                        $user->staff_code ?? '',
+                        $user->phone ?? '',
+                        $user->gender ?? '',
+                        $user->date_of_birth ? $user->date_of_birth->format('Y-m-d') : '',
+                        $user->study_status ?? '',
+                        $user->unit?->code ?: ($user->unit?->name ?? ''),
+                        $user->program?->code ?: ($user->program?->name ?? ''),
+                        $user->major?->code ?: ($user->major?->name ?? ''),
+                        $user->cohort?->code ?: ($user->cohort?->name ?? ''),
+                        $user->administrativeClass?->code ?: ($user->administrativeClass?->name ?? ''),
+                        $user->created_at?->toDateTimeString() ?? '',
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    public function importUsersTemplate(Request $request): StreamedResponse|JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $filename = 'users_import_template.csv';
+
+        return response()->streamDownload(function () {
+            $out = fopen('php://output', 'w');
+            fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($out, [
+                'name', 'email', 'password', 'role', 'student_code', 'staff_code',
+                'phone', 'gender', 'date_of_birth', 'study_status',
+                'cohort_code', 'class_code', 'program_code', 'major_code',
+            ]);
+            fputcsv($out, [
+                'Nguyen Van A', 'sv.a@example.com', 'Password1', 'student', 'SV001', '',
+                '0901234567', 'male', '2004-01-15', 'dang_hoc',
+                'K20', 'CNTT-K20-01', 'CNTT', 'KTPM',
+            ]);
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function importUsersPreview(Request $request): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+        ]);
+
+        $path = $request->file('file')->getRealPath();
+        $handle = fopen($path, 'r');
+        if ($handle === false) {
+            return response()->json(['message' => 'Không đọc được file CSV.'], 422);
+        }
+
+        $header = null;
+        $rows = [];
+        $errors = [];
+        $valid = [];
+        $rowNum = 1;
+
+        while (($data = fgetcsv($handle)) !== false) {
+            if ($header === null) {
+                $header = array_map(fn ($h) => Str::of((string) $h)->trim()->lower()->replace("\xEF\xBB\xBF", '')->toString(), $data);
+                continue;
+            }
+            $rowNum++;
+            if (count(array_filter($data, fn ($v) => trim((string) $v) !== '')) === 0) {
+                continue;
+            }
+
+            $row = [];
+            foreach ($header as $i => $key) {
+                $row[$key] = isset($data[$i]) ? trim((string) $data[$i]) : '';
+            }
+
+            $rowErrors = [];
+            $name = $row['name'] ?? '';
+            $email = $row['email'] ?? '';
+            $password = $row['password'] ?? '';
+            $role = $row['role'] ?? 'student';
+
+            if ($name === '') {
+                $rowErrors[] = 'Thiếu name';
+            }
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $rowErrors[] = 'Email không hợp lệ';
+            } elseif (User::where('email', $email)->exists()) {
+                $rowErrors[] = 'Email đã tồn tại';
+            }
+            if (strlen($password) < 6) {
+                $rowErrors[] = 'Password tối thiểu 6 ký tự';
+            }
+            if (!in_array($role, ['admin', 'instructor', 'student', 'academic_manager'], true)) {
+                $rowErrors[] = 'Role không hợp lệ';
+            }
+
+            $payload = [
+                'name' => $name,
+                'email' => $email,
+                'password' => $password,
+                'role' => $role,
+                'student_code' => $row['student_code'] ?: null,
+                'staff_code' => $row['staff_code'] ?: null,
+                'phone' => $row['phone'] ?: null,
+                'gender' => in_array($row['gender'] ?? '', ['male', 'female', 'other'], true) ? $row['gender'] : null,
+                'date_of_birth' => ($row['date_of_birth'] ?? '') !== '' ? $row['date_of_birth'] : null,
+                'study_status' => in_array($row['study_status'] ?? '', StudyStatus::all(), true) ? $row['study_status'] : null,
+                'cohort_id' => null,
+                'administrative_class_id' => null,
+                'program_id' => null,
+                'major_id' => null,
+            ];
+
+            if (!empty($row['cohort_code'])) {
+                $cohort = DB::table('cohorts')->where('code', $row['cohort_code'])->first();
+                if (!$cohort) {
+                    $rowErrors[] = 'Không tìm thấy cohort_code';
+                } else {
+                    $payload['cohort_id'] = $cohort->id;
+                }
+            }
+            if (!empty($row['class_code'])) {
+                $class = DB::table('administrative_classes')->where('code', $row['class_code'])->first();
+                if (!$class) {
+                    $rowErrors[] = 'Không tìm thấy class_code';
+                } else {
+                    $payload['administrative_class_id'] = $class->id;
+                }
+            }
+            if (!empty($row['program_code'])) {
+                $program = DB::table('programs')->where('code', $row['program_code'])->first();
+                if (!$program) {
+                    $rowErrors[] = 'Không tìm thấy program_code';
+                } else {
+                    $payload['program_id'] = $program->id;
+                }
+            }
+            if (!empty($row['major_code'])) {
+                $major = DB::table('majors')->where('code', $row['major_code'])->first();
+                if (!$major) {
+                    $rowErrors[] = 'Không tìm thấy major_code';
+                } else {
+                    $payload['major_id'] = $major->id;
+                }
+            }
+
+            $preview = [
+                'row' => $rowNum,
+                'name' => $name,
+                'email' => $email,
+                'role' => $role,
+                'student_code' => $payload['student_code'],
+                'errors' => $rowErrors,
+            ];
+            $rows[] = $preview;
+
+            if ($rowErrors) {
+                $errors[] = $preview;
+            } else {
+                $valid[] = $payload;
+            }
+        }
+        fclose($handle);
+
+        if (count($valid) === 0) {
+            return response()->json([
+                'message' => 'Không có dòng hợp lệ để import.',
+                'total' => count($rows),
+                'valid_count' => 0,
+                'error_count' => count($errors),
+                'rows' => $rows,
+                'errors' => $errors,
+            ], 422);
+        }
+
+        $token = 'user_import_' . Str::random(24);
+        Cache::put($token, $valid, 3600);
+
+        return response()->json([
+            'message' => 'Xem trước import thành công',
+            'import_token' => $token,
+            'total' => count($rows),
+            'valid_count' => count($valid),
+            'error_count' => count($errors),
+            'rows' => $rows,
+            'errors' => $errors,
+        ]);
+    }
+
+    public function importUsersExecute(Request $request): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $validated = $request->validate([
+            'import_token' => ['required', 'string'],
+        ]);
+
+        $payloads = Cache::get($validated['import_token']);
+        if (!is_array($payloads) || count($payloads) === 0) {
+            return response()->json(['message' => 'Token import hết hạn hoặc không hợp lệ.'], 422);
+        }
+
+        $created = 0;
+        DB::transaction(function () use ($payloads, &$created) {
+            foreach ($payloads as $payload) {
+                $user = User::create([
+                    'name' => $payload['name'],
+                    'email' => $payload['email'],
+                    'password' => Hash::make($payload['password']),
+                    'email_verified_at' => now(),
+                    'student_code' => $payload['student_code'] ?? null,
+                    'staff_code' => $payload['staff_code'] ?? null,
+                    'phone' => $payload['phone'] ?? null,
+                    'gender' => $payload['gender'] ?? null,
+                    'date_of_birth' => $payload['date_of_birth'] ?? null,
+                    'study_status' => $payload['study_status'] ?? null,
+                    'cohort_id' => $payload['cohort_id'] ?? null,
+                    'administrative_class_id' => $payload['administrative_class_id'] ?? null,
+                    'program_id' => $payload['program_id'] ?? null,
+                    'major_id' => $payload['major_id'] ?? null,
+                ]);
+                $user->syncRoles([$payload['role']]);
+                $created++;
+            }
+        });
+
+        Cache::forget($validated['import_token']);
+
+        return response()->json([
+            'message' => "Đã import {$created} người dùng",
+            'created' => $created,
+        ]);
+    }
+
+    public function bulkDestroyUsers(Request $request): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $actorId = $request->user()->id;
+        $ids = collect($validated['ids'])->unique()->values();
+        $deleted = 0;
+        $skipped = [];
+
+        foreach ($ids as $id) {
+            if ((int) $id === (int) $actorId) {
+                $skipped[] = ['id' => $id, 'reason' => 'Không thể tự xóa chính mình'];
+                continue;
+            }
+            $user = User::find($id);
+            if (!$user) {
+                continue;
+            }
+            if ($user->hasRole('admin') && User::role('admin')->count() <= 1) {
+                $skipped[] = ['id' => $id, 'reason' => 'Không thể xóa admin cuối cùng'];
+                continue;
+            }
+            $user->delete();
+            $deleted++;
+        }
+
+        return response()->json([
+            'message' => "Đã xóa {$deleted} người dùng",
+            'deleted' => $deleted,
+            'skipped' => $skipped,
+        ]);
+    }
+
+    private function filteredUsersQuery(Request $request)
+    {
         $query = User::with([
             'roles',
             'administrativeClass:id,name,code',
@@ -172,19 +504,40 @@ class AdminController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('student_code', 'like', "%{$search}%")
-                    ->orWhere('staff_code', 'like', "%{$search}%");
+                    ->orWhere('staff_code', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
-        foreach (['unit_id', 'program_id', 'major_id', 'cohort_id', 'administrative_class_id', 'advisor_id'] as $field) {
-            if ($request->filled($field)) {
-                $val = $request->get($field);
-                if ($field === 'administrative_class_id' && ($val === 'none' || $val === '0' || $val === 0)) {
-                    $query->whereNull('administrative_class_id');
-                } else {
-                    $query->where($field, (int) $val);
-                }
+        foreach (['unit_id', 'program_id', 'major_id', 'cohort_id', 'advisor_id'] as $field) {
+            $ids = $this->requestIdList($request, $field);
+            if (count($ids) === 1) {
+                $query->where($field, $ids[0]);
+            } elseif (count($ids) > 1) {
+                $query->whereIn($field, $ids);
             }
+        }
+
+        $classValues = $this->requestRawList($request, 'administrative_class_id');
+        if (count($classValues) > 0) {
+            $includeNone = in_array('none', $classValues, true) || in_array('0', $classValues, true) || in_array(0, $classValues, true);
+            $classIds = array_values(array_filter(array_map(
+                fn ($v) => is_numeric($v) ? (int) $v : null,
+                $classValues
+            ), fn ($v) => $v !== null && $v > 0));
+
+            $query->where(function ($q) use ($includeNone, $classIds) {
+                $started = false;
+                if ($includeNone) {
+                    $q->whereNull('administrative_class_id');
+                    $started = true;
+                }
+                if (count($classIds) === 1) {
+                    $started ? $q->orWhere('administrative_class_id', $classIds[0]) : $q->where('administrative_class_id', $classIds[0]);
+                } elseif (count($classIds) > 1) {
+                    $started ? $q->orWhereIn('administrative_class_id', $classIds) : $q->whereIn('administrative_class_id', $classIds);
+                }
+            });
         }
 
         if ($request->filled('study_status')) {
@@ -198,10 +551,58 @@ class AdminController extends Controller
             $query->where('gender', $request->string('gender')->toString());
         }
 
-        $users = $query->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 15));
+        if ($request->filled('created_from')) {
+            $query->whereDate('created_at', '>=', $request->string('created_from')->toString());
+        }
+        if ($request->filled('created_to')) {
+            $query->whereDate('created_at', '<=', $request->string('created_to')->toString());
+        }
 
-        return response()->json($users);
+        if ($request->boolean('verified_only')) {
+            $query->whereNotNull('email_verified_at');
+        }
+        if ($request->boolean('unverified_only')) {
+            $query->whereNull('email_verified_at');
+        }
+
+        $sortBy = $request->string('sort_by')->toString();
+        $sortDir = strtolower($request->string('sort_dir')->toString()) === 'asc' ? 'asc' : 'desc';
+        $allowedSorts = ['name', 'email', 'created_at', 'student_code', 'staff_code', 'study_status'];
+        if (in_array($sortBy, $allowedSorts, true)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderByDesc('created_at');
+        }
+
+        return $query;
+    }
+
+    /** @return list<int> */
+    private function requestIdList(Request $request, string $key): array
+    {
+        return array_values(array_filter(array_map(
+            fn ($v) => is_numeric($v) ? (int) $v : null,
+            $this->requestRawList($request, $key)
+        ), fn ($v) => $v !== null && $v > 0));
+    }
+
+    /** @return list<mixed> */
+    private function requestRawList(Request $request, string $key): array
+    {
+        $val = $request->input($key);
+        if ($val === null || $val === '') {
+            // also accept plural: cohort_ids
+            $plural = str_ends_with($key, '_id') ? substr($key, 0, -3) . '_ids' : $key . 's';
+            $val = $request->input($plural);
+        }
+        if ($val === null || $val === '') {
+            return [];
+        }
+        if (!is_array($val)) {
+            $val = preg_split('/\s*,\s*/', (string) $val) ?: [(string) $val];
+        }
+
+        return array_values(array_filter($val, fn ($v) => $v !== null && $v !== ''));
     }
 
     public function listStudents(Request $request): JsonResponse

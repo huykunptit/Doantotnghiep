@@ -1,795 +1,1258 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import DataTableFooter from '~/components/common/DataTableFooter.vue'
-import { useExport } from '~/composables/useExport'
-
-// Unified UI Components
-import UiKpiCards from '~/components/ui/UiKpiCards.vue'
-import UiFilters from '~/components/ui/UiFilters.vue'
-import UiTable from '~/components/ui/UiTable.vue'
-import UiImportModal from '~/components/ui/UiImportModal.vue'
-import UModal from '~/components/UModal.vue'
-import UiSelect from '~/components/ui/UiSelect.vue'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
 })
 
-interface RoleItem { id: number; name: 'admin' | 'instructor' | 'student' | 'academic_manager' }
-interface RelItem { id: number; name: string; code?: string }
-
+interface RoleRef { id?: number, name: string }
+interface NamedRef { id: number, name?: string, code?: string }
 interface AdminUser {
   id: number
   name: string
   email: string
   avatar?: string | null
-  created_at?: string
-  updated_at?: string
-  roles?: RoleItem[]
+  phone?: string | null
   student_code?: string | null
   staff_code?: string | null
-  phone?: string | null
-  gender?: 'male' | 'female' | 'other' | null
+  gender?: string | null
   date_of_birth?: string | null
-  nationality?: string | null
+  study_status?: string | null
+  email_verified_at?: string | null
+  created_at?: string
+  roles?: RoleRef[]
+  administrative_class?: NamedRef | null
+  administrativeClass?: NamedRef | null
+  cohort?: NamedRef | null
+  program?: NamedRef | null
+  major?: NamedRef | null
+  unit?: NamedRef | null
+  unit_id?: number | null
+  program_id?: number | null
+  major_id?: number | null
+  cohort_id?: number | null
+  administrative_class_id?: number | null
+  bio?: string | null
   hometown?: string | null
   permanent_address?: string | null
-  id_card_number?: string | null
-  study_status?: string | null
-  administrative_class?: RelItem | null
-  cohort?: RelItem | null
-  program?: RelItem | null
-  major?: RelItem | null
-  unit?: RelItem | null
+  nationality?: string | null
 }
 
-const STUDY_STATUS_LABELS: Record<string, string> = {
-  dang_hoc: 'Đang học',
-  bao_luu: 'Bảo lưu',
-  tot_nghiep: 'Tốt nghiệp',
-  thoi_hoc: 'Thôi học',
-  dinh_chi: 'Đình chỉ',
-  dang_cong_tac: 'Đang công tác',
-  nghi_phep: 'Nghỉ phép',
-  nghi_huu: 'Nghỉ hưu',
+interface Paginator<T> {
+  data: T[]
+  total: number
+  current_page: number
+  per_page: number
 }
 
-const token = useAuthTokenCookie()
+const { t, locale } = useI18n()
+const toast = useToast()
+const confirm = useConfirm()
+
+const loading = ref(false)
+const exporting = ref(false)
+const saving = ref(false)
+const importing = ref(false)
+const rows = ref<AdminUser[]>([])
+const total = ref(0)
+const selected = ref<AdminUser[]>([])
+const page = ref(1)
+const perPage = ref(15)
+const tableSearch = ref('')
+const sortBy = ref('created_at')
+const sortDir = ref<'asc' | 'desc'>('desc')
 
 const filters = reactive({
-  search: '',
-  role: '',
-  study_status: '',
-  gender: '',
-  cohort_id: '',
-  program_id: '',
-  administrative_class_id: '',
-  unit_id: ''
+  cohort_id: [] as number[],
+  administrative_class_id: [] as Array<number | string>,
+  program_id: [] as number[],
+  major_id: [] as number[],
+  unit_id: [] as number[],
 })
 
-const activeFilterCount = computed(() => {
-  return [filters.role, filters.study_status, filters.gender, filters.cohort_id, filters.program_id, filters.administrative_class_id, filters.unit_id]
-    .filter(Boolean).length
-})
+/** Role chip quick filter (metrics), not in filter bar */
+const roleChip = ref<string | null>(null)
 
-const columns = [
-  { id: 'select', accessorKey: 'select', header: '' },
-  { id: 'index', accessorKey: 'index', header: '#' },
-  { id: 'user', accessorKey: 'name', header: 'Người dùng', sortable: true },
-  { id: 'role', accessorKey: 'role', header: 'Vai trò', sortable: true },
-  { id: 'class', accessorKey: 'class', header: 'Lớp HC / Khóa' },
-  { id: 'code', accessorKey: 'student_code', header: 'MSSV / Mã NV', sortable: true },
-  { id: 'phone', accessorKey: 'phone', header: 'SĐT', sortable: true },
-  { id: 'status', accessorKey: 'study_status', header: 'Trạng thái', sortable: true },
-  { id: 'actions', accessorKey: 'actions', header: 'Thao tác', class: 'text-right' }
-]
+const counts = reactive({ all: 0, student: 0, instructor: 0, admin: 0 })
+const cohortOptions = ref<{ label: string, value: number }[]>([])
+const classOptions = ref<{ label: string, value: number | string }[]>([])
+const programOptions = ref<{ label: string, value: number }[]>([])
+const majorOptions = ref<{ label: string, value: number }[]>([])
+const unitOptions = ref<{ label: string, value: number }[]>([])
 
-const sortBy = ref('')
-const sortOrder = ref<'asc' | 'desc' | ''>('')
-
-const users = ref<AdminUser[]>([])
-const loading = ref(false)
-const saving = ref(false)
-const deletingId = ref<number | null>(null)
-const errorMessage = ref('')
-const successMessage = ref('')
-const currentPage = ref(1)
-const lastPage = ref(1)
-const totalUsers = ref(0)
-const perPage = ref(15)
-const selectedIds = ref<number[]>([])
-
-// Stats
-const statsStudents = ref(0)
-const statsInstructors = ref(0)
-const statsAdmins = ref(0)
-
-// Dropdowns lists
-const optAdminClasses = ref<RelItem[]>([])
-const optCohorts = ref<RelItem[]>([])
-const optPrograms = ref<RelItem[]>([])
-const optUnits = ref<RelItem[]>([])
-const optionsLoaded = ref(false)
-
-const unitSearchQuery = ref('')
-const filteredUnits = computed(() => {
-  if (!unitSearchQuery.value.trim()) return optUnits.value
-  const q = unitSearchQuery.value.toLowerCase()
-  return optUnits.value.filter(u => u.name.toLowerCase().includes(q))
-})
-
-const roleOptions = [
-  { label: 'Admin', value: 'admin' },
-  { label: 'Giảng viên', value: 'instructor' },
-  { label: 'Sinh viên', value: 'student' },
-  { label: 'Quản lý học vụ', value: 'academic_manager' },
-]
-
-const statusOptions = computed(() => {
-  return Object.entries(STUDY_STATUS_LABELS).map(([value, label]) => ({ label, value }))
-})
-
-const genderOptions = [
-  { label: 'Nam', value: 'male' },
-  { label: 'Nữ', value: 'female' },
-  { label: 'Khác', value: 'other' },
-]
-
-const cohortOptions = computed(() => {
-  return optCohorts.value.map(c => ({ label: c.name, value: String(c.id) }))
-})
-
-const classOptions = computed(() => {
-  return optAdminClasses.value.map(c => ({ label: c.name, value: String(c.id) }))
-})
-
-const { exportToCSV } = useExport()
-
-const isAllSelected = computed(() =>
-  users.value.length > 0 && users.value.every(u => selectedIds.value.includes(u.id))
-)
-
-function toggleSelectAll() {
-  isAllSelected.value
-    ? (selectedIds.value = [])
-    : (selectedIds.value = users.value.map(u => u.id))
-}
-
-const modalMode = ref<'create' | 'edit' | 'view'>('create')
+type ModalMode = 'view' | 'create' | 'edit'
 const modalOpen = ref(false)
-const deleteModalOpen = ref(false)
-const selectedUser = ref<AdminUser | null>(null)
-
-// Import States
-const importModalOpen = ref(false)
+const modalMode = ref<ModalMode>('create')
+const editing = ref<AdminUser | null>(null)
 
 const form = reactive({
   name: '',
   email: '',
   password: '',
   role: 'student',
+  phone: '',
   student_code: '',
   staff_code: '',
-  administrative_class_id: '',
-  cohort_id: '',
-  program_id: '',
-  study_status: 'dang_hoc',
-  phone: '',
-  gender: 'male',
+  gender: null as string | null,
+  date_of_birth: null as Date | null,
+  study_status: null as string | null,
+  cohort_id: null as number | null,
+  administrative_class_id: null as number | null,
+  program_id: null as number | null,
+  major_id: null as number | null,
+  unit_id: null as number | null,
+  bio: '',
+  avatar: '' as string | null,
 })
 
-function authHeaders() {
-  return token.value ? { Authorization: `Bearer ${token.value}` } : {}
+const uploadingAvatar = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
+
+const importOpen = ref(false)
+const importFile = ref<File | null>(null)
+const importPreview = ref<any>(null)
+const importToken = ref<string | null>(null)
+const importProgress = ref(0)
+const importDragging = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
+
+const roleOptions = computed(() => [
+  { label: t('admin.users.roles.student'), value: 'student' },
+  { label: t('admin.users.roles.instructor'), value: 'instructor' },
+  { label: t('admin.users.roles.academic_manager'), value: 'academic_manager' },
+  { label: t('admin.users.roles.admin'), value: 'admin' },
+])
+
+const studyStatusOptions = computed(() => [
+  { label: t('admin.users.status.dang_hoc'), value: 'dang_hoc' },
+  { label: t('admin.users.status.bao_luu'), value: 'bao_luu' },
+  { label: t('admin.users.status.tot_nghiep'), value: 'tot_nghiep' },
+  { label: t('admin.users.status.thoi_hoc'), value: 'thoi_hoc' },
+  { label: t('admin.users.status.dinh_chi'), value: 'dinh_chi' },
+  { label: t('admin.users.status.dang_cong_tac'), value: 'dang_cong_tac' },
+  { label: t('admin.users.status.nghi_phep'), value: 'nghi_phep' },
+  { label: t('admin.users.status.nghi_huu'), value: 'nghi_huu' },
+])
+
+const genderOptions = computed(() => [
+  { label: t('admin.users.gender.male'), value: 'male' },
+  { label: t('admin.users.gender.female'), value: 'female' },
+  { label: t('admin.users.gender.other'), value: 'other' },
+])
+
+const activeFilterCount = computed(() => {
+  let n = 0
+  if (filters.cohort_id.length) n++
+  if (filters.administrative_class_id.length) n++
+  if (filters.program_id.length) n++
+  if (filters.major_id.length) n++
+  if (filters.unit_id.length) n++
+  return n
+})
+
+const modalTitle = computed(() => {
+  if (modalMode.value === 'view') return t('admin.users.view')
+  if (modalMode.value === 'edit') return t('admin.users.edit')
+  return t('admin.users.add')
+})
+
+const isReadonly = computed(() => modalMode.value === 'view')
+
+const importFileMeta = computed(() => {
+  if (!importFile.value) return null
+  const size = importFile.value.size
+  const kb = size / 1024
+  const sizeLabel = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`
+  return { name: importFile.value.name, sizeLabel }
+})
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+function fmtDate(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).format(new Date(value))
 }
 
-function resolveRole(item: AdminUser | null) {
-  if (!item) return 'student'
-  return item.roles?.[0]?.name || 'student'
+function roleOf(user: AdminUser) {
+  return user.roles?.[0]?.name || '—'
 }
 
-function avatarInitials(name: string) {
-  return name.split(' ').slice(-2).map(p => p.charAt(0)).join('').toUpperCase()
+function roleLabel(user: AdminUser) {
+  const role = roleOf(user)
+  if (role === '—') return '—'
+  return t(`admin.users.roles.${role}`)
 }
 
-async function fetchUsers(page = 1) {
-  loading.value = true
-  errorMessage.value = ''
+function roleTone(role: string) {
+  const map: Record<string, string> = {
+    admin: 'tone-admin',
+    instructor: 'tone-instructor',
+    student: 'tone-student',
+    academic_manager: 'tone-academic',
+    advisor: 'tone-advisor',
+    finance: 'tone-finance',
+  }
+  return map[role] || 'tone-neutral'
+}
+
+function statusTone(status?: string | null) {
+  if (!status) return 'tone-neutral'
+  const map: Record<string, string> = {
+    dang_hoc: 'tone-active',
+    bao_luu: 'tone-deferred',
+    tot_nghiep: 'tone-graduated',
+    thoi_hoc: 'tone-dropped',
+    dinh_chi: 'tone-suspended',
+    dang_cong_tac: 'tone-staff',
+    nghi_phep: 'tone-leave',
+    nghi_huu: 'tone-retired',
+  }
+  return map[status] || 'tone-neutral'
+}
+
+function named(ref?: NamedRef | null) {
+  if (!ref) return '—'
+  return ref.code ? `${ref.code} — ${ref.name || ''}` : (ref.name || '—')
+}
+
+function classOf(user: AdminUser) {
+  return named(user.administrativeClass || user.administrative_class)
+}
+
+function rowIndex(index: number) {
+  return (page.value - 1) * perPage.value + index + 1
+}
+
+function toQuery() {
+  return {
+    page: page.value,
+    per_page: perPage.value,
+    q: tableSearch.value || undefined,
+    role: roleChip.value || undefined,
+    cohort_id: filters.cohort_id.length ? filters.cohort_id : undefined,
+    administrative_class_id: filters.administrative_class_id.length ? filters.administrative_class_id : undefined,
+    program_id: filters.program_id.length ? filters.program_id : undefined,
+    major_id: filters.major_id.length ? filters.major_id : undefined,
+    unit_id: filters.unit_id.length ? filters.unit_id : undefined,
+    sort_by: sortBy.value,
+    sort_dir: sortDir.value,
+  }
+}
+
+async function loadCounts() {
   try {
-    const query = new URLSearchParams()
-    query.set('page', String(page))
-    query.set('per_page', String(perPage.value))
-    if (filters.search.trim()) query.set('search', filters.search.trim())
-    if (filters.role) query.set('role', filters.role)
-    if (filters.study_status) query.set('study_status', filters.study_status)
-    if (filters.gender) query.set('gender', filters.gender)
-    if (filters.cohort_id) query.set('cohort_id', filters.cohort_id)
-    if (filters.program_id) query.set('program_id', filters.program_id)
-    if (filters.administrative_class_id) query.set('administrative_class_id', filters.administrative_class_id)
-    if (filters.unit_id) query.set('unit_id', filters.unit_id)
-    
-    if (sortBy.value && sortOrder.value) {
-      query.set('sort_by', sortBy.value)
-      query.set('sort_order', sortOrder.value)
-    }
+    const [all, student, instructor, admin] = await Promise.all([
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1 } }),
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1, role: 'student' } }),
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1, role: 'instructor' } }),
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1, role: 'admin' } }),
+    ])
+    counts.all = all.total || 0
+    counts.student = student.total || 0
+    counts.instructor = instructor.total || 0
+    counts.admin = admin.total || 0
+  }
+  catch { /* ignore */ }
+}
 
-    const response = await useApi<any>(`/admin/users?${query.toString()}`, { headers: authHeaders() })
-    users.value = response.data
-    currentPage.value = response.current_page
-    lastPage.value = response.last_page
-    totalUsers.value = response.total
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải danh sách người dùng.'
-  } finally {
+async function loadOptions() {
+  const map = (res: any) => (res?.data || []).map((item: any) => ({
+    label: item.code ? `${item.code} — ${item.name}` : item.name,
+    value: item.id,
+  }))
+  try {
+    const [cohorts, classes, programs, majors, units] = await Promise.all([
+      useApi<any>('/admin/academic/cohorts', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/administrative-classes', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/programs', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/majors', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/units', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+    ])
+    cohortOptions.value = map(cohorts)
+    classOptions.value = [{ label: t('admin.users.noClass'), value: 'none' }, ...map(classes)]
+    programOptions.value = map(programs)
+    majorOptions.value = map(majors)
+    unitOptions.value = map(units)
+  }
+  catch { /* ignore */ }
+}
+
+async function loadUsers() {
+  loading.value = true
+  try {
+    const res = await useApi<Paginator<AdminUser>>('/admin/users', { query: toQuery() })
+    rows.value = res.data || []
+    total.value = res.total || 0
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.loadError'),
+      detail: error?.data?.message || t('admin.dashboard.tryAgain'),
+      life: 3500,
+    })
+  }
+  finally {
     loading.value = false
   }
 }
 
-async function fetchStats() {
-  try {
-    const [students, instructors, admins] = await Promise.all([
-      useApi<any>('/admin/users?role=student&per_page=1', { headers: authHeaders() }),
-      useApi<any>('/admin/users?role=instructor&per_page=1', { headers: authHeaders() }),
-      useApi<any>('/admin/users?role=admin&per_page=1', { headers: authHeaders() }),
-    ])
-    statsStudents.value = students.total
-    statsInstructors.value = instructors.total
-    statsAdmins.value = admins.total
-  } catch (_) {}
+function resetFilters() {
+  filters.cohort_id = []
+  filters.administrative_class_id = []
+  filters.program_id = []
+  filters.major_id = []
+  filters.unit_id = []
+  page.value = 1
+  loadUsers()
 }
 
-async function fetchFormOptions() {
-  if (optionsLoaded.value) return
-  try {
-    const headers = authHeaders()
-    const [adminClasses, cohorts, programs, units] = await Promise.all([
-      useApi<any>('/admin/academic/administrative-classes?per_page=200', { headers }),
-      useApi<any>('/admin/academic/cohorts?per_page=200', { headers }),
-      useApi<any>('/admin/academic/programs?per_page=200', { headers }),
-      useApi<any>('/admin/academic/units?per_page=200', { headers }),
-    ])
-    optAdminClasses.value = adminClasses.data || []
-    optCohorts.value = cohorts.data || []
-    optPrograms.value = programs.data || []
-    optUnits.value = units.data || []
-    optionsLoaded.value = true
-  } catch (_) {}
+function applyFilters() {
+  page.value = 1
+  loadUsers()
 }
 
-function handleRemoveChip(key: string) {
-  if (key in filters) {
-    filters[key as keyof typeof filters] = ''
-    fetchUsers(1)
+function onTableSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    loadUsers()
+  }, 350)
+}
+
+function onPage(event: { page: number, rows: number }) {
+  page.value = event.page + 1
+  perPage.value = event.rows
+  loadUsers()
+}
+
+function onSort(event: { sortField?: string | ((item: any) => string) | undefined, sortOrder?: number | null | undefined }) {
+  const field = typeof event.sortField === 'string' ? event.sortField : null
+  if (!field) return
+  sortBy.value = field
+  sortDir.value = event.sortOrder === 1 ? 'asc' : 'desc'
+  page.value = 1
+  loadUsers()
+}
+
+function resetForm() {
+  Object.assign(form, {
+    name: '', email: '', password: '', role: 'student', phone: '',
+    student_code: '', staff_code: '', gender: null, date_of_birth: null,
+    study_status: 'dang_hoc', cohort_id: null, administrative_class_id: null,
+    program_id: null, major_id: null, unit_id: null, bio: '', avatar: '',
+  })
+}
+
+function fillForm(user: AdminUser) {
+  Object.assign(form, {
+    name: user.name || '',
+    email: user.email || '',
+    password: '',
+    role: roleOf(user) === '—' ? 'student' : roleOf(user),
+    phone: user.phone || '',
+    student_code: user.student_code || '',
+    staff_code: user.staff_code || '',
+    gender: user.gender || null,
+    date_of_birth: user.date_of_birth ? new Date(user.date_of_birth) : null,
+    study_status: user.study_status || null,
+    cohort_id: user.cohort_id || user.cohort?.id || null,
+    administrative_class_id: user.administrative_class_id || user.administrativeClass?.id || user.administrative_class?.id || null,
+    program_id: user.program_id || user.program?.id || null,
+    major_id: user.major_id || user.major?.id || null,
+    unit_id: user.unit_id || user.unit?.id || null,
+    bio: user.bio || '',
+    avatar: user.avatar || '',
+  })
+}
+
+function openCreate() {
+  editing.value = null
+  modalMode.value = 'create'
+  resetForm()
+  modalOpen.value = true
+}
+
+function openEdit(user: AdminUser) {
+  editing.value = user
+  modalMode.value = 'edit'
+  fillForm(user)
+  modalOpen.value = true
+}
+
+function openView(user: AdminUser) {
+  editing.value = user
+  modalMode.value = 'view'
+  fillForm(user)
+  modalOpen.value = true
+}
+
+function payloadFromForm() {
+  return {
+    name: form.name,
+    email: form.email,
+    password: form.password || undefined,
+    role: form.role,
+    phone: form.phone || null,
+    student_code: form.student_code || null,
+    staff_code: form.staff_code || null,
+    gender: form.gender,
+    date_of_birth: form.date_of_birth ? form.date_of_birth.toISOString().slice(0, 10) : null,
+    study_status: form.study_status,
+    cohort_id: form.cohort_id,
+    administrative_class_id: form.administrative_class_id,
+    program_id: form.program_id,
+    major_id: form.major_id,
+    unit_id: form.unit_id,
+    bio: form.bio || null,
+    avatar: form.avatar || null,
   }
 }
 
-function handleSort(event: { key: string; order: 'asc' | 'desc' | '' }) {
-  sortBy.value = event.key
-  sortOrder.value = event.order
-  fetchUsers(1)
+async function onAvatarPick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    toast.add({ severity: 'warn', summary: t('admin.users.avatarImageOnly'), life: 2500 })
+    return
+  }
+  uploadingAvatar.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('folder', 'users')
+    const res = await useApi<{ url?: string, path?: string }>('/admin/upload', { method: 'POST', body: fd })
+    form.avatar = res.url || res.path || ''
+    toast.add({ severity: 'success', summary: t('admin.users.avatarUpdated'), life: 2000 })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.avatarError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    uploadingAvatar.value = false
+    input.value = ''
+  }
 }
 
-function resetFilters() {
-  filters.search = ''
-  filters.role = ''
-  filters.study_status = ''
-  filters.gender = ''
-  filters.cohort_id = ''
-  filters.program_id = ''
-  filters.administrative_class_id = ''
-  filters.unit_id = ''
-  sortBy.value = ''
-  sortOrder.value = ''
-  fetchUsers(1)
-}
-
-function openCreateModal() {
-  modalMode.value = 'create'
-  form.name = ''
-  form.email = ''
-  form.password = ''
-  form.role = 'student'
-  form.student_code = ''
-  form.staff_code = ''
-  form.administrative_class_id = ''
-  form.cohort_id = ''
-  form.program_id = ''
-  form.study_status = 'dang_hoc'
-  form.phone = ''
-  form.gender = 'male'
-  modalOpen.value = true
-}
-
-function openEditModal(item: AdminUser) {
-  modalMode.value = 'edit'
-  selectedUser.value = item
-  form.name = item.name
-  form.email = item.email
-  form.password = ''
-  form.role = resolveRole(item)
-  form.student_code = item.student_code || ''
-  form.staff_code = item.staff_code || ''
-  form.administrative_class_id = item.administrative_class ? String(item.administrative_class.id) : ''
-  form.cohort_id = item.cohort ? String(item.cohort.id) : ''
-  form.program_id = item.program ? String(item.program.id) : ''
-  form.study_status = item.study_status || 'dang_hoc'
-  form.phone = item.phone || ''
-  form.gender = item.gender || 'male'
-  modalOpen.value = true
-}
-
-function openViewModal(item: AdminUser) {
-  modalMode.value = 'view'
-  selectedUser.value = item
-  modalOpen.value = true
+function clearAvatar() {
+  form.avatar = ''
 }
 
 async function saveUser() {
+  if (isReadonly.value) return
   saving.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
-  
-  const payload: Record<string, any> = {
-    name: form.name,
-    email: form.email,
-    role: form.role,
-    study_status: form.study_status,
-    phone: form.phone,
-    gender: form.gender,
-  }
-  
-  if (form.password) payload.password = form.password
-  if (form.role === 'student') {
-    payload.student_code = form.student_code
-    if (form.administrative_class_id) payload.administrative_class_id = Number(form.administrative_class_id)
-    if (form.cohort_id) payload.cohort_id = Number(form.cohort_id)
-    if (form.program_id) payload.program_id = Number(form.program_id)
-  } else {
-    payload.staff_code = form.staff_code
-  }
-  
   try {
-    if (modalMode.value === 'create') {
-      await useApi('/admin/users', { method: 'POST', headers: authHeaders(), body: payload })
-      successMessage.value = 'Tạo người dùng thành công.'
-    } else if (selectedUser.value) {
-      await useApi(`/admin/users/${selectedUser.value.id}`, { method: 'PUT', headers: authHeaders(), body: payload })
-      successMessage.value = 'Cập nhật người dùng thành công.'
+    if (editing.value && modalMode.value === 'edit') {
+      await useApi(`/admin/users/${editing.value.id}`, { method: 'PUT', body: payloadFromForm() })
+      toast.add({ severity: 'success', summary: t('admin.users.updateSuccess'), life: 2500 })
+    }
+    else {
+      if (!form.password || form.password.length < 6) {
+        toast.add({ severity: 'warn', summary: t('admin.users.passwordRequired'), life: 2500 })
+        return
+      }
+      await useApi('/admin/users', { method: 'POST', body: payloadFromForm() })
+      toast.add({ severity: 'success', summary: t('admin.users.createSuccess'), life: 2500 })
     }
     modalOpen.value = false
-    await fetchUsers(currentPage.value)
-    await fetchStats()
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Lỗi khi lưu người dùng.'
-  } finally {
+    await Promise.all([loadUsers(), loadCounts()])
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.saveError'),
+      detail: error?.data?.message || Object.values(error?.data?.errors || {}).flat()?.[0] || t('admin.dashboard.tryAgain'),
+      life: 4000,
+    })
+  }
+  finally {
     saving.value = false
   }
 }
 
-function confirmDelete(item: AdminUser) {
-  selectedUser.value = item
-  deleteModalOpen.value = true
+function askDelete(user: AdminUser) {
+  confirm.require({
+    message: t('admin.users.deleteConfirm', { name: user.name }),
+    header: t('admin.users.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/admin/users/${user.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.users.deleteSuccess'), life: 2500 })
+        selected.value = selected.value.filter(item => item.id !== user.id)
+        await Promise.all([loadUsers(), loadCounts()])
+      }
+      catch (error: any) {
+        toast.add({ severity: 'error', summary: t('admin.users.deleteError'), detail: error?.data?.message, life: 3500 })
+      }
+    },
+  })
 }
 
-async function deleteUser() {
-  if (!selectedUser.value) return
-  saving.value = true
+function askBulkDelete() {
+  if (!selected.value.length) return
+  confirm.require({
+    message: t('admin.users.bulkDeleteConfirm', { n: selected.value.length }),
+    header: t('admin.users.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        const res = await useApi<{ deleted: number, skipped: any[] }>('/admin/users/bulk-delete', {
+          method: 'POST',
+          body: { ids: selected.value.map(u => u.id) },
+        })
+        toast.add({
+          severity: 'success',
+          summary: t('admin.users.bulkDeleted', { n: res.deleted }),
+          detail: res.skipped?.length ? t('admin.users.bulkSkipped', { n: res.skipped.length }) : undefined,
+          life: 3500,
+        })
+        selected.value = []
+        await Promise.all([loadUsers(), loadCounts()])
+      }
+      catch (error: any) {
+        toast.add({ severity: 'error', summary: t('admin.users.deleteError'), detail: error?.data?.message, life: 3500 })
+      }
+    },
+  })
+}
+
+async function exportCsv() {
+  exporting.value = true
   try {
-    await useApi(`/admin/users/${selectedUser.value.id}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Xóa người dùng thành công.'
-    deleteModalOpen.value = false
-    await fetchUsers(1)
-    await fetchStats()
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Lỗi khi xóa người dùng.'
-  } finally {
-    saving.value = false
+    const query = { ...toQuery() } as Record<string, any>
+    delete query.page
+    delete query.per_page
+    await useApiDownload('/admin/users/export', {
+      query,
+      filename: `users_${new Date().toISOString().slice(0, 10)}.csv`,
+    })
+    toast.add({ severity: 'success', summary: t('admin.users.exported'), life: 2500 })
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('admin.users.exportError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
+    exporting.value = false
   }
 }
 
-const activeChips = computed(() => {
-  const chips = []
-  if (filters.role) {
-    chips.push({ key: 'role', label: `Vai trò: ${roleOptions.find(r => r.value === filters.role)?.label}` })
-  }
-  if (filters.study_status) {
-    chips.push({ key: 'study_status', label: `Trạng thái: ${STUDY_STATUS_LABELS[filters.study_status]}` })
-  }
-  if (filters.gender) {
-    chips.push({ key: 'gender', label: `Giới tính: ${filters.gender === 'male' ? 'Nam' : 'Nữ'}` })
-  }
-  if (filters.cohort_id) {
-    const c = optCohorts.value.find(x => String(x.id) === filters.cohort_id)
-    if (c) chips.push({ key: 'cohort_id', label: `Khóa: ${c.name}` })
-  }
-  if (filters.administrative_class_id) {
-    const ac = optAdminClasses.value.find(x => String(x.id) === filters.administrative_class_id)
-    if (ac) chips.push({ key: 'administrative_class_id', label: `Lớp HC: ${ac.name}` })
-  }
-  return chips
-})
+async function downloadTemplate() {
+  await useApiDownload('/admin/users/import-template', { filename: 'users_import_template.csv' })
+}
 
-onMounted(() => {
-  fetchUsers()
-  fetchStats()
-  fetchFormOptions()
+function openImport() {
+  importOpen.value = true
+  clearImportFile()
+}
+
+function clearImportFile() {
+  importFile.value = null
+  importPreview.value = null
+  importToken.value = null
+  importProgress.value = 0
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+function onDrop(event: DragEvent) {
+  importDragging.value = false
+  const file = event.dataTransfer?.files?.[0]
+  if (file) void handleImportFile(file)
+}
+
+function onFilePicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) void handleImportFile(file)
+}
+
+async function handleImportFile(file: File) {
+  if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+    toast.add({ severity: 'warn', summary: t('admin.users.csvOnly'), life: 2500 })
+    return
+  }
+  importFile.value = file
+  importPreview.value = null
+  importToken.value = null
+  importProgress.value = 0
+
+  // Simulated local read progress for UX feedback, then auto-validate on server
+  await new Promise<void>((resolve) => {
+    const step = () => {
+      importProgress.value = Math.min(100, importProgress.value + 18)
+      if (importProgress.value >= 100) resolve()
+      else setTimeout(step, 40)
+    }
+    step()
+  })
+
+  await runImportPreview()
+}
+
+async function runImportPreview() {
+  if (!importFile.value) return
+  importing.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', importFile.value)
+    const res = await useApi<any>('/admin/users/import-preview', { method: 'POST', body: fd })
+    importPreview.value = res
+    importToken.value = res.import_token
+    toast.add({
+      severity: res.error_count ? 'warn' : 'success',
+      summary: t('admin.users.previewReady'),
+      detail: t('admin.users.previewSummary', { valid: res.valid_count || 0, error: res.error_count || 0 }),
+      life: 3500,
+    })
+  }
+  catch (error: any) {
+    importPreview.value = error?.data || null
+    importToken.value = error?.data?.import_token || null
+    toast.add({
+      severity: 'warn',
+      summary: t('admin.users.previewError'),
+      detail: error?.data?.message,
+      life: 4000,
+    })
+  }
+  finally {
+    importing.value = false
+  }
+}
+
+async function runImportExecute() {
+  if (!importToken.value) return
+  importing.value = true
+  try {
+    const res = await useApi<{ created: number }>('/admin/users/import-execute', {
+      method: 'POST',
+      body: { import_token: importToken.value },
+    })
+    toast.add({ severity: 'success', summary: t('admin.users.imported', { n: res.created }), life: 3000 })
+    importOpen.value = false
+    clearImportFile()
+    await Promise.all([loadUsers(), loadCounts()])
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('admin.users.importError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
+    importing.value = false
+  }
+}
+
+function setRoleChip(role: string | null) {
+  roleChip.value = role
+  page.value = 1
+  loadUsers()
+}
+
+onMounted(async () => {
+  await Promise.all([loadOptions(), loadCounts(), loadUsers()])
 })
 </script>
 
 <template>
-  <AdminWorkspaceShell 
-    title="Quản lý học viên" 
-    subtitle="Quản lý tài khoản học viên và cán bộ giảng viên."
-    :breadcrumbs="[{ label: 'Người dùng & Tổ chức' }, { label: 'Học viên' }]"
-  >
-    <div class="flex flex-col gap-5">
-      
-      <!-- Toolbar Filters at the top -->
-      <UiFilters
-        v-model:search="filters.search"
-        search-placeholder="Tìm người dùng, email, MSSV..."
-        :active-filter-count="activeFilterCount"
-        :active-chips="activeChips"
-        :show-export="true"
-        :show-import="true"
-        :always-open="true"
-        @submit-search="fetchUsers(1)"
-        @reset-filters="resetFilters"
-        @remove-chip="handleRemoveChip"
-        @export="exportToCSV(users, [], 'danh_sach_hoc_vien')"
-        @import="importModalOpen = true"
-      >
-        <!-- Custom Actions Slot -->
-        <template #actions>
-          <button
-            class="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#1d9e75] hover:bg-[#158260] text-white text-xs font-bold transition-all shrink-0 cursor-pointer"
-            type="button"
-            @click="openCreateModal"
-          >
-            <i class="pi pi-plus" />
-            Tạo học viên
-          </button>
-        </template>
+  <div class="page users-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.people') }}</span>
+        <h1>{{ t('admin.users.title') }}</h1>
+        <p>{{ t('admin.users.subtitle') }}</p>
+      </div>
+    </header>
 
-        <!-- Advanced Filters Slot -->
-        <template #advanced>
-          <label class="flex flex-col gap-1 min-w-[170px]">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Vai trò</span>
-            <UiSelect
-              v-model="filters.role"
-              :options="roleOptions"
-              placeholder="Tất cả vai trò"
-              @update:modelValue="fetchUsers(1)"
-            />
-          </label>
-          <label class="flex flex-col gap-1 min-w-[170px]">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Trạng thái</span>
-            <UiSelect
-              v-model="filters.study_status"
-              :options="statusOptions"
-              placeholder="Tất cả trạng thái"
-              @update:modelValue="fetchUsers(1)"
-            />
-          </label>
-          <label class="flex flex-col gap-1 min-w-[170px]">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Giới tính</span>
-            <UiSelect
-              v-model="filters.gender"
-              :options="genderOptions"
-              placeholder="Tất cả giới tính"
-              @update:modelValue="fetchUsers(1)"
-            />
-          </label>
-          <label class="flex flex-col gap-1 min-w-[170px]">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Khóa</span>
-            <UiSelect
-              v-model="filters.cohort_id"
-              :options="cohortOptions"
-              placeholder="Tất cả khóa"
-              @update:modelValue="fetchUsers(1)"
-            />
-          </label>
-          <label class="flex flex-col gap-1 min-w-[170px]">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">Lớp hành chính</span>
-            <UiSelect
+    <section class="metric-rail">
+      <button type="button" class="metric" :class="{ on: !roleChip }" @click="setRoleChip(null)">
+        <strong>{{ counts.all }}</strong>
+        <span>{{ t('admin.users.allUsers') }}</span>
+      </button>
+      <button type="button" class="metric" :class="{ on: roleChip === 'student' }" @click="setRoleChip('student')">
+        <strong>{{ counts.student }}</strong>
+        <span>{{ t('admin.users.roles.student') }}</span>
+      </button>
+      <button type="button" class="metric" :class="{ on: roleChip === 'instructor' }" @click="setRoleChip('instructor')">
+        <strong>{{ counts.instructor }}</strong>
+        <span>{{ t('admin.users.roles.instructor') }}</span>
+      </button>
+      <button type="button" class="metric" :class="{ on: roleChip === 'admin' }" @click="setRoleChip('admin')">
+        <strong>{{ counts.admin }}</strong>
+        <span>{{ t('admin.users.roles.admin') }}</span>
+      </button>
+    </section>
+
+    <section class="table-panel">
+      <div class="filter-bar">
+        <div class="filter-title">
+          <strong>{{ t('admin.users.filters') }}</strong>
+          <Tag v-if="activeFilterCount" :value="String(activeFilterCount)" severity="info" />
+        </div>
+
+        <div class="filter-grid">
+          <label class="field">
+            <span>{{ t('admin.users.class') }}</span>
+            <MultiSelect
               v-model="filters.administrative_class_id"
               :options="classOptions"
-              placeholder="Tất cả lớp"
-              @update:modelValue="fetchUsers(1)"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
             />
           </label>
-        </template>
-      </UiFilters>
-
-      <!-- Main Layout Grid -->
-      <div class="flex flex-col lg:flex-row gap-5 items-start">
-        
-        <!-- Organization Tree Filter (Left Panel) -->
-        <aside class="w-full lg:w-80 shrink-0 bg-white border border-[var(--line)] rounded-2xl p-5 shadow-sm flex flex-col gap-4">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-0.5">Sơ đồ tổ chức</p>
-            <h3 class="text-sm font-bold text-[var(--text)]">Cơ cấu đơn vị</h3>
-          </div>
-
-          <!-- Search Unit -->
-          <div class="relative">
-            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-sm" />
-            <input
-              v-model="unitSearchQuery"
-              type="text"
-              placeholder="Tìm kiếm đơn vị..."
-              class="w-full h-9 pl-9 pr-3 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]"
+          <label class="field">
+            <span>{{ t('admin.users.cohort') }}</span>
+            <MultiSelect
+              v-model="filters.cohort_id"
+              :options="cohortOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
             />
-          </div>
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.program') }}</span>
+            <MultiSelect
+              v-model="filters.program_id"
+              :options="programOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.major') }}</span>
+            <MultiSelect
+              v-model="filters.major_id"
+              :options="majorOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.unit') }}</span>
+            <MultiSelect
+              v-model="filters.unit_id"
+              :options="unitOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+        </div>
 
-          <!-- Units Scrollable List -->
-          <div class="flex flex-col gap-1 max-h-[420px] overflow-y-auto pr-1">
-            <!-- All units selector -->
-            <button
-              type="button"
-              class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer border border-transparent"
-              :class="!filters.unit_id ? 'bg-[rgba(29,158,117,0.08)] text-[#085041] border-[rgba(29,158,117,0.15)] font-bold' : 'bg-transparent text-[var(--muted)] hover:bg-[#f1f5f9] hover:text-[var(--text)]'"
-              @click="filters.unit_id = ''; fetchUsers(1)"
-            >
-              <i class="pi pi-globe text-sm shrink-0" />
-              <span class="truncate">Tất cả đơn vị</span>
-            </button>
+        <div class="filter-actions">
+          <Button :label="t('admin.users.apply')" icon="pi pi-filter" size="small" @click="applyFilters" />
+          <Button :label="t('admin.users.reset')" icon="pi pi-times" size="small" severity="secondary" text @click="resetFilters" />
+        </div>
+      </div>
 
-            <!-- Dynamic units list -->
-            <button
-              v-for="u in filteredUnits"
-              :key="u.id"
-              type="button"
-              class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer border border-transparent"
-              :class="filters.unit_id === String(u.id) ? 'bg-[rgba(29,158,117,0.08)] text-[#085041] border-[rgba(29,158,117,0.15)] font-bold' : 'text-[var(--text)] hover:bg-[#f1f5f9]'"
-              @click="filters.unit_id = String(u.id); fetchUsers(1)"
-            >
-              <i class="pi pi-building text-sm shrink-0 text-[var(--muted)]" :class="{ '!text-[#1d9e75]': filters.unit_id === String(u.id) }" />
-              <span class="truncate">{{ u.name }}</span>
-            </button>
-          </div>
-        </aside>
-
-        <!-- Right Panel: KPIs & Data Grid -->
-        <div class="flex-1 w-full flex flex-col gap-5">
-          <!-- KPIs Cards -->
-          <UiKpiCards
-            :items="[
-              { label: 'Sinh viên', value: statsStudents, subText: 'đang học', color: 'info', icon: 'pi-graduation-cap' },
-              { label: 'Giảng viên', value: statsInstructors, subText: 'đang công tác', color: 'warning', icon: 'pi-user' },
-              { label: 'Quản trị viên', value: statsAdmins, subText: 'đang hoạt động', color: 'purple', icon: 'pi-cog' }
-            ]"
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <IconField>
+            <InputIcon class="pi pi-search" />
+            <InputText
+              v-model="tableSearch"
+              :placeholder="t('admin.users.tableSearch')"
+              @input="onTableSearch"
+            />
+          </IconField>
+          <strong>{{ t('admin.users.result', { n: total }) }}</strong>
+        </div>
+        <div class="toolbar-actions">
+          <Button
+            v-if="selected.length"
+            :label="t('admin.users.bulkDelete', { n: selected.length })"
+            icon="pi pi-trash"
+            severity="danger"
+            outlined
+            size="small"
+            @click="askBulkDelete"
           />
-
-          <!-- Alert Notices -->
-          <div v-if="successMessage" class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
-            <i class="pi pi-check-circle" /> {{ successMessage }}
-          </div>
-          <div v-if="errorMessage" class="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-            <i class="pi pi-exclamation-circle" /> {{ errorMessage }}
-          </div>
-
-          <!-- Data Grid Container -->
-          <section class="bg-white border border-[var(--line)] rounded-2xl overflow-hidden shadow-sm">
-            <UiTable
-              :columns="columns"
-              :data="users"
-              :loading="loading"
-              :sort-by="sortBy"
-              :sort-order="sortOrder"
-              @sort="handleSort"
-            >
-              <!-- Checkbox Headers & Cells -->
-              <template #select-header>
-                <input type="checkbox" :checked="isAllSelected" class="rounded border-[#cbd5e1]" @change="toggleSelectAll" />
-              </template>
-              <template #select-cell="{ row }">
-                <input type="checkbox" :value="row.original.id" v-model="selectedIds" class="rounded border-[#cbd5e1]" />
-              </template>
-
-              <!-- Index Column -->
-              <template #index-cell="{ row }">
-                <span class="text-xs text-[var(--muted)] font-medium">{{ (currentPage - 1) * perPage + row.index + 1 }}</span>
-              </template>
-
-              <!-- User Cell -->
-              <template #user-cell="{ row }">
-                <div class="flex items-center gap-3">
-                  <div class="w-8.5 h-8.5 rounded-full shrink-0 overflow-hidden flex items-center justify-center bg-[rgba(29,158,117,0.1)] text-[#085041] text-xs font-bold border border-[rgba(29,158,117,0.2)]">
-                    <img v-if="row.original.avatar" :src="row.original.avatar" :alt="row.original.name" class="w-full h-full object-cover" />
-                    <span v-else>{{ avatarInitials(row.original.name) }}</span>
-                  </div>
-                  <div class="flex flex-col min-w-0">
-                    <strong class="text-xs font-bold text-[var(--text)] truncate">{{ row.original.name }}</strong>
-                    <span class="text-[10px] text-[var(--muted)] truncate mt-0.5">{{ row.original.email }}</span>
-                  </div>
-                </div>
-              </template>
-
-              <!-- Role Cell -->
-              <template #role-cell="{ row }">
-                <span class="inline-flex items-center h-5 px-2.5 rounded-full text-[10px] font-bold" :class="{
-                  'bg-purple-50 text-purple-700 border border-purple-200': resolveRole(row.original) === 'admin',
-                  'bg-blue-50 text-blue-700 border border-blue-200': resolveRole(row.original) === 'instructor',
-                  'bg-emerald-50 text-[#085041] border border-[rgba(29,158,117,0.2)]': resolveRole(row.original) === 'student',
-                  'bg-amber-50 text-amber-700 border border-amber-200': resolveRole(row.original) === 'academic_manager',
-                }">{{ resolveRole(row.original) }}</span>
-              </template>
-
-              <!-- Administrative Class Cell -->
-              <template #class-cell="{ row }">
-                <div v-if="row.original.administrative_class || row.original.cohort" class="flex flex-col">
-                  <span v-if="row.original.administrative_class" class="text-xs font-semibold text-[var(--text)]">{{ row.original.administrative_class.name }}</span>
-                  <span v-if="row.original.cohort" class="text-[10px] text-[var(--muted)] mt-0.5">{{ row.original.cohort.name }}</span>
-                </div>
-                <span v-else class="text-[var(--muted)] text-xs">—</span>
-              </template>
-
-              <!-- Code Cell -->
-              <template #code-cell="{ row }">
-                <span class="text-xs font-mono text-[var(--text)] font-semibold">{{ row.original.student_code || row.original.staff_code || '—' }}</span>
-              </template>
-
-              <!-- Phone Cell -->
-              <template #phone-cell="{ row }">
-                <span class="text-xs text-[var(--muted)]">{{ row.original.phone || '—' }}</span>
-              </template>
-
-              <!-- Status Switch Cell (Modified to look like admin-ui switch) -->
-              <template #status-cell="{ row }">
-                <div class="flex items-center">
-                  <span class="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-bold" :class="{
-                    'bg-emerald-50 text-emerald-700 border border-emerald-200': ['dang_hoc','dang_cong_tac'].includes(row.original.study_status || ''),
-                    'bg-amber-50 text-amber-700 border border-amber-200': ['bao_luu','nghi_phep'].includes(row.original.study_status || ''),
-                    'bg-blue-50 text-blue-700 border border-blue-200': row.original.study_status === 'tot_nghiep',
-                    'bg-red-50 text-red-700 border border-red-200': ['thoi_hoc','dinh_chi'].includes(row.original.study_status || ''),
-                    'bg-slate-100 text-slate-500 border border-slate-200': row.original.study_status === 'nghi_huu',
-                  }">{{ STUDY_STATUS_LABELS[row.original.study_status || ''] || '—' }}</span>
-                </div>
-              </template>
-
-              <!-- Action Buttons -->
-              <template #actions-cell="{ row }">
-                <div class="flex items-center justify-end gap-1.5">
-                  <button
-                    class="w-7 h-7 rounded-lg border border-[var(--line)] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[#f1f5f9] flex items-center justify-center transition-colors cursor-pointer"
-                    title="Xem chi tiết"
-                    type="button"
-                    @click="openViewModal(row.original)"
-                  >
-                    <i class="pi pi-eye text-xs" />
-                  </button>
-                  <button
-                    class="w-7 h-7 rounded-lg border border-[rgba(29,158,117,0.2)] bg-[rgba(29,158,117,0.05)] text-[#085041] hover:bg-[rgba(29,158,117,0.12)] flex items-center justify-center transition-colors cursor-pointer"
-                    title="Chỉnh sửa"
-                    type="button"
-                    @click="openEditModal(row.original)"
-                  >
-                    <i class="pi pi-pencil text-xs" />
-                  </button>
-                  <button
-                    class="w-7 h-7 rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition-colors cursor-pointer"
-                    title="Xóa"
-                    type="button"
-                    @click="confirmDelete(row.original)"
-                  >
-                    <i class="pi pi-trash text-xs" />
-                  </button>
-                </div>
-              </template>
-            </UiTable>
-
-            <!-- Table Pagination -->
-            <DataTableFooter
-              :current="currentPage"
-              :last="lastPage"
-              :total="totalUsers"
-              :per-page="perPage"
-              @page="fetchUsers"
-              @update:per-page="perPage = $event; fetchUsers(1)"
-            />
-          </section>
+          <Button :label="t('admin.users.import')" icon="pi pi-upload" severity="secondary" outlined size="small" @click="openImport" />
+          <Button :label="t('admin.users.export')" icon="pi pi-download" severity="secondary" outlined size="small" :loading="exporting" @click="exportCsv" />
+          <Button :label="t('admin.users.add')" icon="pi pi-user-plus" size="small" @click="openCreate" />
+          <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="loadUsers" />
         </div>
       </div>
-    </div>
 
-    <!-- User Create / Edit Dialog Modal -->
-    <UModal
-      v-model:open="modalOpen"
-      :title="modalMode === 'create' ? 'Tạo tài khoản học viên' : modalMode === 'edit' ? 'Chỉnh sửa tài khoản học viên' : 'Hồ sơ chi tiết học viên'"
-      :ui="{ width: 'max-w-xl' }"
+      <DataTable
+        v-model:selection="selected"
+        :value="rows"
+        data-key="id"
+        :loading="loading"
+        :paginator="true"
+        lazy
+        :rows="perPage"
+        :total-records="total"
+        :rows-per-page-options="[10, 15, 25, 50]"
+        paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+        :current-page-report-template="t('admin.users.pageReport')"
+        selection-mode="multiple"
+        striped-rows
+        sort-mode="single"
+        removable-sort
+        class="users-table"
+        @page="onPage"
+        @sort="onSort"
+      >
+        <Column selection-mode="multiple" header-style="width:3rem" />
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ rowIndex(index) }}</template>
+        </Column>
+        <Column field="name" :header="t('admin.users.colUser')" sortable style="min-width:220px">
+          <template #body="{ data }">
+            <div class="user-cell">
+              <Avatar v-if="data.avatar" :image="data.avatar" shape="circle" />
+              <Avatar v-else :label="(data.name || '?').slice(0, 1).toUpperCase()" shape="circle" />
+              <div>
+                <button type="button" class="name-link" @click="openView(data)">{{ data.name }}</button>
+                <small>{{ data.email }}</small>
+              </div>
+            </div>
+          </template>
+        </Column>
+        <Column :header="t('admin.users.role')" style="min-width:120px">
+          <template #body="{ data }">
+            <span class="pill" :class="roleTone(roleOf(data))">{{ roleLabel(data) }}</span>
+          </template>
+        </Column>
+        <Column field="student_code" :header="t('admin.users.code')" sortable style="min-width:110px">
+          <template #body="{ data }">{{ data.student_code || data.staff_code || '—' }}</template>
+        </Column>
+        <Column :header="t('admin.users.class')" style="min-width:120px">
+          <template #body="{ data }">{{ classOf(data) }}</template>
+        </Column>
+        <Column field="study_status" :header="t('admin.users.studyStatus')" sortable style="min-width:120px">
+          <template #body="{ data }">
+            <span v-if="data.study_status" class="pill" :class="statusTone(data.study_status)">
+              {{ t(`admin.users.status.${data.study_status}`) }}
+            </span>
+            <span v-else>—</span>
+          </template>
+        </Column>
+        <Column field="created_at" :header="t('admin.users.createdAt')" sortable style="min-width:110px">
+          <template #body="{ data }">{{ fmtDate(data.created_at) }}</template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:9.5rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-eye" text rounded severity="secondary" :aria-label="t('admin.users.view')" @click="openView(data)" />
+            <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.users.edit')" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" :aria-label="t('admin.users.deleteTitle')" @click="askDelete(data)" />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('common.noData') }}</div>
+        </template>
+      </DataTable>
+    </section>
+
+    <!-- View / Create / Edit modal (center) -->
+    <Dialog
+      v-model:visible="modalOpen"
+      modal
+      :header="modalTitle"
+      :style="{ width: 'min(760px, 96vw)' }"
+      :dismissable-mask="true"
+      class="user-modal"
     >
-      <div class="flex flex-col gap-4 py-3">
-        <!-- Dialog Details fields -->
-        <div v-if="modalMode === 'view' && selectedUser" class="flex flex-col gap-4">
-          <div class="flex items-center gap-4 bg-[#f8fafc] p-4 rounded-xl border border-[var(--line)]">
-            <div class="w-12 h-12 rounded-full bg-[rgba(29,158,117,0.1)] text-[#085041] flex items-center justify-center font-bold text-lg">
-              {{ avatarInitials(selectedUser.name) }}
-            </div>
-            <div class="flex flex-col">
-              <strong class="text-sm font-bold text-[var(--text)]">{{ selectedUser.name }}</strong>
-              <span class="text-xs text-[var(--muted)] mt-0.5">{{ selectedUser.email }}</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4 text-xs">
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] font-bold uppercase text-[var(--muted)]">Vai trò</span>
-              <span class="font-semibold">{{ resolveRole(selectedUser) }}</span>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] font-bold uppercase text-[var(--muted)]">Mã số</span>
-              <span class="font-semibold">{{ selectedUser.student_code || selectedUser.staff_code || '—' }}</span>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] font-bold uppercase text-[var(--muted)]">Số điện thoại</span>
-              <span class="font-semibold">{{ selectedUser.phone || '—' }}</span>
-            </div>
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] font-bold uppercase text-[var(--muted)]">Trạng thái</span>
-              <span class="font-semibold">{{ STUDY_STATUS_LABELS[selectedUser.study_status || ''] || '—' }}</span>
+      <div class="modal-grid" :class="{ readonly: isReadonly }">
+        <div class="avatar-block full">
+          <Avatar
+            v-if="form.avatar"
+            :image="form.avatar"
+            shape="circle"
+            size="xlarge"
+            class="avatar-preview"
+          />
+          <Avatar
+            v-else
+            :label="(form.name || '?').slice(0, 1).toUpperCase()"
+            shape="circle"
+            size="xlarge"
+            class="avatar-preview"
+          />
+          <div class="avatar-meta">
+            <strong>{{ t('admin.users.avatar') }}</strong>
+            <span>{{ t('admin.users.avatarHint') }}</span>
+            <div v-if="!isReadonly" class="avatar-actions">
+              <input ref="avatarInput" type="file" accept="image/*" hidden @change="onAvatarPick">
+              <Button
+                :label="t('admin.users.changeAvatar')"
+                icon="pi pi-camera"
+                size="small"
+                severity="secondary"
+                outlined
+                :loading="uploadingAvatar"
+                @click="avatarInput?.click()"
+              />
+              <Button
+                v-if="form.avatar"
+                :label="t('admin.users.removeAvatar')"
+                icon="pi pi-times"
+                size="small"
+                severity="danger"
+                text
+                @click="clearAvatar"
+              />
             </div>
           </div>
         </div>
 
-        <form v-else class="flex flex-col gap-4" @submit.prevent="saveUser">
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-[var(--text)]">Họ và tên</span>
-            <input v-model="form.name" type="text" required class="h-10 px-3.5 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]" />
-          </label>
-
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-[var(--text)]">Email đăng nhập</span>
-            <input v-model="form.email" type="email" required class="h-10 px-3.5 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]" />
-          </label>
-
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-bold text-[var(--text)]">Mật khẩu {{ modalMode === 'edit' ? '(để trống nếu không đổi)' : '' }}</span>
-            <input v-model="form.password" type="password" :required="modalMode === 'create'" class="h-10 px-3.5 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]" />
-          </label>
-
-          <div class="grid grid-cols-2 gap-4">
-            <label class="flex flex-col gap-1.5">
-              <span class="text-xs font-bold text-[var(--text)]">Vai trò</span>
-              <UiSelect v-model="form.role" :options="roleOptions" />
-            </label>
-            <label class="flex flex-col gap-1.5">
-              <span class="text-xs font-bold text-[var(--text)]">Trạng thái</span>
-              <UiSelect v-model="form.study_status" :options="statusOptions" />
-            </label>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <label class="flex flex-col gap-1.5">
-              <span class="text-xs font-bold text-[var(--text)]">Mã (MSSV/Mã NV)</span>
-              <input v-if="form.role === 'student'" v-model="form.student_code" type="text" class="h-10 px-3.5 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]" />
-              <input v-else v-model="form.staff_code" type="text" class="h-10 px-3.5 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]" />
-            </label>
-            <label class="flex flex-col gap-1.5">
-              <span class="text-xs font-bold text-[var(--text)]">Số điện thoại</span>
-              <input v-model="form.phone" type="text" class="h-10 px-3.5 rounded-xl border border-[var(--line)] bg-[#f8fafc] text-xs focus:outline-none focus:border-[#1d9e75]" />
-            </label>
-          </div>
-
-          <div class="flex items-center justify-end gap-3 mt-4">
-            <button type="button" class="h-10 px-4 rounded-xl border border-[var(--line)] text-xs font-bold text-[var(--muted)] hover:bg-[#f1f5f9] cursor-pointer" @click="modalOpen = false">Hủy</button>
-            <button type="submit" :disabled="saving" class="h-10 px-5 rounded-xl bg-[#1d9e75] hover:bg-[#158260] text-white text-xs font-bold shadow-md cursor-pointer flex items-center gap-2">
-              <i v-if="saving" class="pi pi-spin pi-spinner text-xs" />
-              <span>{{ modalMode === 'create' ? 'Tạo tài khoản' : 'Cập nhật' }}</span>
-            </button>
-          </div>
-        </form>
+        <label class="field"><span>{{ t('admin.users.name') }}</span><InputText v-model="form.name" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field"><span>{{ t('admin.users.email') }}</span><InputText v-model="form.email" type="email" class="w-full" :disabled="isReadonly" /></label>
+        <label v-if="!isReadonly" class="field">
+          <span>{{ modalMode === 'edit' ? t('admin.users.passwordOptional') : t('admin.users.password') }}</span>
+          <Password v-model="form.password" :feedback="false" toggle-mask class="w-full" input-class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.role') }}</span>
+          <Select v-model="form.role" :options="roleOptions" option-label="label" option-value="value" class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field"><span>{{ t('admin.users.studentCode') }}</span><InputText v-model="form.student_code" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field"><span>{{ t('admin.users.staffCode') }}</span><InputText v-model="form.staff_code" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field"><span>{{ t('admin.users.phone') }}</span><InputText v-model="form.phone" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field">
+          <span>{{ t('admin.users.genderLabel') }}</span>
+          <Select v-model="form.gender" :options="genderOptions" option-label="label" option-value="value" show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.dob') }}</span>
+          <DatePicker v-model="form.date_of_birth" date-format="dd/mm/yy" show-icon class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.studyStatus') }}</span>
+          <Select v-model="form.study_status" :options="studyStatusOptions" option-label="label" option-value="value" show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.cohort') }}</span>
+          <Select v-model="form.cohort_id" :options="cohortOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.class') }}</span>
+          <Select v-model="form.administrative_class_id" :options="classOptions.filter(o => o.value !== 'none')" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.program') }}</span>
+          <Select v-model="form.program_id" :options="programOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.major') }}</span>
+          <Select v-model="form.major_id" :options="majorOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.users.unit') }}</span>
+          <Select v-model="form.unit_id" :options="unitOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field full bio-field">
+          <span>{{ t('admin.users.bio') }}</span>
+          <Textarea v-model="form.bio" rows="3" auto-resize class="w-full bio-input" :disabled="isReadonly" />
+        </label>
       </div>
-    </UModal>
+      <template #footer>
+        <div class="modal-foot">
+          <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
+          <template v-if="isReadonly">
+            <Button :label="t('admin.users.edit')" icon="pi pi-pencil" @click="modalMode = 'edit'" />
+          </template>
+          <Button v-else :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="saveUser" />
+        </div>
+      </template>
+    </Dialog>
 
-    <!-- Delete Confirmation Modal -->
-    <CrudConfirmModal
-      v-model:open="deleteModalOpen"
-      title="Xóa tài khoản người dùng"
-      message="Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa tài khoản này?"
-      :loading="saving"
-      @confirm="deleteUser"
-    />
-  </AdminWorkspaceShell>
+    <!-- Import modal -->
+    <Dialog v-model:visible="importOpen" modal :header="t('admin.users.importTitle')" :style="{ width: 'min(760px, 96vw)' }" :dismissable-mask="true">
+      <div class="import-box">
+        <div class="import-step">
+          <div class="step-head">
+            <span class="step-num">1</span>
+            <div>
+              <strong>{{ t('admin.users.stepTemplate') }}</strong>
+              <p>{{ t('admin.users.stepTemplateHint') }}</p>
+            </div>
+          </div>
+          <Button :label="t('admin.users.downloadTemplate')" icon="pi pi-download" severity="secondary" outlined @click="downloadTemplate" />
+        </div>
+
+        <div class="import-step">
+          <div class="step-head">
+            <span class="step-num">2</span>
+            <div>
+              <strong>{{ t('admin.users.stepUpload') }}</strong>
+              <p>{{ t('admin.users.stepUploadHint') }}</p>
+            </div>
+          </div>
+
+          <div
+            class="dropzone"
+            :class="{ dragging: importDragging, hasFile: !!importFile }"
+            @dragenter.prevent="importDragging = true"
+            @dragover.prevent="importDragging = true"
+            @dragleave.prevent="importDragging = false"
+            @drop.prevent="onDrop"
+            @click="fileInput?.click()"
+          >
+            <input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFilePicked">
+            <i class="pi pi-cloud-upload" />
+            <strong>{{ t('admin.users.dropTitle') }}</strong>
+            <span>{{ t('admin.users.dropHint') }}</span>
+          </div>
+
+          <div v-if="importFileMeta" class="file-card">
+            <div class="file-card-main">
+              <i class="pi pi-file" />
+              <div>
+                <strong>{{ importFileMeta.name }}</strong>
+                <small>{{ importFileMeta.sizeLabel }}</small>
+              </div>
+            </div>
+            <Button icon="pi pi-times" text rounded severity="secondary" @click.stop="clearImportFile" />
+            <ProgressBar :value="importProgress" :show-value="true" class="file-progress" />
+          </div>
+        </div>
+
+        <div v-if="importPreview || importing" class="import-step">
+          <div class="step-head">
+            <span class="step-num">3</span>
+            <div>
+              <strong>{{ t('admin.users.stepResult') }}</strong>
+              <p>{{ t('admin.users.stepResultHint') }}</p>
+            </div>
+          </div>
+          <div v-if="importing && !importPreview" class="checking">
+            <ProgressSpinner style="width:28px;height:28px" stroke-width="4" />
+            <span>{{ t('admin.users.checking') }}</span>
+          </div>
+          <div v-if="importPreview" class="preview-meta">
+            <Tag :value="t('admin.users.validCount', { n: importPreview.valid_count || 0 })" severity="success" />
+            <Tag :value="t('admin.users.errorCount', { n: importPreview.error_count || 0 })" severity="danger" />
+          </div>
+          <DataTable v-if="importPreview?.rows?.length" :value="importPreview.rows.slice(0, 40)" size="small" class="preview-table" scrollable scroll-height="240px">
+            <Column field="row" header="#" style="width:3rem" />
+            <Column field="name" :header="t('admin.users.name')" />
+            <Column field="email" :header="t('admin.users.email')" />
+            <Column field="role" :header="t('admin.users.role')" />
+            <Column :header="t('admin.users.errors')">
+              <template #body="{ data }">
+                <span :class="{ bad: data.errors?.length }">{{ data.errors?.length ? data.errors.join(', ') : 'OK' }}</span>
+              </template>
+            </Column>
+          </DataTable>
+        </div>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="importOpen = false" />
+        <Button :label="t('admin.users.confirmImport')" icon="pi pi-check" :disabled="!importToken" :loading="importing" @click="runImportExecute" />
+      </template>
+    </Dialog>
+  </div>
 </template>
+
+<style scoped>
+.users-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.metric-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.metric {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  min-height: 72px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.metric strong { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+.metric span { color: var(--text-muted); font-size: .78rem; font-weight: 600; }
+.metric.on {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
+}
+
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px; overflow: hidden;
+}
+
+.filter-bar {
+  margin-bottom: 12px; padding: 12px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface-subtle);
+}
+.filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.filter-title strong { font-size: .92rem; }
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+.filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.w-full { width: 100%; }
+
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar-left strong { font-size: .92rem; white-space: nowrap; }
+.toolbar-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-cell small { display: block; color: var(--text-muted); font-size: .78rem; }
+.name-link {
+  border: 0; background: none; padding: 0; color: var(--text);
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.name-link:hover { color: var(--brand); }
+
+.pill {
+  display: inline-flex; align-items: center; max-width: 100%;
+  padding: 3px 9px; border-radius: 999px; font-size: .74rem; font-weight: 700; white-space: nowrap;
+}
+.tone-admin { background: #fee2e2; color: #b91c1c; }
+.tone-instructor { background: #ffedd5; color: #c2410c; }
+.tone-student { background: #dbeafe; color: #1d4ed8; }
+.tone-academic { background: #ede9fe; color: #6d28d9; }
+.tone-advisor { background: #e0e7ff; color: #4338ca; }
+.tone-finance { background: #fef3c7; color: #a16207; }
+.tone-active { background: #dcfce7; color: #15803d; }
+.tone-deferred { background: #fef9c3; color: #a16207; }
+.tone-graduated { background: #e0f2fe; color: #0369a1; }
+.tone-dropped { background: #ffe4e6; color: #be123c; }
+.tone-suspended { background: #fce7f3; color: #be185d; }
+.tone-staff { background: #ccfbf1; color: #0f766e; }
+.tone-leave { background: #fde68a; color: #92400e; }
+.tone-retired { background: #e2e8f0; color: #475569; }
+.tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
+
+.empty { padding: 40px; color: var(--text-muted); text-align: center; }
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.modal-grid .full { grid-column: 1 / -1; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; width: 100%; }
+
+.avatar-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle);
+}
+.avatar-preview { flex: 0 0 auto; }
+.avatar-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.avatar-meta strong { font-size: .92rem; }
+.avatar-meta > span { color: var(--text-muted); font-size: .78rem; }
+.avatar-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+.bio-field :deep(.p-textarea),
+.bio-input {
+  width: 100% !important;
+  min-height: 84px;
+  resize: vertical;
+  box-shadow: none !important;
+}
+.bio-field :deep(.p-textarea:enabled:focus) {
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent) !important;
+}
+
+.import-box { display: grid; gap: 16px; }
+.import-step {
+  display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface-subtle);
+}
+.step-head { display: flex; gap: 12px; align-items: flex-start; }
+.step-num {
+  display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px;
+  border-radius: 999px; background: var(--brand); color: #fff; font-size: .8rem; font-weight: 700;
+}
+.step-head strong { display: block; font-size: .92rem; }
+.step-head p { margin: 2px 0 0; color: var(--text-muted); font-size: .8rem; }
+
+.dropzone {
+  display: grid; place-items: center; gap: 6px; min-height: 140px; padding: 20px;
+  border: 1.5px dashed var(--border-strong); border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  text-align: center; cursor: pointer; transition: .15s ease;
+}
+.dropzone:hover, .dropzone.dragging {
+  border-color: var(--brand); background: var(--brand-soft);
+}
+.dropzone i { font-size: 1.6rem; color: var(--brand); }
+.dropzone strong { font-size: .95rem; }
+.dropzone span { color: var(--text-muted); font-size: .8rem; }
+
+.file-card {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+}
+.file-card-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.file-card-main i { color: var(--brand); }
+.file-card-main strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-card-main small { color: var(--text-muted); font-size: .75rem; }
+.file-progress { grid-column: 1 / -1; height: 8px; }
+
+.checking { display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
+.preview-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.preview-table .bad { color: var(--danger); font-size: .8rem; }
+
+:deep(.filter-bar .p-multiselect),
+:deep(.filter-bar .p-select),
+:deep(.filter-bar .p-inputtext),
+:deep(.modal-grid .p-select),
+:deep(.modal-grid .p-password),
+:deep(.modal-grid .p-datepicker) { width: 100%; }
+
+@media (max-width: 1100px) {
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-rail { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .filter-grid, .modal-grid, .metric-rail { grid-template-columns: 1fr; }
+}
+</style>

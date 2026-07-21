@@ -1,0 +1,50 @@
+---
+description: Sylva LMS UI design system — background, typography, surfaces, bilingual
+globs: frontend/app/**/*.{vue,css,ts}
+alwaysApply: false
+---
+
+# Sylva LMS UI Design Rule
+
+Use this when building or restyling any page in `frontend/`.
+
+## Visual foundation
+
+- Page canvas uses `/body-bg.jpg` (light mode) via `--body-bg-image` in `main.css`. Do not leave large empty flat white regions.
+- Dark mode: solid `--canvas`, no light background image.
+- Content sits on translucent surfaces: `color-mix(in srgb, var(--surface) 94%, transparent)` + light `backdrop-filter`, border `var(--border)`, radius `12–14px`.
+- Brand teal: `--brand` `#0f766e` (light) / `#44b5a8` (dark). Soft fill: `--brand-soft`.
+
+## Typography
+
+- Body: `IBM Plex Sans` via `--font-sans`. Display/titles: `IBM Plex Sans Condensed` via `--font-display`.
+- Never fall back to Inter / Roboto / Arial / bare `system-ui` as primary.
+- Base size ≥ 15px; body weight ≥ 500. Headings weight 700. Muted text uses `--text-muted` (readable, not washed out).
+- Avoid ultra-thin weights and low-contrast gray-on-gray.
+
+## Layout density
+
+- Dashboards and admin lists should feel dense and professional: KPI strip + secondary pulse metrics + charts + side lists.
+- One job per section; prefer CSS grid over card stacks.
+- Panels: short title + one muted subtitle; charts/lists fill the panel.
+- Keep first viewport purposeful (metrics + primary chart), not sparse hero marketing.
+
+## Bilingual (vi / en)
+
+- All user-facing strings go through `@nuxtjs/i18n` (`$t` / `t()`). Default locale: `vi`.
+- Add keys to both `frontend/i18n/locales/vi.json` and `en.json` in the same PR/change.
+- Menu labels use `admin.menu.*` keys from `admin-menu.ts` (`labelKey`), not hardcoded Vietnamese.
+- Language switcher lives in admin topbar; locale persisted via cookie `sylva_locale`.
+
+## Do / Don't
+
+```vue
+<!-- ✅ GOOD: token + i18n -->
+<h2>{{ $t('admin.dashboard.trafficTitle') }}</h2>
+
+<!-- ❌ BAD: system font + hardcoded copy -->
+<h2 style="font-family: system-ui">Lưu lượng truy cập</h2>
+```
+
+- Do not invent a second color system or purple/indigo AI defaults.
+- Do not place cards in heroes on public marketing pages; admin panels are OK as bordered surfaces.

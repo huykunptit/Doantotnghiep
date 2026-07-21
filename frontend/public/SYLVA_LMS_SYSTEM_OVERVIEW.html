@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sylva LMS — Tổng quan hệ thống cho Tester</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    --secondary: #7c3aed;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --dark: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --bg: #f8fafc;
+    --white: #ffffff;
+    --code-bg: #1e293b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    line-height: 1.7;
+  }
+  /* NAV */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 260px; height: 100vh;
+    background: var(--dark); color: #cbd5e1;
+    overflow-y: auto; padding: 24px 0; z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid #334155;
+    margin-bottom: 16px;
+  }
+  .sidebar-logo h2 { color: white; font-size: 18px; }
+  .sidebar-logo span { font-size: 12px; color: #94a3b8; }
+  .nav-section { padding: 8px 20px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1px; color: #475569; font-weight: 600; margin-top: 8px; }
+  .nav-item { display: block; padding: 8px 20px; color: #94a3b8; text-decoration: none;
+    font-size: 13.5px; transition: all .15s; border-left: 3px solid transparent; }
+  .nav-item:hover { color: white; background: #334155; border-left-color: var(--primary); }
+  /* MAIN */
+  .main { margin-left: 260px; min-height: 100vh; }
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e293b 60%, #312e81 100%);
+    color: white; padding: 60px 48px 48px;
+  }
+  .hero-badge { display: inline-block; background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 999px;
+    padding: 4px 14px; font-size: 12px; margin-bottom: 16px; }
+  .hero h1 { font-size: 36px; font-weight: 700; margin-bottom: 8px; }
+  .hero p { color: #93c5fd; font-size: 16px; margin-bottom: 24px; }
+  .hero-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+  .hero-meta-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #bfdbfe; }
+  /* CONTENT */
+  .content { padding: 40px 48px; max-width: 1100px; }
+  /* SECTION */
+  .section { margin-bottom: 56px; }
+  .section-title {
+    font-size: 22px; font-weight: 700; color: var(--dark);
+    padding-bottom: 12px; border-bottom: 2px solid var(--primary);
+    margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .num {
+    background: var(--primary); color: white; border-radius: 8px;
+    width: 32px; height: 32px; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  /* CARDS */
+  .card {
+    background: white; border-radius: 12px; border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .card-title { font-size: 16px; font-weight: 600; color: var(--dark); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px; }
+  .card-subtitle { font-size: 12px; color: var(--muted); font-weight: 400; }
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-purple { background: #ede9fe; color: #6d28d9; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+  .badge-yellow { background: #fef9c3; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #b91c1c; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #f8fafc; padding: 10px 14px; text-align: left;
+    font-weight: 600; color: var(--muted); font-size: 12px;
+    text-transform: uppercase; letter-spacing: .5px;
+    border-bottom: 2px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--dark); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  code { background: #f1f5f9; color: #0f172a; padding: 1px 6px;
+    border-radius: 4px; font-size: 13px; font-family: 'Fira Code', monospace; }
+  /* FLOW DIAGRAM */
+  .flow { background: var(--code-bg); border-radius: 12px; padding: 24px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 13px; line-height: 1.8; color: #e2e8f0; overflow-x: auto; }
+  .flow .node { color: #7dd3fc; }
+  .flow .arrow { color: #475569; }
+  /* ROLE CARDS */
+  .role-card {
+    background: white; border-radius: 12px; border: 1px solid var(--border);
+    padding: 20px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .role-name { font-size: 15px; font-weight: 700; }
+  .role-desc { font-size: 13px; color: var(--muted); }
+  .role-perms { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  /* MODULE CARDS */
+  .module-card {
+    background: white; border-radius: 12px; border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    padding: 24px; margin-bottom: 20px;
+  }
+  .module-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .module-name { font-size: 17px; font-weight: 700; color: var(--dark); }
+  .module-endpoints { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .endpoint { font-family: monospace; background: #f1f5f9; padding: 2px 8px;
+    border-radius: 4px; font-size: 12px; color: #334155; }
+  /* ARCH */
+  .arch-box {
+    background: var(--code-bg); border-radius: 12px; padding: 28px;
+    font-family: 'Fira Code', monospace; font-size: 13.5px; line-height: 2;
+    color: #e2e8f0; overflow-x: auto;
+  }
+  .arch-box .service { color: #86efac; }
+  .arch-box .port { color: #fbbf24; }
+  .arch-box .arrow { color: #60a5fa; }
+  .arch-box .comment { color: #94a3b8; }
+  /* PRIORITY */
+  .priority-high { color: var(--danger); font-weight: 600; }
+  .priority-med { color: var(--warning); font-weight: 600; }
+  .priority-low { color: var(--success); font-weight: 600; }
+  /* ALERT */
+  .alert { padding: 14px 18px; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
+  .alert-blue { background: #eff6ff; border-left: 4px solid var(--primary); color: #1e40af; }
+  /* TREE */
+  .tree { font-family: 'Fira Code', monospace; font-size: 13px;
+    background: #f8fafc; border-radius: 8px; padding: 20px; line-height: 2; }
+  .tree .indent { color: #94a3b8; }
+  .tree .leaf { color: var(--primary); font-weight: 600; }
+  .tree .desc { color: var(--muted); font-size: 12px; }
+  /* TECH TAGS */
+  .tech-tag { display: inline-block; padding: 4px 12px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; margin: 3px; background: #f1f5f9; color: #334155; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h2>Sylva LMS</h2>
+    <span>System Overview — Tester Guide</span>
+  </div>
+  <div class="nav-section">Tổng quan</div>
+  <a class="nav-item" href="#architecture">1. Kiến trúc hệ thống</a>
+  <a class="nav-item" href="#roles">2. Roles & Quyền hạn</a>
+  <div class="nav-section">Modules</div>
+  <a class="nav-item" href="#mod1">Auth & Người dùng</a>
+  <a class="nav-item" href="#mod2">Quản lý Khóa học</a>
+  <a class="nav-item" href="#mod3">Duyệt & Xuất bản</a>
+  <a class="nav-item" href="#mod4">Thanh toán</a>
+  <a class="nav-item" href="#mod5">Học & Tiến độ</a>
+  <a class="nav-item" href="#mod6">Kiểm tra & Thi cử</a>
+  <a class="nav-item" href="#mod7">Quản lý Học vụ</a>
+  <a class="nav-item" href="#mod8">AI Service</a>
+  <a class="nav-item" href="#mod9">Cố vấn học tập</a>
+  <a class="nav-item" href="#mod10">Q&A & Đánh giá</a>
+  <a class="nav-item" href="#mod11">Chứng chỉ</a>
+  <div class="nav-section">Tham chiếu</div>
+  <a class="nav-item" href="#flows">Luồng theo Role</a>
+  <a class="nav-item" href="#models">Data Models</a>
+  <a class="nav-item" href="#testpriority">Test Priority</a>
+  <a class="nav-item" href="#techstack">Tech Stack</a>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Tester Documentation v1.0</div>
+  <h1>Sylva LMS — Tổng quan hệ thống</h1>
+  <p>Tài liệu đầy đủ về kiến trúc, nghiệp vụ và luồng hoạt động cho QA/Tester</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">📅 Ngày xuất: 10/07/2026</div>
+    <div class="hero-meta-item">🏫 Dự án: PTIT LMS (Graduation Thesis)</div>
+    <div class="hero-meta-item">🔧 Backend: Laravel 13 · Frontend: Nuxt.js 4 · AI: FastAPI</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- SECTION 1: ARCHITECTURE -->
+<div class="section" id="architecture">
+  <div class="section-title"><div class="num">1</div>Kiến trúc tổng thể</div>
+  <div class="arch-box">
+<span class="comment">Internet</span>
+    │
+  <span class="service">Nginx</span> <span class="port">:80</span>  <span class="comment">← Reverse proxy / Entry point</span>
+    ├── /api   <span class="arrow">→</span>  <span class="service">Backend (Laravel 13, PHP 8.3)</span>   <span class="port">:8000</span>
+    ├── /      <span class="arrow">→</span>  <span class="service">Frontend (Nuxt.js 4 / Vue 3)</span>    <span class="port">:3000</span>
+    └── /ai    <span class="arrow">→</span>  <span class="service">AI Service (FastAPI / Python)</span>   <span class="port">:8001</span>
+
+<span class="comment">── Databases ──────────────────────────────</span>
+  <span class="service">MySQL 8.0</span>   <span class="port">:3308</span>   <span class="comment">← Dữ liệu chính (relational)</span>
+  <span class="service">MongoDB 7</span>   <span class="port">:27017</span>  <span class="comment">← Chat history / AI logs</span>
+  <span class="service">Redis 7</span>     <span class="port">:6379</span>   <span class="comment">← Cache + Job Queue</span>
+
+<span class="comment">── Storage ─────────────────────────────────</span>
+  <span class="service">MinIO</span>       <span class="port">:9000</span>   <span class="comment">← Video, file (S3-compatible)</span>
+  <span class="service">MinIO UI</span>    <span class="port">:9001</span>
+
+<span class="comment">── Tools ───────────────────────────────────</span>
+  <span class="service">n8n</span>         <span class="port">:5678</span>   <span class="comment">← Workflow automation</span>
+  <span class="service">phpMyAdmin</span>  <span class="port">:8083</span>   <span class="comment">← DB management UI</span></div>
+
+  <div class="grid-3" style="margin-top:20px">
+    <div class="card">
+      <div class="card-title">🌐 Web Client</div>
+      <p style="font-size:13px;color:var(--muted)">Nuxt.js 4 + Vue 3 + TypeScript<br>Dành cho: Admin, Instructor, Student, Advisor</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📱 Mobile Client</div>
+      <p style="font-size:13px;color:var(--muted)">Flutter + Riverpod + go_router<br>Dành cho: Student (học trên điện thoại)</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📮 API Client</div>
+      <p style="font-size:13px;color:var(--muted)">REST API + Postman Collection<br>File: PTIT_LMS_API.postman_collection.json</p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: ROLES -->
+<div class="section" id="roles">
+  <div class="section-title"><div class="num">2</div>Roles & Quyền hạn</div>
+  <div class="alert alert-blue">Mặc định khi đăng ký tài khoản mới: role <code>student</code>. Admin có thể thay đổi role sau.</div>
+  <div class="grid-2">
+    <div class="role-card" style="border-left:4px solid #dc2626">
+      <div class="role-name" style="color:#dc2626">👑 admin</div>
+      <div class="role-desc">Quản trị viên hệ thống — toàn quyền</div>
+      <div class="role-perms">
+        <span class="badge badge-red">Manage Users</span>
+        <span class="badge badge-red">Manage Roles</span>
+        <span class="badge badge-red">Approve Courses</span>
+        <span class="badge badge-red">Monitor Exams</span>
+        <span class="badge badge-red">AI Settings</span>
+        <span class="badge badge-red">Site Settings</span>
+      </div>
+    </div>
+    <div class="role-card" style="border-left:4px solid #7c3aed">
+      <div class="role-name" style="color:#7c3aed">🎓 academic_manager</div>
+      <div class="role-desc">Quản lý đào tạo — học vụ, lịch học, điểm</div>
+      <div class="role-perms">
+        <span class="badge badge-purple">Manage Academic</span>
+        <span class="badge badge-purple">Manage Enrollments</span>
+        <span class="badge badge-purple">Manage Grades</span>
+        <span class="badge badge-purple">View Reports</span>
+      </div>
+    </div>
+    <div class="role-card" style="border-left:4px solid #2563eb">
+      <div class="role-name" style="color:#2563eb">👨‍🏫 instructor</div>
+      <div class="role-desc">Giảng viên — tạo nội dung, kiểm tra, nhập điểm</div>
+      <div class="role-perms">
+        <span class="badge badge-blue">Manage Courses</span>
+        <span class="badge badge-blue">Manage Lessons</span>
+        <span class="badge badge-blue">Manage Exams</span>
+        <span class="badge badge-blue">Manage Grades</span>
+        <span class="badge badge-blue">View Revenue</span>
+      </div>
+    </div>
+    <div class="role-card" style="border-left:4px solid #16a34a">
+      <div class="role-name" style="color:#16a34a">🧑‍💼 advisor</div>
+      <div class="role-desc">Cố vấn học tập — theo dõi sinh viên phụ trách</div>
+      <div class="role-perms">
+        <span class="badge badge-green">Advise Students</span>
+        <span class="badge badge-green">View Grades</span>
+        <span class="badge badge-green">View Reports</span>
+      </div>
+    </div>
+    <div class="role-card" style="border-left:4px solid #d97706">
+      <div class="role-name" style="color:#d97706">💰 finance</div>
+      <div class="role-desc">Kế toán — quản lý tài chính, doanh thu</div>
+      <div class="role-perms">
+        <span class="badge badge-yellow">Manage Finances</span>
+        <span class="badge badge-yellow">View Reports</span>
+      </div>
+    </div>
+    <div class="role-card" style="border-left:4px solid #0891b2">
+      <div class="role-name" style="color:#0891b2">👩‍🎓 student</div>
+      <div class="role-desc">Sinh viên — học, thi, đánh giá khóa học</div>
+      <div class="role-perms">
+        <span class="badge badge-blue">Take Exams</span>
+        <span class="badge badge-blue">View Grades</span>
+        <span class="badge badge-blue">Submit Reviews</span>
+        <span class="badge badge-blue">AI Chat / Career</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: MODULES -->
+<div class="section" id="mod1">
+  <div class="section-title"><div class="num">3</div>Các Module chính</div>
+
+  <!-- MODULE 1 -->
+  <div class="module-card" id="mod1">
+    <div class="module-header">
+      <div>
+        <div class="module-name">Module 1: Xác thực & Người dùng</div>
+        <div class="module-endpoints"><span class="endpoint">/api/auth/*</span> <span class="endpoint">/api/admin/users</span></div>
+      </div>
+      <span class="badge badge-blue">Auth</span>
+    </div>
+    <table>
+      <tr><th>Chức năng</th><th>Mô tả</th></tr>
+      <tr><td>Đăng ký</td><td>Email + password → tự động gán role <code>student</code></td></tr>
+      <tr><td>Xác minh email</td><td>Bắt buộc trước khi login — gửi mail với link verify</td></tr>
+      <tr><td>Đăng nhập</td><td>Email/password hoặc Google OAuth (Socialite)</td></tr>
+      <tr><td>Quên mật khẩu</td><td>Gửi link reset qua email, link có TTL</td></tr>
+      <tr><td>Quản lý user (Admin)</td><td>CRUD user, gán/thu hồi role, xem thống kê</td></tr>
+    </table>
+  </div>
+
+  <!-- MODULE 2 -->
+  <div class="module-card" id="mod2" style="border-left-color:#7c3aed">
+    <div class="module-header">
+      <div>
+        <div class="module-name">Module 2: Quản lý Khóa học</div>
+        <div class="module-endpoints"><span class="endpoint">/api/courses/*</span> <span class="endpoint">/api/sections/*</span> <span class="endpoint">/api/lessons/*</span></div>
+      </div>
+      <span class="badge badge-purple">Course</span>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Cấu trúc nội dung: <strong>Course → Section → Lesson</strong></p>
+    <table>
+      <tr><th>Loại bài học</th><th>Mô tả</th></tr>
+      <tr><td><code>video</code></td><td>Upload video lên MinIO, streaming</td></tr>
+      <tr><td><code>text</code></td><td>Nội dung dạng văn bản / rich text</td></tr>
+      <tr><td><code>quiz</code></td><td>Bài kiểm tra inline trong bài học</td></tr>
+      <tr><td><code>assignment</code></td><td>Bài tập nộp file</td></tr>
+      <tr><td><code>virtual_class</code></td><td>Link buổi học online (Zoom/Meet...)</td></tr>
+      <tr><td><code>scorm</code></td><td>Gói SCORM/H5P — xAPI tracking</td></tr>
+      <tr><td><code>offline</code></td><td>Buổi học trực tiếp tại lớp, có điểm danh QR</td></tr>
+    </table>
+  </div>
+
+  <!-- MODULE 3 -->
+  <div class="module-card" id="mod3" style="border-left-color:#d97706">
+    <div class="module-header">
+      <div>
+        <div class="module-name">Module 3: Duyệt & Xuất bản Khóa học</div>
+        <div class="module-endpoints">State machine: <code>draft → pending → published / rejected</code></div>
+      </div>
+      <span class="badge badge-yellow">Publish Flow</span>
+    </div>
+    <div class="flow">
+Instructor tạo khóa học
+  └── status: <span class="node">draft</span>
+        │
+        ▼
+  Instructor submit review
+  └── status: <span class="node">pending</span>
+        │
+        ▼
+  Admin duyệt
+  ├── Approve  → status: <span class="node">published</span>  → Sinh viên thấy trên marketplace
+  └── Reject   → status: <span class="node">rejected</span>   → Kèm lý do → Instructor sửa lại → pending
+    </div>
+  </div>
+</div>
+
+<!-- MODULE 4 -->
+<div class="module-card" id="mod4" style="border-left-color:#16a34a">
+  <div class="module-header">
+    <div>
+      <div class="module-name">Module 4: Thanh toán & Đăng ký</div>
+      <div class="module-endpoints"><span class="endpoint">/api/orders/*</span> <span class="endpoint">/api/payos/*</span></div>
+    </div>
+    <span class="badge badge-green">Payment</span>
+  </div>
+  <div class="flow">
+Sinh viên chọn khóa học
+    │
+    ▼
+Tạo <span class="node">Order</span> (status: <span style="color:#fbbf24">pending</span>)
+    │
+    ▼
+Backend gọi <span class="node">PayOS API</span> → Trả về payment link
+    │
+    ▼
+Sinh viên thanh toán trên cổng PayOS
+    │
+    ▼
+PayOS gửi <span class="node">Webhook</span> → Backend xác minh chữ ký HMAC
+    │
+    ├── Hợp lệ  → Order (status: <span style="color:#86efac">paid</span>)
+    │              → Tự động tạo <span class="node">Enrollment</span>
+    │              → Notification gửi Sinh viên + Instructor
+    └── Không hợp lệ → Bỏ qua (log lại)
+  </div>
+</div>
+
+<!-- MODULE 5 -->
+<div class="module-card" id="mod5" style="border-left-color:#0891b2">
+  <div class="module-header">
+    <div>
+      <div class="module-name">Module 5: Học & Tiến độ</div>
+      <div class="module-endpoints"><span class="endpoint">/api/lesson-progress/*</span> <span class="endpoint">/api/my-courses</span></div>
+    </div>
+    <span class="badge badge-blue">Learning</span>
+  </div>
+  <div class="flow">
+Enrollment tồn tại (từ mua hoặc học viện)
+    │
+    ▼
+Sinh viên mở Course → Section list → Lesson list
+    │
+    ▼
+Xem bài học → <span class="node">LessonProgress</span> cập nhật (watched/completed)
+    │
+    ▼
+Hoàn thành tất cả Lesson → <span class="node">CourseProgress = 100%</span>
+    │
+    ▼
+Điều kiện đủ → <span class="node">Certificate</span> được cấp tự động
+  </div>
+</div>
+
+<!-- MODULE 6 -->
+<div class="module-card" id="mod6" style="border-left-color:#dc2626">
+  <div class="module-header">
+    <div>
+      <div class="module-name">Module 6: Kiểm tra & Thi cử</div>
+      <div class="module-endpoints"><span class="endpoint">/api/quizzes/*</span> <span class="endpoint">/api/exams/*</span> <span class="endpoint">/api/attempts/*</span></div>
+    </div>
+    <span class="badge badge-red">Exam</span>
+  </div>
+  <div class="grid-2" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title">course_final</div>
+      <p style="font-size:13px;color:var(--muted)">Kỳ thi cuối khóa — gắn với một course cụ thể, sinh viên enrolled mới thi được</p>
+    </div>
+    <div class="card">
+      <div class="card-title">standalone</div>
+      <p style="font-size:13px;color:var(--muted)">Kỳ thi độc lập — tuyển sinh, chứng chỉ, không gắn course, cần enroll riêng</p>
+    </div>
+  </div>
+  <div class="flow">
+Admin/Instructor tạo <span class="node">Exam</span> + <span class="node">Quiz</span> (từ Question Bank, có random rules)
+    │
+    ▼
+Enroll sinh viên vào Exam (<span class="node">ExamEnrollment</span>)
+    │
+    ▼
+Sinh viên bắt đầu → Tạo <span class="node">QuizAttempt</span> (status: <span style="color:#fbbf24">in_progress</span>)
+    │
+    ▼
+Làm bài → <span class="node">Auto-save</span> liên tục (answers_json)
+    │
+    ▼
+Submit thủ công  ─────────────┐
+    hoặc                      │
+Hết giờ → tự động nộp ────────┤
+                              ▼
+              <span class="node">QuizAttempt</span> (status: <span style="color:#86efac">submitted</span>)
+                              │
+                              ▼
+              Chấm điểm tự động (trắc nghiệm)
+              hoặc thủ công (tự luận / essay)
+  </div>
+  <p style="font-size:13px;font-weight:600;margin:16px 0 8px">Loại câu hỏi hỗ trợ:</p>
+  <div>
+    <span class="tech-tag">single_choice</span>
+    <span class="tech-tag">multiple_choice</span>
+    <span class="tech-tag">true_false</span>
+    <span class="tech-tag">essay</span>
+    <span class="tech-tag">matching</span>
+    <span class="tech-tag">ordering</span>
+    <span class="tech-tag">short_answer</span>
+    <span class="tech-tag">numerical</span>
+  </div>
+  <p style="font-size:13px;font-weight:600;margin:16px 0 8px">Giám sát thi (Proctoring):</p>
+  <table>
+    <tr><th>Vi phạm</th><th>Mô tả</th><th>Giám thị có thể</th></tr>
+    <tr><td><code>focus_lost</code></td><td>Chuyển tab / rời cửa sổ thi</td><td rowspan="4" style="vertical-align:top;padding-top:10px">Tạm dừng attempt<br>Tiếp tục attempt<br>Dừng bắt buộc<br>Gia hạn thời gian</td></tr>
+    <tr><td><code>no_face</code></td><td>Không phát hiện khuôn mặt</td></tr>
+    <tr><td><code>multiple_faces</code></td><td>Phát hiện nhiều người</td></tr>
+    <tr><td><code>suspicious</code></td><td>Hành vi đáng ngờ khác</td></tr>
+  </table>
+</div>
+
+<!-- MODULE 7 -->
+<div class="module-card" id="mod7" style="border-left-color:#7c3aed">
+  <div class="module-header">
+    <div>
+      <div class="module-name">Module 7: Quản lý Học vụ (Institutional)</div>
+      <div class="module-endpoints"><span class="endpoint">/api/academic/*</span> <span class="endpoint">/api/enrollments/*</span> <span class="endpoint">/api/grade-components/*</span></div>
+    </div>
+    <span class="badge badge-purple">Academic</span>
+  </div>
+  <p style="font-size:13px;font-weight:600;margin-bottom:10px">Cấu trúc phân cấp tổ chức:</p>
+  <div class="tree">
+    <span class="leaf">Institution</span> <span class="desc">(Trường)</span>
+      └── <span class="leaf">Unit</span> <span class="desc">(Khoa / Bộ môn)</span>
+           └── <span class="leaf">Program</span> <span class="desc">(Chương trình đào tạo)</span>
+                └── <span class="leaf">Major</span> <span class="desc">(Ngành)</span>
+                     └── <span class="leaf">Specialization</span> <span class="desc">(Chuyên ngành)</span>
+                          └── <span class="leaf">Cohort</span> <span class="desc">(Khóa sinh viên)</span>
+                               └── <span class="leaf">AdministrativeClass</span> <span class="desc">(Lớp hành chính)</span>
+                                    └── <span class="leaf">ClassSection</span> <span class="desc">(Lớp học phần / term)</span>
+                                         └── <span class="leaf">Enrollment</span> <span class="desc">(Sinh viên đăng ký)</span>
+  </div>
+  <p style="font-size:13px;font-weight:600;margin:16px 0 8px">Luồng nhập điểm:</p>
+  <div class="flow">
+Instructor tạo <span class="node">GradeComponent</span>
+  VD: Chuyên cần 10% | Giữa kỳ 30% | Cuối kỳ 60%
+    │
+    ▼
+Nhập điểm từng sinh viên theo từng component
+    │
+    ▼
+Hệ thống tính điểm tổng kết (weighted average, thang 10)
+    │
+    ▼
+<span class="node">GPA tích lũy</span> được tính tự động
+  </div>
+</div>
+
+<!-- MODULE 8 -->
+<div class="module-card" id="mod8" style="border-left-color:#0891b2">
+  <div class="module-header">
+    <div>
+      <div class="module-name">Module 8: AI Service</div>
+      <div class="module-endpoints"><span class="endpoint">/api/ai/chat</span> <span class="endpoint">/api/career/*</span> <span class="endpoint">/api/admin/ai/*</span></div>
+    </div>
+    <span class="badge badge-blue">AI</span>
+  </div>
+  <table style="margin-bottom:16px">
+    <tr><th>Tính năng</th><th>Endpoint</th><th>Mô tả</th></tr>
+    <tr><td>Chatbot</td><td><code>POST /ai/chat</code></td><td>Trả lời câu hỏi học thuật, có context injection</td></tr>
+    <tr><td>Parse CV</td><td><code>POST /career/upload-cv</code></td><td>Phân tích CV sinh viên upload</td></tr>
+    <tr><td>Career Recommend</td><td><code>POST /career/recommend</code></td><td>Gợi ý nghề nghiệp dựa trên CV + kỹ năng</td></tr>
+    <tr><td>Generate Quiz</td><td><code>POST /generate/quiz</code></td><td>Tạo tự động đề thi từ AI</td></tr>
+    <tr><td>Generate Content</td><td><code>POST /generate/lesson-description</code></td><td>Mô tả bài học tự động</td></tr>
+    <tr><td>Exam Analyze</td><td><code>POST /analyze/exam</code></td><td>Phân tích kết quả thi tổng thể</td></tr>
+    <tr><td>Tutoring</td><td><code>POST /tutoring/recommend</code></td><td>Gợi ý lộ trình học cá nhân hóa</td></tr>
+  </table>
+  <p style="font-size:13px;font-weight:600;margin-bottom:8px">AI Providers hỗ trợ:</p>
+  <div>
+    <span class="tech-tag">OpenAI GPT-4o-mini</span>
+    <span class="tech-tag">Google Gemini 2.0 Flash</span>
+    <span class="tech-tag">Anthropic Claude 3.5 Haiku</span>
+    <span class="tech-tag">OpenRouter DeepSeek</span>
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-top:10px">Admin cấu hình provider/key tại <code>PUT /admin/ai/settings</code>. Theo dõi token quota tại <code>GET /admin/ai/dashboard</code>.</p>
+</div>
+
+<!-- MODULE 9, 10, 11 -->
+<div class="grid-3">
+  <div class="module-card" id="mod9" style="border-left-color:#16a34a;margin-bottom:0">
+    <div class="card-title">Module 9: Cố vấn học tập</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px"><code>/api/advisor/*</code></p>
+    <table>
+      <tr><th>Chức năng</th></tr>
+      <tr><td>Danh sách sinh viên phụ trách</td></tr>
+      <tr><td>Phát hiện sinh viên nguy cơ (điểm thấp, vắng nhiều)</td></tr>
+      <tr><td>Xem bảng điểm & tiến độ học</td></tr>
+    </table>
+  </div>
+  <div class="module-card" id="mod10" style="border-left-color:#d97706;margin-bottom:0">
+    <div class="card-title">Module 10: Q&amp;A &amp; Đánh giá</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px"><code>/api/courses/{id}/qa/*</code> <code>/api/reviews/*</code></p>
+    <table>
+      <tr><th>Chức năng</th></tr>
+      <tr><td>Sinh viên đặt câu hỏi trong khóa học</td></tr>
+      <tr><td>Instructor/sinh viên trả lời</td></tr>
+      <tr><td>Like/dislike câu trả lời</td></tr>
+      <tr><td>Rating (1–5 sao) + comment (chỉ enrolled)</td></tr>
+    </table>
+  </div>
+  <div class="module-card" id="mod11" style="border-left-color:#7c3aed;margin-bottom:0">
+    <div class="card-title">Module 11: Chứng chỉ</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px"><code>/api/certificates/*</code></p>
+    <table>
+      <tr><th>Chức năng</th></tr>
+      <tr><td>Admin tạo mẫu chứng chỉ (template)</td></tr>
+      <tr><td>Tự động cấp khi hoàn thành khóa học</td></tr>
+      <tr><td>Public endpoint xác minh credential ID</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 4: FLOWS BY ROLE -->
+<div class="section" id="flows" style="margin-top:48px">
+  <div class="section-title"><div class="num">4</div>Sơ đồ luồng tổng thể theo Role</div>
+
+  <!-- ADMIN FLOW -->
+  <div class="card" style="border-left:4px solid #dc2626;margin-bottom:16px">
+    <div class="card-title" style="color:#dc2626">ADMIN</div>
+    <div class="flow" style="font-size:12.5px">
+Đăng nhập
+  → Quản lý User (tạo/sửa/xóa, gán role)
+  → Duyệt khóa học (pending → published/rejected)
+  → Cấu hình AI provider + quota
+  → Quản lý cấu trúc học vụ (Institution → ClassSection)
+  → Monitor thi real-time (live dashboard)
+  → Xem/quản lý đơn hàng (Orders)
+  → Cấu hình Site Settings (SMTP, branding...)
+    </div>
+  </div>
+
+  <!-- INSTRUCTOR FLOW -->
+  <div class="card" style="border-left:4px solid #2563eb;margin-bottom:16px">
+    <div class="card-title" style="color:#2563eb">INSTRUCTOR</div>
+    <div class="flow" style="font-size:12.5px">
+Đăng nhập
+  → Tạo Course (draft)
+      → Thêm Section → Thêm Lesson (video/text/quiz/...)
+      → Submit for review (pending)
+      → [Admin approve] → published
+  → Tạo Question Bank → Question Groups → Questions
+  → Tạo Quiz/Exam từ Question Bank
+  → Nhập điểm sinh viên (GradeEntry) theo GradeComponent
+  → Xem dashboard doanh thu + danh sách sinh viên
+  → Sử dụng AI để generate nội dung / đề thi
+    </div>
+  </div>
+
+  <!-- ACADEMIC MANAGER FLOW -->
+  <div class="card" style="border-left:4px solid #7c3aed;margin-bottom:16px">
+    <div class="card-title" style="color:#7c3aed">ACADEMIC_MANAGER</div>
+    <div class="flow" style="font-size:12.5px">
+Đăng nhập
+  → Tạo cấu trúc: Institution → Unit → Program → Major → Specialization
+  → Tạo Cohort → AdministrativeClass → Curriculum
+  → Tạo AcademicYear → Term
+  → Tạo ClassSection (course + term + cohort + instructor)
+  → Enroll sinh viên vào ClassSection (manual hoặc CSV import)
+  → Theo dõi bảng điểm, báo cáo học vụ
+    </div>
+  </div>
+
+  <!-- STUDENT FLOW -->
+  <div class="card" style="border-left:4px solid #0891b2;margin-bottom:16px">
+    <div class="card-title" style="color:#0891b2">STUDENT — Hai luồng chính</div>
+    <div class="grid-2" style="margin-top:12px">
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">LUỒNG 1: MARKETPLACE (Tự mua)</p>
+        <div class="flow" style="font-size:12px">
+Đăng ký → Xác minh email → Đăng nhập
+  → Duyệt danh mục / tìm khóa học
+  → Xem chi tiết course (preview lessons)
+  → Thêm vào giỏ / Thanh toán (PayOS)
+  → Enrolled → Học bài (video/text/scorm)
+  → Làm quiz bài học
+  → Hoàn thành 100% → Nhận Certificate
+  → Đánh giá (review) khóa học
+        </div>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">LUỒNG 2: HỌC VIỆN (Được enroll)</p>
+        <div class="flow" style="font-size:12px">
+Đăng nhập (tài khoản do admin tạo)
+  → Xem lịch học / ClassSection được gán
+  → Học bài học theo lịch
+  → Điểm danh (QR code offline sessions)
+  → Thi cuối kỳ (ExamEnrollment)
+  → Nhận điểm (GradeEntry)
+  → GPA tích lũy cập nhật
+  → Xem bảng điểm / transcript
+        </div>
+      </div>
+    </div>
+    <div class="flow" style="font-size:12px;margin-top:12px">
+Ngoài ra (cả 2 luồng):
+  → AI Chatbot (hỏi đáp học thuật)
+  → Upload CV → Career Recommendation
+  → Q&amp;A trong khóa học
+  → Nhận Notification
+    </div>
+  </div>
+
+  <!-- ADVISOR FLOW -->
+  <div class="card" style="border-left:4px solid #16a34a;margin-bottom:0">
+    <div class="card-title" style="color:#16a34a">ADVISOR</div>
+    <div class="flow" style="font-size:12.5px">
+Đăng nhập
+  → Xem danh sách advisee (sinh viên được phụ trách)
+  → Phát hiện sinh viên nguy cơ (điểm thấp, vắng nhiều)
+  → Xem bảng điểm chi tiết từng sinh viên
+  → Xem tiến độ học tập
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 5: DATA MODELS -->
+<div class="section" id="models">
+  <div class="section-title"><div class="num">5</div>Data Models chính</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">👤 User & Identity</div>
+      <table>
+        <tr><th>Model</th><th>Mô tả</th></tr>
+        <tr><td><code>User</code></td><td>Thông tin cá nhân, FK đến institution/program/major/cohort/class</td></tr>
+        <tr><td><code>Role / Permission</code></td><td>Spatie Laravel Permission</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">🏫 Học vụ</div>
+      <table>
+        <tr><th>Model</th><th>Mô tả</th></tr>
+        <tr><td><code>Institution</code></td><td>Trường</td></tr>
+        <tr><td><code>Unit</code></td><td>Khoa/Bộ môn</td></tr>
+        <tr><td><code>Program / Major / Specialization</code></td><td>Chương trình → Ngành → Chuyên ngành</td></tr>
+        <tr><td><code>Cohort</code></td><td>Khóa sinh viên</td></tr>
+        <tr><td><code>AdministrativeClass</code></td><td>Lớp hành chính</td></tr>
+        <tr><td><code>AcademicYear / Term</code></td><td>Năm học / Học kỳ</td></tr>
+        <tr><td><code>Curriculum / CurriculumCourse</code></td><td>Chương trình khung</td></tr>
+        <tr><td><code>ClassSection</code></td><td>Lớp học phần</td></tr>
+        <tr><td><code>Enrollment</code></td><td>Sinh viên đăng ký học phần</td></tr>
+        <tr><td><code>GradeComponent / GradeEntry</code></td><td>Thành phần điểm & điểm số</td></tr>
+        <tr><td><code>OfflineSession / Attendance</code></td><td>Buổi học & điểm danh</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📚 Course Content</div>
+      <table>
+        <tr><th>Model</th><th>Mô tả</th></tr>
+        <tr><td><code>Category</code></td><td>Danh mục khóa học (phân cấp parent_id)</td></tr>
+        <tr><td><code>Course</code></td><td>Khóa học (status: draft/pending/published/rejected)</td></tr>
+        <tr><td><code>Section / Lesson</code></td><td>Chương / Bài học (có order)</td></tr>
+        <tr><td><code>LessonProgress</code></td><td>Tiến độ bài học theo sinh viên</td></tr>
+        <tr><td><code>LessonAttachment</code></td><td>Tài liệu đính kèm bài học</td></tr>
+        <tr><td><code>LessonNote</code></td><td>Ghi chú cá nhân của sinh viên</td></tr>
+        <tr><td><code>AssignmentSubmission</code></td><td>Bài nộp của sinh viên</td></tr>
+        <tr><td><code>VirtualClass</code></td><td>Link buổi học online</td></tr>
+        <tr><td><code>ScormPackage</code></td><td>Gói SCORM/H5P</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📝 Assessment</div>
+      <table>
+        <tr><th>Model</th><th>Mô tả</th></tr>
+        <tr><td><code>QuestionBank / QuestionGroup</code></td><td>Ngân hàng câu hỏi</td></tr>
+        <tr><td><code>Question / Answer</code></td><td>Câu hỏi (8 loại) & đáp án</td></tr>
+        <tr><td><code>Quiz</code></td><td>Cấu hình bài kiểm tra (time, pass score, rules)</td></tr>
+        <tr><td><code>QuizAttempt</code></td><td>Lần làm bài (answers_json, auto-save)</td></tr>
+        <tr><td><code>Exam / ExamEnrollment</code></td><td>Kỳ thi & đăng ký thi</td></tr>
+        <tr><td><code>ExamViolation</code></td><td>Vi phạm trong quá trình thi</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">💳 Commerce</div>
+      <table>
+        <tr><th>Model</th><th>Mô tả</th></tr>
+        <tr><td><code>Order</code></td><td>Đơn hàng (pending / paid / failed)</td></tr>
+        <tr><td><code>Review</code></td><td>Đánh giá khóa học (rating 1–5 + comment)</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">🤖 AI & Career</div>
+      <table>
+        <tr><th>Model</th><th>Mô tả</th></tr>
+        <tr><td><code>AiSetting</code></td><td>Cấu hình provider, key, monthly quota</td></tr>
+        <tr><td><code>AiRequestLog</code></td><td>Log từng request AI</td></tr>
+        <tr><td><code>UserCV</code></td><td>CV đã upload của sinh viên</td></tr>
+        <tr><td><code>CareerRecommendation</code></td><td>Gợi ý nghề nghiệp từ AI</td></tr>
+        <tr><td><code>UserCertificate</code></td><td>Chứng chỉ đã cấp (có credential ID)</td></tr>
+        <tr><td><code>Notification</code></td><td>Thông báo hệ thống</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 6: TEST PRIORITY -->
+<div class="section" id="testpriority">
+  <div class="section-title"><div class="num">6</div>Nghiệp vụ cần test trọng điểm</div>
+  <div class="card">
+    <table>
+      <tr>
+        <th>Nghiệp vụ</th>
+        <th>Độ phức tạp</th>
+        <th>Ghi chú cho Tester</th>
+      </tr>
+      <tr>
+        <td><strong>Luồng thi + Proctoring</strong></td>
+        <td><span class="priority-high">CAO</span></td>
+        <td>Timer, auto-save, vi phạm cam, force-stop, gia hạn thời gian</td>
+      </tr>
+      <tr>
+        <td><strong>Thanh toán PayOS + Webhook</strong></td>
+        <td><span class="priority-high">CAO</span></td>
+        <td>Cần mock webhook hoặc sandbox PayOS. Kiểm tra chữ ký HMAC</td>
+      </tr>
+      <tr>
+        <td><strong>Nhập điểm + GPA</strong></td>
+        <td><span class="priority-high">CAO</span></td>
+        <td>Trọng số phải = 100%, làm tròn điểm, edge case: 0 điểm / vắng</td>
+      </tr>
+      <tr>
+        <td><strong>SCORM package</strong></td>
+        <td><span class="priority-high">CAO</span></td>
+        <td>xAPI tracking phức tạp, hoàn thành/không hoàn thành, score</td>
+      </tr>
+      <tr>
+        <td><strong>Import sinh viên CSV</strong></td>
+        <td><span class="priority-med">TRUNG BÌNH</span></td>
+        <td>Validate format, duplicate handling, rollback khi lỗi giữa chừng</td>
+      </tr>
+      <tr>
+        <td><strong>Đăng ký + xác minh email</strong></td>
+        <td><span class="priority-med">TRUNG BÌNH</span></td>
+        <td>Email cần được gửi, link verify có TTL, resend email</td>
+      </tr>
+      <tr>
+        <td><strong>Google OAuth</strong></td>
+        <td><span class="priority-med">TRUNG BÌNH</span></td>
+        <td>Cần Google credentials test env. FirstOrCreate user flow</td>
+      </tr>
+      <tr>
+        <td><strong>AI chat / generate</strong></td>
+        <td><span class="priority-med">TRUNG BÌNH</span></td>
+        <td>Phụ thuộc API key và quota. Test khi hết quota (quota exceeded)</td>
+      </tr>
+      <tr>
+        <td><strong>Attendance QR</strong></td>
+        <td><span class="priority-med">TRUNG BÌNH</span></td>
+        <td>QR hết hạn sau X phút, không điểm danh được 2 lần, sai địa điểm</td>
+      </tr>
+      <tr>
+        <td><strong>Duyệt khóa học</strong></td>
+        <td><span class="priority-low">THẤP</span></td>
+        <td>State machine: draft→pending→published/rejected. Notification đến instructor</td>
+      </tr>
+      <tr>
+        <td><strong>Certificate cấp & xác minh</strong></td>
+        <td><span class="priority-low">THẤP</span></td>
+        <td>Credential ID phải unique, public endpoint không cần auth</td>
+      </tr>
+      <tr>
+        <td><strong>Q&A + Review</strong></td>
+        <td><span class="priority-low">THẤP</span></td>
+        <td>Chỉ enrolled mới review được. Like/dislike idempotent</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- SECTION 7: TECH STACK -->
+<div class="section" id="techstack">
+  <div class="section-title"><div class="num">7</div>Tech Stack tóm tắt</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Backend</div>
+      <div>
+        <span class="tech-tag" style="background:#fef3c7;color:#92400e">Laravel 13</span>
+        <span class="tech-tag" style="background:#fef3c7;color:#92400e">PHP 8.3</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">Sanctum (Auth)</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">Spatie Permission</span>
+        <span class="tech-tag" style="background:#ede9fe;color:#6d28d9">Laravel Queues</span>
+        <span class="tech-tag" style="background:#ede9fe;color:#6d28d9">Laravel Notifications</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Frontend Web</div>
+      <div>
+        <span class="tech-tag" style="background:#dcfce7;color:#15803d">Nuxt.js 4</span>
+        <span class="tech-tag" style="background:#dcfce7;color:#15803d">Vue 3</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">TypeScript</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">Pinia</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Mobile</div>
+      <div>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">Flutter</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">Riverpod</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">go_router</span>
+        <span class="tech-tag" style="background:#f1f5f9;color:#334155">video_player</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">AI Service</div>
+      <div>
+        <span class="tech-tag" style="background:#fce7f3;color:#9d174d">FastAPI</span>
+        <span class="tech-tag" style="background:#fce7f3;color:#9d174d">Python</span>
+        <span class="tech-tag" style="background:#f1f5f9;color:#334155">OpenAI</span>
+        <span class="tech-tag" style="background:#f1f5f9;color:#334155">Gemini</span>
+        <span class="tech-tag" style="background:#f1f5f9;color:#334155">Claude</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Databases & Storage</div>
+      <div>
+        <span class="tech-tag" style="background:#fef9c3;color:#92400e">MySQL 8.0</span>
+        <span class="tech-tag" style="background:#dcfce7;color:#15803d">MongoDB 7</span>
+        <span class="tech-tag" style="background:#fee2e2;color:#b91c1c">Redis 7</span>
+        <span class="tech-tag" style="background:#dbeafe;color:#1d4ed8">MinIO (S3)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Infrastructure & Payment</div>
+      <div>
+        <span class="tech-tag" style="background:#f1f5f9;color:#334155">Docker Compose</span>
+        <span class="tech-tag" style="background:#f1f5f9;color:#334155">Nginx</span>
+        <span class="tech-tag" style="background:#dcfce7;color:#15803d">PayOS</span>
+        <span class="tech-tag" style="background:#ede9fe;color:#6d28d9">n8n Automation</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end .content -->
+</div><!-- end .main -->
+
+<script>
+  // Smooth scroll + active nav
+  document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  // Highlight active nav on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('.nav-item').forEach(n => n.style.color = '');
+        const id = e.target.id;
+        const active = document.querySelector(`.nav-item[href="#${id}"]`);
+        if (active) { active.style.color = 'white'; active.style.background = '#334155'; }
+      }
+    });
+  }, { threshold: 0.2 });
+  document.querySelectorAll('[id]').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

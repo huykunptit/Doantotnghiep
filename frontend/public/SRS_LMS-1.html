@@ -1,0 +1,2769 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRS - PTIT LMS / Sylva LMS</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a2332;
+  background: #f0f4f8;
+}
+
+/* ===== HEADER ===== */
+.site-header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 100%);
+  color: #fff;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.logo-box {
+  width: 48px; height: 48px;
+  background: #2563eb;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900; color: #fff;
+  letter-spacing: -1px;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.4);
+}
+.logo-text { line-height: 1.2; }
+.logo-text .main-title { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+.logo-text .sub-title { font-size: 11px; color: #a8c4e0; letter-spacing: 1px; text-transform: uppercase; }
+.header-meta { text-align: right; font-size: 12px; color: #a8c4e0; line-height: 1.8; }
+.header-meta strong { color: #fff; }
+
+/* ===== TAB NAVIGATION ===== */
+.tab-nav {
+  background: #162d4a;
+  padding: 0 32px;
+  display: flex;
+  gap: 0;
+  max-width: 1600px;
+  margin: 0 auto;
+  border-bottom: 3px solid #2563eb;
+}
+.tab-btn {
+  padding: 12px 28px;
+  background: transparent;
+  border: none;
+  color: #7ba7cc;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -3px;
+  letter-spacing: 0.3px;
+}
+.tab-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+.tab-btn.active { color: #fff; border-bottom-color: #2563eb; background: rgba(37,99,235,0.15); }
+
+/* ===== TAB CONTENT ===== */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ===== SRS LAYOUT ===== */
+.srs-layout {
+  display: flex;
+  max-width: 1600px;
+  margin: 24px auto;
+  gap: 24px;
+  padding: 0 24px;
+  align-items: flex-start;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  position: sticky;
+  top: 100px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+.sidebar-title {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 14px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 10px 10px 0 0;
+}
+.sidebar-nav { padding: 8px 0; }
+.sidebar-nav a {
+  display: block;
+  padding: 7px 18px;
+  color: #3d5a80;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+.sidebar-nav a:hover { background: #eef3fa; color: #1e3a5f; border-left-color: #2563eb; }
+.sidebar-nav a.section-header { font-weight: 700; color: #1e3a5f; font-size: 12.5px; margin-top: 4px; }
+.sidebar-nav a.sub-item { padding-left: 30px; font-size: 12.5px; color: #5a7a9a; }
+
+/* ===== MAIN CONTENT ===== */
+.srs-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== SECTION CARDS ===== */
+.srs-section {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.section-header-bar {
+  background: linear-gradient(90deg, #1e3a5f, #2d5a8e);
+  color: #fff;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.section-num {
+  background: #2563eb;
+  color: #fff;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px;
+  flex-shrink: 0;
+}
+.section-header-bar h2 { font-size: 16px; font-weight: 700; }
+.section-body { padding: 24px; }
+
+/* Subsection */
+.subsection { margin-bottom: 24px; }
+.subsection h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e2eaf4;
+  display: flex; align-items: center; gap: 8px;
+}
+.subsection h3::before {
+  content: '';
+  display: inline-block;
+  width: 4px; height: 16px;
+  background: #2563eb;
+  border-radius: 2px;
+}
+.subsection h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d5a8e;
+  margin: 12px 0 6px 0;
+}
+.subsection p { margin-bottom: 8px; color: #334155; }
+.subsection ul, .subsection ol { margin-left: 20px; margin-bottom: 8px; }
+.subsection li { margin-bottom: 4px; color: #334155; }
+
+/* ===== BADGES ===== */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.badge-admin { background: #7c3aed; color: #fff; }
+.badge-academic { background: #0891b2; color: #fff; }
+.badge-instructor { background: #059669; color: #fff; }
+.badge-advisor { background: #d97706; color: #fff; }
+.badge-finance { background: #dc2626; color: #fff; }
+.badge-student { background: #2563eb; color: #fff; }
+
+.priority-critical { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.priority-high { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+.priority-medium { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.priority-low { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+
+/* ===== USE CASE CARDS ===== */
+.uc-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.uc-header {
+  background: #f1f5f9;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.uc-code {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+}
+.uc-title { font-weight: 600; color: #1e3a5f; font-size: 13px; flex: 1; }
+.uc-body { padding: 10px 16px; }
+.uc-body p { font-size: 13px; margin-bottom: 4px; }
+.uc-body ul { margin-left: 16px; }
+.uc-body li { font-size: 12.5px; margin-bottom: 2px; color: #475569; }
+.uc-row { display: grid; grid-template-columns: 140px 1fr; gap: 4px 8px; font-size: 13px; margin-bottom: 4px; }
+.uc-label { font-weight: 600; color: #64748b; }
+
+/* ===== TABLES ===== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.data-table th {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+.data-table tr:nth-child(even) td { background: #f8fafc; }
+.data-table tr:hover td { background: #eef3fa; }
+
+/* ===== TEST CASES TAB ===== */
+.tc-layout {
+  max-width: 1600px;
+  margin: 24px auto;
+  padding: 0 24px;
+}
+.tc-header-bar {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 20px 28px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tc-header-bar h2 { font-size: 20px; color: #1e3a5f; font-weight: 700; }
+.tc-stats { display: flex; gap: 20px; }
+.tc-stat { text-align: center; }
+.tc-stat .num { font-size: 24px; font-weight: 700; color: #2563eb; }
+.tc-stat .lbl { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.tc-filter-bar {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tc-filter-bar label { font-size: 12px; font-weight: 600; color: #64748b; }
+.tc-filter-bar select, .tc-filter-bar input {
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1a2332;
+  background: #fff;
+}
+.tc-filter-bar select:focus, .tc-filter-bar input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+.tc-section {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+.tc-section-header {
+  background: linear-gradient(90deg, #1e3a5f, #2d5a8e);
+  color: #fff;
+  padding: 13px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tc-section-header h3 { font-size: 15px; font-weight: 700; }
+.tc-section-header .tc-count {
+  background: rgba(255,255,255,0.2);
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.tc-table th {
+  background: #f1f5f9;
+  color: #1e3a5f;
+  padding: 9px 10px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 11.5px;
+  border-bottom: 2px solid #cbd5e1;
+  white-space: nowrap;
+}
+.tc-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+  line-height: 1.5;
+}
+.tc-table tr:nth-child(even) td { background: #f8fafc; }
+.tc-table tr:hover td { background: #eef3fa; }
+.tc-code { font-family: monospace; font-weight: 700; color: #1e3a5f; white-space: nowrap; }
+.steps-list { margin-left: 14px; }
+.steps-list li { margin-bottom: 2px; font-size: 12px; }
+.status-box {
+  width: 80px;
+  height: 24px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #f8fafc;
+}
+
+/* ===== FOOTER ===== */
+.site-footer {
+  background: #1e3a5f;
+  color: #a8c4e0;
+  text-align: center;
+  padding: 20px 32px;
+  margin-top: 40px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.site-footer strong { color: #fff; }
+
+/* ===== INFO BOXES ===== */
+.info-box {
+  background: #eff6ff;
+  border-left: 4px solid #2563eb;
+  padding: 12px 16px;
+  border-radius: 0 6px 6px 0;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.warn-box {
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  padding: 12px 16px;
+  border-radius: 0 6px 6px 0;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+/* ===== TECH GRID ===== */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.tech-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+}
+.tech-card .tech-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; margin-bottom: 4px; }
+.tech-card .tech-value { font-size: 14px; font-weight: 600; color: #1e3a5f; }
+.tech-card .tech-detail { font-size: 11.5px; color: #64748b; margin-top: 2px; }
+
+/* ===== ROLE SECTION ===== */
+.role-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.role-card-header {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.role-icon { font-size: 22px; }
+.role-info h4 { font-size: 14px; font-weight: 700; color: #1e3a5f; }
+.role-info p { font-size: 12px; color: #64748b; }
+.role-card-body { padding: 14px 18px; background: #fafbfd; border-top: 1px solid #e2e8f0; }
+.perm-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.perm-badge {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+/* ===== ENTITY TABLE ===== */
+.entity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin: 12px 0;
+}
+.entity-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+}
+.entity-card h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+  font-family: monospace;
+}
+.entity-card ul { margin-left: 14px; }
+.entity-card li { font-size: 12px; color: #475569; margin-bottom: 2px; font-family: monospace; }
+
+/* ===== PRINT ===== */
+@media print {
+  .site-header { position: relative; }
+  .tab-nav { display: none; }
+  .sidebar { display: none; }
+  .srs-layout { display: block; }
+  .tab-content { display: block !important; }
+  .tab-content:first-child { page-break-after: always; }
+  .srs-section { box-shadow: none; border: 1px solid #ddd; margin-bottom: 16px; }
+  .tc-section { box-shadow: none; border: 1px solid #ddd; }
+  body { background: #fff; font-size: 12px; }
+  .tc-layout { padding: 0; }
+  .srs-content { width: 100%; }
+}
+
+/* ===== SCROLLBAR ===== */
+.sidebar::-webkit-scrollbar { width: 5px; }
+.sidebar::-webkit-scrollbar-track { background: #f1f5f9; }
+.sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .srs-layout { flex-direction: column; padding: 0 12px; }
+  .sidebar { width: 100%; position: static; max-height: 200px; }
+  .tc-layout { padding: 0 12px; }
+  .header-inner { padding: 10px 16px; }
+  .tab-nav { padding: 0 8px; }
+  .tab-btn { padding: 10px 14px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="logo-area">
+      <div class="logo-box">P</div>
+      <div class="logo-text">
+        <div class="main-title">PTIT LMS / Sylva LMS</div>
+        <div class="sub-title">Hệ thống Quản lý Học tập Đại học</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div><strong>Tài liệu:</strong> Đặc tả Yêu cầu Phần mềm (SRS)</div>
+      <div><strong>Phiên bản:</strong> 1.0 &nbsp;|&nbsp; <strong>Ngày:</strong> 12/07/2026</div>
+      <div><strong>Trạng thái:</strong> Draft &nbsp;|&nbsp; <strong>Mã:</strong> PTIT-LMS-SRS-001</div>
+    </div>
+  </div>
+  <div class="tab-nav" style="margin:0 auto; max-width:100%;">
+    <div style="max-width:1600px; margin:0 auto; padding:0 32px; display:flex;">
+      <button class="tab-btn active" onclick="showTab('srs', this)">&#128196; Tài Liệu SRS</button>
+      <button class="tab-btn" onclick="showTab('tc', this)">&#9989; Danh Sách Test Cases</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== TAB 1: SRS ===================== -->
+<div id="tab-srs" class="tab-content active">
+<div class="srs-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-title">Mục lục tài liệu</div>
+    <div class="sidebar-nav">
+      <a href="#sec1" class="section-header">1. Giới thiệu</a>
+      <a href="#sec1-1" class="sub-item">1.1 Mục đích</a>
+      <a href="#sec1-2" class="sub-item">1.2 Phạm vi</a>
+      <a href="#sec1-3" class="sub-item">1.3 Định nghĩa &amp; Từ viết tắt</a>
+      <a href="#sec1-4" class="sub-item">1.4 Tổng quan tài liệu</a>
+      <a href="#sec2" class="section-header">2. Tổng quan hệ thống</a>
+      <a href="#sec2-1" class="sub-item">2.1 Mô tả hệ thống</a>
+      <a href="#sec2-2" class="sub-item">2.2 Kiến trúc hệ thống</a>
+      <a href="#sec2-3" class="sub-item">2.3 Công nghệ sử dụng</a>
+      <a href="#sec3" class="section-header">3. Người dùng &amp; Vai trò</a>
+      <a href="#sec3-1" class="sub-item">3.1 Admin</a>
+      <a href="#sec3-2" class="sub-item">3.2 Academic Manager</a>
+      <a href="#sec3-3" class="sub-item">3.3 Instructor</a>
+      <a href="#sec3-4" class="sub-item">3.4 Advisor</a>
+      <a href="#sec3-5" class="sub-item">3.5 Finance</a>
+      <a href="#sec3-6" class="sub-item">3.6 Student</a>
+      <a href="#sec4" class="section-header">4. Yêu cầu chức năng</a>
+      <a href="#sec4-admin" class="sub-item">4.1 Admin</a>
+      <a href="#sec4-academic" class="sub-item">4.2 Academic Manager</a>
+      <a href="#sec4-instructor" class="sub-item">4.3 Instructor</a>
+      <a href="#sec4-advisor" class="sub-item">4.4 Advisor</a>
+      <a href="#sec4-finance" class="sub-item">4.5 Finance</a>
+      <a href="#sec4-student" class="sub-item">4.6 Student</a>
+      <a href="#sec5" class="section-header">5. Yêu cầu phi chức năng</a>
+      <a href="#sec5-1" class="sub-item">5.1 Hiệu năng</a>
+      <a href="#sec5-2" class="sub-item">5.2 Bảo mật</a>
+      <a href="#sec5-3" class="sub-item">5.3 Khả năng sử dụng</a>
+      <a href="#sec5-4" class="sub-item">5.4 Độ tin cậy</a>
+      <a href="#sec6" class="section-header">6. Mô hình dữ liệu</a>
+      <a href="#sec7" class="section-header">7. Giao diện hệ thống</a>
+      <a href="#sec7-1" class="sub-item">7.1 Giao diện Web</a>
+      <a href="#sec7-2" class="sub-item">7.2 Giao diện Mobile</a>
+      <a href="#sec7-3" class="sub-item">7.3 Giao diện API</a>
+    </div>
+  </nav>
+
+  <!-- MAIN SRS CONTENT -->
+  <main class="srs-content">
+
+    <!-- ===== SECTION 1: GIỚI THIỆU ===== -->
+    <div id="sec1" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">1</div>
+        <h2>Giới thiệu (Introduction)</h2>
+      </div>
+      <div class="section-body">
+
+        <div id="sec1-1" class="subsection">
+          <h3>1.1 Mục đích (Purpose)</h3>
+          <p>Tài liệu này là Đặc tả Yêu cầu Phần mềm (Software Requirements Specification - SRS) cho hệ thống <strong>PTIT LMS</strong> (còn gọi là <strong>Sylva LMS</strong>) - Hệ thống Quản lý Học tập trực tuyến dành cho Học viện Công nghệ Bưu chính Viễn thông (PTIT) và các cơ sở giáo dục đại học Việt Nam.</p>
+          <p>Mục đích của tài liệu này là:</p>
+          <ul>
+            <li>Mô tả đầy đủ và chính xác các yêu cầu chức năng và phi chức năng của hệ thống.</li>
+            <li>Làm cơ sở thỏa thuận giữa nhóm phát triển, ban quản lý dự án và các bên liên quan.</li>
+            <li>Phục vụ công tác thiết kế, phát triển, kiểm thử và bảo trì hệ thống.</li>
+            <li>Làm tài liệu tham chiếu cho tester trong quá trình kiểm thử hệ thống.</li>
+          </ul>
+          <div class="info-box">Tài liệu này được viết cho các đối tượng: nhóm phát triển phần mềm, nhóm kiểm thử (QA/QC), quản lý dự án, ban lãnh đạo PTIT và các bên liên quan có thẩm quyền phê duyệt yêu cầu.</div>
+        </div>
+
+        <div id="sec1-2" class="subsection">
+          <h3>1.2 Phạm vi (Scope)</h3>
+          <p>PTIT LMS là một nền tảng học tập trực tuyến toàn diện (full-stack LMS) được xây dựng dành cho môi trường đại học Việt Nam. Hệ thống bao gồm:</p>
+          <ul>
+            <li><strong>Nền tảng Web:</strong> Ứng dụng web đa vai trò dành cho sinh viên, giảng viên, cán bộ quản lý.</li>
+            <li><strong>Ứng dụng Mobile:</strong> Ứng dụng di động (Flutter) hỗ trợ iOS và Android cho sinh viên.</li>
+            <li><strong>Dịch vụ AI:</strong> Module trí tuệ nhân tạo hỗ trợ tư vấn nghề nghiệp, chatbot, phân tích CV.</li>
+            <li><strong>Cổng thanh toán:</strong> Tích hợp PayOS để xử lý thanh toán khóa học trực tuyến.</li>
+            <li><strong>Hệ thống lưu trữ:</strong> MinIO (S3-compatible) cho video, tài liệu, tệp đính kèm.</li>
+          </ul>
+          <p>Hệ thống phục vụ 6 nhóm người dùng chính: Admin, Academic Manager, Instructor, Advisor, Finance, Student.</p>
+          <div class="warn-box">Phạm vi ngoài hệ thống: Tích hợp hệ thống ERP trường học bên ngoài, quản lý cơ sở vật chất vật lý, và các module nhân sự/lương thưởng nằm ngoài phạm vi của dự án này.</div>
+        </div>
+
+        <div id="sec1-3" class="subsection">
+          <h3>1.3 Định nghĩa &amp; Từ viết tắt</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Thuật ngữ / Viết tắt</th><th>Giải thích</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>LMS</strong></td><td>Learning Management System - Hệ thống Quản lý Học tập</td></tr>
+              <tr><td><strong>SRS</strong></td><td>Software Requirements Specification - Đặc tả Yêu cầu Phần mềm</td></tr>
+              <tr><td><strong>PTIT</strong></td><td>Học viện Công nghệ Bưu chính Viễn thông (Posts and Telecommunications Institute of Technology)</td></tr>
+              <tr><td><strong>UC</strong></td><td>Use Case - Trường hợp sử dụng (ký hiệu UC-XXX)</td></tr>
+              <tr><td><strong>TC</strong></td><td>Test Case - Trường hợp kiểm thử (ký hiệu TC-XXX)</td></tr>
+              <tr><td><strong>Admin</strong></td><td>Quản trị viên hệ thống - quyền truy cập đầy đủ</td></tr>
+              <tr><td><strong>Academic Manager</strong></td><td>Cán bộ quản lý học vụ - quản lý cấu trúc học thuật</td></tr>
+              <tr><td><strong>Instructor</strong></td><td>Giảng viên - tạo và quản lý khóa học, bài kiểm tra</td></tr>
+              <tr><td><strong>Advisor</strong></td><td>Cố vấn học tập - tư vấn và theo dõi sinh viên</td></tr>
+              <tr><td><strong>Finance</strong></td><td>Nhân viên tài chính - quản lý thanh toán và báo cáo tài chính</td></tr>
+              <tr><td><strong>Student</strong></td><td>Sinh viên - người học, người dùng cuối của hệ thống</td></tr>
+              <tr><td><strong>API</strong></td><td>Application Programming Interface - Giao diện lập trình ứng dụng</td></tr>
+              <tr><td><strong>REST</strong></td><td>Representational State Transfer - Kiến trúc API</td></tr>
+              <tr><td><strong>JWT</strong></td><td>JSON Web Token - Cơ chế xác thực token</td></tr>
+              <tr><td><strong>RBAC</strong></td><td>Role-Based Access Control - Kiểm soát truy cập theo vai trò</td></tr>
+              <tr><td><strong>CDN</strong></td><td>Content Delivery Network - Mạng phân phối nội dung</td></tr>
+              <tr><td><strong>QR</strong></td><td>Quick Response - Mã phản hồi nhanh (điểm danh)</td></tr>
+              <tr><td><strong>SCORM</strong></td><td>Sharable Content Object Reference Model - Chuẩn nội dung học tập</td></tr>
+              <tr><td><strong>H5P</strong></td><td>HTML5 Package - Định dạng nội dung học tập tương tác</td></tr>
+              <tr><td><strong>MinIO</strong></td><td>Hệ thống lưu trữ đối tượng tương thích S3</td></tr>
+              <tr><td><strong>PayOS</strong></td><td>Cổng thanh toán điện tử Việt Nam</td></tr>
+              <tr><td><strong>Redis</strong></td><td>Remote Dictionary Server - Cache và message broker</td></tr>
+              <tr><td><strong>OTP</strong></td><td>One-Time Password - Mật khẩu một lần</td></tr>
+              <tr><td><strong>CV</strong></td><td>Curriculum Vitae - Hồ sơ nghề nghiệp</td></tr>
+              <tr><td><strong>GPA</strong></td><td>Grade Point Average - Điểm trung bình tích lũy</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="sec1-4" class="subsection">
+          <h3>1.4 Tổng quan tài liệu</h3>
+          <p>Tài liệu SRS này được tổ chức thành 7 phần chính:</p>
+          <ul>
+            <li><strong>Phần 1 - Giới thiệu:</strong> Mục đích, phạm vi, định nghĩa và cấu trúc tài liệu.</li>
+            <li><strong>Phần 2 - Tổng quan hệ thống:</strong> Mô tả kiến trúc, công nghệ và môi trường triển khai.</li>
+            <li><strong>Phần 3 - Người dùng &amp; Vai trò:</strong> Chi tiết 6 vai trò người dùng và quyền hạn tương ứng.</li>
+            <li><strong>Phần 4 - Yêu cầu chức năng:</strong> Danh sách đầy đủ các use case (UC-001 đến UC-070+) phân theo vai trò.</li>
+            <li><strong>Phần 5 - Yêu cầu phi chức năng:</strong> Hiệu năng, bảo mật, khả năng sử dụng, độ tin cậy.</li>
+            <li><strong>Phần 6 - Mô hình dữ liệu:</strong> Danh sách các thực thể dữ liệu chính với các trường quan trọng.</li>
+            <li><strong>Phần 7 - Giao diện hệ thống:</strong> Mô tả giao diện Web, Mobile và API.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 2: TỔNG QUAN HỆ THỐNG ===== -->
+    <div id="sec2" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">2</div>
+        <h2>Tổng quan hệ thống</h2>
+      </div>
+      <div class="section-body">
+
+        <div id="sec2-1" class="subsection">
+          <h3>2.1 Mô tả hệ thống</h3>
+          <p>PTIT LMS là một hệ thống quản lý học tập đại học toàn diện, hỗ trợ cả hoạt động học tập trực tuyến và kết hợp (blended learning). Hệ thống tích hợp đầy đủ các quy trình từ quản lý cấu trúc chương trình đào tạo, phân công giảng viên, đăng ký học phần, học tập, kiểm tra đánh giá đến cấp phát chứng chỉ.</p>
+          <p>Hệ thống nổi bật với các điểm mạnh:</p>
+          <ul>
+            <li>Hỗ trợ 7 loại câu hỏi kiểm tra đa dạng (trắc nghiệm, tự luận, ghép đôi, sắp xếp...).</li>
+            <li>Giám sát thi trực tuyến với phát hiện vi phạm (chuyển tab, v.v.) theo thời gian thực.</li>
+            <li>Tích hợp AI hỗ trợ tư vấn nghề nghiệp và chatbot học tập.</li>
+            <li>Hệ thống gamification (điểm thưởng, nhiệm vụ, bảng xếp hạng, voucher).</li>
+            <li>Điểm danh bằng mã QR cho các buổi học ngoại tuyến.</li>
+            <li>Cấp phát chứng chỉ với mã xác thực công khai duy nhất.</li>
+            <li>Thanh toán khóa học qua cổng PayOS.</li>
+          </ul>
+        </div>
+
+        <div id="sec2-2" class="subsection">
+          <h3>2.2 Kiến trúc hệ thống</h3>
+          <p>Hệ thống áp dụng kiến trúc microservices/multi-tier với các thành phần:</p>
+          <ul>
+            <li><strong>Frontend Web (Nuxt.js 4):</strong> SPA/SSR, giao tiếp với backend qua REST API.</li>
+            <li><strong>Backend API (Laravel 13):</strong> REST API server, xử lý nghiệp vụ, xác thực RBAC, tích hợp payment/storage.</li>
+            <li><strong>AI Service (FastAPI):</strong> Dịch vụ độc lập xử lý AI: phân tích CV, chatbot, tư vấn nghề nghiệp.</li>
+            <li><strong>Mobile App (Flutter):</strong> Ứng dụng native cross-platform iOS/Android.</li>
+            <li><strong>Database Layer:</strong> MySQL (dữ liệu quan hệ), MongoDB (dữ liệu phi cấu trúc như Q&amp;A, notes), Redis (cache, sessions, queues).</li>
+            <li><strong>Storage (MinIO):</strong> Lưu trữ file video, tài liệu, ảnh, SCORM packages.</li>
+            <li><strong>WebSocket:</strong> Realtime notifications, live proctoring dashboard.</li>
+          </ul>
+          <div class="info-box">
+            <strong>Luồng xác thực:</strong> JWT Token-based authentication với refresh token. RBAC được kiểm tra trên từng API endpoint. Role và permissions được lưu cache trong Redis để tối ưu hiệu năng.
+          </div>
+        </div>
+
+        <div id="sec2-3" class="subsection">
+          <h3>2.3 Công nghệ sử dụng</h3>
+          <div class="tech-grid">
+            <div class="tech-card">
+              <div class="tech-label">Backend Framework</div>
+              <div class="tech-value">Laravel 13</div>
+              <div class="tech-detail">PHP 8.3, REST API, Sanctum Auth</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Frontend Framework</div>
+              <div class="tech-value">Nuxt.js 4</div>
+              <div class="tech-detail">Vue 3, TypeScript, Tailwind CSS</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Mobile</div>
+              <div class="tech-value">Flutter</div>
+              <div class="tech-detail">iOS &amp; Android, Dart</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">AI Service</div>
+              <div class="tech-value">FastAPI (Python)</div>
+              <div class="tech-detail">OpenAI API, Gemini API</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Database chính</div>
+              <div class="tech-value">MySQL 8.x</div>
+              <div class="tech-detail">Dữ liệu quan hệ, transactions</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Database NoSQL</div>
+              <div class="tech-value">MongoDB</div>
+              <div class="tech-detail">Q&amp;A, notes, logs phi cấu trúc</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Cache / Queue</div>
+              <div class="tech-value">Redis</div>
+              <div class="tech-detail">Session, cache, job queue</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Object Storage</div>
+              <div class="tech-value">MinIO</div>
+              <div class="tech-detail">S3-compatible, video/docs</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Thanh toán</div>
+              <div class="tech-value">PayOS</div>
+              <div class="tech-detail">Cổng thanh toán Việt Nam</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Realtime</div>
+              <div class="tech-value">WebSocket / Laravel Echo</div>
+              <div class="tech-detail">Notifications, proctoring live</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Xác thực</div>
+              <div class="tech-value">JWT / Laravel Sanctum</div>
+              <div class="tech-detail">Token-based, RBAC</div>
+            </div>
+            <div class="tech-card">
+              <div class="tech-label">Deployment</div>
+              <div class="tech-value">Docker / Nginx</div>
+              <div class="tech-detail">Container, reverse proxy</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 3: NGƯỜI DÙNG & VAI TRÒ ===== -->
+    <div id="sec3" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">3</div>
+        <h2>Người dùng &amp; Vai trò</h2>
+      </div>
+      <div class="section-body">
+        <p style="margin-bottom:16px;">Hệ thống PTIT LMS có <strong>6 vai trò người dùng</strong> với quyền hạn khác nhau, được quản lý theo mô hình RBAC (Role-Based Access Control).</p>
+
+        <div id="sec3-1" class="role-card">
+          <div class="role-card-header" style="background:#f5f0ff;">
+            <span class="role-icon">&#128737;</span>
+            <div class="role-info">
+              <h4><span class="badge badge-admin">Admin</span> &nbsp; Quản trị viên hệ thống</h4>
+              <p>Có toàn quyền truy cập và quản lý mọi chức năng của hệ thống.</p>
+            </div>
+          </div>
+          <div class="role-card-body">
+            <p><strong>Mô tả:</strong> Admin là người dùng cấp cao nhất, chịu trách nhiệm vận hành và cấu hình toàn bộ hệ thống. Admin có thể thực hiện mọi tác vụ của tất cả vai trò khác.</p>
+            <p><strong>Quyền hạn (Permissions):</strong></p>
+            <div class="perm-list">
+              <span class="perm-badge">view_dashboard</span>
+              <span class="perm-badge">manage_users</span>
+              <span class="perm-badge">manage_roles</span>
+              <span class="perm-badge">manage_courses</span>
+              <span class="perm-badge">manage_lessons</span>
+              <span class="perm-badge">manage_exams</span>
+              <span class="perm-badge">manage_finances</span>
+              <span class="perm-badge">manage_academic</span>
+              <span class="perm-badge">manage_enrollments</span>
+              <span class="perm-badge">manage_grades</span>
+              <span class="perm-badge">view_grades</span>
+              <span class="perm-badge">advise_students</span>
+              <span class="perm-badge">take_exams</span>
+              <span class="perm-badge">view_reports</span>
+              <span class="perm-badge">submit_reviews</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sec3-2" class="role-card">
+          <div class="role-card-header" style="background:#f0fbff;">
+            <span class="role-icon">&#127979;</span>
+            <div class="role-info">
+              <h4><span class="badge badge-academic">Academic Manager</span> &nbsp; Cán bộ Quản lý Học vụ</h4>
+              <p>Quản lý cấu trúc đào tạo, ghi danh học phần và báo cáo học thuật.</p>
+            </div>
+          </div>
+          <div class="role-card-body">
+            <p><strong>Mô tả:</strong> Academic Manager (academic_manager) là cán bộ phòng đào tạo, chịu trách nhiệm quản lý cấu trúc chương trình học, tổ chức lớp học, phân công giảng viên, và theo dõi tiến độ học tập toàn trường.</p>
+            <p><strong>Quyền hạn (Permissions):</strong></p>
+            <div class="perm-list">
+              <span class="perm-badge">view_dashboard</span>
+              <span class="perm-badge">manage_academic</span>
+              <span class="perm-badge">manage_enrollments</span>
+              <span class="perm-badge">manage_grades</span>
+              <span class="perm-badge">view_grades</span>
+              <span class="perm-badge">view_reports</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sec3-3" class="role-card">
+          <div class="role-card-header" style="background:#f0fff8;">
+            <span class="role-icon">&#128104;&#8205;&#127979;</span>
+            <div class="role-info">
+              <h4><span class="badge badge-instructor">Instructor</span> &nbsp; Giảng viên</h4>
+              <p>Tạo và quản lý khóa học, bài giảng, kiểm tra và bảng điểm.</p>
+            </div>
+          </div>
+          <div class="role-card-body">
+            <p><strong>Mô tả:</strong> Giảng viên chịu trách nhiệm xây dựng nội dung khóa học, tổ chức bài kiểm tra, chấm điểm và theo dõi tiến độ học tập của sinh viên trong lớp phụ trách.</p>
+            <p><strong>Quyền hạn (Permissions):</strong></p>
+            <div class="perm-list">
+              <span class="perm-badge">view_dashboard</span>
+              <span class="perm-badge">manage_courses</span>
+              <span class="perm-badge">manage_lessons</span>
+              <span class="perm-badge">manage_exams</span>
+              <span class="perm-badge">manage_grades</span>
+              <span class="perm-badge">view_grades</span>
+              <span class="perm-badge">view_reports</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sec3-4" class="role-card">
+          <div class="role-card-header" style="background:#fffbf0;">
+            <span class="role-icon">&#128101;</span>
+            <div class="role-info">
+              <h4><span class="badge badge-advisor">Advisor</span> &nbsp; Cố vấn học tập</h4>
+              <p>Tư vấn sinh viên, theo dõi điểm số và báo cáo học tập.</p>
+            </div>
+          </div>
+          <div class="role-card-body">
+            <p><strong>Mô tả:</strong> Cố vấn học tập được phân công cho nhóm sinh viên cụ thể, theo dõi tình trạng học tập và hỗ trợ tư vấn cho sinh viên có nguy cơ học kém.</p>
+            <p><strong>Quyền hạn (Permissions):</strong></p>
+            <div class="perm-list">
+              <span class="perm-badge">view_dashboard</span>
+              <span class="perm-badge">advise_students</span>
+              <span class="perm-badge">view_grades</span>
+              <span class="perm-badge">view_reports</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sec3-5" class="role-card">
+          <div class="role-card-header" style="background:#fff5f5;">
+            <span class="role-icon">&#128176;</span>
+            <div class="role-info">
+              <h4><span class="badge badge-finance">Finance</span> &nbsp; Nhân viên Tài chính</h4>
+              <p>Quản lý đơn hàng, thanh toán và báo cáo tài chính.</p>
+            </div>
+          </div>
+          <div class="role-card-body">
+            <p><strong>Mô tả:</strong> Nhân viên tài chính chịu trách nhiệm theo dõi các giao dịch thanh toán, quản lý hoàn tiền, và tạo báo cáo tài chính cho ban lãnh đạo.</p>
+            <p><strong>Quyền hạn (Permissions):</strong></p>
+            <div class="perm-list">
+              <span class="perm-badge">view_dashboard</span>
+              <span class="perm-badge">manage_finances</span>
+              <span class="perm-badge">view_reports</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="sec3-6" class="role-card">
+          <div class="role-card-header" style="background:#eff6ff;">
+            <span class="role-icon">&#127891;</span>
+            <div class="role-info">
+              <h4><span class="badge badge-student">Student</span> &nbsp; Sinh viên</h4>
+              <p>Người học, người dùng cuối của hệ thống học tập.</p>
+            </div>
+          </div>
+          <div class="role-card-body">
+            <p><strong>Mô tả:</strong> Sinh viên là người dùng cuối, sử dụng hệ thống để học tập, làm bài kiểm tra, theo dõi điểm số và tương tác với nội dung khóa học.</p>
+            <p><strong>Quyền hạn (Permissions):</strong></p>
+            <div class="perm-list">
+              <span class="perm-badge">view_dashboard</span>
+              <span class="perm-badge">take_exams</span>
+              <span class="perm-badge">view_grades</span>
+              <span class="perm-badge">submit_reviews</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ===== SECTION 4: YEU CAU CHUC NANG ===== -->
+    <div id="sec4" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">4</div>
+        <h2>Yeu cau chuc nang (Functional Requirements)</h2>
+      </div>
+      <div class="section-body">
+        <div class="info-box">Cac use case duoc ky hieu UC-XXX. Moi use case mo ta mot tinh nang hoac chuc nang cu the cua he thong, duoc phan nhom theo vai tro nguoi dung.</div>
+
+        <!-- 4.1 ADMIN -->
+        <div id="sec4-admin" class="subsection">
+          <h3>4.1 Admin - Quan tri vien he thong</h3>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-001</span>
+              <span class="uc-title">Quan ly nguoi dung (User CRUD)</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin co the tao, xem, sua, xoa tai khoan nguoi dung va phan cong vai tro.</span></div>
+              <div class="uc-row"><span class="uc-label">Dau vao:</span><span>Thong tin nguoi dung (ten, email, mat khau, vai tro)</span></div>
+              <div class="uc-row"><span class="uc-label">Dau ra:</span><span>Tai khoan nguoi dung duoc tao/cap nhat/xoa trong he thong</span></div>
+              <ul>
+                <li>Tao tai khoan moi voi email duy nhat</li>
+                <li>Cap nhat thong tin ca nhan, mat khau, avatar</li>
+                <li>Gan/thu hoi vai tro cho nguoi dung</li>
+                <li>Vo hieu hoa/kich hoat tai khoan</li>
+                <li>Tim kiem, loc va xuat danh sach nguoi dung</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-002</span>
+              <span class="uc-title">Quan ly vai tro va quyen han (RBAC)</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin co the tao, sua, xoa vai tro va phan cong permissions cho tung vai tro.</span></div>
+              <ul>
+                <li>Tao vai tro moi voi ten va mo ta</li>
+                <li>Gan danh sach permissions cho vai tro</li>
+                <li>Xem danh sach tat ca permissions trong he thong</li>
+                <li>Sao chep vai tro (clone permissions)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-003</span>
+              <span class="uc-title">Duyet khoa hoc (Course Approval Workflow)</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin xem xet va duyet/tu choi cac khoa hoc do giang vien gui len.</span></div>
+              <ul>
+                <li>Xem danh sach khoa hoc cho trang thai "cho duyet"</li>
+                <li>Xem chi tiet noi dung khoa hoc truoc khi duyet</li>
+                <li>Duyet khoa hoc de phat hanh (chuyen sang trang thai "published")</li>
+                <li>Tu choi khoa hoc voi ly do cu the</li>
+                <li>Gui thong bao ket qua den giang vien</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-004</span>
+              <span class="uc-title">Giam sat thi truc tuyen theo thoi gian thuc</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin theo doi truc tiep cac luot thi dang dien ra, co the can thiep.</span></div>
+              <ul>
+                <li>Xem dashboard tat ca cac luot thi dang hoat dong</li>
+                <li>Xem so luot vi pham (chuyen tab) cua tung thi sinh</li>
+                <li>Tam dung / tiep tuc / ket thuc bai thi cua thi sinh bat ky</li>
+                <li>Gia han thoi gian lam bai cho thi sinh cu the</li>
+                <li>Nhan canh bao real-time khi co vi pham</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-005</span>
+              <span class="uc-title">Quan ly mau chung chi</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin thiet ke mau chung chi voi anh nen va layout cac truong du lieu.</span></div>
+              <ul>
+                <li>Tai len anh nen chung chi</li>
+                <li>Chinh vi tri va dinh dang cac truong: ten sinh vien, khoa hoc, ngay cap, ma xac thuc</li>
+                <li>Xem truoc mau chung chi</li>
+                <li>Dat lam mau mac dinh cho khoa hoc</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-006</span>
+              <span class="uc-title">Quan ly danh muc khoa hoc</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin tao va quan ly cac danh muc (categories) de phan loai khoa hoc.</span></div>
+              <ul>
+                <li>Tao danh muc cha va danh muc con (tree structure)</li>
+                <li>Sua ten, mo ta, icon danh muc</li>
+                <li>Xoa danh muc (neu khong co khoa hoc lien ket)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-007</span>
+              <span class="uc-title">Quan ly don hang va thanh toan</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin xem, xac nhan va xu ly cac don hang mua khoa hoc.</span></div>
+              <ul>
+                <li>Xem tat ca don hang voi trang thai (pending, paid, failed, refunded)</li>
+                <li>Xac nhan thanh toan thu cong</li>
+                <li>Xu ly hoan tien (refund)</li>
+                <li>Xuat bao cao doanh thu</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-008</span>
+              <span class="uc-title">Kiem duyet danh gia khoa hoc</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin kiem duyet, an hoac xoa cac danh gia (review) khoa hoc khong phu hop.</span></div>
+              <ul>
+                <li>Xem danh sach tat ca danh gia chua duyet</li>
+                <li>Duyet/tu choi hien thi danh gia</li>
+                <li>Xoa danh gia vi pham</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-009</span>
+              <span class="uc-title">Cau hinh nha cung cap AI</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin cau hinh API key, han muc su dung cho cac dich vu AI (OpenAI, Gemini).</span></div>
+              <ul>
+                <li>Nhap va luu API key cho OpenAI, Google Gemini</li>
+                <li>Dat han muc su dung (quota) hang thang</li>
+                <li>Xem lich su su dung va chi phi AI</li>
+                <li>Tat/mo tinh nang AI cho toan he thong</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-010</span>
+              <span class="uc-title">Quan ly voucher va diem thuong</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin tao ma giam gia (voucher) va cau hinh he thong diem thuong (gamification).</span></div>
+              <ul>
+                <li>Tao voucher voi ma, gia tri giam gia, han su dung</li>
+                <li>Quan ly trang thai voucher (active/expired)</li>
+                <li>Cau hinh so diem dang nhap hang ngay, nhiem vu</li>
+                <li>Xem lich su doi diem cua sinh vien</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-011</span>
+              <span class="uc-title">Cau hinh he thong (Site Settings)</span>
+              <span class="badge badge-admin">Admin</span>
+            </div>
+            <div class="uc-body">
+              <div class="uc-row"><span class="uc-label">Mo ta:</span><span>Admin quan ly cac cau hinh he thong duoi dang key-value.</span></div>
+              <ul>
+                <li>Xem va sua cac thong so he thong (ten truong, logo, email, v.v.)</li>
+                <li>Cau hinh email SMTP</li>
+                <li>Bat/tat cac tinh nang (feature flags)</li>
+              </ul>
+            </div>
+          </div>
+
+        </div><!-- end sec4-admin -->
+
+        <!-- 4.2 ACADEMIC MANAGER -->
+        <div id="sec4-academic" class="subsection">
+          <h3>4.2 Academic Manager - Can bo Quan ly Hoc vu</h3>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-012</span>
+              <span class="uc-title">Quan ly co cau to chuc (Institution/Units)</span>
+              <span class="badge badge-academic">Academic Manager</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao va quan ly truong hoc (Institution), khoa/bo mon (Unit)</li>
+                <li>Quan ly chuong trinh dao tao (Program) va nganh hoc (Major)</li>
+                <li>Xay dung chuong trinh khung (Curriculum): map mon hoc vao chuong trinh</li>
+                <li>Quan ly khoa hoc (Cohort) va lop hanh chinh (Administrative Class)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-013</span>
+              <span class="uc-title">Quan ly hoc ky (Academic Term)</span>
+              <span class="badge badge-academic">Academic Manager</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao hoc ky voi ten, ngay bat dau, ngay ket thuc</li>
+                <li>Dat trang thai hoc ky (active/inactive)</li>
+                <li>Xem lich su hoc ky</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-014</span>
+              <span class="uc-title">Quan ly lop hoc phan (Class Section)</span>
+              <span class="badge badge-academic">Academic Manager</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao lop hoc phan: gan khoa hoc, giang vien, hoc ky, lop hanh chinh</li>
+                <li>Chinh sua thong tin lop hoc phan</li>
+                <li>Xem danh sach sinh vien trong lop</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-015</span>
+              <span class="uc-title">Ghi danh sinh vien (Bulk Enrollment)</span>
+              <span class="badge badge-academic">Academic Manager</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Ghi danh thu cong: chon sinh vien va lop hoc phan</li>
+                <li>Import hang loat tu file CSV</li>
+                <li>Xoa ghi danh</li>
+                <li>Xem lich su ghi danh</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-016</span>
+              <span class="uc-title">Bao cao hoc tap (Academic Analytics)</span>
+              <span class="badge badge-academic">Academic Manager</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem so lieu ghi danh theo khoa hoc / hoc ky</li>
+                <li>Theo doi sinh vien co nguy co (at-risk students)</li>
+                <li>Xem ty le hoan thanh khoa hoc</li>
+                <li>Bao cao tien do hoc tap tung lop</li>
+                <li>Xuat bao cao ra Excel/PDF</li>
+              </ul>
+            </div>
+          </div>
+        </div><!-- end sec4-academic -->
+
+        <!-- 4.3 INSTRUCTOR -->
+        <div id="sec4-instructor" class="subsection">
+          <h3>4.3 Instructor - Giang vien</h3>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-017</span>
+              <span class="uc-title">Tao va quan ly khoa hoc</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao khoa hoc moi voi ten, mo ta, anh dai dien, gia tien, danh muc</li>
+                <li>Chuyen trang thai: draft -&gt; submit for review -&gt; published</li>
+                <li>Chinh sua thong tin khoa hoc (khi o trang thai draft)</li>
+                <li>Xoa khoa hoc (khi chua co sinh vien ghi danh)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-018</span>
+              <span class="uc-title">Xay dung cau truc khoa hoc (Sections &amp; Lessons)</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao, sua, xoa chuong (Section) va bai hoc (Lesson)</li>
+                <li>Sap xep thu tu bang keo tha (drag-and-drop)</li>
+                <li>Dat trang thai cong khai/an cho tung bai hoc</li>
+                <li>Ho tro 6 loai bai hoc: video, text, quiz, assignment, SCORM/H5P, virtual class</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-019</span>
+              <span class="uc-title">Tai len video bai giang</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tai len video len MinIO storage</li>
+                <li>Theo doi tien do upload</li>
+                <li>Xem truoc video sau khi tai len</li>
+                <li>Ho tro cac dinh dang: MP4, MKV, AVI</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-020</span>
+              <span class="uc-title">Quan ly ngan hang cau hoi</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao nhom cau hoi (Question Group) voi mo ta va do kho (5 cap do)</li>
+                <li>Tao cau hoi thuoc 7 loai: single_choice, multiple_choice, true_false, essay, matching, ordering, short_answer</li>
+                <li>Import cau hoi tu Excel/CSV</li>
+                <li>Tim kiem va loc cau hoi</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-021</span>
+              <span class="uc-title">Tao quiz cho bai hoc</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao quiz cho tung bai hoc co thoi gian</li>
+                <li>Chon cau hoi tu ngan hang (ngau nhien hoac co dinh)</li>
+                <li>Dat so lan lam bai toi da</li>
+                <li>Cau hinh xem ket qua sau khi nop</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-022</span>
+              <span class="uc-title">Tao bai thi khoa hoc (Course Exam)</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao bai thi cuoi khoa, kiem tra giua ky</li>
+                <li>Cau hinh: thoi gian lam bai, so lan thi, diem dat, bat/tat proctoring</li>
+                <li>Chon cau hoi tu ngan hang (ngau nhien/co dinh)</li>
+                <li>Xem ket qua bai thi cua sinh vien</li>
+                <li>Cham bai tu luan (essay)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-023</span>
+              <span class="uc-title">Quan ly bang diem (Gradebook)</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem bang diem toan bo sinh vien trong lop hoc phan</li>
+                <li>Cau hinh cac thanh phan diem (vi du: giua ky 30%, cuoi ky 70%)</li>
+                <li>Nhap diem thu cong cho tung sinh vien</li>
+                <li>Xuat bang diem ra Excel</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-024</span>
+              <span class="uc-title">Tao buoi hoc ngoai tuyen (Offline Session)</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tao buoi hoc ngoai tuyen voi dia diem, thoi gian, mo ta</li>
+                <li>Tao ma QR cho diem danh</li>
+                <li>Xem danh sach sinh vien da diem danh</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-025</span>
+              <span class="uc-title">Theo doi tien do hoc tap sinh vien</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem ty le hoan thanh bai hoc cua tung sinh vien</li>
+                <li>Xem ket qua bai nop (assignment submissions)</li>
+                <li>Bieu do thong ke tien do toan lop</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-026</span>
+              <span class="uc-title">Dashboard phan tich doanh thu va sinh vien</span>
+              <span class="badge badge-instructor">Instructor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem so luong sinh vien dang ky theo thoi gian</li>
+                <li>Xem doanh thu tu khoa hoc ban</li>
+                <li>Thong ke danh gia (rating) cua sinh vien</li>
+              </ul>
+            </div>
+          </div>
+        </div><!-- end sec4-instructor -->
+
+        <!-- 4.4 ADVISOR -->
+        <div id="sec4-advisor" class="subsection">
+          <h3>4.4 Advisor - Co van hoc tap</h3>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-027</span>
+              <span class="uc-title">Xem danh sach sinh vien duoc phan cong</span>
+              <span class="badge badge-advisor">Advisor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem danh sach sinh vien (advisee) duoc phan cong cho co van</li>
+                <li>Tim kiem va loc sinh vien theo ten, ma sinh vien, lop</li>
+                <li>Xem thong tin chi tiet tung sinh vien</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-028</span>
+              <span class="uc-title">Theo doi sinh vien co nguy co hoc kem</span>
+              <span class="badge badge-advisor">Advisor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem danh sach sinh vien co GPA thap hoac ty le hoan thanh thap</li>
+                <li>Nhan canh bao khi sinh vien co nguy co</li>
+                <li>Xem lich su hoc tap chi tiet cua sinh vien</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-029</span>
+              <span class="uc-title">Xem diem so va bao cao hoc tap</span>
+              <span class="badge badge-advisor">Advisor</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem bang diem tong ket cua sinh vien</li>
+                <li>Xem ket qua cac bai thi</li>
+                <li>Xem bao cao tien do hoc tap</li>
+              </ul>
+            </div>
+          </div>
+        </div><!-- end sec4-advisor -->
+
+        <!-- 4.5 FINANCE -->
+        <div id="sec4-finance" class="subsection">
+          <h3>4.5 Finance - Nhan vien Tai chinh</h3>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-030</span>
+              <span class="uc-title">Quan ly don hang va thanh toan</span>
+              <span class="badge badge-finance">Finance</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem tat ca don hang mua khoa hoc</li>
+                <li>Loc theo trang thai, thoi gian, khoa hoc</li>
+                <li>Xu ly hoan tien</li>
+                <li>Xac nhan thanh toan thu cong khi can</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-031</span>
+              <span class="uc-title">Bao cao tai chinh</span>
+              <span class="badge badge-finance">Finance</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem bao cao doanh thu theo ky, khoa hoc, giang vien</li>
+                <li>Bieu do xu huong doanh thu</li>
+                <li>Xuat bao cao ra Excel/PDF</li>
+              </ul>
+            </div>
+          </div>
+        </div><!-- end sec4-finance -->
+
+        <!-- 4.6 STUDENT -->
+        <div id="sec4-student" class="subsection">
+          <h3>4.6 Student - Sinh vien</h3>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-032</span>
+              <span class="uc-title">Duyet va mua khoa hoc</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tim kiem va xem danh sach khoa hoc</li>
+                <li>Xem chi tiet khoa hoc: mo ta, noi dung, giang vien, danh gia</li>
+                <li>Mua khoa hoc qua cong thanh toan PayOS</li>
+                <li>Ap dung ma giam gia (voucher)</li>
+                <li>Nhan xac nhan va kich hoat truy cap sau khi thanh toan</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-033</span>
+              <span class="uc-title">Hoc bai giang (Watch/Read Lesson)</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem video bai giang (luu vi tri xem, tu dong tiep tuc)</li>
+                <li>Doc noi dung text</li>
+                <li>Tai xuong tai lieu dinh kem</li>
+                <li>Xem tien do hoc tap (%)</li>
+                <li>Danh dau bai hoc da hoan thanh</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-034</span>
+              <span class="uc-title">Lam quiz bai hoc</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Lam quiz co thoi gian trong bai hoc</li>
+                <li>Ho tro cac loai cau hoi: trac nghiem, dung/sai, dien khuyet</li>
+                <li>Xem ket qua va dap an sau khi nop</li>
+                <li>Lam lai quiz (neu duoc phep)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-035</span>
+              <span class="uc-title">Du thi (Take Exam)</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem lich thi va dang ky du thi</li>
+                <li>Lam bai thi voi 7 loai cau hoi (don chon, da chon, dung/sai, tu luan, ghep doi, sap xep, tra loi ngan)</li>
+                <li>He thong giam sat: phat hien chuyen tab, canh bao vi pham</li>
+                <li>Nop bai khi het gio hoac chu dong</li>
+                <li>Xem ket qua: diem so, dat/truot, thong ke tung cau</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-036</span>
+              <span class="uc-title">Viet ghi chu bai hoc (Lesson Notes)</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Them ghi chu tai mot moc thoi gian cu the trong video</li>
+                <li>Xem, sua, xoa ghi chu ca nhan</li>
+                <li>Xem tat ca ghi chu cua khoa hoc theo thu tu thoi gian</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-037</span>
+              <span class="uc-title">Tham gia Q&A khoa hoc</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Dat cau hoi trong khoa hoc</li>
+                <li>Tra loi cau hoi cua sinh vien khac</li>
+                <li>Nhan thong bao khi co tra loi moi</li>
+                <li>Danh dau cau hoi da duoc giai dap</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-038</span>
+              <span class="uc-title">Danh gia khoa hoc (Course Review)</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Gui danh gia sau khi hoan thanh khoa hoc</li>
+                <li>Xep hang tu 1-5 sao voi binh luan</li>
+                <li>Chinh sua hoac xoa danh gia cua ban than</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-039</span>
+              <span class="uc-title">He thong diem thuong va Gamification</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Nhan diem khi dang nhap hang ngay</li>
+                <li>Nhan diem khi hoan thanh nhiem vu (quest)</li>
+                <li>Xem bang xep hang sinh vien trong he thong</li>
+                <li>Doi diem lay voucher giam gia khoa hoc</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-040</span>
+              <span class="uc-title">Diem danh bang ma QR</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Quet ma QR de diem danh vao dau buoi hoc ngoai tuyen</li>
+                <li>Xac thuc vi tri (optionally)</li>
+                <li>Xem lich su diem danh cua ban than</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-041</span>
+              <span class="uc-title">Xem bang diem va bang ket qua hoc tap</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem bang ket qua hoc tap toan khoa (transcript)</li>
+                <li>Xem cac thanh phan diem cua tung mon hoc</li>
+                <li>Xem GPA tich luy</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-042</span>
+              <span class="uc-title">Nhan va chia se chung chi</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Nhan chung chi sau khi hoan thanh khoa hoc du dieu kien</li>
+                <li>Xem chung chi voi ma xac thuc duy nhat (credential ID)</li>
+                <li>Chia se link xac thuc chung chi cong khai</li>
+                <li>Tai chung chi dinh dang PDF</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-043</span>
+              <span class="uc-title">Tu van nghe nghiep bang AI</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Tai len CV (PDF/Word)</li>
+                <li>AI phan tich ky nang tu CV</li>
+                <li>Nhan de xuat lo trinh nghe nghiep phu hop</li>
+                <li>Xem danh sach khoa hoc de xuat de phat trien ky nang</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-044</span>
+              <span class="uc-title">Su dung chatbot AI ho tro hoc tap</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Chat voi AI chatbot de giai dap thac mac hoc tap</li>
+                <li>Dat cau hoi ve noi dung khoa hoc</li>
+                <li>Xem lich su cuoc tro chuyen</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="uc-card">
+            <div class="uc-header">
+              <span class="uc-code">UC-045</span>
+              <span class="uc-title">Xem lo trinh hoc tap (Learning Path)</span>
+              <span class="badge badge-student">Student</span>
+            </div>
+            <div class="uc-body">
+              <ul>
+                <li>Xem lo trinh hoc tap duoc de xuat</li>
+                <li>Theo doi tien do tren lo trinh</li>
+                <li>Xem lich thi va cac nhiem vu con lai</li>
+              </ul>
+            </div>
+          </div>
+
+        </div><!-- end sec4-student -->
+
+      </div><!-- end section body -->
+    </div><!-- end sec4 -->
+
+    <!-- ===== SECTION 5: YEU CAU PHI CHUC NANG ===== -->
+    <div id="sec5" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">5</div>
+        <h2>Yeu cau phi chuc nang (Non-Functional Requirements)</h2>
+      </div>
+      <div class="section-body">
+
+        <div id="sec5-1" class="subsection">
+          <h3>5.1 Hieu nang (Performance)</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Chi so</th><th>Yeu cau</th><th>Phuong phap do</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Thoi gian phan hoi API</td><td>&lt; 500ms cho 95% request</td><td>Load testing, APM monitoring</td></tr>
+              <tr><td>Tai dong thoi</td><td>Ho tro 500 nguoi dung dong thoi</td><td>JMeter / k6 stress test</td></tr>
+              <tr><td>Luot thi dong thoi</td><td>Ho tro 100 thi sinh thi cung luc</td><td>Concurrent exam load test</td></tr>
+              <tr><td>Thoi gian tai trang</td><td>&lt; 3 giay tai trang chinh</td><td>Lighthouse, Core Web Vitals</td></tr>
+              <tr><td>Thoi gian upload video</td><td>100MB trong &lt; 60 giay (mang 10Mbps)</td><td>Kiem thu thuc te</td></tr>
+              <tr><td>Cache hit rate</td><td>&gt; 80% cho du lieu hay truy cap</td><td>Redis cache monitoring</td></tr>
+              <tr><td>Database query</td><td>&lt; 100ms cho 99% query</td><td>MySQL slow query log</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="sec5-2" class="subsection">
+          <h3>5.2 Bao mat (Security)</h3>
+          <h4>Xac thuc va Phan quyen</h4>
+          <ul>
+            <li>Xac thuc JWT voi access token (15 phut) va refresh token (7 ngay)</li>
+            <li>RBAC: kiem tra quyen tren moi API endpoint</li>
+            <li>Khoa tai khoan sau 5 lan dang nhap sai lien tiep</li>
+            <li>Bat buoc doi mat khau khi dang nhap lan dau</li>
+            <li>Ho tro 2FA (Two-Factor Authentication)</li>
+          </ul>
+          <h4>Bao ve du lieu</h4>
+          <ul>
+            <li>Ma hoa HTTPS (TLS 1.2+) cho moi lien lac</li>
+            <li>Ma hoa mat khau bang bcrypt (cost factor 12)</li>
+            <li>Quet SQL Injection, XSS tren moi input</li>
+            <li>CSRF protection cho cac form</li>
+            <li>Rate limiting: max 60 request/phut/IP</li>
+            <li>File upload: kiem tra dinh dang, quet virus</li>
+          </ul>
+          <h4>Kiem thu</h4>
+          <ul>
+            <li>Thi an toan dinh ky moi 6 thang</li>
+            <li>OWASP Top 10 compliance check</li>
+            <li>Ghi log moi thao tac quan trong (audit log)</li>
+          </ul>
+        </div>
+
+        <div id="sec5-3" class="subsection">
+          <h3>5.3 Kha nang su dung (Usability)</h3>
+          <ul>
+            <li>Giao dien than thien, ho tro tieng Viet toan bo</li>
+            <li>Nguoi dung moi co the hoan thanh 80% chuc nang chinh khong can huong dan</li>
+            <li>Thong bao loi ro rang, co huong dan khac phuc</li>
+            <li>Ho tro cac trinh duyet hien dai: Chrome, Firefox, Edge, Safari (phan bo) 2 phien ban moi nhat</li>
+            <li>Giao dien responsive cho man hinh 320px - 4K</li>
+            <li>Tuan thu WCAG 2.1 Level AA cho kha nang tiep can (accessibility)</li>
+            <li>Toc do nap trang tren mobile 3G &lt; 5 giay</li>
+          </ul>
+        </div>
+
+        <div id="sec5-4" class="subsection">
+          <h3>5.4 Do tin cay (Reliability &amp; Availability)</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Chi so</th><th>Yeu cau</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Uptime SLA</td><td>99.5% hang thang (tru bao tri co ke hoach)</td></tr>
+              <tr><td>RTO (Recovery Time Objective)</td><td>&lt; 2 gio khi xay ra su co nghiem trong</td></tr>
+              <tr><td>RPO (Recovery Point Objective)</td><td>&lt; 24 gio mat du lieu</td></tr>
+              <tr><td>Sao luu du lieu</td><td>Hang ngay, luu tru 30 ngay</td></tr>
+              <tr><td>Xu ly lo</td><td>Graceful degradation khi mot dich vu loi</td></tr>
+              <tr><td>Monitor</td><td>He thong canh bao real-time khi dich vu down</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div><!-- end sec5 -->
+
+    <!-- ===== SECTION 6: MO HINH DU LIEU ===== -->
+    <div id="sec6" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">6</div>
+        <h2>Mo hinh du lieu (Data Model)</h2>
+      </div>
+      <div class="section-body">
+        <p style="margin-bottom:16px;">Duoi day la danh sach cac thuc the (entity) chinh cua he thong voi cac truong quan trong. He thong su dung MySQL lam co so du lieu chinh, MongoDB cho du lieu phi cau truc, va Redis cho cache.</p>
+
+        <div class="entity-grid">
+
+          <div class="entity-card">
+            <h4>User</h4>
+            <ul>
+              <li>id, name, email</li>
+              <li>password (hashed)</li>
+              <li>avatar, phone</li>
+              <li>role_id (FK)</li>
+              <li>status (active/inactive)</li>
+              <li>email_verified_at</li>
+              <li>last_login_at</li>
+              <li>points (gamification)</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Course</h4>
+            <ul>
+              <li>id, title, slug</li>
+              <li>description, thumbnail</li>
+              <li>instructor_id (FK)</li>
+              <li>category_id (FK)</li>
+              <li>price, discount_price</li>
+              <li>status (draft/pending/published)</li>
+              <li>level, language</li>
+              <li>total_lessons, total_duration</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Section</h4>
+            <ul>
+              <li>id, course_id (FK)</li>
+              <li>title, description</li>
+              <li>order_index</li>
+              <li>is_published</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Lesson</h4>
+            <ul>
+              <li>id, section_id (FK)</li>
+              <li>title, description</li>
+              <li>type (video/text/quiz/assignment/scorm/virtual)</li>
+              <li>video_url, duration</li>
+              <li>content (text)</li>
+              <li>order_index, is_free</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Enrollment</h4>
+            <ul>
+              <li>id, user_id (FK)</li>
+              <li>course_id (FK)</li>
+              <li>class_section_id (FK)</li>
+              <li>type (purchase/academic)</li>
+              <li>status, enrolled_at</li>
+              <li>completed_at</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>LessonProgress</h4>
+            <ul>
+              <li>id, user_id (FK)</li>
+              <li>lesson_id (FK)</li>
+              <li>watch_position (seconds)</li>
+              <li>completion_percent</li>
+              <li>is_completed</li>
+              <li>last_watched_at</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Question</h4>
+            <ul>
+              <li>id, bank_id (FK)</li>
+              <li>type (single_choice/multiple_choice/true_false/essay/matching/ordering/short_answer)</li>
+              <li>content, explanation</li>
+              <li>difficulty (1-5)</li>
+              <li>options (JSON)</li>
+              <li>correct_answer (JSON)</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Exam</h4>
+            <ul>
+              <li>id, course_id (FK)</li>
+              <li>title, description</li>
+              <li>duration (minutes)</li>
+              <li>max_attempts, pass_score</li>
+              <li>is_proctored</li>
+              <li>shuffle_questions</li>
+              <li>start_at, end_at</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>QuizAttempt / ExamAttempt</h4>
+            <ul>
+              <li>id, user_id (FK)</li>
+              <li>quiz_id / exam_id (FK)</li>
+              <li>started_at, submitted_at</li>
+              <li>score, is_passed</li>
+              <li>answers (JSON)</li>
+              <li>violations_count</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>ExamViolation</h4>
+            <ul>
+              <li>id, attempt_id (FK)</li>
+              <li>type (tab_switch/v.v.)</li>
+              <li>detected_at</li>
+              <li>details (JSON)</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Order</h4>
+            <ul>
+              <li>id, user_id (FK)</li>
+              <li>course_id (FK)</li>
+              <li>amount, discount</li>
+              <li>voucher_id (FK)</li>
+              <li>status (pending/paid/failed/refunded)</li>
+              <li>payment_method</li>
+              <li>payos_order_id</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Institution / Unit / Program</h4>
+            <ul>
+              <li>Institution: id, name, code</li>
+              <li>Unit: id, institution_id, name, type</li>
+              <li>Program: id, unit_id, name, code</li>
+              <li>Major: id, program_id, name</li>
+              <li>Curriculum: id, program_id, courses[]</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Term / ClassSection</h4>
+            <ul>
+              <li>Term: id, name, start_date, end_date, status</li>
+              <li>ClassSection: id, course_id, instructor_id, term_id, cohort_id, max_students</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>GradeComponent / GradeEntry</h4>
+            <ul>
+              <li>GradeComponent: id, class_section_id, name, weight(%)</li>
+              <li>GradeEntry: id, component_id, user_id, score, graded_by</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>OfflineSession</h4>
+            <ul>
+              <li>id, class_section_id (FK)</li>
+              <li>title, location, date</li>
+              <li>qr_code, qr_expires_at</li>
+              <li>Attendance: user_id, checked_in_at</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Certificate</h4>
+            <ul>
+              <li>CertificateTemplate: id, name, background_url, fields_config (JSON)</li>
+              <li>UserCertificate: id, user_id, course_id, credential_id (unique), issued_at, template_id</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Review / CourseQa</h4>
+            <ul>
+              <li>Review: id, user_id, course_id, rating, comment, status</li>
+              <li>CourseQa: id, user_id, course_id, question, replies[]</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>PointTransaction / Voucher</h4>
+            <ul>
+              <li>PointTransaction: id, user_id, type, points, reason</li>
+              <li>Voucher: id, code, discount, type, min_order, expires_at, usage_limit</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>UserCV / CareerRecommendation</h4>
+            <ul>
+              <li>UserCV: id, user_id, file_url, skills_extracted (JSON)</li>
+              <li>CareerRecommendation: id, cv_id, careers (JSON), courses (JSON)</li>
+            </ul>
+          </div>
+
+          <div class="entity-card">
+            <h4>Notification / AiSetting / SiteSetting</h4>
+            <ul>
+              <li>Notification: id, user_id, type, title, body, is_read</li>
+              <li>AiSetting: provider, api_key, quota, usage</li>
+              <li>SiteSetting: key, value, type</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- end sec6 -->
+
+    <!-- ===== SECTION 7: GIAO DIEN HE THONG ===== -->
+    <div id="sec7" class="srs-section">
+      <div class="section-header-bar">
+        <div class="section-num">7</div>
+        <h2>Giao dien he thong (System Interfaces)</h2>
+      </div>
+      <div class="section-body">
+
+        <div id="sec7-1" class="subsection">
+          <h3>7.1 Giao dien Web (Web Interface)</h3>
+          <p>Ung dung web xay dung bang Nuxt.js 4 (Vue 3 + TypeScript + Tailwind CSS), ho tro ca chuc nang SPA va SSR.</p>
+          <h4>Cac trang chinh (theo role):</h4>
+          <ul>
+            <li><strong>Trang cong (Public):</strong> Trang chu, tim kiem khoa hoc, chi tiet khoa hoc, dang nhap/dang ky, xac thuc chung chi cong khai</li>
+            <li><strong>Student Portal:</strong> Dashboard, My Courses, Player/Viewer bai hoc, Exam Room, Gradebook, Profile, Certificate, AI Advisor, Chatbot, Leaderboard</li>
+            <li><strong>Instructor Dashboard:</strong> Course Builder (keo tha sections/lessons), Question Bank, Exam Creator, Gradebook, Analytics, Session QR Generator</li>
+            <li><strong>Academic Manager Console:</strong> Structure Manager (Institution tree), Term Manager, Class Section Manager, Enrollment Manager, Reports</li>
+            <li><strong>Admin Panel:</strong> User Management, Role Management, Course Approval, Order Management, AI Config, Certificate Builder, Site Settings, Live Proctoring</li>
+            <li><strong>Finance Portal:</strong> Orders, Payments, Financial Reports</li>
+            <li><strong>Advisor Portal:</strong> Advisee List, At-Risk Monitor, Grade Viewer</li>
+          </ul>
+          <h4>Yeu cau ky thuat giao dien web:</h4>
+          <ul>
+            <li>Responsive: ho tro man hinh 320px - 2560px+</li>
+            <li>Dark/Light mode (optional)</li>
+            <li>Real-time notifications qua WebSocket</li>
+            <li>Video player tung hop: HLS streaming cho video lon</li>
+            <li>Rich text editor (Quill.js / TipTap) cho noi dung bai hoc</li>
+            <li>Drag-and-drop course builder</li>
+          </ul>
+        </div>
+
+        <div id="sec7-2" class="subsection">
+          <h3>7.2 Giao dien Mobile (Flutter App)</h3>
+          <p>Ung dung mobile phat trien bang Flutter, ho tro iOS va Android. Danh cho sinh vien.</p>
+          <h4>Chuc nang chinh tren mobile:</h4>
+          <ul>
+            <li>Dang nhap, quan ly ho so ca nhan</li>
+            <li>Xem danh sach khoa hoc va bai hoc</li>
+            <li>Xem video bai giang (offline download optional)</li>
+            <li>Lam quiz va bai kiem tra</li>
+            <li>Quet ma QR diem danh</li>
+            <li>Xem bang diem va chung chi</li>
+            <li>Nhan thong bao push</li>
+            <li>Chat voi AI chatbot</li>
+          </ul>
+          <h4>Yeu cau ky thuat mobile:</h4>
+          <ul>
+            <li>Ho tro iOS 14+ va Android 8+</li>
+            <li>Kich thuoc APK/IPA &lt; 50MB</li>
+            <li>Push notifications (Firebase Cloud Messaging)</li>
+            <li>Xac thuc bieu quyen camera de quet QR</li>
+          </ul>
+        </div>
+
+        <div id="sec7-3" class="subsection">
+          <h3>7.3 Giao dien API (REST API)</h3>
+          <p>Backend cung cap REST API theo chuan JSON:API, xac thuc bang JWT Bearer token.</p>
+          <h4>Dac diem API:</h4>
+          <ul>
+            <li>Base URL: <code>https://api.ptit-lms.edu.vn/api/v1</code></li>
+            <li>Dinh dang: JSON (Content-Type: application/json)</li>
+            <li>Xac thuc: Bearer JWT Token trong header Authorization</li>
+            <li>Pagination: cursor-based hoac offset-based</li>
+            <li>Versioning: URL versioning (/v1, /v2)</li>
+            <li>Rate limiting: 60 req/min/user, 120 req/min/admin</li>
+            <li>Documentation: OpenAPI 3.0 / Swagger UI</li>
+          </ul>
+          <h4>Cac nhom API endpoint chinh:</h4>
+          <table class="data-table">
+            <thead>
+              <tr><th>Nhom</th><th>Prefix</th><th>Mo ta</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Authentication</td><td>/auth</td><td>Dang nhap, dang ky, refresh token, logout</td></tr>
+              <tr><td>Users</td><td>/users</td><td>CRUD nguoi dung, quan ly vai tro</td></tr>
+              <tr><td>Courses</td><td>/courses</td><td>CRUD khoa hoc, duyet, phan loai</td></tr>
+              <tr><td>Lessons</td><td>/lessons</td><td>CRUD bai hoc, upload video, progress</td></tr>
+              <tr><td>Exams</td><td>/exams</td><td>CRUD bai thi, thi, nop bai, ket qua</td></tr>
+              <tr><td>Enrollments</td><td>/enrollments</td><td>Ghi danh, xoa ghi danh, import CSV</td></tr>
+              <tr><td>Grades</td><td>/grades</td><td>Bang diem, thanh phan diem, nhap diem</td></tr>
+              <tr><td>Academic</td><td>/academic</td><td>Institution, Unit, Program, Term, ClassSection</td></tr>
+              <tr><td>Payments</td><td>/orders</td><td>Tao don hang, callback PayOS, lich su</td></tr>
+              <tr><td>AI</td><td>/ai</td><td>Chat, phan tich CV, tu van nghe nghiep</td></tr>
+              <tr><td>Certificates</td><td>/certificates</td><td>Xem, tai, xac thuc chung chi</td></tr>
+              <tr><td>Analytics</td><td>/analytics</td><td>Bao cao hoc tap, tai chinh, hieu suat</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div><!-- end sec7 -->
+
+  </main>
+</div>
+</div><!-- end tab-srs -->
+
+<!-- ===================== TAB 2: TEST CASES ===================== -->
+<div id="tab-tc" class="tab-content">
+<div class="tc-layout">
+
+  <div class="tc-header-bar">
+    <div>
+      <h2>Danh Sach Test Cases - PTIT LMS</h2>
+      <p style="color:#64748b; margin-top:4px; font-size:13px;">Tong hop cac truong hop kiem thu phan loai theo vai tro va module chuc nang</p>
+    </div>
+    <div class="tc-stats">
+      <div class="tc-stat"><div class="num">90</div><div class="lbl">Tong TC</div></div>
+      <div class="tc-stat"><div class="num">6</div><div class="lbl">Vai tro</div></div>
+      <div class="tc-stat"><div class="num">15</div><div class="lbl">Module</div></div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div style="background:#fff; border-radius:10px; padding:14px 20px; margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,0.06); display:flex; gap:20px; flex-wrap:wrap; align-items:center;">
+    <strong style="color:#1e3a5f; font-size:13px;">Muc do uu tien:</strong>
+    <span class="badge priority-critical">Critical</span>
+    <span class="badge priority-high">High</span>
+    <span class="badge priority-medium">Medium</span>
+    <span class="badge priority-low">Low</span>
+    &nbsp;&nbsp;
+    <strong style="color:#1e3a5f; font-size:13px;">Vai tro:</strong>
+    <span class="badge badge-admin">Admin</span>
+    <span class="badge badge-academic">Academic Mgr</span>
+    <span class="badge badge-instructor">Instructor</span>
+    <span class="badge badge-advisor">Advisor</span>
+    <span class="badge badge-finance">Finance</span>
+    <span class="badge badge-student">Student</span>
+  </div>
+
+  <!-- ===== SECTION: XAC THUC ===== -->
+  <div class="tc-section">
+    <div class="tc-section-header">
+      <h3>Module: Xac thuc &amp; Dang nhap (Authentication)</h3>
+      <span class="tc-count">10 TC</span>
+    </div>
+    <table class="tc-table">
+      <thead>
+        <tr>
+          <th style="width:40px;">STT</th>
+          <th style="width:90px;">Ma Test</th>
+          <th style="width:100px;">Vai tro</th>
+          <th style="width:100px;">Module</th>
+          <th style="width:180px;">Ten Test Case</th>
+          <th style="width:160px;">Dieu kien tien quyet</th>
+          <th>Cac buoc thuc hien</th>
+          <th style="width:200px;">Ket qua mong doi</th>
+          <th style="width:80px;">Uu tien</th>
+          <th style="width:90px;">Trang thai</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td class="tc-code">TC-001</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Dang nhap thanh cong voi email va mat khau hop le</td>
+          <td>Tai khoan ton tai, trang thai active</td>
+          <td><ol class="steps-list">
+            <li>Mo trang dang nhap</li>
+            <li>Nhap email: test@ptit.edu.vn</li>
+            <li>Nhap mat khau dung</li>
+            <li>Nhan nut "Dang nhap"</li>
+          </ol></td>
+          <td>Dang nhap thanh cong, chuyen den dashboard, nhan JWT token, hien thi ten nguoi dung</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td class="tc-code">TC-002</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Dang nhap that bai voi mat khau sai</td>
+          <td>Tai khoan ton tai</td>
+          <td><ol class="steps-list">
+            <li>Mo trang dang nhap</li>
+            <li>Nhap email dung</li>
+            <li>Nhap mat khau sai</li>
+            <li>Nhan "Dang nhap"</li>
+          </ol></td>
+          <td>Hien thi thong bao "Email hoac mat khau khong dung", khong chuyen trang, khong cap token</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td class="tc-code">TC-003</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Khoa tai khoan sau 5 lan dang nhap sai lien tiep</td>
+          <td>Tai khoan ton tai, chua bi khoa</td>
+          <td><ol class="steps-list">
+            <li>Nhap mat khau sai 5 lan lien tiep</li>
+            <li>Lan thu 6 nhap mat khau dung</li>
+          </ol></td>
+          <td>Sau lan thu 5 hien thong bao "Tai khoan bi tam khoa". Lan thu 6 van khong dang nhap duoc</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td class="tc-code">TC-004</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Dang nhap voi email khong ton tai trong he thong</td>
+          <td>Email khong co trong database</td>
+          <td><ol class="steps-list">
+            <li>Nhap email: nonexist@ptit.edu.vn</li>
+            <li>Nhap bat ky mat khau</li>
+            <li>Nhan "Dang nhap"</li>
+          </ol></td>
+          <td>Hien thong bao "Email hoac mat khau khong dung" (khong he lo email co ton tai khong)</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td class="tc-code">TC-005</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Refresh token khi access token het han</td>
+          <td>Nguoi dung da dang nhap, access token da het han</td>
+          <td><ol class="steps-list">
+            <li>Access token het han (15 phut)</li>
+            <li>Thuc hien request API bat ky</li>
+          </ol></td>
+          <td>He thong tu dong refresh access token bang refresh token, request thanh cong</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td class="tc-code">TC-006</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Dang xuat thanh cong</td>
+          <td>Nguoi dung da dang nhap</td>
+          <td><ol class="steps-list">
+            <li>Nhan nut "Dang xuat"</li>
+            <li>Xac nhan dang xuat</li>
+          </ol></td>
+          <td>Token bi vo hieu hoa, chuyen ve trang dang nhap, xoa cookie/localStorage</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td class="tc-code">TC-007</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Quen mat khau - Gui email dat lai</td>
+          <td>Email ton tai trong he thong</td>
+          <td><ol class="steps-list">
+            <li>Nhan "Quen mat khau"</li>
+            <li>Nhap email hop le</li>
+            <li>Nhan "Gui yeu cau"</li>
+          </ol></td>
+          <td>Email dat lai mat khau duoc gui, hien thong bao "Kiem tra email cua ban"</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td class="tc-code">TC-008</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Dang nhap voi tai khoan bi vo hieu hoa</td>
+          <td>Tai khoan co status = inactive</td>
+          <td><ol class="steps-list">
+            <li>Nhap email/mat khau cua tai khoan inactive</li>
+            <li>Nhan "Dang nhap"</li>
+          </ol></td>
+          <td>Hien thong bao "Tai khoan bi vo hieu hoa, lien he quan tri vien"</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td class="tc-code">TC-009</td>
+          <td><span class="badge badge-student">Tat ca</span></td>
+          <td>Auth</td>
+          <td>Truy cap trang yeu cau dang nhap khi chua co token</td>
+          <td>Nguoi dung chua dang nhap</td>
+          <td><ol class="steps-list">
+            <li>Truy cap /dashboard truc tiep khi chua dang nhap</li>
+          </ol></td>
+          <td>Redirect ve trang /login, hien thong bao can dang nhap</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td class="tc-code">TC-010</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Auth</td>
+          <td>Dang ky tai khoan moi voi thong tin hop le</td>
+          <td>Email chua ton tai trong he thong</td>
+          <td><ol class="steps-list">
+            <li>Mo trang dang ky</li>
+            <li>Dien day du: ho ten, email, mat khau, xac nhan mat khau</li>
+            <li>Nhan "Dang ky"</li>
+          </ol></td>
+          <td>Tai khoan duoc tao, gui email xac minh, hien thong bao kiem tra email</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div><!-- end auth section -->
+
+  <!-- ===== SECTION: QUAN LY NGUOI DUNG (ADMIN) ===== -->
+  <div class="tc-section">
+    <div class="tc-section-header">
+      <h3>Module: Quan ly Nguoi dung (Admin)</h3>
+      <span class="tc-count">8 TC</span>
+    </div>
+    <table class="tc-table">
+      <thead>
+        <tr>
+          <th>STT</th><th>Ma Test</th><th>Vai tro</th><th>Module</th><th>Ten Test Case</th>
+          <th>Dieu kien tien quyet</th><th>Cac buoc thuc hien</th><th>Ket qua mong doi</th>
+          <th>Uu tien</th><th>Trang thai</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>11</td><td class="tc-code">TC-011</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Tao tai khoan nguoi dung moi</td>
+          <td>Da dang nhap voi quyen Admin</td>
+          <td><ol class="steps-list">
+            <li>Vao quan ly nguoi dung</li>
+            <li>Nhan "Them moi"</li>
+            <li>Nhap ho ten, email, mat khau, chon vai tro</li>
+            <li>Nhan "Luu"</li>
+          </ol></td>
+          <td>Tai khoan duoc tao thanh cong, hien trong danh sach, email chao mung duoc gui</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>12</td><td class="tc-code">TC-012</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Tao tai khoan voi email trung lap</td>
+          <td>Email da ton tai trong he thong</td>
+          <td><ol class="steps-list">
+            <li>Nhap email da ton tai khi tao nguoi dung</li>
+            <li>Nhan "Luu"</li>
+          </ol></td>
+          <td>Hien loi "Email da duoc su dung", khong tao tai khoan moi</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>13</td><td class="tc-code">TC-013</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Cap nhat thong tin nguoi dung</td>
+          <td>Tai khoan ton tai</td>
+          <td><ol class="steps-list">
+            <li>Tim kiem nguoi dung</li>
+            <li>Nhan "Chinh sua"</li>
+            <li>Thay doi ho ten, so dien thoai</li>
+            <li>Nhan "Cap nhat"</li>
+          </ol></td>
+          <td>Thong tin duoc luu, hien thi thong bao cap nhat thanh cong</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>14</td><td class="tc-code">TC-014</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Vo hieu hoa tai khoan nguoi dung</td>
+          <td>Tai khoan dang active</td>
+          <td><ol class="steps-list">
+            <li>Tim kiem va chon nguoi dung</li>
+            <li>Nhan "Vo hieu hoa"</li>
+            <li>Xac nhan</li>
+          </ol></td>
+          <td>Trang thai chuyen sang inactive, nguoi dung khong the dang nhap</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>15</td><td class="tc-code">TC-015</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Gan vai tro cho nguoi dung</td>
+          <td>Tai khoan nguoi dung ton tai</td>
+          <td><ol class="steps-list">
+            <li>Mo thong tin nguoi dung</li>
+            <li>Chon vai tro moi tu dropdown</li>
+            <li>Luu thay doi</li>
+          </ol></td>
+          <td>Vai tro duoc cap nhat, quyen han thay doi ngay lap tuc</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>16</td><td class="tc-code">TC-016</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Tim kiem nguoi dung theo ten va email</td>
+          <td>Co it nhat 1 nguoi dung trong he thong</td>
+          <td><ol class="steps-list">
+            <li>Nhap tu khoa vao o tim kiem</li>
+            <li>Nhan Enter hoac click tim kiem</li>
+          </ol></td>
+          <td>Hien danh sach nguoi dung khop voi tu khoa, co phan trang</td>
+          <td><span class="badge priority-medium">Medium</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>17</td><td class="tc-code">TC-017</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>User Mgmt</td>
+          <td>Xoa nguoi dung - Khong duoc xoa khi co du lieu lien ket</td>
+          <td>Nguoi dung co du lieu (khoa hoc, bai nop, v.v.)</td>
+          <td><ol class="steps-list">
+            <li>Chon nguoi dung co du lieu</li>
+            <li>Nhan "Xoa"</li>
+          </ol></td>
+          <td>Hien canh bao "Khong the xoa, nguoi dung co du lieu lien ket"; goi y vo hieu hoa thay the</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>18</td><td class="tc-code">TC-018</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>RBAC</td>
+          <td>Quan ly vai tro - Tao vai tro moi voi permissions</td>
+          <td>Da dang nhap Admin</td>
+          <td><ol class="steps-list">
+            <li>Vao quan ly vai tro</li>
+            <li>Nhan "Tao vai tro moi"</li>
+            <li>Nhap ten, mo ta, chon permissions</li>
+            <li>Luu</li>
+          </ol></td>
+          <td>Vai tro moi duoc tao, co the gan cho nguoi dung</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== SECTION: QUAN LY KHOA HOC ===== -->
+  <div class="tc-section">
+    <div class="tc-section-header">
+      <h3>Module: Quan ly Khoa hoc (Course Management)</h3>
+      <span class="tc-count">10 TC</span>
+    </div>
+    <table class="tc-table">
+      <thead>
+        <tr>
+          <th>STT</th><th>Ma Test</th><th>Vai tro</th><th>Module</th><th>Ten Test Case</th>
+          <th>Dieu kien tien quyet</th><th>Cac buoc thuc hien</th><th>Ket qua mong doi</th>
+          <th>Uu tien</th><th>Trang thai</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>19</td><td class="tc-code">TC-019</td>
+          <td><span class="badge badge-instructor">Instructor</span></td>
+          <td>Course</td>
+          <td>Tao khoa hoc moi voi day du thong tin</td>
+          <td>Dang nhap voi quyen Instructor</td>
+          <td><ol class="steps-list">
+            <li>Vao trang Tao khoa hoc</li>
+            <li>Nhap: ten, mo ta, gia, danh muc, anh dai dien</li>
+            <li>Nhan "Luu nap"</li>
+          </ol></td>
+          <td>Khoa hoc duoc tao o trang thai "draft", hien trong danh sach khoa hoc cua giang vien</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>20</td><td class="tc-code">TC-020</td>
+          <td><span class="badge badge-instructor">Instructor</span></td>
+          <td>Course</td>
+          <td>Xay dung cau truc khoa hoc (them Section va Lesson)</td>
+          <td>Khoa hoc da duoc tao o trang thai draft</td>
+          <td><ol class="steps-list">
+            <li>Mo Course Builder</li>
+            <li>Them chuong moi (Section)</li>
+            <li>Them bai hoc vao chuong</li>
+            <li>Chon loai: video</li>
+            <li>Luu</li>
+          </ol></td>
+          <td>Section va Lesson duoc them thanh cong, hien thi trong course outline</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>21</td><td class="tc-code">TC-021</td>
+          <td><span class="badge badge-instructor">Instructor</span></td>
+          <td>Course</td>
+          <td>Sap xep lai thu tu bai hoc bang keo tha</td>
+          <td>Khoa hoc co it nhat 2 bai hoc</td>
+          <td><ol class="steps-list">
+            <li>Mo Course Builder</li>
+            <li>Keo bai hoc thu 2 len vi tri dau</li>
+            <li>Thu neu bai hoc duoc sap xep lai</li>
+          </ol></td>
+          <td>Thu tu bai hoc thay doi, luu tu dong, sinh vien thay thu tu moi</td>
+          <td><span class="badge priority-medium">Medium</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>22</td><td class="tc-code">TC-022</td>
+          <td><span class="badge badge-instructor">Instructor</span></td>
+          <td>Course</td>
+          <td>Gui khoa hoc cho duyet (Submit for Review)</td>
+          <td>Khoa hoc o trang thai draft, co it nhat 1 section va 1 lesson</td>
+          <td><ol class="steps-list">
+            <li>Mo khoa hoc draft</li>
+            <li>Nhan "Gui cho duyet"</li>
+            <li>Xac nhan</li>
+          </ol></td>
+          <td>Trang thai chuyen sang "pending_review", Admin nhan thong bao</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>23</td><td class="tc-code">TC-023</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>Course</td>
+          <td>Admin duyet khoa hoc</td>
+          <td>Co khoa hoc o trang thai "pending_review"</td>
+          <td><ol class="steps-list">
+            <li>Vao danh sach khoa hoc cho duyet</li>
+            <li>Xem chi tiet khoa hoc</li>
+            <li>Nhan "Duyet" va xac nhan</li>
+          </ol></td>
+          <td>Khoa hoc chuyen sang "published", giang vien nhan thong bao, khoa hoc hien thi cho sinh vien</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>24</td><td class="tc-code">TC-024</td>
+          <td><span class="badge badge-admin">Admin</span></td>
+          <td>Course</td>
+          <td>Admin tu choi khoa hoc voi ly do</td>
+          <td>Co khoa hoc o trang thai "pending_review"</td>
+          <td><ol class="steps-list">
+            <li>Chon khoa hoc can tu choi</li>
+            <li>Nhan "Tu choi"</li>
+            <li>Nhap ly do tu choi</li>
+            <li>Xac nhan</li>
+          </ol></td>
+          <td>Khoa hoc tro ve "draft", giang vien nhan thong bao kem ly do tu choi</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>25</td><td class="tc-code">TC-025</td>
+          <td><span class="badge badge-instructor">Instructor</span></td>
+          <td>Course</td>
+          <td>Tai len video bai giang thanh cong</td>
+          <td>Bai hoc loai video da duoc tao</td>
+          <td><ol class="steps-list">
+            <li>Mo bai hoc video</li>
+            <li>Chon file MP4 (&lt; 500MB)</li>
+            <li>Nhan Upload</li>
+            <li>Cho tien do hoan thanh</li>
+          </ol></td>
+          <td>Video duoc tai len MinIO thanh cong, URL duoc luu, xem truoc video trong dashboard</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>26</td><td class="tc-code">TC-026</td>
+          <td><span class="badge badge-instructor">Instructor</span></td>
+          <td>Course</td>
+          <td>Tai len file dinh dang sai (khong ho tro)</td>
+          <td>Bai hoc loai video</td>
+          <td><ol class="steps-list">
+            <li>Chon file .exe</li>
+            <li>Nhan Upload</li>
+          </ol></td>
+          <td>Hien loi "Dinh dang file khong duoc ho tro", khong upload</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>27</td><td class="tc-code">TC-027</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Course</td>
+          <td>Mua khoa hoc bang PayOS</td>
+          <td>Sinh vien da dang nhap, khoa hoc co gia, sinh vien chua dang ky</td>
+          <td><ol class="steps-list">
+            <li>Xem trang chi tiet khoa hoc</li>
+            <li>Nhan "Mua ngay"</li>
+            <li>Xac nhan don hang</li>
+            <li>Chuyen den trang PayOS</li>
+            <li>Hoan tat thanh toan</li>
+          </ol></td>
+          <td>Thanh toan thanh cong, tu dong tao enrollment, sinh vien truy cap duoc noi dung</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>28</td><td class="tc-code">TC-028</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Course</td>
+          <td>Ap dung voucher hop le khi mua khoa hoc</td>
+          <td>Sinh vien co voucher con hieu luc</td>
+          <td><ol class="steps-list">
+            <li>Them khoa hoc vao gio hang</li>
+            <li>Nhap ma voucher</li>
+            <li>Nhan "Ap dung"</li>
+          </ol></td>
+          <td>Gia duoc giam theo gia tri voucher, hien thi gia sau giam</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== SECTION: HOC BAI GIANG (STUDENT) ===== -->
+  <div class="tc-section">
+    <div class="tc-section-header">
+      <h3>Module: Hoc Bai giang (Lesson &amp; Progress)</h3>
+      <span class="tc-count">8 TC</span>
+    </div>
+    <table class="tc-table">
+      <thead>
+        <tr>
+          <th>STT</th><th>Ma Test</th><th>Vai tro</th><th>Module</th><th>Ten Test Case</th>
+          <th>Dieu kien tien quyet</th><th>Cac buoc thuc hien</th><th>Ket qua mong doi</th>
+          <th>Uu tien</th><th>Trang thai</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>29</td><td class="tc-code">TC-029</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Lesson</td>
+          <td>Xem video bai giang va luu vi tri xem</td>
+          <td>Sinh vien da ghi danh khoa hoc</td>
+          <td><ol class="steps-list">
+            <li>Mo bai hoc video</li>
+            <li>Xem video den 50%</li>
+            <li>Thoat ra</li>
+            <li>Mo lai bai hoc</li>
+          </ol></td>
+          <td>Video tiep tuc tu vi tri 50%, tien do hoc tap cap nhat dung</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>30</td><td class="tc-code">TC-030</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Lesson</td>
+          <td>Danh dau hoan thanh bai hoc</td>
+          <td>Sinh vien da xem qua 80% video</td>
+          <td><ol class="steps-list">
+            <li>Xem video den cuoi (hoac &gt;80%)</li>
+            <li>Kiem tra trang thai bai hoc</li>
+          </ol></td>
+          <td>Bai hoc tu dong danh dau "hoan thanh", tien do khoa hoc tang tuong ung</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>31</td><td class="tc-code">TC-031</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Lesson</td>
+          <td>Them ghi chu tai moc thoi gian video</td>
+          <td>Dang xem video bai giang</td>
+          <td><ol class="steps-list">
+            <li>Dung video tai phut 2:30</li>
+            <li>Click "Them ghi chu"</li>
+            <li>Nhap noi dung ghi chu</li>
+            <li>Luu</li>
+          </ol></td>
+          <td>Ghi chu duoc luu voi timestamp 2:30, hien trong danh sach ghi chu cua bai hoc</td>
+          <td><span class="badge priority-medium">Medium</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>32</td><td class="tc-code">TC-032</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Lesson</td>
+          <td>Tai xuong tai lieu dinh kem bai hoc</td>
+          <td>Bai hoc co tai lieu dinh kem</td>
+          <td><ol class="steps-list">
+            <li>Mo bai hoc co attachment</li>
+            <li>Nhan nut tai xuong</li>
+          </ol></td>
+          <td>File duoc tai xuong thanh cong, ten file dung, dung luong chinh xac</td>
+          <td><span class="badge priority-medium">Medium</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>33</td><td class="tc-code">TC-033</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Lesson</td>
+          <td>Sinh vien chua ghi danh khong the xem noi dung</td>
+          <td>Sinh vien chua ghi danh khoa hoc</td>
+          <td><ol class="steps-list">
+            <li>Truy cap URL bai hoc truc tiep</li>
+          </ol></td>
+          <td>Hien thong bao "Ban chua ghi danh", hien nut mua hoac lien he giang vien</td>
+          <td><span class="badge priority-critical">Critical</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>34</td><td class="tc-code">TC-034</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Q&amp;A</td>
+          <td>Dat cau hoi trong khoa hoc</td>
+          <td>Sinh vien da ghi danh</td>
+          <td><ol class="steps-list">
+            <li>Mo tab Q&amp;A cua khoa hoc</li>
+            <li>Nhan "Dat cau hoi"</li>
+            <li>Nhap tieu de va noi dung</li>
+            <li>Gui</li>
+          </ol></td>
+          <td>Cau hoi duoc dang, hien trong danh sach Q&amp;A, giang vien nhan thong bao</td>
+          <td><span class="badge priority-medium">Medium</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>35</td><td class="tc-code">TC-035</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Review</td>
+          <td>Gui danh gia 5 sao cho khoa hoc</td>
+          <td>Sinh vien da hoan thanh khoa hoc</td>
+          <td><ol class="steps-list">
+            <li>Vao trang khoa hoc</li>
+            <li>Nhan "Viet danh gia"</li>
+            <li>Chon 5 sao</li>
+            <li>Nhap binh luan</li>
+            <li>Gui</li>
+          </ol></td>
+          <td>Danh gia duoc luu, hien trong trang khoa hoc, diem trung binh cap nhat</td>
+          <td><span class="badge priority-high">High</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+        <tr>
+          <td>36</td><td class="tc-code">TC-036</td>
+          <td><span class="badge badge-student">Student</span></td>
+          <td>Review</td>
+          <td>Khong the danh gia khi chua hoan thanh khoa hoc</td>
+          <td>Sinh vien chua hoan thanh khoa hoc</td>
+          <td><ol class="steps-list">
+            <li>Vao trang khoa hoc (chua hoan thanh)</li>
+            <li>Thu nhan "Viet danh gia"</li>
+          </ol></td>
+          <td>Nut danh gia bi vo hieu hoa hoac hien thong bao "Hoan thanh khoa hoc de danh gia"</td>
+          <td><span class="badge priority-medium">Medium</span></td>
+          <td><input class="status-box" type="text" placeholder="Pass/Fail"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>

@@ -1,367 +1,894 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
+import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
 })
 
-const user = useAuthUserCookie()
-
-const breadcrumbs = [
-  { label: 'Trang chủ' }
-]
-
-const adminName = computed(() => user.value?.name || 'Administrator')
-
-const kpiCards = [
-  {
-    label: 'Tổng khóa học',
-    value: '128',
-    sub: '+12 khóa học trong tháng',
-    icon: 'pi pi-book',
-    tone: 'blue',
-    to: '/admin/courses'
-  },
-  {
-    label: 'Học viên hoạt động',
-    value: '1,020',
-    sub: '82% đang học tập',
-    icon: 'pi pi-users',
-    tone: 'green',
-    to: '/admin/users'
-  },
-  {
-    label: 'Giảng viên',
-    value: '180',
-    sub: '24 giảng viên online',
-    icon: 'pi pi-user',
-    tone: 'violet',
-    to: '/admin/users?role=instructor'
-  },
-  {
-    label: 'Tỷ lệ hoàn thành',
-    value: '74.8%',
-    sub: '+5.2% so với kỳ trước',
-    icon: 'pi pi-chart-line',
-    tone: 'amber',
-    to: '/admin/reports/progress'
-  },
-  {
-    label: 'Ghi danh mới',
-    value: '342',
-    sub: '64 ghi danh tuần này',
-    icon: 'pi pi-user-plus',
-    tone: 'rose',
-    to: '/admin/lnd/file-based-enrollment'
-  },
-  {
-    label: 'Doanh thu tháng',
-    value: '45,2M ₫',
-    sub: '18 đơn hàng cần soát xét',
-    icon: 'pi pi-wallet',
-    tone: 'cyan',
-    to: '/admin/orders'
-  }
-]
-
-const quickActions = [
-  { label: 'Thêm học viên', desc: 'Tạo hoặc import tài khoản', to: '/admin/users?action=create', icon: 'pi pi-user-plus', tone: 'green' },
-  { label: 'Tạo khóa học', desc: 'Thiết lập nội dung đào tạo', to: '/admin/courses?action=create', icon: 'pi pi-book', tone: 'blue' },
-  { label: 'Mở lớp học phần', desc: 'Phân lớp và lịch học', to: '/admin/lnd/classes?action=create', icon: 'pi pi-building', tone: 'amber' },
-  { label: 'Cấu hình hệ thống', desc: 'Logo, email, quyền truy cập', to: '/admin/settings', icon: 'pi pi-cog', tone: 'violet' }
-]
-
-const pendingTasks = [
-  { label: 'Khóa học chờ kiểm duyệt', value: 12, icon: 'pi pi-verified', tone: 'blue', to: '/admin/manage-courses' },
-  { label: 'Yêu cầu rút tiền', value: 8, icon: 'pi pi-credit-card', tone: 'amber', to: '/admin/payouts' },
-  { label: 'Báo lỗi chưa xử lý', value: 19, icon: 'pi pi-exclamation-triangle', tone: 'rose', to: '/admin/reports/errors' },
-  { label: 'Bài thi cần giám sát', value: 6, icon: 'pi pi-pencil', tone: 'violet', to: '/admin/exam-monitor' }
-]
-
-const activities = [
-  { title: 'Nguyễn Văn An hoàn thành khóa “Kỹ năng số cơ bản”', time: '5 phút trước', icon: 'pi pi-check-circle', tone: 'green' },
-  { title: 'Giảng viên Trần Minh tạo mới ngân hàng câu hỏi', time: '18 phút trước', icon: 'pi pi-file-edit', tone: 'blue' },
-  { title: 'Hệ thống ghi nhận 3 lần đăng nhập thất bại', time: '42 phút trước', icon: 'pi pi-shield', tone: 'amber' },
-  { title: 'Khóa “Lập trình Web nâng cao” được gửi kiểm duyệt', time: '1 giờ trước', icon: 'pi pi-send', tone: 'violet' }
-]
-
-const schedule = [
-  { time: '08:00', title: 'Lớp PTIT-LMS-01', meta: 'Phòng online • 126 học viên' },
-  { time: '10:30', title: 'Kiểm duyệt khóa học mới', meta: '3 khóa đang chờ duyệt' },
-  { time: '14:00', title: 'Báo cáo tiến độ học tập', meta: 'Khoa CNTT • Học kỳ 2025' }
-]
-
-const trafficBars = [58, 72, 46, 83, 64, 91, 76, 88, 69, 95, 82, 73]
-
-function toneClasses(tone: string) {
-  const map: Record<string, { icon: string; bg: string; border: string; text: string; soft: string }> = {
-    green: {
-      icon: 'text-emerald-600 bg-emerald-50 border-emerald-100',
-      bg: 'bg-emerald-50',
-      border: 'border-emerald-100',
-      text: 'text-emerald-700',
-      soft: 'from-emerald-500 to-teal-500'
-    },
-    blue: {
-      icon: 'text-blue-600 bg-blue-50 border-blue-100',
-      bg: 'bg-blue-50',
-      border: 'border-blue-100',
-      text: 'text-blue-700',
-      soft: 'from-blue-500 to-sky-500'
-    },
-    amber: {
-      icon: 'text-amber-600 bg-amber-50 border-amber-100',
-      bg: 'bg-amber-50',
-      border: 'border-amber-100',
-      text: 'text-amber-700',
-      soft: 'from-amber-500 to-orange-500'
-    },
-    violet: {
-      icon: 'text-violet-600 bg-violet-50 border-violet-100',
-      bg: 'bg-violet-50',
-      border: 'border-violet-100',
-      text: 'text-violet-700',
-      soft: 'from-violet-500 to-fuchsia-500'
-    },
-    rose: {
-      icon: 'text-rose-600 bg-rose-50 border-rose-100',
-      bg: 'bg-rose-50',
-      border: 'border-rose-100',
-      text: 'text-rose-700',
-      soft: 'from-rose-500 to-red-500'
-    },
-    cyan: {
-      icon: 'text-cyan-600 bg-cyan-50 border-cyan-100',
-      bg: 'bg-cyan-50',
-      border: 'border-cyan-100',
-      text: 'text-cyan-700',
-      soft: 'from-cyan-500 to-blue-500'
-    }
-  }
-
-  return map[tone] || map.green
+interface MonthPoint { month: string; label: string; value: number }
+interface DayPoint { date: string; label: string; value: number }
+interface TopCourse { id: number; title: string; enrollments_count: number }
+interface ProgressItem { label: string; value: number }
+interface UpcomingSection {
+  id?: number
+  code?: string
+  name?: string
+  title?: string
+  enrolled_count?: number
+  capacity?: number
+  course?: { title?: string } | null
+  lecturer?: { name?: string } | null
+  term?: { name?: string } | null
 }
+interface DashboardNotification {
+  id?: number
+  title?: string
+  message?: string
+  created_at?: string
+  read_at?: string | null
+}
+
+interface DashboardStats {
+  total_users?: number
+  total_courses?: number
+  total_orders?: number
+  total_revenue?: number
+  total_students?: number
+  total_instructors?: number
+  courses_by_status?: Record<string, number>
+  revenue_by_month?: MonthPoint[]
+  new_users_by_month?: MonthPoint[]
+  top_courses?: TopCourse[]
+  engagement?: {
+    avg_quiz_score?: number
+    total_completions?: number
+    active_students_this_week?: number
+  }
+  pending_courses?: number
+  published_courses?: number
+  paid_orders?: number
+  enrollments_week?: number
+  enrollments_today?: number
+  new_users_week?: number
+  reviews_count?: number
+  open_sections?: number
+}
+
+const auth = useAuthStore()
+const toast = useToast()
+const { t, locale } = useI18n()
+const loading = ref(true)
+const stats = ref<DashboardStats>({})
+const adminClasses = ref(0)
+const creditClasses = ref(0)
+const dailyEnrollments = ref<DayPoint[]>([])
+const classProgress = ref<ProgressItem[]>([])
+const upcomingSections = ref<UpcomingSection[]>([])
+const notifications = ref<DashboardNotification[]>([])
+
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 12) return t('admin.dashboard.greetingMorning')
+  if (hour < 18) return t('admin.dashboard.greetingAfternoon')
+  return t('admin.dashboard.greetingEvening')
+})
+
+const todayLabel = computed(() =>
+  new Intl.DateTimeFormat(numberLocale.value, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date()),
+)
+
+const formatVnd = (value = 0) =>
+  new Intl.NumberFormat(numberLocale.value, {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value)
+
+const formatNumber = (value = 0) => value.toLocaleString(numberLocale.value)
+
+function chartColors() {
+  const dark = import.meta.client && document.documentElement.classList.contains('dark')
+  return {
+    text: dark ? '#a8b8b4' : '#4a5a57',
+    grid: dark ? 'rgba(168, 184, 180, .12)' : 'rgba(74, 90, 87, .12)',
+    brand: '#0f766e',
+    brandSoft: 'rgba(15, 118, 110, .16)',
+    blue: '#2563eb',
+    amber: '#d97706',
+    violet: '#7c3aed',
+    rose: '#e11d48',
+    slate: '#64748b',
+  }
+}
+
+const primaryMetrics = computed(() => [
+  {
+    label: t('admin.dashboard.revenue'),
+    value: formatVnd(stats.value.total_revenue || 0),
+    hint: t('admin.dashboard.paidOrdersHint', { n: formatNumber(stats.value.paid_orders || 0) }),
+    icon: 'pi-wallet',
+    tone: 'brand',
+  },
+  {
+    label: t('admin.dashboard.users'),
+    value: formatNumber(stats.value.total_users || 0),
+    hint: t('admin.dashboard.newUsersHint', { n: formatNumber(stats.value.new_users_week || 0) }),
+    icon: 'pi-users',
+    tone: 'blue',
+  },
+  {
+    label: t('admin.dashboard.courses'),
+    value: formatNumber(stats.value.total_courses || 0),
+    hint: t('admin.dashboard.publishedHint', { n: formatNumber(stats.value.published_courses || 0) }),
+    icon: 'pi-book',
+    tone: 'amber',
+  },
+  {
+    label: t('admin.dashboard.orders'),
+    value: formatNumber(stats.value.total_orders || 0),
+    hint: t('admin.dashboard.paidOrdersHint', { n: formatNumber(stats.value.paid_orders || 0) }),
+    icon: 'pi-shopping-bag',
+    tone: 'violet',
+  },
+])
+
+const pulseMetrics = computed(() => [
+  { label: t('admin.dashboard.enrollToday'), value: formatNumber(stats.value.enrollments_today || 0), icon: 'pi-calendar' },
+  { label: t('admin.dashboard.enrollWeek'), value: formatNumber(stats.value.enrollments_week || 0), icon: 'pi-chart-line' },
+  { label: t('admin.dashboard.activeStudents'), value: formatNumber(stats.value.engagement?.active_students_this_week || 0), icon: 'pi-bolt' },
+  { label: t('admin.dashboard.completions'), value: formatNumber(stats.value.engagement?.total_completions || 0), icon: 'pi-check-circle' },
+  { label: t('admin.dashboard.pendingCourses'), value: formatNumber(stats.value.pending_courses || 0), icon: 'pi-clock' },
+  { label: t('admin.dashboard.openSections'), value: formatNumber(stats.value.open_sections || creditClasses.value), icon: 'pi-building' },
+  { label: t('admin.dashboard.reviews'), value: formatNumber(stats.value.reviews_count || 0), icon: 'pi-star' },
+  { label: t('admin.dashboard.avgQuiz'), value: `${Number(stats.value.engagement?.avg_quiz_score || 0).toFixed(1)}/10`, icon: 'pi-chart-bar' },
+])
+
+const trafficChartData = computed(() => {
+  const colors = chartColors()
+  return {
+    labels: dailyEnrollments.value.map(item => item.label),
+    datasets: [{
+      label: t('admin.dashboard.enrollments'),
+      data: dailyEnrollments.value.map(item => item.value),
+      borderColor: colors.brand,
+      backgroundColor: colors.brandSoft,
+      fill: true,
+      tension: 0.38,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+      pointBackgroundColor: colors.brand,
+    }],
+  }
+})
+
+const trafficChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { mode: 'index' as const, intersect: false },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const }, maxRotation: 0 } },
+      y: { beginAtZero: true, grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const }, precision: 0 } },
+    },
+  }
+})
+
+const revenueChartData = computed(() => {
+  const colors = chartColors()
+  const revenue = stats.value.revenue_by_month || []
+  const users = stats.value.new_users_by_month || []
+  const labels = revenue.length ? revenue.map(i => i.label) : users.map(i => i.label)
+  return {
+    labels,
+    datasets: [
+      {
+        label: t('admin.dashboard.revenue'),
+        data: revenue.map(i => i.value),
+        borderColor: colors.brand,
+        backgroundColor: colors.brandSoft,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        yAxisID: 'y',
+      },
+      ...(users.length
+        ? [{
+            label: t('admin.dashboard.newUsers'),
+            data: users.map(i => i.value),
+            borderColor: colors.blue,
+            backgroundColor: 'transparent',
+            borderDash: [5, 4],
+            tension: 0.35,
+            pointRadius: 2,
+            yAxisID: 'y1',
+          }]
+        : []),
+    ],
+  }
+})
+
+const revenueChartOptions = computed(() => {
+  const colors = chartColors()
+  const hasUsers = (stats.value.new_users_by_month || []).length > 0
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: {
+      legend: { position: 'bottom' as const, labels: { usePointStyle: true, color: colors.text, boxWidth: 8, font: { size: 11, weight: 600 as const } } },
+      tooltip: {
+        callbacks: {
+          label(ctx: any) {
+            const value = Number(ctx.parsed.y || 0)
+            return ctx.dataset.yAxisID === 'y'
+              ? `${ctx.dataset.label}: ${formatVnd(value)}`
+              : `${ctx.dataset.label}: ${formatNumber(value)}`
+          },
+        },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const } } },
+      y: {
+        beginAtZero: true,
+        grid: { color: colors.grid },
+        ticks: {
+          color: colors.text,
+          font: { size: 11, weight: 500 as const },
+          callback(value: string | number) {
+            const amount = Number(value)
+            if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)}tr`
+            if (amount >= 1_000) return `${Math.round(amount / 1_000)}k`
+            return String(value)
+          },
+        },
+      },
+      ...(hasUsers
+        ? { y1: { beginAtZero: true, position: 'right' as const, grid: { drawOnChartArea: false }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const } } } }
+        : {}),
+    },
+  }
+})
+
+const statusChartData = computed(() => {
+  const colors = chartColors()
+  const palette = [colors.brand, colors.amber, colors.slate, colors.rose, '#0f172a']
+  const entries = Object.entries(stats.value.courses_by_status || {})
+    .map(([key, value]) => ({
+      label: t(`admin.dashboard.status.${key}` as any) || key,
+      value: Number(value) || 0,
+    }))
+    .filter(item => item.value > 0)
+  return {
+    labels: entries.map(i => i.label),
+    datasets: [{ data: entries.map(i => i.value), backgroundColor: entries.map((_, i) => palette[i % palette.length]), borderWidth: 0, hoverOffset: 4 }],
+  }
+})
+
+const statusChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '66%',
+    plugins: { legend: { position: 'bottom' as const, labels: { usePointStyle: true, color: colors.text, boxWidth: 8, font: { size: 11, weight: 600 as const } } } },
+  }
+})
+
+const compositionChartData = computed(() => ({
+  labels: [
+    t('admin.dashboard.studentsShort'),
+    t('admin.dashboard.instructorsShort'),
+    t('admin.dashboard.adminClassShort'),
+    t('admin.dashboard.creditClassShort'),
+  ],
+  datasets: [{
+    data: [stats.value.total_students || 0, stats.value.total_instructors || 0, adminClasses.value, creditClasses.value],
+    backgroundColor: ['rgba(37,99,235,.75)', 'rgba(217,119,6,.75)', 'rgba(15,118,110,.75)', 'rgba(124,58,237,.75)'],
+    borderWidth: 0,
+  }],
+}))
+
+const compositionChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' as const, labels: { usePointStyle: true, color: colors.text, boxWidth: 8, font: { size: 11, weight: 600 as const } } } },
+    scales: { r: { beginAtZero: true, ticks: { display: false }, grid: { color: colors.grid }, angleLines: { color: colors.grid }, pointLabels: { color: colors.text, font: { size: 11, weight: 600 as const } } } },
+  }
+})
+
+const progressChartData = computed(() => {
+  const colors = chartColors()
+  return {
+    labels: classProgress.value.map(i => i.label),
+    datasets: [{
+      label: t('admin.dashboard.progressPercent'),
+      data: classProgress.value.map(i => i.value),
+      backgroundColor: colors.brandSoft,
+      borderColor: colors.brand,
+      borderWidth: 1,
+      borderRadius: 6,
+    }],
+  }
+})
+
+const progressChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 100, grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const } } },
+      y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11, weight: 600 as const } } },
+    },
+  }
+})
+
+const engagementChartData = computed(() => {
+  const colors = chartColors()
+  return {
+    labels: [t('admin.dashboard.active'), t('admin.dashboard.completed'), t('admin.dashboard.quiz')],
+    datasets: [{
+      data: [
+        stats.value.engagement?.active_students_this_week || 0,
+        Math.min(stats.value.engagement?.total_completions || 0, 100),
+        stats.value.engagement?.avg_quiz_score || 0,
+      ],
+      backgroundColor: colors.brandSoft,
+      borderColor: colors.brand,
+      pointBackgroundColor: colors.brand,
+      borderWidth: 2,
+    }],
+  }
+})
+
+const engagementChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { r: { beginAtZero: true, ticks: { display: false }, grid: { color: colors.grid }, angleLines: { color: colors.grid }, pointLabels: { color: colors.text, font: { size: 11, weight: 600 as const } } } },
+  }
+})
+
+const quickActions = computed(() => [
+  { label: t('admin.dashboard.shortcut.users'), to: '/admin/users', icon: 'pi-users' },
+  { label: t('admin.dashboard.shortcut.adminClasses'), to: '/admin/lnd/classes', icon: 'pi-building' },
+  { label: t('admin.dashboard.shortcut.review'), to: '/admin/courses', icon: 'pi-verified' },
+  { label: t('admin.dashboard.shortcut.orders'), to: '/admin/orders', icon: 'pi-wallet' },
+  { label: t('admin.dashboard.shortcut.examMonitor'), to: '/admin/exam-monitor', icon: 'pi-eye' },
+  { label: t('admin.dashboard.shortcut.settings'), to: '/admin/settings', icon: 'pi-cog' },
+])
+
+const trafficTotal = computed(() => dailyEnrollments.value.reduce((sum, item) => sum + item.value, 0))
+const hasTraffic = computed(() => dailyEnrollments.value.length > 0)
+const hasRevenue = computed(() => Boolean((stats.value.revenue_by_month || []).length || (stats.value.new_users_by_month || []).length))
+const hasStatus = computed(() => Object.values(stats.value.courses_by_status || {}).some(v => Number(v) > 0))
+const hasComposition = computed(() => [stats.value.total_students, stats.value.total_instructors, adminClasses.value, creditClasses.value].some(v => Number(v) > 0))
+const hasProgress = computed(() => classProgress.value.length > 0)
+const hasEngagement = computed(() => Boolean(stats.value.engagement?.active_students_this_week || stats.value.engagement?.total_completions || stats.value.engagement?.avg_quiz_score))
+
+function timeAgo(value?: string) {
+  if (!value) return '—'
+  const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000)
+  if (minutes < 1) return t('common.justNow')
+  if (minutes < 60) return t('common.minutesAgo', { n: minutes })
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
+  return t('common.daysAgo', { n: Math.floor(hours / 24) })
+}
+
+async function loadDashboard() {
+  loading.value = true
+  try {
+    const [overview, extra, classes, sections] = await Promise.all([
+      useApi<DashboardStats>('/admin/stats'),
+      useApi<any>('/admin/dashboard-extra').catch(() => null),
+      useApi<{ total?: number }>('/admin/academic/administrative-classes?per_page=1').catch(() => ({})),
+      useApi<{ total?: number }>('/admin/academic/class-sections?per_page=1').catch(() => ({})),
+    ])
+    stats.value = overview || {}
+    adminClasses.value = classes.total || 0
+    creditClasses.value = sections.total || 0
+    dailyEnrollments.value = extra?.daily_enrollments || []
+    classProgress.value = extra?.class_progress || []
+    upcomingSections.value = extra?.upcoming_sections || []
+    notifications.value = extra?.notifications || []
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.dashboard.loadError'),
+      detail: error?.data?.message || t('admin.dashboard.tryAgain'),
+      life: 3500,
+    })
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadDashboard)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Bảng điều khiển"
-    :subtitle="`Chào mừng ${adminName} quay trở lại hệ thống quản trị Sylva LMS.`"
-    :breadcrumbs="breadcrumbs"
-  >
-    <div class="space-y-6">
-      <!-- Overview Hero -->
-      <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div class="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr]">
-          <div class="relative p-6 md:p-7">
-            <div class="absolute right-0 top-0 h-40 w-40 rounded-full bg-[rgba(29,158,117,0.08)] blur-2xl" />
-            <div class="relative flex flex-col gap-5">
-              <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    <span class="h-2 w-2 rounded-full bg-emerald-500" />
-                    Hệ thống đang vận hành ổn định
-                  </div>
-                  <h2 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
-                    Tổng quan hoạt động đào tạo hôm nay
-                  </h2>
-                  <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                    Theo dõi nhanh người dùng, khóa học, lớp học phần, khảo thí và các tác vụ quản trị cần xử lý trong ngày.
-                  </p>
-                </div>
+  <div class="page dashboard">
+    <header class="page-heading dash-head">
+      <div>
+        <span class="eyebrow">{{ todayLabel }}</span>
+        <h1>{{ greeting }}, {{ auth.user?.name || t('admin.dashboard.adminFallback') }}</h1>
+        <p>{{ t('admin.dashboard.subtitle') }}</p>
+      </div>
+      <div class="page-actions">
+        <Button :label="t('common.refresh')" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadDashboard" />
+      </div>
+    </header>
 
-                <div class="flex shrink-0 flex-wrap gap-2">
-                  <NuxtLink to="/admin/reports/progress" class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                    <i class="pi pi-chart-bar text-slate-400" />
-                    Xem báo cáo
-                  </NuxtLink>
-                  <NuxtLink to="/admin/settings" class="inline-flex h-10 items-center gap-2 rounded-xl bg-[#1d9e75] px-4 text-sm font-semibold text-white transition hover:bg-[#178563]">
-                    <i class="pi pi-sliders-h" />
-                    Thiết lập
-                  </NuxtLink>
-                </div>
-              </div>
+    <section class="kpi-row">
+      <article v-for="item in primaryMetrics" :key="item.label" class="kpi" :class="`tone-${item.tone}`">
+        <div>
+          <span>{{ item.label }}</span>
+          <Skeleton v-if="loading" width="6.5rem" height="1.45rem" />
+          <strong v-else>{{ item.value }}</strong>
+          <small>{{ item.hint }}</small>
+        </div>
+        <i :class="['pi', item.icon]" />
+      </article>
+    </section>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <p class="text-xs font-semibold text-slate-400">Phiên học hôm nay</p>
-                  <p class="mt-1 text-xl font-bold text-slate-900">36</p>
-                </div>
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <p class="text-xs font-semibold text-slate-400">Người dùng online</p>
-                  <p class="mt-1 text-xl font-bold text-slate-900">248</p>
-                </div>
-                <div class="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <p class="text-xs font-semibold text-slate-400">Tỷ lệ lỗi hệ thống</p>
-                  <p class="mt-1 text-xl font-bold text-emerald-600">0.12%</p>
-                </div>
-              </div>
-            </div>
-          </div>
+    <section class="pulse-row">
+      <article v-for="item in pulseMetrics" :key="item.label" class="pulse">
+        <i :class="['pi', item.icon]" />
+        <div>
+          <strong>{{ loading ? '—' : item.value }}</strong>
+          <span>{{ item.label }}</span>
+        </div>
+      </article>
+    </section>
 
-          <div class="border-t border-slate-100 bg-slate-50 p-6 xl:border-l xl:border-t-0">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <h3 class="text-base font-semibold text-slate-800">Lịch vận hành</h3>
-                <p class="text-xs text-slate-400">Các mốc quan trọng trong ngày</p>
-              </div>
-              <i class="pi pi-calendar rounded-xl border border-slate-200 bg-white p-2 text-slate-400" />
-            </div>
-
-            <div class="space-y-3">
-              <div v-for="item in schedule" :key="`${item.time}-${item.title}`" class="flex gap-3 rounded-2xl border border-slate-100 bg-white p-3">
-                <div class="w-14 shrink-0 rounded-xl bg-emerald-50 py-2 text-center text-xs font-bold text-emerald-700">
-                  {{ item.time }}
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold text-slate-800">{{ item.title }}</p>
-                  <p class="mt-0.5 text-xs text-slate-400">{{ item.meta }}</p>
-                </div>
-              </div>
-            </div>
+    <section class="grid-a">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.trafficTitle') }}</h2>
+            <p>{{ t('admin.dashboard.trafficHint', { n: formatNumber(trafficTotal) }) }}</p>
           </div>
         </div>
-      </section>
+        <div v-if="loading" class="chart-box"><Skeleton height="220px" /></div>
+        <ChartsUiChart v-else-if="hasTraffic" type="line" :data="trafficChartData" :options="trafficChartOptions" height="220px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noTraffic') }}</div>
+      </article>
 
-      <!-- KPI cards -->
-      <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        <NuxtLink
-          v-for="item in kpiCards"
-          :key="item.label"
-          :to="item.to"
-          class="group rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="truncate text-xs font-semibold text-slate-500">{{ item.label }}</p>
-              <p class="mt-2 text-2xl font-bold tracking-tight text-slate-900">{{ item.value }}</p>
-            </div>
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" :class="toneClasses(item.tone).icon">
-              <i :class="[item.icon, 'text-base']" />
-            </div>
-          </div>
-          <div class="mt-4 flex items-center justify-between gap-3">
-            <p class="truncate text-xs text-slate-400">{{ item.sub }}</p>
-            <i class="pi pi-arrow-right text-xs text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-slate-500" />
-          </div>
-        </NuxtLink>
-      </section>
-
-      <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <!-- Chart -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2">
-          <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-3">
-              <div class="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600">
-                <i class="pi pi-chart-line" />
-              </div>
-              <div>
-                <h3 class="text-base font-semibold text-slate-800">Hoạt động đăng nhập</h3>
-                <p class="text-xs text-slate-400">12 tháng gần nhất</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-3 text-xs text-slate-500">
-              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-[#1d9e75]" /> Học viên</span>
-              <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-blue-500" /> Giảng viên</span>
-            </div>
-          </div>
-
-          <div class="flex h-72 items-end gap-3 rounded-2xl border border-slate-100 bg-gradient-to-b from-slate-50 to-white p-4">
-            <div v-for="(bar, index) in trafficBars" :key="index" class="flex flex-1 flex-col items-center gap-2">
-              <div class="flex h-56 w-full max-w-9 items-end gap-1">
-                <div class="w-1/2 rounded-t-lg bg-[#1d9e75]" :style="{ height: `${bar}%` }" />
-                <div class="w-1/2 rounded-t-lg bg-blue-400" :style="{ height: `${Math.max(24, bar - 18)}%` }" />
-              </div>
-              <span class="text-[10px] font-semibold text-slate-400">T{{ index + 1 }}</span>
-            </div>
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.statusTitle') }}</h2>
+            <p>{{ t('admin.dashboard.statusHint') }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="220px" /></div>
+        <ChartsUiChart v-else-if="hasStatus" type="doughnut" :data="statusChartData" :options="statusChartOptions" height="220px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noStatus') }}</div>
+      </article>
+    </section>
 
-        <!-- Pending tasks -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6">
-          <div class="mb-5 flex items-center justify-between">
+    <section class="grid-b">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.revenueTitle') }}</h2>
+            <p>{{ t('admin.dashboard.revenueHint') }}</p>
+          </div>
+        </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="240px" /></div>
+        <ChartsUiChart v-else-if="hasRevenue" type="line" :data="revenueChartData" :options="revenueChartOptions" height="240px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noRevenue') }}</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.compositionTitle') }}</h2>
+            <p>{{ t('admin.dashboard.compositionHint') }}</p>
+          </div>
+        </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="240px" /></div>
+        <ChartsUiChart v-else-if="hasComposition" type="polarArea" :data="compositionChartData" :options="compositionChartOptions" height="240px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noComposition') }}</div>
+      </article>
+    </section>
+
+    <section class="grid-c">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.progressTitle') }}</h2>
+            <p>{{ t('admin.dashboard.progressHint') }}</p>
+          </div>
+        </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="210px" /></div>
+        <ChartsUiChart v-else-if="hasProgress" type="bar" :data="progressChartData" :options="progressChartOptions" height="210px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noProgress') }}</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.engagementTitle') }}</h2>
+            <p>{{ t('admin.dashboard.engagementHint') }}</p>
+          </div>
+        </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="210px" /></div>
+        <ChartsUiChart v-else-if="hasEngagement" type="radar" :data="engagementChartData" :options="engagementChartOptions" height="210px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noEngagement') }}</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.shortcutsTitle') }}</h2>
+            <p>{{ t('admin.dashboard.shortcutsHint') }}</p>
+          </div>
+        </div>
+        <div class="shortcut-grid">
+          <NuxtLink v-for="action in quickActions" :key="action.to" :to="action.to" class="shortcut">
+            <i :class="['pi', action.icon]" />
+            <span>{{ action.label }}</span>
+          </NuxtLink>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid-d">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.topCoursesTitle') }}</h2>
+            <p>{{ t('admin.dashboard.topCoursesHint') }}</p>
+          </div>
+          <NuxtLink to="/admin/manage-courses" class="link">{{ t('common.viewAll') }}</NuxtLink>
+        </div>
+        <div class="list">
+          <div v-for="(course, index) in (stats.top_courses || []).slice(0, 5)" :key="course.id" class="list-row">
+            <span class="rank">{{ index + 1 }}</span>
+            <strong>{{ course.title }}</strong>
+            <Tag :value="t('admin.dashboard.learnersTag', { n: course.enrollments_count })" severity="secondary" />
+          </div>
+          <div v-if="!loading && !(stats.top_courses || []).length" class="empty compact">{{ t('common.noData') }}</div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.openClassesTitle') }}</h2>
+            <p>{{ t('admin.dashboard.openClassesHint') }}</p>
+          </div>
+        </div>
+        <div class="list">
+          <div v-for="section in upcomingSections.slice(0, 5)" :key="section.id || section.code" class="list-row stacked">
             <div>
-              <h3 class="text-base font-semibold text-slate-800">Cần xử lý</h3>
-              <p class="text-xs text-slate-400">Các tác vụ ưu tiên</p>
+              <strong>{{ section.code || section.name || '—' }}</strong>
+              <small>{{ section.course?.title || t('admin.dashboard.noCourseBound') }} · {{ section.lecturer?.name || t('admin.dashboard.noLecturer') }}</small>
             </div>
-            <span class="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">45 việc</span>
+            <span>{{ section.enrolled_count || 0 }}/{{ section.capacity || '—' }}</span>
           </div>
+          <div v-if="!loading && !upcomingSections.length" class="empty compact">{{ t('admin.dashboard.noOpenClasses') }}</div>
+        </div>
+      </article>
 
-          <div class="space-y-3">
-            <NuxtLink
-              v-for="task in pendingTasks"
-              :key="task.label"
-              :to="task.to"
-              class="group flex items-center gap-3 rounded-2xl border border-slate-100 p-3 transition hover:bg-slate-50"
-            >
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border" :class="toneClasses(task.tone).icon">
-                <i :class="task.icon" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-semibold text-slate-700">{{ task.label }}</p>
-                <p class="text-xs text-slate-400">Nhấn để xem chi tiết</p>
-              </div>
-              <strong class="text-lg font-bold text-slate-900">{{ task.value }}</strong>
-            </NuxtLink>
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.notificationsTitle') }}</h2>
+            <p>{{ t('admin.dashboard.notificationsHint') }}</p>
           </div>
         </div>
-      </section>
-
-      <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <!-- Quick actions -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6 xl:col-span-2">
-          <div class="mb-5 flex items-center justify-between">
+        <div class="list">
+          <div v-for="item in notifications.slice(0, 5)" :key="item.id || item.title" class="list-row stacked">
             <div>
-              <h3 class="text-base font-semibold text-slate-800">Lối tắt nhanh</h3>
-              <p class="text-xs text-slate-400">Truy cập nhanh các chức năng thường dùng</p>
+              <strong>{{ item.title || t('admin.dashboard.notificationFallback') }}</strong>
+              <small>{{ item.message || t('admin.dashboard.noContent') }}</small>
             </div>
-            <i class="pi pi-bolt rounded-xl border border-slate-200 bg-slate-50 p-2 text-slate-400" />
+            <span>{{ timeAgo(item.created_at) }}</span>
           </div>
-
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <NuxtLink
-              v-for="action in quickActions"
-              :key="action.label"
-              :to="action.to"
-              class="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm"
-            >
-              <div class="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border" :class="toneClasses(action.tone).icon">
-                <i :class="[action.icon, 'text-lg']" />
-              </div>
-              <p class="font-semibold text-slate-800">{{ action.label }}</p>
-              <p class="mt-1 text-xs leading-5 text-slate-400">{{ action.desc }}</p>
-              <div class="mt-4 inline-flex items-center gap-2 text-xs font-bold" :class="toneClasses(action.tone).text">
-                Thực hiện
-                <i class="pi pi-arrow-right text-[10px] transition group-hover:translate-x-0.5" />
-              </div>
-            </NuxtLink>
-          </div>
+          <div v-if="!loading && !notifications.length" class="empty compact">{{ t('admin.dashboard.noNotifications') }}</div>
         </div>
-
-        <!-- Activity -->
-        <div class="rounded-2xl border border-slate-200 bg-white p-6">
-          <div class="mb-5 flex items-center justify-between">
-            <div>
-              <h3 class="text-base font-semibold text-slate-800">Hoạt động gần đây</h3>
-              <p class="text-xs text-slate-400">Realtime activity feed</p>
-            </div>
-            <NuxtLink to="/admin/reports/activity" class="text-xs font-semibold text-[#1d9e75] hover:underline">Xem tất cả</NuxtLink>
-          </div>
-
-          <div class="space-y-4">
-            <div v-for="activity in activities" :key="activity.title" class="flex gap-3">
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border" :class="toneClasses(activity.tone).icon">
-                <i :class="[activity.icon, 'text-sm']" />
-              </div>
-              <div class="min-w-0 border-b border-slate-100 pb-4 last:border-b-0 last:pb-0">
-                <p class="text-sm font-medium leading-5 text-slate-700">{{ activity.title }}</p>
-                <p class="mt-1 text-xs text-slate-400">{{ activity.time }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  </AdminWorkspaceShell>
+      </article>
+    </section>
+  </div>
 </template>
+
+<style scoped>
+.dashboard { gap: 14px; }
+.dash-head { margin-bottom: 2px; }
+.eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--brand);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.kpi {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 92px;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.kpi > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi span { color: var(--text-muted); font-size: .86rem; font-weight: 650; }
+.kpi strong {
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kpi small { color: var(--text-muted); font-size: .8rem; font-weight: 500; }
+.kpi > i {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  font-size: .9rem;
+}
+.tone-brand > i { background: var(--brand-soft); color: var(--brand); }
+.tone-blue > i { background: #eaf2ff; color: #2563eb; }
+.tone-amber > i { background: #fff6df; color: #d97706; }
+.tone-violet > i { background: #f2edff; color: #7c3aed; }
+:global(.dark) .tone-blue > i,
+:global(.dark) .tone-amber > i,
+:global(.dark) .tone-violet > i { background: var(--surface-hover); }
+
+.pulse-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 68px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.pulse > i {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 8px;
+  background: var(--surface-subtle);
+  color: var(--brand);
+  font-size: .78rem;
+}
+
+.pulse > div { display: flex; flex-direction: column; min-width: 0; }
+.pulse strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulse span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: .76rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-a,
+.grid-b,
+.grid-c,
+.grid-d {
+  display: grid;
+  gap: 10px;
+}
+
+.grid-a { grid-template-columns: minmax(0, 1.55fr) minmax(280px, .85fr); }
+.grid-b { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .9fr); }
+.grid-c,
+.grid-d { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.panel {
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.panel-head h2 {
+  margin: 0 0 2px;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.panel-head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .84rem;
+  font-weight: 500;
+}
+
+.link {
+  color: var(--brand);
+  font-size: .88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chart-box { padding-top: 2px; }
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 650;
+  transition: .15s ease;
+}
+
+.shortcut:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.shortcut i {
+  color: var(--brand);
+  font-size: .8rem;
+}
+
+.list { display: grid; }
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  border-bottom: 1px solid var(--border);
+}
+.list-row:last-child { border-bottom: 0; }
+.list-row.stacked { align-items: flex-start; padding: 8px 0; }
+.list-row.stacked > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.list-row strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: .92rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-row small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: .8rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-row > span {
+  color: var(--text-muted);
+  font-size: .8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rank {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  color: var(--text-muted);
+  font-size: .9rem;
+  font-weight: 500;
+}
+.empty.compact { min-height: 110px; }
+
+@media (max-width: 1280px) {
+  .pulse-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-c, .grid-d { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 980px) {
+  .kpi-row,
+  .grid-a,
+  .grid-b { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 720px) {
+  .kpi-row,
+  .pulse-row,
+  .grid-a,
+  .grid-b,
+  .grid-c,
+  .grid-d,
+  .shortcut-grid { grid-template-columns: 1fr; }
+}
+</style>

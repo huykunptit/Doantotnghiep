@@ -1,0 +1,2 @@
+﻿name,email,password,role,student_code,staff_code,phone,gender,date_of_birth,study_status,cohort_code,class_code,program_code,major_code
+Nguyen Van A,sv.a@example.com,Password1,student,SV001,,901234567,male,1/15/2004,dang_hoc,K20,CNTT-K20-01,CNTT,KTPM

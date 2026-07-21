@@ -1,7 +1,8 @@
 <template>
-  <div>
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
+  <NuxtRouteAnnouncer />
+  <Toast position="top-right" />
+  <ConfirmDialog />
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
 </template>

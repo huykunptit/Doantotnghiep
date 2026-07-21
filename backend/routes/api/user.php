@@ -117,6 +117,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Users
         Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/export', [AdminController::class, 'exportUsers']);
+        Route::get('/users/import-template', [AdminController::class, 'importUsersTemplate']);
+        Route::post('/users/import-preview', [AdminController::class, 'importUsersPreview']);
+        Route::post('/users/import-execute', [AdminController::class, 'importUsersExecute']);
+        Route::post('/users/bulk-delete', [AdminController::class, 'bulkDestroyUsers']);
         Route::get('/students', [AdminController::class, 'listStudents']);
         Route::get('/instructors', [AdminController::class, 'listInstructors']);
         Route::post('/users', [AdminController::class, 'storeUser']);

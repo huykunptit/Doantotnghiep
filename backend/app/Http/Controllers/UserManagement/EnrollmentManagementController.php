@@ -224,6 +224,16 @@ class EnrollmentManagementController extends Controller
         if ($request->filled('lecturer_id')) {
             $query->where('lecturer_id', (int) $request->input('lecturer_id'));
         }
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+        if ($request->filled('q')) {
+            $q = $request->input('q');
+            $query->where(function (Builder $w) use ($q) {
+                $w->where('code', 'like', "%{$q}%")
+                    ->orWhere('name', 'like', "%{$q}%");
+            });
+        }
 
         if (!$user->hasRole('admin')) {
             $activeUnitIds = $this->activeUnitIdsFor($user);
