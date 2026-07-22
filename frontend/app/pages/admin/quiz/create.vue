@@ -157,6 +157,10 @@ async function save() {
     }
 
     let exam: { id: number, course_id?: number | null }
+    if (!selectedQuestions.value.length) {
+      toast.add({ severity: 'warn', summary: t('admin.quiz.questionsRequired'), life: 2800 })
+      return
+    }
     if (form.type === 'standalone') {
       exam = await useApi('/exams/standalone', { method: 'POST', body })
     }

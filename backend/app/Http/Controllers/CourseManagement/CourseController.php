@@ -180,7 +180,7 @@ class CourseController extends Controller
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
-            'status'      => ['sometimes', 'in:draft,published,closed'],
+            'status'      => ['sometimes', 'in:draft,published,closed,pending_review,rejected'],
         ]);
 
         if ($request->hasFile('thumbnail_file')) {

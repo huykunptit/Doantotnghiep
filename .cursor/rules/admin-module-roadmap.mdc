@@ -15,11 +15,24 @@ Thiết kế theo contract `sylva-admin-crud.mdc`. UI + API + fix trong cùng v�
 | Dashboard | Done |
 | Người dùng + Phân quyền | Done |
 | Học vụ (calendar, catalog, lớp HC, lớp TC, ghi danh, CTĐT) | Done |
+| **Portal GV** (`/instructor`) | Done — dashboard, courses+builder, revenue, students |
+| **Portal SV** (`/student`, catalog, checkout, learn) | Done — B2C → PayOS/sandbox → player |
+| **AI cá nhân hoá** (recommend, learn tip, SV chat + `course_id`) | Done |
+| **Mobile Flutter SV** | Done — recommend, AI chat, learn tip, catalog/buy/learn/quiz |
 | Khóa học (duyệt, manage, **builder**, categories, reviews, certs) | Done |
 | Khảo thí (quiz, NHCH, exam-tracking) | Done |
 | Báo cáo (courses, exams, progress, activity, payments) | Done (thin) |
 | Tài chính (orders + payment report) | Done |
 | AI + chat + settings | Done |
+
+## Smoke-test fixes (done)
+
+- Builder meta: status allow-list includes `pending_review`/`rejected`; thumbnail via `POST` + `_method=PUT`
+- Lesson `video_url` accepts relative/storage paths
+- Question bank `[id]` resolves `courseId` when query missing
+- Academic pickers use `/admin/students` + `/admin/instructors` (not ignored `user_type`)
+- Quiz create requires ≥1 question
+- Dynamic i18n gaps: closed/archived/assignment/scorm
 
 ## Out / stub giữ nguyên (không trong menu demo)
 

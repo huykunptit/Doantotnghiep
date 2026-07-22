@@ -11,8 +11,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/career/upload-cv', [CareerAdvisorController::class, 'uploadCV']);
     Route::post('/career/recommend', [CareerAdvisorController::class, 'recommend']);
 
-    // ─── AI Chat ───
+    // ─── AI Chat + tutoring ───
     Route::post('/ai/chat', [AIChatController::class, 'chat']);
+    Route::post('/ai/tutoring', [AIChatController::class, 'tutoring']);
 
     // ─── AI Management (Admin) ───
     Route::prefix('admin/ai')->group(function () {

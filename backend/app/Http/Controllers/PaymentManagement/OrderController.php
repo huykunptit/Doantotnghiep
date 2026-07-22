@@ -130,7 +130,7 @@ class OrderController extends Controller
         // Free course: auto-enroll
         if ($course->price <= 0) {
             DB::transaction(function () use ($user, $course) {
-                Order::create([
+                $order = Order::create([
                     'user_id'     => $user->id,
                     'course_id'   => $course->id,
                     'amount'      => 0,
@@ -145,6 +145,8 @@ class OrderController extends Controller
                     'course_id' => $course->id,
                 ], [
                     'enrolled_at' => now(),
+                    'order_id' => $order->id,
+                    'enrollment_source' => 'marketplace',
                 ]);
             });
 
@@ -208,6 +210,8 @@ class OrderController extends Controller
                     'course_id' => $order->course_id,
                 ], [
                     'enrolled_at' => now(),
+                    'order_id' => $order->id,
+                    'enrollment_source' => 'marketplace',
                 ]);
             });
 

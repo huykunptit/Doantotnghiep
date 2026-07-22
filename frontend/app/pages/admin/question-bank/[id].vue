@@ -27,7 +27,7 @@ const confirm = useConfirm()
 const route = useRoute()
 
 const bankId = computed(() => Number(route.params.id))
-const courseId = computed(() => Number(route.query.courseId))
+const courseId = ref<number | null>(Number(route.query.courseId) || null)
 
 const loading = ref(true)
 const saving = ref(false)
@@ -111,9 +111,27 @@ watch(() => form.type, (type) => {
   }
 })
 
+async function resolveCourseId() {
+  if (courseId.value) return courseId.value
+  if (!bankId.value) return null
+  try {
+    const res = await useApi<any>('/admin/question-banks', { query: { per_page: 200 } })
+    const rows = Array.isArray(res) ? res : (res.data || [])
+    const bank = rows.find((b: any) => Number(b.id) === bankId.value)
+    const resolved = Number(bank?.course_id || bank?.course?.id || 0) || null
+    courseId.value = resolved
+    return resolved
+  }
+  catch {
+    return null
+  }
+}
+
 async function load() {
-  if (!courseId.value || !bankId.value) {
+  const resolvedCourseId = await resolveCourseId()
+  if (!resolvedCourseId || !bankId.value) {
     toast.add({ severity: 'error', summary: t('admin.questionBank.missingCourse'), life: 3500 })
+    loading.value = false
     return
   }
   loading.value = true
@@ -122,7 +140,7 @@ async function load() {
       name?: string
       questions?: QuestionItem[]
       groups?: Array<{ questions?: QuestionItem[] }>
-    }>(`/courses/${courseId.value}/question-banks/${bankId.value}`)
+    }>(`/courses/${resolvedCourseId}/question-banks/${bankId.value}`)
 
     bankName.value = res.name || `#${bankId.value}`
     const fromBank = res.questions || []

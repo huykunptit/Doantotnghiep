@@ -114,7 +114,7 @@ async function loadOptions() {
       useApi<any>('/admin/academic/terms', { query: { per_page: 100 } }).catch(() => ({ data: [] })),
       useApi<any>('/admin/academic/cohorts', { query: { per_page: 100 } }).catch(() => ({ data: [] })),
       useApi<any>('/admin/courses', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
-      useApi<any>('/admin/users', { query: { user_type: 'instructor', per_page: 100 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/instructors', { query: { per_page: 100 } }).catch(() => ({ data: [] })),
     ])
     termOptions.value = mapNamedOptions(terms.data)
     cohortOptions.value = mapNamedOptions(cohorts.data)

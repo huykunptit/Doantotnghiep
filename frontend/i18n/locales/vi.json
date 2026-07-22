@@ -656,7 +656,8 @@
         "pending_review": "Chờ duyệt",
         "published": "Đã xuất bản",
         "rejected": "Từ chối",
-        "closed": "Đã đóng"
+        "closed": "Đã đóng",
+        "archived": "Lưu trữ"
       }
     },
     "builder": {
@@ -706,7 +707,9 @@
         "video": "Video",
         "page": "Trang",
         "file": "Tệp",
-        "quiz": "Quiz"
+        "quiz": "Quiz",
+        "assignment": "Bài tập",
+        "scorm": "SCORM"
       },
       "typeHints": {
         "video": "Bài giảng video (nhúng hoặc upload).",
@@ -740,6 +743,7 @@
         "draft": "Bản nháp",
         "pending_review": "Chờ duyệt",
         "published": "Đã xuất bản",
+        "rejected": "Từ chối",
         "closed": "Đã đóng"
       }
     },
@@ -888,7 +892,8 @@
       "question": "Câu hỏi",
       "qType": "Loại",
       "difficulty": "Độ khó",
-      "selectedCount": "Đã chọn {n} câu hỏi"
+      "selectedCount": "Đã chọn {n} câu hỏi",
+      "questionsRequired": "Chọn ít nhất một câu hỏi trước khi tạo đề"
     },
     "questionBank": {
       "title": "Ngân hàng câu hỏi",
@@ -1134,6 +1139,7 @@
         "pending_review": "Chờ duyệt",
         "draft": "Bản nháp",
         "rejected": "Từ chối",
+        "closed": "Đã đóng",
         "archived": "Lưu trữ"
       },
       "shortcut": {
@@ -1144,6 +1150,233 @@
         "examMonitor": "Giám sát thi",
         "settings": "Cài đặt"
       }
+    }
+  },
+  "instructor": {
+    "console": "Cổng giảng viên",
+    "roleLabel": "Giảng viên",
+    "menu": {
+      "dashboard": "Tổng quan",
+      "courses": "Khóa học của tôi",
+      "revenue": "Doanh thu",
+      "students": "Học viên",
+      "builder": "Xây dựng nội dung",
+      "courseStudents": "Học viên khóa học",
+      "courseRevenue": "Doanh thu khóa học"
+    },
+    "dashboard": {
+      "title": "Tổng quan giảng dạy",
+      "subtitle": "Doanh thu B2C, ghi danh và gợi ý hành động cho khóa của bạn.",
+      "greetingMorning": "Chào buổi sáng",
+      "greetingAfternoon": "Chào buổi chiều",
+      "greetingEvening": "Chào buổi tối",
+      "courses": "Khóa học",
+      "students": "Học viên",
+      "revenue": "Doanh thu",
+      "revenueTrend": "Doanh thu 6 tháng",
+      "studentsTrend": "Ghi danh 6 tháng",
+      "topCourses": "Khóa nổi bật",
+      "insights": "Gợi ý hành động",
+      "noInsights": "Mọi thứ ổn — tiếp tục đẩy nội dung và theo dõi doanh thu.",
+      "quickActions": "Thao tác nhanh",
+      "createCourse": "Tạo khóa học",
+      "viewRevenue": "Xem doanh thu",
+      "manageCourses": "Quản lý khóa",
+      "loadError": "Không tải được thống kê",
+      "enrollments": "{n} ghi danh",
+      "insightDraft": "{n} khóa bản nháp — hoàn thiện và gửi duyệt",
+      "insightPending": "{n} khóa đang chờ admin duyệt",
+      "insightRejected": "{n} khóa bị từ chối — chỉnh sửa và gửi lại",
+      "insightNoEnroll": "Có khóa đã xuất bản nhưng chưa có học viên — cân nhắc đẩy bán / điều chỉnh giá",
+      "insightRevenueDrop": "Doanh thu tháng này giảm so với tháng trước"
+    },
+    "courses": {
+      "title": "Khóa học của tôi",
+      "subtitle": "Tạo, chỉnh nội dung và theo dõi học viên / doanh thu từng khóa.",
+      "add": "Tạo khóa học",
+      "searchPh": "Tìm theo tên khóa…",
+      "edit": "Builder",
+      "students": "Học viên",
+      "revenue": "Doanh thu",
+      "lessons": "Bài học",
+      "learners": "HV",
+      "price": "Giá",
+      "status": "Trạng thái",
+      "titleRequired": "Nhập tiêu đề khóa học",
+      "created": "Đã tạo khóa học",
+      "loadError": "Không tải được khóa học",
+      "saveError": "Không tạo được khóa học",
+      "createTitle": "Tạo khóa học mới",
+      "fieldTitle": "Tiêu đề",
+      "fieldDesc": "Mô tả",
+      "fieldPrice": "Giá (VND)",
+      "fieldCategory": "Danh mục"
+    },
+    "revenue": {
+      "title": "Doanh thu",
+      "subtitle": "Tổng hợp doanh thu B2C từ các khóa bạn sở hữu.",
+      "total": "Tổng doanh thu",
+      "paidOrders": "Đơn đã thanh toán",
+      "trend": "Xu hướng 6 tháng",
+      "byCourse": "Theo khóa học",
+      "loadError": "Không tải được doanh thu",
+      "courseTitle": "Khóa học",
+      "price": "Giá",
+      "enrollments": "Ghi danh",
+      "viewDetail": "Chi tiết",
+      "courseTotal": "Doanh thu khóa",
+      "orders": "Đơn hàng",
+      "buyer": "Người mua",
+      "amount": "Số tiền",
+      "paidAt": "Thanh toán lúc",
+      "emptyOrders": "Chưa có đơn thanh toán"
+    },
+    "students": {
+      "title": "Học viên",
+      "subtitle": "Chọn khóa để xem danh sách học viên và tiến độ.",
+      "pickCourse": "Chọn khóa học",
+      "searchPh": "Tìm tên hoặc email…",
+      "name": "Học viên",
+      "progress": "Tiến độ",
+      "enrolledAt": "Ghi danh",
+      "lastWatched": "Học gần nhất",
+      "loadError": "Không tải được học viên",
+      "empty": "Chưa có học viên",
+      "lessonsDone": "{done}/{total} bài"
+    },
+    "builder": {
+      "back": "Quay lại khóa học"
+    }
+  },
+  "student": {
+    "console": "Cổng học viên",
+    "roleLabel": "Học viên",
+    "menu": {
+      "dashboard": "Tổng quan",
+      "myCourses": "Khóa của tôi",
+      "catalog": "Khám phá khóa",
+      "learn": "Học tập"
+    },
+    "ai": {
+      "recEyebrow": "Cá nhân hoá",
+      "recTitle": "Gợi ý khóa phù hợp",
+      "recSubtitle": "Dựa trên ngành/kỹ năng và khóa bạn đang học.",
+      "recMore": "Xem catalog →",
+      "recEmpty": "Chưa có gợi ý. Hãy học thêm vài khóa hoặc cập nhật hồ sơ ngành.",
+      "recError": "Không tải được gợi ý.",
+      "recFallbackCat": "Khóa học",
+      "recScore": "Điểm gợi ý: {n}",
+      "chatTitle": "Trợ lý AI",
+      "chatStatus": "Sẵn sàng hỗ trợ",
+      "chatContextOn": "Đang gắn ngữ cảnh khóa học",
+      "chatWelcome": "Xin chào! Tôi có thể gợi ý khóa học, lộ trình học hoặc giải đáp thắc mắc về hệ thống.",
+      "chatWelcomeCourse": "Xin chào! Tôi đang hỗ trợ bạn trong khóa học này — hỏi về bài học, quiz hoặc mẹo học tập nhé.",
+      "chatCleared": "Đã xoá hội thoại. Bạn cần hỗ trợ gì?",
+      "chatNeedLogin": "Vui lòng đăng nhập để dùng Trợ lý AI.",
+      "chatEmptyReply": "Hệ thống chưa có phản hồi cho yêu cầu này.",
+      "chatError": "Lỗi kết nối. Trợ lý AI tạm không khả dụng, thử lại sau.",
+      "chatPlaceholder": "Nhập câu hỏi…",
+      "chatDisclaimer": "AI có thể sai — hãy kiểm tra thông tin quan trọng.",
+      "chatClear": "Xóa hội thoại",
+      "chatClose": "Đóng",
+      "q1": "Tìm khóa phù hợp",
+      "q2": "Lộ trình học gợi ý",
+      "q3": "Cách dùng hệ thống",
+      "qCourse1": "Tóm tắt bài này",
+      "qCourse2": "Gợi ý ôn tập",
+      "qCourse3": "Mẹo làm quiz",
+      "tipTitle": "Gợi ý học tập",
+      "tipSourceAi": "Từ AI",
+      "tipSourceLocal": "Gợi ý theo tiến độ",
+      "tipReview": "Nên ôn:",
+      "tipFallback": "Tiếp tục bài hiện tại và giữ nhịp học đều mỗi ngày.",
+      "tipFallbackDetail": "Đánh dấu hoàn thành bài trước khi chuyển sang bài kế tiếp."
+    },
+    "dashboard": {
+      "title": "Xin chào",
+      "subtitle": "Tiếp tục học hoặc khám phá khóa mới trên marketplace.",
+      "greetingMorning": "Chào buổi sáng",
+      "greetingAfternoon": "Chào buổi chiều",
+      "greetingEvening": "Chào buổi tối",
+      "enrolled": "Đã ghi danh",
+      "continue": "Tiếp tục học",
+      "browse": "Khám phá khóa học",
+      "empty": "Bạn chưa ghi danh khóa nào.",
+      "loadError": "Không tải được dữ liệu học viên",
+      "progress": "{n}% hoàn thành"
+    },
+    "courses": {
+      "title": "Khóa học của tôi",
+      "subtitle": "Các khóa đã mua hoặc ghi danh miễn phí.",
+      "learn": "Vào học",
+      "empty": "Chưa có khóa học. Hãy khám phá catalog.",
+      "loadError": "Không tải được danh sách khóa"
+    },
+    "catalog": {
+      "title": "Khóa học",
+      "subtitle": "Duyệt khóa công khai và bắt đầu lộ trình học.",
+      "search": "Tìm khóa học…",
+      "searchBtn": "Tìm kiếm",
+      "result": "{n} khóa học",
+      "free": "Miễn phí",
+      "learners": "{n} học viên",
+      "empty": "Không tìm thấy khóa học phù hợp.",
+      "instructor": "Giảng viên",
+      "enrollFree": "Đăng ký miễn phí",
+      "buy": "Mua khóa học",
+      "learnNow": "Vào học ngay",
+      "loginToBuy": "Đăng nhập để mua",
+      "lessons": "{n} bài học",
+      "loadError": "Không tải được khóa học"
+    },
+    "checkout": {
+      "title": "Xác nhận đăng ký",
+      "subtitle": "Kiểm tra thông tin và chọn phương thức thanh toán.",
+      "summary": "Tóm tắt",
+      "total": "Tổng thanh toán",
+      "method": "Phương thức",
+      "pay": "Thanh toán",
+      "enrollFree": "Đăng ký miễn phí",
+      "continuePay": "Tiếp tục cổng thanh toán",
+      "already": "Bạn đã ghi danh khóa này.",
+      "success": "Đăng ký thành công.",
+      "error": "Không thể tạo đơn hàng",
+      "payos": "PayOS",
+      "payosNote": "QR / chuyển khoản nhanh",
+      "bank": "Chuyển khoản",
+      "bankNote": "Sandbox demo",
+      "momo": "MoMo",
+      "momoNote": "Sandbox demo",
+      "zalopay": "ZaloPay",
+      "zalopayNote": "Sandbox demo"
+    },
+    "payment": {
+      "processing": "Đang xử lý thanh toán",
+      "wait": "Vui lòng chờ đồng bộ kết quả từ PayOS.",
+      "success": "Thanh toán thành công",
+      "failed": "Thanh toán chưa hoàn tất",
+      "cancelled": "Bạn đã huỷ giao dịch",
+      "goLearn": "Vào học",
+      "goCourses": "Khóa của tôi",
+      "goCatalog": "Về catalog"
+    },
+    "learn": {
+      "curriculum": "Nội dung khóa",
+      "markDone": "Đánh dấu hoàn thành",
+      "next": "Bài tiếp theo",
+      "completed": "Đã hoàn thành",
+      "progress": "Tiến độ {n}%",
+      "noVideo": "Chưa có video",
+      "openFile": "Mở tài liệu",
+      "pageEmpty": "Chưa có nội dung trang",
+      "loadError": "Không tải được bài học",
+      "backCourse": "Chi tiết khóa",
+      "quizSubmit": "Nộp bài",
+      "quizScore": "Điểm: {score}",
+      "quizPass": "Đạt",
+      "quizFail": "Chưa đạt",
+      "quizLoadError": "Không tải được quiz",
+      "quizSubmitError": "Không nộp được bài"
     }
   }
 }

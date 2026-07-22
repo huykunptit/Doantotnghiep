@@ -154,8 +154,8 @@ async function loadOptions() {
       useApi<any>('/admin/academic/units', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
       useApi<any>('/admin/academic/majors', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
       useApi<any>('/admin/academic/curricula', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
-      useApi<any>('/admin/users', { query: { user_type: 'instructor', per_page: 100 } }).catch(() => ({ data: [] })),
-      useApi<any>('/admin/users', { query: { user_type: 'student', per_page: 100 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/instructors', { query: { per_page: 100 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/students', { query: { per_page: 100 } }).catch(() => ({ data: [] })),
     ])
     cohortOptions.value = mapOptions(cohorts.data)
     programOptions.value = mapOptions(programs.data)
@@ -347,7 +347,7 @@ async function resolveStudentIdsFromCodes(codes: string[]): Promise<{ ids: numbe
   for (const code of codes) {
     try {
       const res = await useApi<Paginator<StudentUser>>('/admin/users', {
-        query: { search: code, user_type: 'student', per_page: 10 },
+        query: { search: code, role: 'student', per_page: 10 },
       })
       const match = (res.data || []).find(u => u.student_code?.toLowerCase() === code.toLowerCase())
       if (match) ids.push(match.id)

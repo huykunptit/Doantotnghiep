@@ -111,6 +111,8 @@ class PayOSController extends Controller
                     'course_id' => $order->course_id,
                 ], [
                     'enrolled_at' => now(),
+                    'order_id' => $order->id,
+                    'enrollment_source' => 'marketplace',
                 ]);
             });
 

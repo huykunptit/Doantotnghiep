@@ -101,6 +101,7 @@ const statusOptions = computed(() => [
   { label: t('admin.builder.statuses.draft'), value: 'draft' },
   { label: t('admin.builder.statuses.pending_review'), value: 'pending_review' },
   { label: t('admin.builder.statuses.published'), value: 'published' },
+  { label: t('admin.builder.statuses.rejected'), value: 'rejected' },
   { label: t('admin.builder.statuses.closed'), value: 'closed' },
 ])
 
@@ -593,23 +594,35 @@ async function moveLesson(section: SectionItem, index: number, direction: -1 | 1
   }
 }
 
+function metaStatusForApi() {
+  // Only send statuses the API accepts for direct meta edits.
+  // pending_review / rejected are set via publish/approve flows.
+  if (['draft', 'published', 'closed', 'pending_review', 'rejected'].includes(metaForm.status)) {
+    return metaForm.status
+  }
+  return 'draft'
+}
+
 async function saveCourseMeta() {
   if (!metaForm.title.trim()) return
   savingMeta.value = true
   try {
     if (thumbnailFile.value) {
+      // PHP does not parse multipart on PUT — spoof via POST + _method.
       const formData = new FormData()
+      formData.append('_method', 'PUT')
       formData.append('title', metaForm.title.trim())
       formData.append('description', metaForm.description || '')
       formData.append('price', String(metaForm.price || 0))
       if (metaForm.category_id) formData.append('category_id', String(metaForm.category_id))
-      formData.append('status', metaForm.status)
+      formData.append('status', metaStatusForApi())
       formData.append('thumbnail_file', thumbnailFile.value)
       const res = await useApi<{ course: CourseDetail }, FormData>(`/courses/${courseId.value}`, {
-        method: 'PUT',
+        method: 'POST',
         body: formData,
       })
       course.value = res.course
+      metaForm.status = res.course.status || metaForm.status
       thumbnailFile.value = null
     }
     else {
@@ -620,10 +633,11 @@ async function saveCourseMeta() {
           description: metaForm.description || null,
           price: metaForm.price,
           category_id: metaForm.category_id,
-          status: metaForm.status,
+          status: metaStatusForApi(),
         },
       })
       course.value = res.course
+      metaForm.status = res.course.status || metaForm.status
     }
     toast.add({ severity: 'success', summary: t('admin.builder.metaSaved'), life: 2200 })
   }

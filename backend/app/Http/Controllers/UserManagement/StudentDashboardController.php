@@ -242,6 +242,25 @@ class StudentDashboardController extends Controller
         ->take(8)
         ->values();
 
+        // Thesis/demo fallback: if no extension catalog, recommend other published marketplace courses.
+        if ($scored->isEmpty()) {
+            $fallback = Course::query()
+                ->where('status', 'published')
+                ->whereNotIn('id', $enrolledIds)
+                ->with(['category:id,name,slug', 'instructor:id,name,avatar'])
+                ->withCount('enrollments')
+                ->orderByDesc('enrollments_count')
+                ->limit(8)
+                ->get()
+                ->map(fn (Course $course) => [
+                    'course' => $course,
+                    'score' => 10 + (int) ($course->enrollments_count ?? 0),
+                    'matched_skills' => [],
+                ])
+                ->values();
+            $scored = $fallback;
+        }
+
         return response()->json([
             'recommendations' => $scored,
             'context' => [

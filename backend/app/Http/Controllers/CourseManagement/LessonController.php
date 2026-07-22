@@ -80,7 +80,7 @@ class LessonController extends Controller
             'is_preview' => ['nullable', 'boolean'],
             'order'      => ['nullable', 'integer', 'min:0'],
             'duration'   => ['nullable', 'integer', 'min:0'],
-            'video_url'  => ['nullable', 'url', 'max:2048'],
+            'video_url'  => ['nullable', 'string', 'max:2048'],
         ]);
 
         $maxOrder = $course->lessons()->max('order') ?? 0;
@@ -169,7 +169,7 @@ class LessonController extends Controller
             'is_preview'  => ['nullable', 'boolean'],
             'order'       => ['sometimes', 'integer', 'min:0'],
             'duration'    => ['sometimes', 'integer', 'min:0'],
-            'video_url'   => ['nullable', 'url', 'max:2048'],
+            'video_url'   => ['nullable', 'string', 'max:2048'],
         ]);
 
         $lesson->fill($validated)->save();

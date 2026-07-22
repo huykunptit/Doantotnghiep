@@ -656,7 +656,8 @@
         "pending_review": "Pending review",
         "published": "Published",
         "rejected": "Rejected",
-        "closed": "Closed"
+        "closed": "Closed",
+        "archived": "Archived"
       }
     },
     "builder": {
@@ -706,7 +707,9 @@
         "video": "Video",
         "page": "Page",
         "file": "File",
-        "quiz": "Quiz"
+        "quiz": "Quiz",
+        "assignment": "Assignment",
+        "scorm": "SCORM"
       },
       "typeHints": {
         "video": "Video lessons (embed or upload).",
@@ -740,6 +743,7 @@
         "draft": "Draft",
         "pending_review": "Pending review",
         "published": "Published",
+        "rejected": "Rejected",
         "closed": "Closed"
       }
     },
@@ -888,7 +892,8 @@
       "question": "Question",
       "qType": "Type",
       "difficulty": "Difficulty",
-      "selectedCount": "{n} questions selected"
+      "selectedCount": "{n} questions selected",
+      "questionsRequired": "Select at least one question before creating the exam"
     },
     "questionBank": {
       "title": "Question banks",
@@ -1134,6 +1139,7 @@
         "pending_review": "Pending review",
         "draft": "Draft",
         "rejected": "Rejected",
+        "closed": "Closed",
         "archived": "Archived"
       },
       "shortcut": {
@@ -1144,6 +1150,233 @@
         "examMonitor": "Exam monitor",
         "settings": "Settings"
       }
+    }
+  },
+  "instructor": {
+    "console": "Instructor portal",
+    "roleLabel": "Instructor",
+    "menu": {
+      "dashboard": "Overview",
+      "courses": "My courses",
+      "revenue": "Revenue",
+      "students": "Students",
+      "builder": "Content builder",
+      "courseStudents": "Course students",
+      "courseRevenue": "Course revenue"
+    },
+    "dashboard": {
+      "title": "Teaching overview",
+      "subtitle": "B2C revenue, enrollments, and action hints for your courses.",
+      "greetingMorning": "Good morning",
+      "greetingAfternoon": "Good afternoon",
+      "greetingEvening": "Good evening",
+      "courses": "Courses",
+      "students": "Students",
+      "revenue": "Revenue",
+      "revenueTrend": "Revenue (6 months)",
+      "studentsTrend": "Enrollments (6 months)",
+      "topCourses": "Top courses",
+      "insights": "Action hints",
+      "noInsights": "Looking good — keep shipping content and watch revenue.",
+      "quickActions": "Quick actions",
+      "createCourse": "Create course",
+      "viewRevenue": "View revenue",
+      "manageCourses": "Manage courses",
+      "loadError": "Could not load stats",
+      "enrollments": "{n} enrollments",
+      "insightDraft": "{n} draft courses — finish and submit for review",
+      "insightPending": "{n} courses awaiting admin approval",
+      "insightRejected": "{n} rejected courses — revise and resubmit",
+      "insightNoEnroll": "Published courses with no learners — consider promoting or adjusting price",
+      "insightRevenueDrop": "Revenue this month is down vs last month"
+    },
+    "courses": {
+      "title": "My courses",
+      "subtitle": "Create content and track students / revenue per course.",
+      "add": "Create course",
+      "searchPh": "Search by title…",
+      "edit": "Builder",
+      "students": "Students",
+      "revenue": "Revenue",
+      "lessons": "Lessons",
+      "learners": "Learners",
+      "price": "Price",
+      "status": "Status",
+      "titleRequired": "Enter a course title",
+      "created": "Course created",
+      "loadError": "Could not load courses",
+      "saveError": "Could not create course",
+      "createTitle": "Create a new course",
+      "fieldTitle": "Title",
+      "fieldDesc": "Description",
+      "fieldPrice": "Price (VND)",
+      "fieldCategory": "Category"
+    },
+    "revenue": {
+      "title": "Revenue",
+      "subtitle": "B2C earnings from courses you own.",
+      "total": "Total revenue",
+      "paidOrders": "Paid orders",
+      "trend": "6-month trend",
+      "byCourse": "By course",
+      "loadError": "Could not load revenue",
+      "courseTitle": "Course",
+      "price": "Price",
+      "enrollments": "Enrollments",
+      "viewDetail": "Details",
+      "courseTotal": "Course revenue",
+      "orders": "Orders",
+      "buyer": "Buyer",
+      "amount": "Amount",
+      "paidAt": "Paid at",
+      "emptyOrders": "No paid orders yet"
+    },
+    "students": {
+      "title": "Students",
+      "subtitle": "Pick a course to view learners and progress.",
+      "pickCourse": "Select a course",
+      "searchPh": "Search name or email…",
+      "name": "Student",
+      "progress": "Progress",
+      "enrolledAt": "Enrolled",
+      "lastWatched": "Last activity",
+      "loadError": "Could not load students",
+      "empty": "No students yet",
+      "lessonsDone": "{done}/{total} lessons"
+    },
+    "builder": {
+      "back": "Back to courses"
+    }
+  },
+  "student": {
+    "console": "Student portal",
+    "roleLabel": "Student",
+    "menu": {
+      "dashboard": "Overview",
+      "myCourses": "My courses",
+      "catalog": "Browse courses",
+      "learn": "Learning"
+    },
+    "ai": {
+      "recEyebrow": "Personalized",
+      "recTitle": "Recommended for you",
+      "recSubtitle": "Based on your major/skills and current enrollments.",
+      "recMore": "Browse catalog →",
+      "recEmpty": "No recommendations yet. Complete a few courses or update your major profile.",
+      "recError": "Could not load recommendations.",
+      "recFallbackCat": "Course",
+      "recScore": "Match score: {n}",
+      "chatTitle": "AI assistant",
+      "chatStatus": "Ready to help",
+      "chatContextOn": "Course context attached",
+      "chatWelcome": "Hi! I can suggest courses, learning paths, or answer questions about the system.",
+      "chatWelcomeCourse": "Hi! I’m helping with this course — ask about lessons, quizzes, or study tips.",
+      "chatCleared": "Chat cleared. How can I help?",
+      "chatNeedLogin": "Please sign in to use the AI assistant.",
+      "chatEmptyReply": "No reply was returned for this request.",
+      "chatError": "Connection error. The AI assistant is temporarily unavailable.",
+      "chatPlaceholder": "Ask a question…",
+      "chatDisclaimer": "AI can make mistakes — verify important information.",
+      "chatClear": "Clear chat",
+      "chatClose": "Close",
+      "q1": "Find a matching course",
+      "q2": "Suggested learning path",
+      "q3": "How to use the system",
+      "qCourse1": "Summarize this lesson",
+      "qCourse2": "Review suggestions",
+      "qCourse3": "Quiz tips",
+      "tipTitle": "Study tip",
+      "tipSourceAi": "From AI",
+      "tipSourceLocal": "Based on your progress",
+      "tipReview": "Review:",
+      "tipFallback": "Continue this lesson and keep a steady daily study rhythm.",
+      "tipFallbackDetail": "Mark the lesson complete before moving to the next one."
+    },
+    "dashboard": {
+      "title": "Hello",
+      "subtitle": "Continue learning or discover new marketplace courses.",
+      "greetingMorning": "Good morning",
+      "greetingAfternoon": "Good afternoon",
+      "greetingEvening": "Good evening",
+      "enrolled": "Enrolled",
+      "continue": "Continue learning",
+      "browse": "Browse courses",
+      "empty": "You are not enrolled in any course yet.",
+      "loadError": "Could not load student data",
+      "progress": "{n}% complete"
+    },
+    "courses": {
+      "title": "My courses",
+      "subtitle": "Courses you purchased or joined for free.",
+      "learn": "Start learning",
+      "empty": "No courses yet. Browse the catalog.",
+      "loadError": "Could not load courses"
+    },
+    "catalog": {
+      "title": "Courses",
+      "subtitle": "Browse public courses and start learning.",
+      "search": "Search courses…",
+      "searchBtn": "Search",
+      "result": "{n} courses",
+      "free": "Free",
+      "learners": "{n} learners",
+      "empty": "No matching courses.",
+      "instructor": "Instructor",
+      "enrollFree": "Enroll for free",
+      "buy": "Buy course",
+      "learnNow": "Start learning",
+      "loginToBuy": "Log in to buy",
+      "lessons": "{n} lessons",
+      "loadError": "Could not load course"
+    },
+    "checkout": {
+      "title": "Confirm enrollment",
+      "subtitle": "Review details and choose a payment method.",
+      "summary": "Summary",
+      "total": "Total",
+      "method": "Payment method",
+      "pay": "Pay",
+      "enrollFree": "Enroll for free",
+      "continuePay": "Continue to payment gateway",
+      "already": "You are already enrolled.",
+      "success": "Enrollment successful.",
+      "error": "Could not create order",
+      "payos": "PayOS",
+      "payosNote": "QR / quick transfer",
+      "bank": "Bank transfer",
+      "bankNote": "Sandbox demo",
+      "momo": "MoMo",
+      "momoNote": "Sandbox demo",
+      "zalopay": "ZaloPay",
+      "zalopayNote": "Sandbox demo"
+    },
+    "payment": {
+      "processing": "Processing payment",
+      "wait": "Please wait while we sync the PayOS result.",
+      "success": "Payment successful",
+      "failed": "Payment incomplete",
+      "cancelled": "You cancelled the payment",
+      "goLearn": "Start learning",
+      "goCourses": "My courses",
+      "goCatalog": "Back to catalog"
+    },
+    "learn": {
+      "curriculum": "Course content",
+      "markDone": "Mark complete",
+      "next": "Next lesson",
+      "completed": "Completed",
+      "progress": "Progress {n}%",
+      "noVideo": "No video yet",
+      "openFile": "Open file",
+      "pageEmpty": "No page content yet",
+      "loadError": "Could not load lesson",
+      "backCourse": "Course details",
+      "quizSubmit": "Submit",
+      "quizScore": "Score: {score}",
+      "quizPass": "Passed",
+      "quizFail": "Not passed",
+      "quizLoadError": "Could not load quiz",
+      "quizSubmitError": "Could not submit quiz"
     }
   }
 }

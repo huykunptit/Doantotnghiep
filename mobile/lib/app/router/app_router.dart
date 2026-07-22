@@ -35,6 +35,7 @@ import '../../features/student/presentation/screens/library_screen.dart';
 import '../../features/points/presentation/screens/points_screen.dart';
 import '../../features/points/presentation/screens/voucher_shop_screen.dart';
 import '../../features/points/presentation/screens/my_vouchers_screen.dart';
+import '../../features/ai/presentation/screens/ai_chat_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -174,6 +175,14 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: '/career',
         builder: (context, state) => const CareerAdvisorScreen(),
+      ),
+      GoRoute(
+        path: '/ai-chat',
+        builder: (context, state) {
+          final courseIdRaw = state.uri.queryParameters['courseId'];
+          final courseId = int.tryParse(courseIdRaw ?? '');
+          return AiChatScreen(courseId: courseId);
+        },
       ),
       // Sprint 1 routes
       GoRoute(
