@@ -6,7 +6,7 @@ part of 'local_cache_service.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$localCacheServiceHash() => r'7c052cd7ae8fb300b9e08565fca78e158e1215eb';
+String _$localCacheServiceHash() => r'e1cfd86895b100652216706d2703c59a62e209a6';
 
 /// See also [localCacheService].
 @ProviderFor(localCacheService)

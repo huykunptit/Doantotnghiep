@@ -23,13 +23,10 @@ const paying = ref(false)
 const course = ref<CourseDetail | null>(null)
 const paymentUrl = ref<string | null>(null)
 const alreadyEnrolled = ref(false)
-const method = ref<'payos' | 'momo' | 'zalopay' | 'bank_transfer'>('payos')
+const method = ref<'payos'>('payos')
 
 const methods = computed(() => [
   { value: 'payos' as const, label: t('student.checkout.payos'), note: t('student.checkout.payosNote') },
-  { value: 'bank_transfer' as const, label: t('student.checkout.bank'), note: t('student.checkout.bankNote') },
-  { value: 'momo' as const, label: t('student.checkout.momo'), note: t('student.checkout.momoNote') },
-  { value: 'zalopay' as const, label: t('student.checkout.zalopay'), note: t('student.checkout.zalopayNote') },
 ])
 
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
@@ -58,7 +55,7 @@ async function pay() {
   try {
     const res = await useApi<{ enrolled?: boolean, payment_url?: string | null, message?: string }>('/orders', {
       method: 'POST',
-      body: { course_id: courseId.value, payment_method: (course.value.price || 0) > 0 ? method.value : 'payos' },
+      body: { course_id: courseId.value, payment_method: 'payos' },
     })
     if (res.enrolled) {
       alreadyEnrolled.value = true

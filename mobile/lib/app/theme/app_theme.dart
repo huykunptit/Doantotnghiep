@@ -29,11 +29,11 @@ class AppTheme {
         outline: AppColors.neutral200,
         outlineVariant: AppColors.neutral400,
       ),
-      scaffoldBackgroundColor: AppColors.neutral50,
+      scaffoldBackgroundColor: AppColors.neutral0,
       cardTheme: CardThemeData(
         color: AppColors.neutral0,
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.06),
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.rLg,
           side: const BorderSide(color: AppColors.neutral200, width: 1),
@@ -42,7 +42,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.neutral0,
+        fillColor: AppColors.neutral50,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
           borderRadius: AppRadius.rMd,
@@ -54,7 +54,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.rMd,
-          borderSide: const BorderSide(color: AppColors.primary400, width: 2),
+          borderSide: const BorderSide(color: AppColors.primary400, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppRadius.rMd,
@@ -62,40 +62,67 @@ class AppTheme {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: AppRadius.rMd,
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         labelStyle: const TextStyle(color: AppColors.neutral600),
         hintStyle: const TextStyle(color: AppColors.neutral400),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.neutral50,
+        backgroundColor: AppColors.neutral0,
         foregroundColor: AppColors.neutral800,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleTextStyle: AppTypography.h2.copyWith(color: AppColors.neutral800),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.neutral0,
         selectedItemColor: AppColors.primary400,
-        unselectedItemColor: AppColors.neutral600,
-        elevation: 8,
+        unselectedItemColor: AppColors.neutral400,
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.neutral0,
         indicatorColor: AppColors.primary50,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppTypography.caption.copyWith(color: AppColors.primary800, fontWeight: FontWeight.bold);
+            return AppTypography.caption.copyWith(color: AppColors.primary600, fontWeight: FontWeight.bold);
           }
-          return AppTypography.caption.copyWith(color: AppColors.neutral600);
+          return AppTypography.caption.copyWith(color: AppColors.neutral400);
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.primary800, size: 24);
+            return const IconThemeData(color: AppColors.primary400, size: 24);
           }
-          return const IconThemeData(color: AppColors.neutral600, size: 24);
+          return const IconThemeData(color: AppColors.neutral400, size: 24);
         }),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.neutral100,
+        selectedColor: AppColors.primary50,
+        side: const BorderSide(color: AppColors.neutral200),
+        labelStyle: const TextStyle(color: AppColors.neutral800, fontWeight: FontWeight.w600),
+        secondaryLabelStyle: const TextStyle(color: AppColors.primary600, fontWeight: FontWeight.w700),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      dividerTheme: const DividerThemeData(color: AppColors.neutral200, thickness: 1),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.neutral0,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.neutral0,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(

@@ -48,6 +48,7 @@ export const adminMenu: AdminMenuItem[] = [
     children: [
       { labelKey: 'admin.menu.courseReview', to: '/admin/courses' },
       { labelKey: 'admin.menu.manageCourses', to: '/admin/manage-courses' },
+      { labelKey: 'admin.menu.careerPaths', to: '/admin/career-paths' },
       { labelKey: 'admin.menu.categories', to: '/admin/categories' },
       { labelKey: 'admin.menu.reviews', to: '/admin/reviews' },
       { labelKey: 'admin.menu.certificates', to: '/admin/certificates' },

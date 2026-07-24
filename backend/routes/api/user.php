@@ -99,6 +99,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me/dashboard', [StudentDashboardController::class, 'dashboard']);
     Route::get('/me/learning-path', [StudentDashboardController::class, 'learningPath']);
     Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    Route::get('/me/learner-profile', [StudentDashboardController::class, 'learnerProfile']);
+    Route::get('/me/curriculum-evaluation', [StudentDashboardController::class, 'curriculumEvaluation']);
     Route::get('/me/exams', [StudentDashboardController::class, 'exams']);
     Route::get('/me/tasks', [StudentDashboardController::class, 'tasks']);
     Route::get('/me/recommendations/extensions', [StudentDashboardController::class, 'recommendations']);

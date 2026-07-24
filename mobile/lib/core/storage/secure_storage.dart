@@ -10,6 +10,11 @@ SecureStorageService secureStorage(SecureStorageRef ref) => SecureStorageService
 class SecureStorageService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    // Web uses localStorage; without webOptions some browsers can stall reads.
+    webOptions: WebOptions(
+      dbName: 'sylva_lms_secure',
+      publicKey: 'sylva_lms_public',
+    ),
   );
   static const _tokenKey = 'access_token';
   static const _themeModeKey = 'theme_mode';

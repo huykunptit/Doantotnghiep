@@ -7,7 +7,7 @@ part of 'certificate_repository.dart';
 // **************************************************************************
 
 String _$certificateRepositoryHash() =>
-    r'd5c9c90dfbfd66a48e888a318abe769177a7f97c';
+    r'581457b9fbec984cf6f23fe260f5ebee09bfb259';
 
 /// See also [certificateRepository].
 @ProviderFor(certificateRepository)

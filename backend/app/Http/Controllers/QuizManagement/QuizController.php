@@ -219,7 +219,7 @@ class QuizController extends Controller
             'scope'     => 'lesson',
         ]);
 
-        DB::transaction(function () use ($validated, $course, $quiz) {
+        DB::transaction(function () use ($validated, $course, $quiz, $request) {
             $quiz->fill([
                 'course_id'   => $course->id,
                 'scope'       => 'lesson',
@@ -255,13 +255,17 @@ class QuizController extends Controller
                 }
             }
 
-            $syncPayload = $attachIds
-                ->unique()
-                ->values()
-                ->mapWithKeys(fn ($id, $index) => [$id => ['order' => $index, 'points' => 10]])
-                ->all();
+            // Only sync when client explicitly sends question_ids or creates questions.
+            // Omitting question_ids preserves the existing quiz bank (builder meta save).
+            if ($request->exists('question_ids') || !empty($validated['questions'])) {
+                $syncPayload = $attachIds
+                    ->unique()
+                    ->values()
+                    ->mapWithKeys(fn ($id, $index) => [$id => ['order' => $index, 'points' => 10]])
+                    ->all();
 
-            $quiz->questions()->sync($syncPayload);
+                $quiz->questions()->sync($syncPayload);
+            }
         });
 
         return response()->json([
@@ -567,11 +571,29 @@ class QuizController extends Controller
             'completed_at' => now(),
         ]);
 
+        $review = $questions->map(function ($question) use ($studentAnswers) {
+            $submitted = $studentAnswers[$question->id] ?? null;
+
+            return [
+                'id'              => $question->id,
+                'content'         => $question->content,
+                'type'            => $question->type,
+                'is_correct'      => $this->isAnswerCorrect($question, $submitted),
+                'student_answer'  => $submitted,
+                'answers'         => $question->answers->map(fn ($a) => [
+                    'id'         => $a->id,
+                    'content'    => $a->content,
+                    'is_correct' => (bool) $a->is_correct,
+                ])->values(),
+            ];
+        })->values();
+
         return response()->json([
             'message' => 'Đã nộp bài thi.',
             'score'   => round($score, 2),
             'passed'  => $passed,
             'attempt' => $attempt,
+            'review'  => $review,
         ]);
     }
 

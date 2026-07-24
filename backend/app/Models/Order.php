@@ -14,6 +14,7 @@ class Order extends Model
     protected $fillable = [
         'user_id',
         'course_id',
+        'career_path_id',
         'amount',
         'status',
         'payment_method',
@@ -38,8 +39,18 @@ class Order extends Model
         return $this->belongsTo(Course::class);
     }
 
+    public function careerPath(): BelongsTo
+    {
+        return $this->belongsTo(CareerPath::class);
+    }
+
     public function enrollment(): HasOne
     {
         return $this->hasOne(Enrollment::class);
+    }
+
+    public function isPathOrder(): bool
+    {
+        return $this->career_path_id !== null;
     }
 }

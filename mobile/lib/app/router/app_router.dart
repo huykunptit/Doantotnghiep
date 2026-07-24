@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/auth/presentation/splash_page.dart';
@@ -14,6 +14,8 @@ import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/courses/presentation/course_catalog_page.dart';
 import '../../features/courses/presentation/my_courses_page.dart';
 import '../../features/courses/presentation/course_detail_page.dart';
+import '../../features/paths/presentation/paths_catalog_page.dart';
+import '../../features/paths/presentation/path_detail_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
 import '../shell/main_shell.dart';
 import '../../features/quiz/presentation/screens/exam_workspace_screen.dart';
@@ -39,25 +41,42 @@ import '../../features/ai/presentation/screens/ai_chat_screen.dart';
 
 part 'app_router.g.dart';
 
+/// Keeps a single GoRouter instance and only notifies it when auth changes.
+/// Watching auth inside the provider previously rebuilt GoRouter (reset to `/`)
+/// and left the splash screen stuck forever.
+class _AuthRefresh extends ChangeNotifier {
+  void ping() => notifyListeners();
+}
+
 @riverpod
 GoRouter appRouter(AppRouterRef ref) {
-  final authState = ref.watch(authNotifierProvider);
+  final refresh = _AuthRefresh();
+  ref.listen(authNotifierProvider, (_, _) => refresh.ping());
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final authState = ref.read(authNotifierProvider);
       final isLoading = authState.isLoading;
       final isAuthenticated = authState.valueOrNull != null;
       final matched = state.matchedLocation;
-      
-      final isPublicRoute = matched == '/login' || 
-                            matched == '/register' || 
-                            matched == '/forgot-password' || 
-                            matched == '/verify-email-prompt' ||
-                            matched == '/google-login-webview';
+
+      final isPublicRoute = matched == '/login' ||
+          matched == '/register' ||
+          matched == '/forgot-password' ||
+          matched == '/verify-email-prompt' ||
+          matched == '/google-login-webview';
       final isOnSplash = matched == '/';
 
-      if (isLoading || isOnSplash) return null;
+      if (isLoading) return null;
+
+      // Leave splash once auth has settled (was previously skipped → hang).
+      if (isOnSplash) {
+        return isAuthenticated ? '/home' : '/login';
+      }
+
       if (!isAuthenticated && !isPublicRoute) return '/login';
       if (isAuthenticated && isPublicRoute) return '/home';
       return null;
@@ -132,6 +151,10 @@ GoRouter appRouter(AppRouterRef ref) {
             builder: (context, state) => const CourseCatalogPage(),
           ),
           GoRoute(
+            path: '/paths',
+            builder: (context, state) => const PathsCatalogPage(),
+          ),
+          GoRoute(
             path: '/my-courses',
             builder: (context, state) => const MyCoursesPage(),
           ),
@@ -150,6 +173,13 @@ GoRouter appRouter(AppRouterRef ref) {
         builder: (_, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
           return CourseDetailPage(courseId: id);
+        },
+      ),
+      GoRoute(
+        path: '/paths/:slug',
+        builder: (_, state) {
+          final slug = state.pathParameters['slug'] ?? '';
+          return PathDetailPage(slug: slug);
         },
       ),
       GoRoute(

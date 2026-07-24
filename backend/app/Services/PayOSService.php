@@ -32,7 +32,7 @@ class PayOSService
             buyerName: (string) optional($order->user)->name,
             buyerEmail: (string) optional($order->user)->email,
             items: [[
-                'name' => Str::limit((string) optional($order->course)->title, 25, ''),
+                'name' => Str::limit($this->itemName($order), 25, ''),
                 'quantity' => 1,
                 'price' => (int) $order->amount,
             ]],
@@ -94,7 +94,20 @@ class PayOSService
 
     private function buildDescription(Order $order): string
     {
-        return Str::limit('Thanh toan khoa hoc #' . $order->id, 25, '');
+        $prefix = $order->career_path_id ? 'Lo trinh #' : 'Khoa hoc #';
+
+        return Str::limit($prefix . $order->id, 25, '');
+    }
+
+    private function itemName(Order $order): string
+    {
+        $order->loadMissing(['course', 'careerPath']);
+
+        if ($order->career_path_id) {
+            return (string) (optional($order->careerPath)->title ?: ('Path #' . $order->career_path_id));
+        }
+
+        return (string) (optional($order->course)->title ?: ('Course #' . $order->course_id));
     }
 }
 

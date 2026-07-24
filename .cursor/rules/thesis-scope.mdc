@@ -42,4 +42,17 @@ alwaysApply: false
 - Flutter = client **SV** (gợi ý, mua/học, quiz). Admin/GV ở web.
 
 ## Demo bảo vệ (bám theo)
-Admin duyệt khóa → GV builder bài giảng + xem doanh thu → SV được gợi ý → mua B2C → học (video/page/quiz/SCORM) → AI gợi ý tiếp / chat context.
+Admin duyệt khóa → GV builder → SV học CTĐT theo kỳ → **đánh giá kết quả** → gợi ý path/khóa → mua B2C → học → (sau) AI Career/chat.
+
+## Đã triển khai (Phase 1 — 2026-07-24)
+- Domain `CareerPath` + `career_path_courses` + `user_career_paths`
+- PayOS/order hỗ trợ `career_path_id` (XOR `course_id`); webhook enroll all required courses
+- Chứng chỉ path khi hoàn thành required courses
+- Admin UI `/admin/career-paths`, catalog `/paths`, checkout `/checkout/path/[slug]`
+
+## Đã triển khai (Phase 2 — 2026-07-24)
+- LearnerProfile + Recommend courses/paths (có reasons)
+- Curriculum evaluation (hook `career_advisor_context` cho AI sau)
+- Dashboard SV: evaluation + path rec + course rec
+- AI (Advisor/RAG/Ollama) **chưa làm** — để cuối
+- Seed demo: chỉ **1 năm học hiện tại** (xem plan Phase 2b)

@@ -12,6 +12,7 @@ interface RecItem {
   }
   score: number
   matched_skills?: string[]
+  reasons?: string[]
 }
 
 const props = withDefaults(defineProps<{ limit?: number, compact?: boolean }>(), {
@@ -88,6 +89,7 @@ onMounted(load)
           <div v-if="item.matched_skills?.length" class="skills">
             <span v-for="skill in item.matched_skills.slice(0, 3)" :key="skill">{{ skill }}</span>
           </div>
+          <p v-if="item.reasons?.length" class="reason">{{ item.reasons[0] }}</p>
           <div class="foot">
             <em>{{ formatPrice(item.course.price) }}</em>
             <span :title="t('student.ai.recScore', { n: item.score })">
@@ -168,6 +170,16 @@ onMounted(load)
   color: var(--brand);
   font-size: .72rem;
   font-weight: 650;
+}
+.reason {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .foot {
   display: flex;

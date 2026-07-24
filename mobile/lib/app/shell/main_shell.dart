@@ -13,6 +13,8 @@ class MainShell extends StatelessWidget {
     int selectedIndex = 0;
     if (location.startsWith('/catalog')) {
       selectedIndex = 1;
+    } else if (location.startsWith('/paths')) {
+      selectedIndex = 5;
     } else if (location.startsWith('/my-courses')) {
       selectedIndex = 2;
     } else if (location.startsWith('/exams')) {
@@ -42,6 +44,9 @@ class MainShell extends StatelessWidget {
             case 4:
               context.go('/profile');
               break;
+            case 5:
+              context.go('/paths');
+              break;
           }
         },
         destinations: const [
@@ -69,6 +74,11 @@ class MainShell extends StatelessWidget {
             icon: Icon(Icons.person_outlined),
             selectedIcon: Icon(Icons.person),
             label: 'Hồ sơ',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.route_outlined),
+            selectedIcon: Icon(Icons.route),
+            label: 'Lộ trình',
           ),
         ],
       ),

@@ -167,7 +167,7 @@ class _CourseCatalogProviderElement
   int? get categoryId => (origin as CourseCatalogProvider).categoryId;
 }
 
-String _$courseCategoriesHash() => r'fefc6a5e48aeb8f8c6d0d3dd96dbc6d610b51ac8';
+String _$courseCategoriesHash() => r'd38a21b6a04d78d739e5378a3fdff224c7376e63';
 
 /// See also [courseCategories].
 @ProviderFor(courseCategories)

@@ -121,7 +121,6 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const roleOptions = computed(() => [
   { label: t('admin.users.roles.student'), value: 'student' },
   { label: t('admin.users.roles.instructor'), value: 'instructor' },
-  { label: t('admin.users.roles.academic_manager'), value: 'academic_manager' },
   { label: t('admin.users.roles.admin'), value: 'admin' },
 ])
 

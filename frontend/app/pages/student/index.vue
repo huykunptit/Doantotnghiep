@@ -39,7 +39,11 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  // Soft claim so streak progresses when SV opens rewards hub elsewhere
+  useApi('/points/daily-login', { method: 'POST' }).catch(() => null)
+})
 </script>
 
 <template>
@@ -83,6 +87,8 @@ onMounted(load)
       </div>
     </section>
 
+    <StudentCurriculumEvaluation />
+    <StudentPathRecommendations :limit="4" />
     <StudentCourseRecommendations :limit="4" />
   </div>
 </template>

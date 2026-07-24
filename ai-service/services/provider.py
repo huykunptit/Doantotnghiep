@@ -1,13 +1,12 @@
 """
 AI Provider Abstraction Layer.
 
-Hỗ trợ 4 provider: OpenAI (ChatGPT), Google Gemini, OpenRouter, Anthropic Claude.
+Hỗ trợ: OpenAI (ChatGPT), Google Gemini, OpenRouter, Anthropic Claude, Ollama (local).
 Sử dụng httpx async cho non-blocking I/O.
 """
 
 from __future__ import annotations
 
-import json
 import logging
 
 import httpx
@@ -35,11 +34,11 @@ async def call_provider(
     Gọi AI provider và trả về (reply_text, token_usage).
 
     Args:
-        provider: Tên provider ("chatgpt", "gemini", "openrouter", "claude")
-        api_key: API key
-        messages: Danh sách messages [{"role": "system"|"user", "content": "..."}]
-        model: Tên model (nếu None sẽ dùng default)
-        temperature: Nhiệt độ (nếu None sẽ dùng DEFAULT_TEMPERATURE)
+        provider: "chatgpt" | "gemini" | "openrouter" | "claude" | "ollama"
+        api_key: API key (bỏ qua với ollama)
+        messages: [{"role": "system"|"user"|"assistant", "content": "..."}]
+        model: Tên model (None → default)
+        temperature: Nhiệt độ
 
     Returns:
         (reply_text, {"prompt": int, "completion": int, "total": int})
@@ -56,6 +55,8 @@ async def call_provider(
             return await _call_openrouter(api_key, messages, model, temp)
         if provider == "claude":
             return await _call_claude(api_key, messages, model, temp)
+        if provider == "ollama":
+            return await _call_ollama(messages, model, temp)
         raise HTTPException(
             status_code=400,
             detail=f"Provider không hỗ trợ: {provider}",
@@ -127,7 +128,6 @@ async def _call_gemini(
     model_name = model or settings.DEFAULT_GEMINI_MODEL
     url = f"{settings.GEMINI_API_URL}/{model_name}:generateContent?key={api_key}"
 
-    # Tách system prompt và user messages
     system_text = ""
     user_parts = []
     for msg in messages:
@@ -273,5 +273,52 @@ async def _call_claude(
         "prompt": prompt_tokens,
         "completion": completion_tokens,
         "total": prompt_tokens + completion_tokens,
+    }
+    return reply or None, tokens
+
+
+# =============================================================================
+# Ollama (local — OpenAI-compatible /v1)
+# =============================================================================
+
+
+async def _call_ollama(
+    messages: list[dict[str, str]],
+    model: str | None,
+    temperature: float,
+) -> tuple[str | None, TokenUsage]:
+    """Gọi Ollama local qua OpenAI-compatible API."""
+    base = settings.OLLAMA_BASE_URL.rstrip("/")
+    url = f"{base}/v1/chat/completions"
+    body = {
+        "model": model or settings.DEFAULT_OLLAMA_MODEL,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": False,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url,
+            json=body,
+            headers={"Content-Type": "application/json"},
+            timeout=settings.OLLAMA_TIMEOUT,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    choices = data.get("choices") or []
+    if not choices:
+        return None, {**EMPTY_TOKENS}
+
+    reply = (choices[0].get("message") or {}).get("content") or ""
+    reply = reply.strip()
+    usage = data.get("usage") or {}
+    prompt_tokens = int(usage.get("prompt_tokens") or 0)
+    completion_tokens = int(usage.get("completion_tokens") or 0)
+    tokens: TokenUsage = {
+        "prompt": prompt_tokens,
+        "completion": completion_tokens,
+        "total": int(usage.get("total_tokens") or (prompt_tokens + completion_tokens)),
     }
     return reply or None, tokens

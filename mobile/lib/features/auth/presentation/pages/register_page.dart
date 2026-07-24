@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../widgets/auth_brand_header.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -63,8 +64,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+    return AuthBackgroundScaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -73,30 +73,28 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           onPressed: () => context.go('/login'),
         ),
       ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Tạo tài khoản',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const AuthBrandHeader(
+                  compact: true,
+                  showWordmark: false,
+                  subtitle: 'Tham gia Sylva LMS — học tập mọi lúc, mọi nơi',
+                ),
+                AppSpacing.h20,
+                Text(
+                  'Tạo tài khoản',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
                   ),
-                  AppSpacing.h4,
-                  Text(
-                    'Tham gia PTIT LMS — học tập mọi lúc, mọi nơi',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  AppSpacing.h24,
+                ),
+                AppSpacing.h24,
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -205,7 +203,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             ),
           ),
         ),
-      ),
     );
   }
 

@@ -2,13 +2,14 @@ class ExamListItemModel {
   final int id;
   final String title;
   final String? description;
-  final String status; // draft, scheduled, active, closed, archived
+  final String status; // draft, scheduled, active, closed, archived, completed
   final String type; // course_final, standalone
   final int? duration;
   final int passScore;
   final String? startTime;
   final String? endTime;
   final bool proctoringEnabled;
+  final bool isOpen;
   final AttemptSummary? myAttempt;
   final CourseRef? course;
 
@@ -23,39 +24,66 @@ class ExamListItemModel {
     this.startTime,
     this.endTime,
     this.proctoringEnabled = false,
+    this.isOpen = false,
     this.myAttempt,
     this.course,
   });
 
   factory ExamListItemModel.fromJson(Map<String, dynamic> json) {
+    AttemptSummary? attempt;
+    if (json['my_attempt'] is Map) {
+      attempt = AttemptSummary.fromJson(
+        Map<String, dynamic>.from(json['my_attempt'] as Map),
+      );
+    } else if (json['attempt_id'] != null) {
+      final score = (json['best_score'] as num?)?.toDouble();
+      final pass = (json['pass_score'] as num?)?.toDouble();
+      attempt = AttemptSummary(
+        id: (json['attempt_id'] as num?)?.toInt() ?? 0,
+        status: (json['status']?.toString() == 'completed')
+            ? 'submitted'
+            : 'in_progress',
+        score: score,
+        passed: score != null && pass != null ? score >= pass : null,
+      );
+    }
+
+    final status = json['status']?.toString() ?? 'scheduled';
+    final isOpenFlag = json['is_open'] is bool
+        ? json['is_open'] as bool
+        : status == 'active';
+
     return ExamListItemModel(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString(),
-      status: json['status']?.toString() ?? 'scheduled',
+      status: status,
       type: json['type']?.toString() ?? 'standalone',
-      duration: json['duration'] as int?,
-      passScore: json['pass_score'] as int? ?? 50,
-      startTime: json['start_time']?.toString(),
-      endTime: json['end_time']?.toString(),
+      duration: (json['duration'] as num?)?.toInt(),
+      passScore: (json['pass_score'] as num?)?.toInt() ?? 50,
+      startTime: json['start_time']?.toString() ?? json['starts_at']?.toString(),
+      endTime: json['end_time']?.toString() ?? json['ends_at']?.toString(),
       proctoringEnabled: json['proctoring_enabled'] is bool
           ? json['proctoring_enabled'] as bool
-          : (json['proctoring_enabled'] == 1 || json['proctoring_enabled'] == '1'),
-      myAttempt: json['my_attempt'] != null
-          ? AttemptSummary.fromJson(json['my_attempt'] as Map<String, dynamic>)
-          : null,
-      course: json['course'] != null
-          ? CourseRef.fromJson(json['course'] as Map<String, dynamic>)
+          : (json['proctoring_enabled'] == 1 ||
+              json['proctoring_enabled'] == '1'),
+      isOpen: isOpenFlag,
+      myAttempt: attempt,
+      course: json['course'] is Map
+          ? CourseRef.fromJson(Map<String, dynamic>.from(json['course'] as Map))
           : null,
     );
   }
 
-  bool get isUpcoming =>
-      status == 'scheduled' && (startTime == null || DateTime.tryParse(startTime!)?.isAfter(DateTime.now()) == true);
+  bool get isUpcoming => status == 'scheduled';
 
-  bool get isLive => status == 'active';
+  bool get isLive => status == 'active' || isOpen;
 
-  bool get isDone => myAttempt?.status == 'submitted' || myAttempt?.status == 'force_stopped';
+  bool get isDone =>
+      status == 'completed' ||
+      status == 'closed' ||
+      myAttempt?.status == 'submitted' ||
+      myAttempt?.status == 'force_stopped';
 }
 
 class AttemptSummary {

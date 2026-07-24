@@ -43,6 +43,7 @@ onMounted(() => {
         </div>
         <div class="topbar-actions">
           <LocaleSwitcher />
+          <StudentNotificationBell />
           <Button :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'" severity="secondary" text rounded :aria-label="t('common.theme')" @click="toggle" />
           <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
           <Avatar v-else :label="userInitials" shape="circle" />

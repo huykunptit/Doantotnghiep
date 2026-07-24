@@ -104,7 +104,7 @@ class AiManagementController extends Controller
         }
 
         $validated = $request->validate([
-            'provider' => ['sometimes', 'required', 'string', 'in:chatgpt,gemini,claude,openrouter'],
+            'provider' => ['sometimes', 'required', 'string', 'in:chatgpt,gemini,claude,openrouter,ollama'],
             'model' => ['sometimes', 'required', 'string', 'max:100'],
             'api_key' => ['nullable', 'string', 'max:500'],
             'monthly_token_quota' => ['sometimes', 'integer', 'min:1000'],
@@ -212,6 +212,18 @@ class AiManagementController extends Controller
                         ['id' => 'qwen/qwen-2.5-72b-instruct:free', 'name' => 'Qwen 2.5 72B (Free)', 'tier' => 'free'],
                         ['id' => 'google/gemini-2.5-pro', 'name' => 'Gemini 2.5 Pro', 'tier' => 'premium'],
                         ['id' => 'anthropic/claude-sonnet-4', 'name' => 'Claude Sonnet 4', 'tier' => 'premium'],
+                    ],
+                ],
+                [
+                    'id' => 'ollama',
+                    'name' => 'Ollama (Local)',
+                    'icon' => 'computer',
+                    'color' => '#111827',
+                    'models' => [
+                        ['id' => 'qwen2.5:latest', 'name' => 'Qwen 2.5 (local)', 'tier' => 'local'],
+                        ['id' => 'qwen2.5:7b', 'name' => 'Qwen 2.5 7B', 'tier' => 'local'],
+                        ['id' => 'llama3.2', 'name' => 'Llama 3.2', 'tier' => 'local'],
+                        ['id' => 'mistral', 'name' => 'Mistral', 'tier' => 'local'],
                     ],
                 ],
             ],

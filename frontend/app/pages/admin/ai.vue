@@ -349,8 +349,9 @@ onMounted(load)
                 :placeholder="settings?.has_api_key ? t('admin.ai.apiKeyConfigured') : t('admin.ai.apiKeyPh')"
                 class="w-full"
                 input-class="w-full"
+                :disabled="form.provider === 'ollama'"
               />
-              <small>{{ t('admin.ai.apiKeyHint') }}</small>
+              <small>{{ form.provider === 'ollama' ? 'Ollama local — không cần API key (model chạy trên máy bạn).' : t('admin.ai.apiKeyHint') }}</small>
             </label>
             <label class="field">
               <span>{{ t('admin.ai.monthlyQuota') }}</span>

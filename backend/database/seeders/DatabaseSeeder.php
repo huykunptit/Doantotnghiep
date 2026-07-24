@@ -21,6 +21,7 @@ use Illuminate\Database\Seeder;
  * 12. Career (job posting, CV, recommendation)
  * 13. Notifications
  * 14. Certificate templates + gán cho courses
+ * 15. Career paths (lộ trình nghề marketplace)
  */
 class DatabaseSeeder extends Seeder
 {
@@ -43,6 +44,7 @@ class DatabaseSeeder extends Seeder
             CareerSeeder::class,
             NotificationSeeder::class,
             CertificateTemplateSeeder::class,
+            CareerPathSeeder::class,
         ]);
     }
 }

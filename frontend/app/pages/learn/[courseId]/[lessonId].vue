@@ -137,7 +137,7 @@ watch([courseId, lessonId], load, { immediate: true })
           @click="goLesson(item.id)"
         >
           <i :class="completed.has(item.id) ? 'pi pi-check-circle' : 'pi pi-circle'" />
-          <span>{{ index + 1 }. {{ item.title }}</span>
+          <span>{{ index + 1 }}. {{ item.title }}</span>
         </button>
       </aside>
 
@@ -157,13 +157,17 @@ watch([courseId, lessonId], load, { immediate: true })
             <p v-else class="empty">{{ t('student.learn.pageEmpty') }}</p>
           </section>
 
-          <section v-else-if="lesson.type === 'file'" class="file-box">
+          <section v-else-if="lesson.type === 'file' || lesson.type === 'document'" class="file-box">
             <p>{{ lesson.description || lesson.title }}</p>
             <a v-if="lesson.video_url" :href="lesson.video_url" target="_blank" rel="noopener">{{ t('student.learn.openFile') }}</a>
           </section>
 
           <section v-else-if="lesson.type === 'quiz'">
             <StudentLessonQuiz :course-id="courseId" :lesson-id="lessonId" @completed="markComplete" />
+          </section>
+
+          <section v-else-if="lesson.type === 'assignment'">
+            <StudentLessonAssignment :course-id="courseId" :lesson-id="lessonId" @completed="markComplete" />
           </section>
 
           <section v-else class="page-content">
@@ -181,7 +185,7 @@ watch([courseId, lessonId], load, { immediate: true })
 
           <footer class="actions">
             <Button
-              v-if="lesson.type !== 'quiz'"
+              v-if="lesson.type !== 'quiz' && lesson.type !== 'assignment'"
               :label="t('student.learn.markDone')"
               icon="pi pi-check"
               :loading="saving"

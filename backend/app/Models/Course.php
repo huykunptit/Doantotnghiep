@@ -21,6 +21,11 @@ class Course extends Model
         'title',
         'slug',
         'description',
+        'learning_outcomes',
+        'benefits',
+        'requirements',
+        'level',
+        'trailer_url',
         'price',
         'course_mode',
         'is_credit_bearing',
@@ -36,6 +41,9 @@ class Course extends Model
         'is_credit_bearing' => 'boolean',
         'credit_value' => 'integer',
         'published_at' => 'datetime',
+        'learning_outcomes' => 'array',
+        'benefits' => 'array',
+        'requirements' => 'array',
     ];
 
     public function instructor(): BelongsTo

@@ -22,9 +22,9 @@ use Illuminate\Support\Facades\Hash;
  * Seed cấu trúc tổ chức + học vụ theo schema mới:
  *  - Khoa: CNTT1, QTKD1, Viễn thông 1, Cơ bản 1, Thuê ngoài
  *  - 3 chương trình: CNTT, QTKD, ĐTVT (đều chính quy, 8 kỳ)
- *  - Mỗi chương trình có 1 curriculum + cohort D22/D23/D24/D25
- *  - Lớp hành chính: D22CN01, D22CN02, D22QTKD01, D22DTVT01...
- *  - Cập nhật profile SV/GV với CCCD, quê quán, etc.
+ *  - Mỗi chương trình có curriculum + cohort demo D23/D24 (năm học 2025–2026)
+ *  - Lớp hành chính: 2 lớp / cohort (vd D23CN01, D23CN02…)
+ *  - Cập nhật profile SV/GV
  *
  * Lưu ý: users gốc (admin/instructor/student) được tạo trong DatabaseSeeder
  * BEFORE seeder này chạy — seeder này chỉ cập nhật profile + gán LHC.
@@ -208,17 +208,17 @@ class OrgAcademicSeeder extends Seeder
             }
         }
 
-        // Cohorts: mỗi program có khóa D22, D23, D24, D25 (cohort theo program, không theo chuyên ngành)
+        // Cohorts demo: chỉ D23 + D24 (đang học năm 2025–2026) — bỏ D22/D25 cho nhẹ data
         $cohorts = [];
         foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
-            foreach ([2022, 2023, 2024, 2025] as $year) {
+            foreach ([2023, 2024] as $year) {
                 $shortYear = substr((string) $year, 2);
                 $code = 'D' . $shortYear . strtoupper($progKey);
                 $cohort = Cohort::query()->updateOrCreate(
                     ['program_id' => $programs[$progKey]->id, 'code' => $code],
                     [
                         'institution_id' => $institutionId,
-                        'major_id' => null, // cohort gom chung cả 3 chuyên ngành của program
+                        'major_id' => null,
                         'name' => 'Khóa D' . $shortYear . ' - ' . $programs[$progKey]->name,
                         'start_year' => $year,
                         'end_year' => $year + 4,
@@ -234,6 +234,7 @@ class OrgAcademicSeeder extends Seeder
             'curricula' => $curriculaByMajor,
             'cohorts' => $cohorts,
             'formal' => $formal,
+            'demo_years' => [2023, 2024],
         ]);
     }
 
@@ -296,16 +297,21 @@ class OrgAcademicSeeder extends Seeder
         ];
 
         $result = [];
+        $demoYears = $programContext['demo_years'] ?? [2023, 2024];
+
         foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
             $program = $programContext[$progKey];
             $faculty = $progToFaculty[$progKey];
             $curriculumKey = $progDefaultCurriculumKey[$progKey];
             $curriculum = $programContext['curricula'][$curriculumKey] ?? null;
 
-            foreach ([2022, 2023, 2024, 2025] as $startYear) {
-                $cohort = $programContext['cohorts'][$progKey][$startYear];
+            foreach ($demoYears as $startYear) {
+                $cohort = $programContext['cohorts'][$progKey][$startYear] ?? null;
+                if (!$cohort) {
+                    continue;
+                }
                 $shortYear = substr((string) $startYear, 2);
-                $perCohort = 2; // 2 lớp/khóa cho dữ liệu mẫu
+                $perCohort = 2;
 
                 for ($i = 1; $i <= $perCohort; $i++) {
                     $code = sprintf('D%s%s%02d', $shortYear, $progShortCode[$progKey], $i);
@@ -314,7 +320,7 @@ class OrgAcademicSeeder extends Seeder
                         [
                             'unit_id' => $faculty->id,
                             'program_id' => $program->id,
-                            'major_id' => null, // LHC chứa multi-chuyên ngành
+                            'major_id' => null,
                             'cohort_id' => $cohort->id,
                             'advisor_id' => null,
                             'curriculum_id' => $curriculum?->id,
@@ -322,7 +328,7 @@ class OrgAcademicSeeder extends Seeder
                             'expected_graduation_year' => $startYear + 4,
                             'capacity' => 40,
                             'status' => 'active',
-                            'description' => "Lớp hành chính demo {$code}.",
+                            'description' => "Lớp hành chính demo {$code} (năm học hiện tại).",
                         ]
                     );
                     $result[$progKey][$startYear][] = $admin;
@@ -404,8 +410,9 @@ class OrgAcademicSeeder extends Seeder
         // Sinh viên: phân bổ vào LHC theo round-robin trong cohort thuộc CNTT (giữ tương thích seeder cũ),
         // mở rộng dần để có dữ liệu mẫu cho cả 3 chương trình.
         $allAdminClasses = collect();
+        $demoYears = $programContext['demo_years'] ?? [2023, 2024];
         foreach (['cntt', 'qtkd', 'dtvt'] as $progKey) {
-            foreach ([2022, 2023, 2024, 2025] as $startYear) {
+            foreach ($demoYears as $startYear) {
                 foreach (($adminClasses[$progKey][$startYear] ?? []) as $class) {
                     $allAdminClasses->push(['prog' => $progKey, 'year' => $startYear, 'class' => $class]);
                 }
@@ -470,8 +477,8 @@ class OrgAcademicSeeder extends Seeder
     private function seedAcademicManagers(int $institutionId, array $units, array $positions): void
     {
         $managers = [
-            ['email' => 'academic1@lms.com', 'name' => 'Quản lý học tập 1', 'staff_code' => 'QLHT001'],
-            ['email' => 'academic2@lms.com', 'name' => 'Quản lý học tập 2', 'staff_code' => 'QLHT002'],
+            ['email' => 'academic1@lms.com', 'name' => 'ThS. Nguyễn Thị Hồng Nhung', 'staff_code' => 'QLHT001'],
+            ['email' => 'academic2@lms.com', 'name' => 'ThS. Phạm Văn Thành', 'staff_code' => 'QLHT002'],
         ];
 
         foreach ($managers as $idx => $row) {

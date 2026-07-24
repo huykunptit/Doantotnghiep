@@ -42,13 +42,14 @@ class AIChatController extends Controller
         }
 
         try {
-            $response = Http::timeout(60)->post($aiServiceUrl, [
+            $timeout = $aiSettings->provider === 'ollama' ? 180 : 60;
+            $response = Http::timeout($timeout)->post($aiServiceUrl, [
                 'message' => $request->message,
                 'user_id' => $user->id,
                 'course_id' => $request->course_id,
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
-                'api_key' => $aiSettings->api_key,
+                'api_key' => $aiSettings->api_key ?: ($aiSettings->provider === 'ollama' ? 'local' : null),
                 'role' => $role,
                 'history' => $request->input('history', []),
                 'context' => $this->buildChatContext($request),
@@ -161,15 +162,16 @@ class AIChatController extends Controller
             ],
             'provider' => $aiSettings->provider,
             'model' => $aiSettings->model,
-            'api_key' => $aiSettings->api_key,
+            'api_key' => $aiSettings->api_key ?: ($aiSettings->provider === 'ollama' ? 'local' : null),
         ];
 
         $startTime = microtime(true);
         $aiServiceUrl = rtrim((string) config('services.ai_service.url'), '/') . '/tutoring/recommend';
 
         try {
-            if ($aiSettings->api_key) {
-                $response = Http::timeout(45)->post($aiServiceUrl, $payload);
+            if ($aiSettings->has_api_key) {
+                $timeout = $aiSettings->provider === 'ollama' ? 180 : 45;
+                $response = Http::timeout($timeout)->post($aiServiceUrl, $payload);
                 $elapsed = (int) ((microtime(true) - $startTime) * 1000);
                 $data = $response->json() ?: [];
 

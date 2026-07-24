@@ -5,7 +5,7 @@ Phase 2: Tiêu đề, mô tả, quiz, đề thi.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from models.schemas import (
     GenerateCourseTitleRequest,
@@ -18,17 +18,9 @@ from models.schemas import (
     GenerateQuizResponse,
 )
 from services import content_generator
+from utils.providers import require_api_key
 
 router = APIRouter(prefix="/generate", tags=["Content Generator"])
-
-
-def _validate_api_key(api_key: str | None) -> None:
-    """Kiểm tra API key."""
-    if not api_key:
-        raise HTTPException(
-            status_code=400,
-            detail="Thiếu API key. Vui lòng cấu hình trong phần Quản lý AI.",
-        )
 
 
 @router.post("/course-title", response_model=GenerateCourseTitleResponse)
@@ -36,7 +28,7 @@ async def generate_course_title(
     payload: GenerateCourseTitleRequest,
 ) -> GenerateCourseTitleResponse:
     """Sinh 5 gợi ý tiêu đề khóa học."""
-    _validate_api_key(payload.api_key)
+    require_api_key(payload.provider, payload.api_key)
     return await content_generator.generate_course_titles(payload)
 
 
@@ -45,7 +37,7 @@ async def generate_lesson_description(
     payload: GenerateLessonDescriptionRequest,
 ) -> GenerateLessonDescriptionResponse:
     """Sinh mô tả bài học."""
-    _validate_api_key(payload.api_key)
+    require_api_key(payload.provider, payload.api_key)
     return await content_generator.generate_lesson_description(payload)
 
 
@@ -54,7 +46,7 @@ async def generate_quiz(
     payload: GenerateQuizRequest,
 ) -> GenerateQuizResponse:
     """Sinh câu hỏi trắc nghiệm từ nội dung bài học."""
-    _validate_api_key(payload.api_key)
+    require_api_key(payload.provider, payload.api_key)
     return await content_generator.generate_quiz(payload)
 
 
@@ -63,5 +55,5 @@ async def generate_exam(
     payload: GenerateExamRequest,
 ) -> GenerateExamResponse:
     """Sinh đề thi hoàn chỉnh."""
-    _validate_api_key(payload.api_key)
+    require_api_key(payload.provider, payload.api_key)
     return await content_generator.generate_exam(payload)

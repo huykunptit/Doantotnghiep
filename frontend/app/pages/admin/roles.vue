@@ -23,7 +23,8 @@ const permissions = ref<Permission[]>([])
 const matrix = ref<Record<number, Set<string>>>({})
 const baseline = ref<Record<number, Set<string>>>({})
 
-const roleOrder = ['admin', 'academic_manager', 'instructor', 'advisor', 'finance', 'student']
+const roleOrder = ['admin', 'instructor', 'student']
+const thesisRoles = new Set(roleOrder)
 
 const permissionGroups = computed(() => {
   const groups = [
@@ -76,12 +77,12 @@ const permissionGroups = computed(() => {
 })
 
 const displayRoles = computed(() => {
-  const sorted = [...roles.value].sort((a, b) => {
+  const filtered = roles.value.filter(role => thesisRoles.has(role.name))
+  return [...filtered].sort((a, b) => {
     const ai = roleOrder.indexOf(a.name)
     const bi = roleOrder.indexOf(b.name)
     return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
   })
-  return sorted
 })
 
 const dirty = computed(() => {

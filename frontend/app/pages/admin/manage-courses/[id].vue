@@ -34,6 +34,11 @@ interface CourseDetail {
   category_id?: number | null
   category?: { id: number, name: string } | null
   instructor?: { id?: number, name?: string } | null
+  learning_outcomes?: string[] | null
+  benefits?: string[] | null
+  requirements?: string[] | null
+  level?: string | null
+  trailer_url?: string | null
 }
 
 type Selection =
@@ -41,7 +46,7 @@ type Selection =
   | { kind: 'section', sectionId: number }
   | { kind: 'lesson', sectionId: number, lessonId: number }
 
-const CONTENT_TYPES = ['video', 'page', 'file', 'quiz'] as const
+const CONTENT_TYPES = ['video', 'page', 'file', 'document', 'quiz', 'assignment'] as const
 
 const route = useRoute()
 const courseId = computed(() => String(route.params.id))
@@ -66,8 +71,14 @@ const metaForm = reactive({
   price: 0,
   category_id: null as number | null,
   status: 'draft',
+  level: '' as string,
+  trailer_url: '',
+  learning_outcomes: [''] as string[],
+  benefits: [''] as string[],
+  requirements: [''] as string[],
 })
 const thumbnailFile = ref<File | null>(null)
+const thumbnailUrl = ref<string | null>(null)
 
 const sectionDialogOpen = ref(false)
 const sectionForm = reactive({ id: null as number | null, title: '' })
@@ -92,6 +103,15 @@ const videoUploadProgress = ref(0)
 const videoUploadError = ref('')
 const resourceFile = ref<File | null>(null)
 const quizConfig = reactive({ title: '', description: '', time_limit: 15, pass_score: 70 })
+const selectedQuestionIds = ref<number[]>([])
+const questionOptions = ref<{ label: string, value: number }[]>([])
+const quizSyncQuestions = ref(false)
+const assignmentConfig = reactive({
+  instructions: '',
+  max_file_size: 10240,
+  allowed_extensions: 'pdf,doc,docx,zip',
+  due_at: '' as string,
+})
 
 const categoryOptions = computed(() =>
   categories.value.map(c => ({ label: c.name, value: c.id })),
@@ -118,7 +138,9 @@ function typeIcon(type: string) {
     video: 'pi pi-play-circle',
     page: 'pi pi-file-edit',
     file: 'pi pi-file',
+    document: 'pi pi-book',
     quiz: 'pi pi-question-circle',
+    assignment: 'pi pi-pencil',
   } as Record<string, string>)[type] || 'pi pi-book'
 }
 
@@ -143,6 +165,48 @@ function inferVideoSourceMode(url?: string | null) {
 
 function errDetail(error: any) {
   return error?.data?.message || error?.message
+}
+
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function truncateText(text: string, max = 80) {
+  const plain = stripHtml(text)
+  return plain.length > max ? `${plain.slice(0, max)}…` : plain
+}
+
+function onQuizQuestionsChange() {
+  quizSyncQuestions.value = true
+}
+
+async function loadQuestionOptions() {
+  try {
+    const res = await useApi<{ banks: Array<{ id: number }> }>(`/courses/${courseId.value}/question-banks`)
+    const map = new Map<number, { label: string, value: number }>()
+    for (const bank of res.banks || []) {
+      try {
+        const detail = await useApi<{
+          questions?: Array<{ id: number, content: string }>
+          groups?: Array<{ questions?: Array<{ id: number, content: string }> }>
+        }>(`/courses/${courseId.value}/question-banks/${bank.id}`)
+        const fromBank = detail.questions || []
+        const fromGroups = (detail.groups || []).flatMap(g => g.questions || [])
+        for (const q of [...fromBank, ...fromGroups]) {
+          if (!map.has(q.id)) {
+            map.set(q.id, { label: truncateText(q.content || `#${q.id}`), value: q.id })
+          }
+        }
+      }
+      catch {
+        /* skip bank */
+      }
+    }
+    questionOptions.value = [...map.values()]
+  }
+  catch {
+    questionOptions.value = []
+  }
 }
 
 async function loadCategories() {
@@ -173,6 +237,13 @@ async function loadCourse() {
     metaForm.price = Number(course.value.price || 0)
     metaForm.category_id = course.value.category_id ?? course.value.category?.id ?? null
     metaForm.status = course.value.status || 'draft'
+    metaForm.level = course.value.level || ''
+    metaForm.trailer_url = course.value.trailer_url || ''
+    metaForm.learning_outcomes = (course.value.learning_outcomes?.length ? [...course.value.learning_outcomes] : [''])
+    metaForm.benefits = (course.value.benefits?.length ? [...course.value.benefits] : [''])
+    metaForm.requirements = (course.value.requirements?.length ? [...course.value.requirements] : [''])
+    thumbnailUrl.value = course.value.thumbnail || null
+    thumbnailFile.value = null
   }
   catch (error: any) {
     toast.add({
@@ -324,6 +395,9 @@ function chooseContentType(type: string) {
     sectionId: pickerSectionId.value!,
     lessonId: -1,
   }
+  if (type === 'quiz') {
+    loadQuestionOptions()
+  }
 }
 
 function resetLessonForm() {
@@ -341,6 +415,14 @@ function resetLessonForm() {
   videoUploadError.value = ''
   resourceFile.value = null
   Object.assign(quizConfig, { title: '', description: '', time_limit: 15, pass_score: 70 })
+  selectedQuestionIds.value = []
+  quizSyncQuestions.value = false
+  Object.assign(assignmentConfig, {
+    instructions: '',
+    max_file_size: 10240,
+    allowed_extensions: 'pdf,doc,docx,zip',
+    due_at: '',
+  })
 }
 
 async function openLessonEditor(sectionId: number, lessonId: number) {
@@ -360,7 +442,16 @@ async function openLessonEditor(sectionId: number, lessonId: number) {
     }
     if (lessonForm.type === 'quiz') {
       try {
-        const res = await useApi<{ quiz?: { title?: string, description?: string, time_limit?: number | null, pass_score?: number | null } }>(
+        const res = await useApi<{
+          quiz?: {
+            title?: string
+            description?: string
+            time_limit?: number | null
+            pass_score?: number | null
+            questions?: Array<{ id: number }>
+          }
+          questions?: Array<{ id: number }>
+        }>(
           `/courses/${courseId.value}/lessons/${lessonId}/quiz`,
         )
         Object.assign(quizConfig, {
@@ -369,9 +460,34 @@ async function openLessonEditor(sectionId: number, lessonId: number) {
           time_limit: res.quiz?.time_limit || 15,
           pass_score: res.quiz?.pass_score || 70,
         })
+        const ids = res.questions?.map(q => q.id)
+          || res.quiz?.questions?.map(q => q.id)
+          || []
+        selectedQuestionIds.value = ids
+        if (ids.length) quizSyncQuestions.value = true
       }
       catch {
         /* new quiz lesson */
+      }
+      await loadQuestionOptions()
+    }
+    if (lessonForm.type === 'assignment') {
+      try {
+        const asg = await useApi<{
+          instructions?: string
+          max_file_size?: number
+          allowed_extensions?: string
+          due_at?: string | null
+        }>(`/courses/${courseId.value}/lessons/${lessonId}/assignment`)
+        Object.assign(assignmentConfig, {
+          instructions: asg.instructions || '',
+          max_file_size: asg.max_file_size || 10240,
+          allowed_extensions: asg.allowed_extensions || 'pdf,doc,docx,zip',
+          due_at: asg.due_at ? String(asg.due_at).slice(0, 16) : '',
+        })
+      }
+      catch {
+        /* new assignment */
       }
     }
   }
@@ -472,7 +588,7 @@ async function saveLesson() {
     if (lessonForm.type === 'video' && videoSourceMode.value === 'embed' && lessonForm.video_url) {
       payload.video_url = lessonForm.video_url
     }
-    else if (lessonForm.type === 'file' && lessonForm.video_url && !resourceFile.value) {
+    else if ((lessonForm.type === 'file' || lessonForm.type === 'document') && lessonForm.video_url && !resourceFile.value) {
       payload.video_url = lessonForm.video_url
     }
 
@@ -494,7 +610,7 @@ async function saveLesson() {
       videoFile.value = null
     }
 
-    if (lessonForm.type === 'file' && resourceFile.value) {
+    if ((lessonForm.type === 'file' || lessonForm.type === 'document') && resourceFile.value) {
       const formData = new FormData()
       formData.append('file', resourceFile.value)
       const attachmentResponse = await useApi<{ attachment: { url: string } }, FormData>(
@@ -509,14 +625,29 @@ async function saveLesson() {
     }
 
     if (lessonForm.type === 'quiz') {
+      const quizBody: Record<string, unknown> = {
+        title: quizConfig.title || lessonForm.title,
+        description: quizConfig.description || lessonForm.description || null,
+        time_limit: quizConfig.time_limit,
+        pass_score: quizConfig.pass_score,
+      }
+      if (quizSyncQuestions.value || selectedQuestionIds.value.length) {
+        quizBody.question_ids = selectedQuestionIds.value
+      }
       await useApi(`/courses/${courseId.value}/lessons/${lessonId}/quiz`, {
         method: 'POST',
+        body: quizBody,
+      })
+    }
+
+    if (lessonForm.type === 'assignment') {
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}/assignment`, {
+        method: 'POST',
         body: {
-          title: quizConfig.title || lessonForm.title,
-          description: quizConfig.description || lessonForm.description || null,
-          time_limit: quizConfig.time_limit,
-          pass_score: quizConfig.pass_score,
-          question_ids: [],
+          instructions: assignmentConfig.instructions || lessonForm.description || lessonForm.title,
+          max_file_size: assignmentConfig.max_file_size,
+          allowed_extensions: assignmentConfig.allowed_extensions,
+          due_at: assignmentConfig.due_at || null,
         },
       })
     }
@@ -594,28 +725,75 @@ async function moveLesson(section: SectionItem, index: number, direction: -1 | 1
   }
 }
 
+const metaTab = ref<'basic' | 'sell' | 'media'>('basic')
+const metaTabs = computed(() => [
+  { key: 'basic' as const, label: t('admin.builder.metaTabs.basic') },
+  { key: 'sell' as const, label: t('admin.builder.metaTabs.sell') },
+  { key: 'media' as const, label: t('admin.builder.metaTabs.media') },
+])
+
+const levelOptions = computed(() => [
+  { label: t('admin.builder.levels.beginner'), value: 'beginner' },
+  { label: t('admin.builder.levels.intermediate'), value: 'intermediate' },
+  { label: t('admin.builder.levels.advanced'), value: 'advanced' },
+])
+
 function metaStatusForApi() {
-  // Only send statuses the API accepts for direct meta edits.
-  // pending_review / rejected are set via publish/approve flows.
   if (['draft', 'published', 'closed', 'pending_review', 'rejected'].includes(metaForm.status)) {
     return metaForm.status
   }
   return 'draft'
 }
 
+function cleanList(items: string[]) {
+  return items.map(s => s.trim()).filter(Boolean)
+}
+
+function addListItem(key: 'learning_outcomes' | 'benefits' | 'requirements') {
+  metaForm[key].push('')
+}
+
+function removeListItem(key: 'learning_outcomes' | 'benefits' | 'requirements', index: number) {
+  if (metaForm[key].length <= 1) {
+    metaForm[key][0] = ''
+    return
+  }
+  metaForm[key].splice(index, 1)
+}
+
+function metaPayload() {
+  return {
+    title: metaForm.title.trim(),
+    description: metaForm.description || null,
+    price: metaForm.price,
+    category_id: metaForm.category_id,
+    status: metaStatusForApi(),
+    level: metaForm.level || null,
+    trailer_url: metaForm.trailer_url || null,
+    learning_outcomes: cleanList(metaForm.learning_outcomes),
+    benefits: cleanList(metaForm.benefits),
+    requirements: cleanList(metaForm.requirements),
+  }
+}
+
 async function saveCourseMeta() {
   if (!metaForm.title.trim()) return
   savingMeta.value = true
   try {
+    const payload = metaPayload()
     if (thumbnailFile.value) {
-      // PHP does not parse multipart on PUT — spoof via POST + _method.
       const formData = new FormData()
       formData.append('_method', 'PUT')
-      formData.append('title', metaForm.title.trim())
-      formData.append('description', metaForm.description || '')
-      formData.append('price', String(metaForm.price || 0))
-      if (metaForm.category_id) formData.append('category_id', String(metaForm.category_id))
-      formData.append('status', metaStatusForApi())
+      formData.append('title', payload.title)
+      formData.append('description', payload.description || '')
+      formData.append('price', String(payload.price || 0))
+      if (payload.category_id) formData.append('category_id', String(payload.category_id))
+      formData.append('status', payload.status)
+      formData.append('level', payload.level || '')
+      formData.append('trailer_url', payload.trailer_url || '')
+      formData.append('learning_outcomes', JSON.stringify(payload.learning_outcomes))
+      formData.append('benefits', JSON.stringify(payload.benefits))
+      formData.append('requirements', JSON.stringify(payload.requirements))
       formData.append('thumbnail_file', thumbnailFile.value)
       const res = await useApi<{ course: CourseDetail }, FormData>(`/courses/${courseId.value}`, {
         method: 'POST',
@@ -623,21 +801,20 @@ async function saveCourseMeta() {
       })
       course.value = res.course
       metaForm.status = res.course.status || metaForm.status
+      thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
       thumbnailFile.value = null
     }
     else {
       const res = await useApi<{ course: CourseDetail }>(`/courses/${courseId.value}`, {
         method: 'PUT',
         body: {
-          title: metaForm.title.trim(),
-          description: metaForm.description || null,
-          price: metaForm.price,
-          category_id: metaForm.category_id,
-          status: metaStatusForApi(),
+          ...payload,
+          ...(thumbnailUrl.value ? { thumbnail: thumbnailUrl.value } : {}),
         },
       })
       course.value = res.course
       metaForm.status = res.course.status || metaForm.status
+      thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
     }
     toast.add({ severity: 'success', summary: t('admin.builder.metaSaved'), life: 2200 })
   }
@@ -816,7 +993,21 @@ onMounted(async () => {
             <Button :label="t('common.save')" icon="pi pi-save" :loading="savingMeta" @click="saveCourseMeta" />
           </div>
 
-          <div class="form-grid">
+          <div class="meta-tabs" role="tablist">
+            <button
+              v-for="tab in metaTabs"
+              :key="tab.key"
+              type="button"
+              role="tab"
+              :class="{ on: metaTab === tab.key }"
+              :aria-selected="metaTab === tab.key"
+              @click="metaTab = tab.key"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <div v-show="metaTab === 'basic'" class="form-grid">
             <label class="field">
               <span>{{ t('admin.builder.fields.title') }}</span>
               <InputText v-model="metaForm.title" class="w-full" />
@@ -829,6 +1020,17 @@ onMounted(async () => {
               <label class="field">
                 <span>{{ t('admin.builder.fields.price') }}</span>
                 <InputNumber v-model="metaForm.price" :min="0" class="w-full" />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.level') }}</span>
+                <Select
+                  v-model="metaForm.level"
+                  :options="levelOptions"
+                  option-label="label"
+                  option-value="value"
+                  show-clear
+                  class="w-full"
+                />
               </label>
               <label class="field">
                 <span>{{ t('admin.builder.fields.category') }}</span>
@@ -852,13 +1054,61 @@ onMounted(async () => {
                 />
               </label>
             </div>
+          </div>
+
+          <div v-show="metaTab === 'sell'" class="form-grid">
+            <p class="tab-lead">{{ t('admin.builder.metaTabs.sellLead') }}</p>
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.outcomes') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('learning_outcomes')" />
+              </div>
+              <p class="list-hint">{{ t('admin.builder.fields.outcomesHint') }}</p>
+              <div v-for="(_item, idx) in metaForm.learning_outcomes" :key="`out-${idx}`" class="list-row">
+                <InputText v-model="metaForm.learning_outcomes[idx]" class="w-full" :placeholder="t('admin.builder.fields.outcomesPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('learning_outcomes', idx)" />
+              </div>
+            </div>
+
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.benefits') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('benefits')" />
+              </div>
+              <p class="list-hint">{{ t('admin.builder.fields.benefitsHint') }}</p>
+              <div v-for="(_item, idx) in metaForm.benefits" :key="`ben-${idx}`" class="list-row">
+                <InputText v-model="metaForm.benefits[idx]" class="w-full" :placeholder="t('admin.builder.fields.benefitsPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('benefits', idx)" />
+              </div>
+            </div>
+
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.requirements') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('requirements')" />
+              </div>
+              <div v-for="(_item, idx) in metaForm.requirements" :key="`req-${idx}`" class="list-row">
+                <InputText v-model="metaForm.requirements[idx]" class="w-full" :placeholder="t('admin.builder.fields.requirementsPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('requirements', idx)" />
+              </div>
+            </div>
+          </div>
+
+          <div v-show="metaTab === 'media'" class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.trailer') }}</span>
+              <InputText v-model="metaForm.trailer_url" class="w-full" placeholder="https://..." />
+            </label>
             <label class="field">
               <span>{{ t('admin.builder.fields.thumbnail') }}</span>
-              <div class="thumb-row">
-                <img v-if="course?.thumbnail" :src="course.thumbnail" alt="" class="thumb-preview">
-                <input type="file" accept="image/*" @change="(e) => thumbnailFile = (e.target as HTMLInputElement).files?.[0] || null">
-              </div>
-              <small v-if="thumbnailFile" class="hint">{{ thumbnailFile.name }}</small>
+              <CommonMediaUpload
+                v-model="thumbnailUrl"
+                folder="courses"
+                :label="t('admin.builder.fields.thumbnail')"
+                :hint="t('upload.imageOnly')"
+                variant="thumbnail"
+                :placeholder-initial="(metaForm.title || 'C').slice(0, 1).toUpperCase()"
+              />
             </label>
           </div>
         </template>
@@ -916,22 +1166,57 @@ onMounted(async () => {
               </label>
               <label v-else class="field">
                 <span>{{ t('admin.builder.fields.videoFile') }}</span>
-                <input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.mkv,.m4v,.avi" @change="onVideoFileSelected">
-                <ProgressBar v-if="videoUploading || videoUploadProgress" :value="videoUploadProgress" class="mt-2" />
+                <CommonFileDropzone
+                  v-model="videoFile"
+                  :label="t('admin.builder.fields.videoFile')"
+                  hint="MP4, WEBM, MOV — kéo thả hoặc chọn tệp"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.mkv,.m4v,.avi"
+                  :max-size-mb="500"
+                  :uploading="videoUploading"
+                  :progress="videoUploadProgress"
+                  :existing-url="lessonForm.video_url"
+                  icon="pi pi-video"
+                />
                 <small v-if="videoUploadError" class="error">{{ videoUploadError }}</small>
-                <small v-if="lessonForm.video_url && !videoFile" class="hint">{{ lessonForm.video_url }}</small>
               </label>
             </template>
 
-            <template v-if="lessonForm.type === 'file'">
+            <template v-if="lessonForm.type === 'file' || lessonForm.type === 'document'">
               <label class="field">
                 <span>{{ t('admin.builder.fields.fileUrl') }}</span>
                 <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
               </label>
               <label class="field">
                 <span>{{ t('admin.builder.fields.fileUpload') }}</span>
-                <input type="file" @change="(e) => resourceFile = (e.target as HTMLInputElement).files?.[0] || null">
-                <small v-if="resourceFile" class="hint">{{ resourceFile.name }}</small>
+                <CommonFileDropzone
+                  v-model="resourceFile"
+                  :label="t('admin.builder.fields.fileUpload')"
+                  hint="PDF, DOC, ZIP… — kéo thả hoặc chọn tệp"
+                  :max-size-mb="100"
+                  :existing-url="lessonForm.video_url"
+                  icon="pi pi-file"
+                />
+              </label>
+            </template>
+
+            <template v-if="lessonForm.type === 'assignment'">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.assignmentInstructions') }}</span>
+                <Textarea v-model="assignmentConfig.instructions" rows="6" class="w-full" auto-resize />
+              </label>
+              <div class="form-row">
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.assignmentExt') }}</span>
+                  <InputText v-model="assignmentConfig.allowed_extensions" class="w-full" />
+                </label>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.assignmentMaxMb') }}</span>
+                  <InputNumber v-model="assignmentConfig.max_file_size" :min="1024" :step="1024" class="w-full" />
+                </label>
+              </div>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.assignmentDue') }}</span>
+                <InputText v-model="assignmentConfig.due_at" type="datetime-local" class="w-full" />
               </label>
             </template>
 
@@ -955,6 +1240,29 @@ onMounted(async () => {
                     <InputNumber v-model="quizConfig.pass_score" :min="0" :max="100" class="w-full" />
                   </label>
                 </div>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.quizQuestions') }}</span>
+                  <MultiSelect
+                    v-model="selectedQuestionIds"
+                    :options="questionOptions"
+                    option-label="label"
+                    option-value="value"
+                    display="chip"
+                    filter
+                    class="w-full"
+                    :placeholder="t('admin.builder.fields.quizQuestions')"
+                    @update:model-value="onQuizQuestionsChange"
+                  />
+                </label>
+                <NuxtLink to="/admin/question-bank" class="question-bank-link">
+                  <Button
+                    :label="t('admin.menu.questionBank')"
+                    icon="pi pi-external-link"
+                    severity="secondary"
+                    text
+                    size="small"
+                  />
+                </NuxtLink>
                 <p class="hint">{{ t('admin.builder.quizHint') }}</p>
               </div>
             </template>
@@ -1072,12 +1380,27 @@ onMounted(async () => {
 .lesson-row > i { color: var(--brand); font-size: .95rem; }
 
 .editor-panel { padding-bottom: 16px; }
+.meta-tabs {
+  display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--border);
+}
+.meta-tabs button {
+  border: 0; background: transparent; padding: 10px 14px; cursor: pointer; font-weight: 650;
+  color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.meta-tabs button.on { color: var(--brand); border-bottom-color: var(--brand); }
+.tab-lead { margin: 0; color: var(--text-muted); font-weight: 500; font-size: .9rem; }
 .form-grid { display: grid; gap: 12px; padding: 14px; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.list-field { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.list-head > span { font-size: .8rem; font-weight: 700; color: var(--brand); }
+.list-hint { margin: 0; color: var(--text-muted); font-size: .78rem; font-weight: 500; }
+.list-row { display: flex; gap: 6px; align-items: center; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: .8rem; font-weight: 700; color: var(--brand); }
 .check-row { display: flex; align-items: center; gap: 8px; min-height: 38px; }
 .hint { color: var(--text-muted); font-size: .78rem; }
+.question-bank-link { display: inline-flex; text-decoration: none; }
 .error { color: #b91c1c; font-size: .78rem; }
 .thumb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .thumb-preview {

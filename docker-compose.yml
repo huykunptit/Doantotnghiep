@@ -201,6 +201,11 @@ services:
       - ./ai-service:/app
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      DEFAULT_OLLAMA_MODEL: ${DEFAULT_OLLAMA_MODEL:-qwen2.5:latest}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-180}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8001:8001"
     networks:

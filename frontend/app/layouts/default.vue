@@ -27,7 +27,7 @@ onMounted(() => {
         <nav class="header-nav" :aria-label="t('common.menu')">
           <NuxtLink to="/">{{ t('common.home') }}</NuxtLink>
           <NuxtLink to="/courses">{{ t('common.courses') }}</NuxtLink>
-          <NuxtLink to="/login">{{ t('common.learn') }}</NuxtLink>
+          <NuxtLink to="/paths">{{ t('common.paths') }}</NuxtLink>
         </nav>
 
         <div class="header-actions">
@@ -64,6 +64,7 @@ onMounted(() => {
       <nav class="drawer-nav">
         <NuxtLink to="/" @click="mobileOpen = false">{{ t('common.home') }}</NuxtLink>
         <NuxtLink to="/courses" @click="mobileOpen = false">{{ t('common.courses') }}</NuxtLink>
+        <NuxtLink to="/paths" @click="mobileOpen = false">{{ t('common.paths') }}</NuxtLink>
         <NuxtLink v-if="auth.isAuthenticated" :to="dashboardPath" @click="mobileOpen = false">{{ t('common.dashboard') }}</NuxtLink>
         <template v-else>
           <NuxtLink to="/login" @click="mobileOpen = false">{{ t('common.login') }}</NuxtLink>
@@ -85,6 +86,7 @@ onMounted(() => {
         <div>
           <span>{{ t('common.courses') }}</span>
           <NuxtLink to="/courses">{{ t('common.courses') }}</NuxtLink>
+          <NuxtLink to="/paths">{{ t('common.paths') }}</NuxtLink>
           <NuxtLink to="/register">{{ t('common.register') }}</NuxtLink>
           <NuxtLink to="/login">{{ t('common.login') }}</NuxtLink>
         </div>
