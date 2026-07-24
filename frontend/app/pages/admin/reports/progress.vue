@@ -1,237 +1,164 @@
-<script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import { useExport } from '~/composables/useExport'
+﻿<script setup lang="ts">
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
 
-const token = useAuthTokenCookie()
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
-
-const loading = ref(true)
-const error = ref('')
-const courses = ref<any[]>([])
-const stats = ref<any>({})
-const search = ref('')
-const sortBy = ref<'enrollments' | 'lessons' | 'title'>('enrollments')
-
-async function fetchData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [coursesRes, statsRes] = await Promise.all([
-      useApi<any>('/admin/courses?per_page=200', { headers: authHeaders() }),
-      useApi<any>('/admin/stats', { headers: authHeaders() }),
-    ])
-    courses.value = coursesRes.data || []
-    stats.value = statsRes || {}
+interface ProgressItem { label: string, value: number }
+interface Stats {
+  engagement?: {
+    avg_quiz_score?: number
+    total_completions?: number
+    active_students_this_week?: number
   }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Không thể tải dữ liệu.'
+  top_courses?: { id: number, title: string, enrollments_count: number }[]
+}
+
+const { t, locale } = useI18n()
+const toast = useToast()
+const loading = ref(false)
+
+const stats = ref<Stats>({})
+const classProgress = ref<ProgressItem[]>([])
+
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+
+function fmtNumber(value = 0) {
+  return value.toLocaleString(numberLocale.value)
+}
+
+function fmtScore(value = 0) {
+  return `${Math.round(value)}%`
+}
+
+const kpis = computed(() => [
+  { label: t('admin.reports.progress.completions'), value: fmtNumber(stats.value.engagement?.total_completions || 0), icon: 'pi-check-circle' },
+  { label: t('admin.reports.progress.activeStudents'), value: fmtNumber(stats.value.engagement?.active_students_this_week || 0), icon: 'pi-users' },
+  { label: t('admin.reports.progress.avgQuizScore'), value: fmtScore(stats.value.engagement?.avg_quiz_score || 0), icon: 'pi-star' },
+])
+
+async function load() {
+  loading.value = true
+  try {
+    const [statsRes, extraRes] = await Promise.all([
+      useApi<Stats>('/admin/stats'),
+      useApi<{ class_progress?: ProgressItem[] }>('/admin/dashboard-extra'),
+    ])
+    stats.value = statsRes
+    classProgress.value = extraRes.class_progress || []
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.reports.common.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
   }
   finally {
     loading.value = false
   }
 }
 
-const publishedCourses = computed(() =>
-  courses.value.filter(c => c.status === 'published')
-)
-
-const filteredAndSorted = computed(() => {
-  let list = publishedCourses.value
-  if (search.value.trim()) {
-    const q = search.value.toLowerCase()
-    list = list.filter(c => c.title?.toLowerCase().includes(q))
-  }
-  return [...list].sort((a, b) => {
-    if (sortBy.value === 'enrollments') return (b.enrollments_count || 0) - (a.enrollments_count || 0)
-    if (sortBy.value === 'lessons') return (b.lessons_count || 0) - (a.lessons_count || 0)
-    return (a.title || '').localeCompare(b.title || '')
-  })
-})
-
-const totalEnrollments = computed(() =>
-  publishedCourses.value.reduce((s, c) => s + (c.enrollments_count || 0), 0)
-)
-
-const maxEnrollment = computed(() =>
-  Math.max(...publishedCourses.value.map(c => c.enrollments_count || 0), 1)
-)
-
-const avgEnrollment = computed(() =>
-  publishedCourses.value.length
-    ? Math.round(totalEnrollments.value / publishedCourses.value.length)
-    : 0
-)
-
-const { exportToPDF, exportToCSV } = useExport()
-
-function exportPDF() {
-  const headers = ['Tên khóa học', 'Danh mục', 'Số học viên', 'Số bài học']
-  const rows = filteredAndSorted.value.slice(0, 200).map(c => [
-    c.title || '—',
-    c.category?.name || '—',
-    c.enrollments_count || 0,
-    c.lessons_count || 0,
-  ])
-  exportToPDF('Tiến độ học tập', `${publishedCourses.value.length} khóa học đang hoạt động`, headers, rows, 'tien-do-hoc-tap')
-}
-
-function exportCSV() {
-  const cols = [
-    { key: 'id', label: 'ID Khóa học' },
-    { key: 'title', label: 'Tên khóa học' },
-    { key: 'category', label: 'Danh mục', format: (_: any, row: any) => row.category?.name || 'Chưa phân loại' },
-    { key: 'enrollments_count', label: 'Số học viên', format: (val: any) => String(val || 0) },
-    { key: 'lessons_count', label: 'Số bài học', format: (val: any) => String(val || 0) },
-    { key: 'price', label: 'Giá tiền', format: (val: any) => String(val || 0) }
-  ]
-  exportToCSV(filteredAndSorted.value, cols, 'tien-do-hoc-tap')
-}
-
-onMounted(fetchData)
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Tiến độ học tập"
-    description="Theo dõi lộ trình đăng ký và mức độ phổ biến của từng khóa học trong hệ thống."
-    :breadcrumb="['Trang chủ', 'Báo cáo', 'Tiến độ học tập']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải dữ liệu...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
+  <div class="page report-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.reports') }}</span>
+        <h1>{{ t('admin.reports.progress.title') }}</h1>
+        <p>{{ t('admin.reports.progress.subtitle') }}</p>
+      </div>
+      <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
+    </header>
 
-    <template v-else>
-      <!-- KPI -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article class="dashboard-card mini-card tone-green">
-          <p class="mini-title">Tổng học viên</p>
-          <div class="mini-head"><strong>{{ stats.students_count || totalEnrollments }}</strong><span>Đăng ký trong hệ thống</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-blue">
-          <p class="mini-title">Khóa học hoạt động</p>
-          <div class="mini-head"><strong>{{ publishedCourses.length }}</strong><span>Đang mở đăng ký</span></div>
-        </article>
-        <article class="dashboard-card mini-card tone-amber">
-          <p class="mini-title">TB đăng ký / khóa</p>
-          <div class="mini-head"><strong>{{ avgEnrollment }}</strong><span>Học viên mỗi khóa</span></div>
-        </article>
-        <article class="dashboard-card mini-card">
-          <p class="mini-title">Tổng bài học</p>
-          <div class="mini-head">
-            <strong>{{ publishedCourses.reduce((s, c) => s + (c.lessons_count || 0), 0) }}</strong>
-            <span>Bài học đã xuất bản</span>
-          </div>
-        </article>
-      </section>
-
-      <!-- Filters -->
-      <!-- Filters -->
-      <section class="dashboard-card" style="margin-bottom: 24px; padding: 0; border: none; background: transparent; box-shadow: none;">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Tìm tên khóa học..."
-              class="crud-search"
-            >
-            <select v-model="sortBy" class="crud-select">
-              <option value="enrollments">Sắp xếp: Lượt đăng ký</option>
-              <option value="lessons">Sắp xếp: Số bài học</option>
-              <option value="title">Sắp xếp: Tên khóa học</option>
-            </select>
-          </div>
-          <div class="crud-toolbar-right">
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <span class="material-symbols-outlined">download</span>
-              Xuất Excel
-            </button>
-            <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span class="material-symbols-outlined">picture_as_pdf</span>
-              Xuất PDF
-            </button>
-          </div>
+    <section class="kpi-rail">
+      <article v-for="kpi in kpis" :key="kpi.label" class="kpi">
+        <i :class="['pi', kpi.icon]" />
+        <div>
+          <span>{{ kpi.label }}</span>
+          <strong>{{ kpi.value }}</strong>
         </div>
-      </section>
+      </article>
+    </section>
 
-      <!-- Course progress table -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <div>
-            <p class="section-kicker">Khóa học đã xuất bản</p>
-            <h3>{{ filteredAndSorted.length }} kết quả</h3>
-          </div>
-        </div>
+    <section class="table-panel">
+      <div class="panel-head">
+        <strong>{{ t('admin.reports.progress.classProgress') }}</strong>
+        <p>{{ t('admin.reports.progress.classProgressHint') }}</p>
+      </div>
+      <DataTable :value="classProgress" :loading="loading" striped-rows>
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ index + 1 }}</template>
+        </Column>
+        <Column field="label" :header="t('admin.classes.code')" />
+        <Column :header="t('admin.dashboard.progressPercent')" style="min-width:200px">
+          <template #body="{ data }">
+            <div class="bar-wrap">
+              <ProgressBar :value="data.value" :show-value="false" class="bar" />
+              <span>{{ data.value }}%</span>
+            </div>
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('admin.dashboard.noProgress') }}</div>
+        </template>
+      </DataTable>
+    </section>
 
-        <div v-if="filteredAndSorted.length === 0" class="crud-empty">Không có khóa học nào.</div>
-
-        <div v-else class="progress-list">
-          <div v-for="(course, idx) in filteredAndSorted" :key="course.id" class="progress-row">
-            <div class="progress-rank">
-              <span :class="idx < 3 ? 'rank-top' : 'rank-normal'">#{{ idx + 1 }}</span>
-            </div>
-            <div class="progress-info">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <img
-                  v-if="course.thumbnail"
-                  :src="course.thumbnail"
-                  :alt="course.title"
-                  style="width: 40px; height: 32px; object-fit: cover; border-radius: 6px; flex-shrink: 0;"
-                >
-                <div>
-                  <strong style="font-size: 0.9rem;">{{ course.title }}</strong>
-                  <p style="font-size: 0.75rem; color: var(--muted); margin-top: 2px;">
-                    {{ course.category?.name || 'Chưa phân loại' }} &nbsp;·&nbsp; {{ course.lessons_count || 0 }} bài học
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div class="progress-bar-col">
-              <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
-                <span style="color: var(--muted);">Đăng ký</span>
-                <strong>{{ course.enrollments_count || 0 }} HV</strong>
-              </div>
-              <div style="height: 8px; background: rgba(17,17,17,.07); border-radius: 999px; overflow: hidden;">
-                <div
-                  style="height: 100%; border-radius: 999px; background: var(--green); transition: width 0.6s ease;"
-                  :style="{ width: `${((course.enrollments_count || 0) / maxEnrollment) * 100}%` }"
-                />
-              </div>
-            </div>
-            <div class="progress-price">
-              <span v-if="!course.price || course.price === 0" class="crud-badge role-instructor">Miễn phí</span>
-              <span v-else style="font-size: 0.85rem; font-weight: 700;">
-                {{ new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(course.price) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-    </template>
-  </AdminWorkspaceShell>
+    <section v-if="stats.top_courses?.length" class="table-panel">
+      <div class="panel-head">
+        <strong>{{ t('admin.dashboard.topCoursesTitle') }}</strong>
+        <p>{{ t('admin.dashboard.topCoursesHint') }}</p>
+      </div>
+      <DataTable :value="stats.top_courses" size="small" striped-rows>
+        <Column :header="t('admin.users.stt')" style="width:3rem">
+          <template #body="{ index }">{{ index + 1 }}</template>
+        </Column>
+        <Column field="title" :header="t('admin.orders.course')" />
+        <Column field="enrollments_count" :header="t('admin.reports.courses.enrollments')" style="width:7rem" />
+      </DataTable>
+    </section>
+  </div>
 </template>
 
 <style scoped>
-.progress-list { display: flex; flex-direction: column; }
-.progress-row {
-  display: grid;
-  grid-template-columns: 48px 1fr 1fr 100px;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
+.report-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
-.progress-row:last-child { border-bottom: none; }
-.progress-rank { text-align: center; }
-.rank-top { font-size: 1rem; font-weight: 800; color: var(--green-deep); }
-.rank-normal { font-size: 0.85rem; font-weight: 700; color: var(--muted); }
-.progress-info { min-width: 0; }
-.progress-bar-col { min-width: 120px; }
-.progress-price { text-align: right; }
-@media (max-width: 900px) {
-  .progress-row { grid-template-columns: 40px 1fr; }
-  .progress-bar-col, .progress-price { display: none; }
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.kpi-rail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kpi {
+  display: flex; align-items: center; gap: 12px; padding: 16px;
+  border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
+.kpi i { font-size: 1.2rem; color: var(--brand); }
+.kpi span { display: block; color: var(--text-muted); font-size: .76rem; font-weight: 600; }
+.kpi strong { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; }
+
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
+}
+.panel-head { margin-bottom: 10px; }
+.panel-head strong { font-size: .92rem; }
+.panel-head p { margin: 2px 0 0; color: var(--text-muted); font-size: .82rem; }
+
+.bar-wrap { display: flex; align-items: center; gap: 10px; }
+.bar { flex: 1; height: 8px; }
+.bar-wrap span { font-size: .82rem; font-weight: 700; min-width: 2.5rem; text-align: right; }
+.empty { padding: 32px; text-align: center; color: var(--text-muted); }
+
+@media (max-width: 720px) { .kpi-rail { grid-template-columns: 1fr; } }
 </style>

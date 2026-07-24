@@ -5,10 +5,11 @@ Phase 3.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from models.schemas import ExamAnalyzeRequest, ExamAnalyzeResponse
 from services import exam_analyzer
+from utils.providers import require_api_key
 
 router = APIRouter(prefix="/analyze", tags=["Exam Analytics"])
 
@@ -25,9 +26,5 @@ async def analyze_exam(payload: ExamAnalyzeRequest) -> ExamAnalyzeResponse:
     - Gợi ý cho giảng viên
     - Gợi ý cho sinh viên
     """
-    if not payload.api_key:
-        raise HTTPException(
-            status_code=400,
-            detail="Thiếu API key. Vui lòng cấu hình trong phần Quản lý AI.",
-        )
+    require_api_key(payload.provider, payload.api_key)
     return await exam_analyzer.analyze_exam(payload)

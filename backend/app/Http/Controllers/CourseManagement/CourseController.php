@@ -173,20 +173,41 @@ class CourseController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        // Allow FormData JSON-encoded list fields
+        foreach (['learning_outcomes', 'benefits', 'requirements'] as $field) {
+            $raw = $request->input($field);
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $request->merge([$field => $decoded]);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'title'       => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'learning_outcomes'   => ['nullable', 'array'],
+            'learning_outcomes.*' => ['string', 'max:500'],
+            'benefits'            => ['nullable', 'array'],
+            'benefits.*'          => ['string', 'max:500'],
+            'requirements'        => ['nullable', 'array'],
+            'requirements.*'      => ['string', 'max:500'],
+            'level'       => ['nullable', 'string', 'in:beginner,intermediate,advanced'],
+            'trailer_url' => ['nullable', 'string', 'max:2048'],
             'price'       => ['sometimes', 'numeric', 'min:0'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
-            'status'      => ['sometimes', 'in:draft,published,closed'],
+            'status'      => ['sometimes', 'in:draft,published,closed,pending_review,rejected'],
         ]);
 
         if ($request->hasFile('thumbnail_file')) {
             $upload = $this->mediaService->upload($request->file('thumbnail_file'), 'courses/thumbnails');
             $validated['thumbnail'] = $this->mediaService->getUrl($upload['path']);
         }
+
+        unset($validated['thumbnail_file']);
 
         $course->fill($validated)->save();
         $course->load('instructor:id,name,avatar');

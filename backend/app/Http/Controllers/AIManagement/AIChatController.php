@@ -8,6 +8,8 @@ use App\Models\AiRequestLog;
 use App\Models\AiSetting;
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\Enrollment;
+use App\Models\LessonProgress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -40,13 +42,14 @@ class AIChatController extends Controller
         }
 
         try {
-            $response = Http::timeout(60)->post($aiServiceUrl, [
+            $timeout = $aiSettings->provider === 'ollama' ? 180 : 60;
+            $response = Http::timeout($timeout)->post($aiServiceUrl, [
                 'message' => $request->message,
                 'user_id' => $user->id,
                 'course_id' => $request->course_id,
                 'provider' => $aiSettings->provider,
                 'model' => $aiSettings->model,
-                'api_key' => $aiSettings->api_key,
+                'api_key' => $aiSettings->api_key ?: ($aiSettings->provider === 'ollama' ? 'local' : null),
                 'role' => $role,
                 'history' => $request->input('history', []),
                 'context' => $this->buildChatContext($request),
@@ -97,6 +100,167 @@ class AIChatController extends Controller
                 'reply' => 'Hệ thống AI hiện không khả dụng. Xin lỗi vì sự bất tiện này.'
             ], 500);
         }
+    }
+
+    /**
+     * Personalized study tips via ai-service /tutoring/recommend,
+     * with heuristic fallback when AI is unavailable.
+     */
+    public function tutoring(Request $request): JsonResponse
+    {
+        $request->validate([
+            'course_id' => 'nullable|integer',
+            'lesson_id' => 'nullable|integer',
+            'lesson_title' => 'nullable|string|max:255',
+            'lesson_type' => 'nullable|string|max:40',
+            'progress_percent' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $user = $request->user();
+        $enrollments = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->with(['course:id,title', 'course.lessons:id,course_id'])
+            ->get()
+            ->map(function (Enrollment $enrollment) use ($user, $request) {
+                $lessonIds = $enrollment->course?->lessons?->pluck('id') ?? collect();
+                $total = $lessonIds->count();
+                $completed = $total > 0
+                    ? LessonProgress::where('user_id', $user->id)
+                        ->whereIn('lesson_id', $lessonIds)
+                        ->where('completed', true)
+                        ->count()
+                    : 0;
+                $percent = $total > 0 ? round(($completed / $total) * 100, 1) : 0;
+
+                // Prefer client-reported progress for the active course context.
+                if ($request->integer('course_id') === (int) $enrollment->course_id && $request->filled('progress_percent')) {
+                    $percent = (float) $request->input('progress_percent');
+                }
+
+                return [
+                    'course_id' => $enrollment->course_id,
+                    'course_title' => $enrollment->course?->title ?? ('Course #' . $enrollment->course_id),
+                    'progress_percent' => $percent,
+                    'quiz_avg_score' => null,
+                    'last_accessed' => optional($enrollment->updated_at)?->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $aiSettings = AiSetting::current();
+        $payload = [
+            'user_id' => $user->id,
+            'enrolled_courses' => $enrollments,
+            'quiz_scores' => [],
+            'study_pattern' => [
+                'course_id' => $request->integer('course_id') ?: null,
+                'lesson_id' => $request->integer('lesson_id') ?: null,
+                'lesson_title' => $request->input('lesson_title'),
+                'lesson_type' => $request->input('lesson_type'),
+                'progress_percent' => $request->input('progress_percent'),
+            ],
+            'provider' => $aiSettings->provider,
+            'model' => $aiSettings->model,
+            'api_key' => $aiSettings->api_key ?: ($aiSettings->provider === 'ollama' ? 'local' : null),
+        ];
+
+        $startTime = microtime(true);
+        $aiServiceUrl = rtrim((string) config('services.ai_service.url'), '/') . '/tutoring/recommend';
+
+        try {
+            if ($aiSettings->has_api_key) {
+                $timeout = $aiSettings->provider === 'ollama' ? 180 : 45;
+                $response = Http::timeout($timeout)->post($aiServiceUrl, $payload);
+                $elapsed = (int) ((microtime(true) - $startTime) * 1000);
+                $data = $response->json() ?: [];
+
+                AiRequestLog::create([
+                    'user_id' => $user->id,
+                    'endpoint' => '/tutoring/recommend',
+                    'provider' => $aiSettings->provider,
+                    'model' => $aiSettings->model,
+                    'tokens_used' => 0,
+                    'response_time_ms' => $elapsed,
+                    'status' => $response->successful() ? 'success' : 'error',
+                    'error_message' => $response->successful() ? null : 'HTTP ' . $response->status(),
+                ]);
+
+                if ($response->successful()) {
+                    return response()->json(array_merge($data, ['source' => 'ai']));
+                }
+            }
+        } catch (\Throwable $e) {
+            AiRequestLog::create([
+                'user_id' => $user->id,
+                'endpoint' => '/tutoring/recommend',
+                'provider' => $aiSettings->provider,
+                'model' => $aiSettings->model,
+                'tokens_used' => 0,
+                'response_time_ms' => (int) ((microtime(true) - $startTime) * 1000),
+                'status' => 'error',
+                'error_message' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json(array_merge(
+            $this->heuristicTutoring($request, $enrollments),
+            ['source' => 'heuristic']
+        ));
+    }
+
+    protected function heuristicTutoring(Request $request, array $enrollments): array
+    {
+        $progress = (float) ($request->input('progress_percent') ?? 0);
+        $lessonType = (string) ($request->input('lesson_type') ?? '');
+        $lessonTitle = (string) ($request->input('lesson_title') ?? '');
+        $courseId = $request->integer('course_id') ?: null;
+
+        $current = collect($enrollments)->firstWhere('course_id', $courseId);
+        $stalled = collect($enrollments)
+            ->filter(fn ($e) => ($e['progress_percent'] ?? 0) > 0 && ($e['progress_percent'] ?? 0) < 40)
+            ->pluck('course_title')
+            ->take(3)
+            ->values()
+            ->all();
+
+        $reviewLessons = [];
+        if ($lessonTitle !== '') {
+            $reviewLessons[] = $lessonTitle;
+        }
+        if ($lessonType === 'quiz') {
+            $reviewLessons[] = 'Ôn lại lý thuyết trước khi làm quiz';
+        }
+
+        $tips = [];
+        if ($progress < 25) {
+            $tips[] = 'Học đều mỗi ngày 20–30 phút để giữ nhịp tiến độ.';
+            $tips[] = 'Hoàn thành bài hiện tại rồi chuyển sang bài kế tiếp trong lộ trình.';
+        } elseif ($progress < 70) {
+            $tips[] = 'Bạn đang ở giữa khóa — ghi chú ngắn sau mỗi bài giúp nhớ lâu hơn.';
+            $tips[] = 'Xem lại bài đã hoàn thành nếu cảm thấy hổng kiến thức.';
+        } else {
+            $tips[] = 'Sắp hoàn thành khóa — làm quiz/ôn tập để củng cố trước khi nhận chứng chỉ.';
+            $tips[] = 'Khám phá khóa mở rộng liên quan sau khi kết thúc khóa này.';
+        }
+
+        if ($lessonType === 'video') {
+            $tips[] = 'Tạm dừng video và tóm tắt 2–3 ý chính giúp ghi nhớ tốt hơn.';
+        } elseif ($lessonType === 'quiz') {
+            $tips[] = 'Đọc kỹ đề; nếu sai, quay lại bài lý thuyết tương ứng ngay sau quiz.';
+        }
+
+        $summary = $current
+            ? sprintf('Tiến độ khóa "%s": %.0f%%. Tiếp tục bài hiện tại để giữ đà học.', $current['course_title'], $current['progress_percent'] ?? $progress)
+            : 'Dựa trên tiến độ ghi danh, hãy tiếp tục bài học hiện tại và giữ nhịp học đều.';
+
+        return [
+            'review_lessons' => $reviewLessons,
+            'next_courses' => [],
+            'weak_skills' => $stalled,
+            'study_tips' => array_values(array_unique($tips)),
+            'summary' => $summary,
+        ];
     }
 
     protected function buildChatContext(Request $request): array

@@ -14,7 +14,7 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'PTIT LMS',
+      title: 'Sylva LMS',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

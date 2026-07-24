@@ -1,92 +1,90 @@
-<template>
-  <InstructorWorkspaceShell
-    title="Quản lý học viên"
-    description="Xem danh sách học viên, tiến độ và mức độ hoàn thành theo từng khóa học."
-    :breadcrumb="['Trang chủ', 'Học viên']"
-  >
-    <template #actions>
-      <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Xem khóa học</NuxtLink>
-    </template>
-
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <form class="crud-toolbar-main" @submit.prevent>
-          <input v-model="search" class="crud-search" type="text" placeholder="Tìm khóa học...">
-        </form>
-      </div>
-      <div class="crud-table-wrap">
-        <table class="crud-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Khóa học</th>
-              <th>Số học viên</th>
-              <th>Bài học</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="6" class="crud-empty">Đang tải...</td>
-            </tr>
-            <tr v-else-if="filteredCourses.length === 0">
-              <td colspan="6" class="crud-empty">Chưa có khóa học.</td>
-            </tr>
-            <tr v-for="(course, idx) in filteredCourses" :key="course.id">
-              <td>{{ idx + 1 }}</td>
-              <td>
-                <div class="crud-course">
-                  <div class="crud-course-thumb">
-                    <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
-                    <span v-else>📘</span>
-                  </div>
-                  <div><strong>{{ course.title }}</strong></div>
-                </div>
-              </td>
-              <td>{{ course.enrollments_count || 0 }}</td>
-              <td>{{ course.lessons_count || 0 }}</td>
-              <td><span class="crud-badge" :class="statusClass(course.status)">{{ statusLabel(course.status) }}</span></td>
-              <td>
-                <div class="crud-actions">
-                  <NuxtLink :to="`/instructor/courses/${course.id}/students`" class="action-btn is-view">Chi tiết</NuxtLink>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </InstructorWorkspaceShell>
-</template>
-
 <script setup lang="ts">
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
-definePageMeta({ layout: 'instructor', middleware: 'instructor' })
+import { useToast } from 'primevue/usetoast'
 
-const courseStore = useCourseStore()
-const loading = ref(true)
-const courses = ref<any[]>([])
-const search = ref('')
+definePageMeta({
+  layout: 'instructor',
+  middleware: ['auth', 'instructor'],
+})
 
-const statusLabel = (status: string) => {
-  const map: Record<string, string> = { published: 'Đã xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Bị từ chối' }
-  return map[status] || status
+interface MyCourse {
+  id: number
+  title: string
+  thumbnail?: string | null
+  enrollments_count?: number
+  status: string
 }
 
-const statusClass = (s: string) => ({ published: 'role-instructor', pending_review: 'role-student', draft: 'role-admin', rejected: 'role-admin' }[s] || 'role-admin')
+const { t } = useI18n()
+const toast = useToast()
+const loading = ref(true)
+const courses = ref<MyCourse[]>([])
 
-const filteredCourses = computed(() => {
-  if (!search.value.trim()) return courses.value
-  const q = search.value.toLowerCase()
-  return courses.value.filter(c => c.title?.toLowerCase().includes(q))
-})
-
-onMounted(async () => {
+async function load() {
+  loading.value = true
   try {
-    courses.value = await courseStore.fetchMyCourses()
-  } finally {
+    const res = await useApi<{ data: MyCourse[] }>('/my-courses', { query: { per_page: 100 } })
+    courses.value = res.data || []
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('instructor.students.loadError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
     loading.value = false
   }
-})
+}
+
+onMounted(load)
 </script>
+
+<template>
+  <div class="page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('instructor.console') }}</span>
+        <h1>{{ t('instructor.students.title') }}</h1>
+        <p>{{ t('instructor.students.subtitle') }}</p>
+      </div>
+    </header>
+
+    <section class="grid" :aria-busy="loading">
+      <button
+        v-for="course in courses"
+        :key="course.id"
+        type="button"
+        class="card"
+        @click="navigateTo(`/instructor/courses/${course.id}/students`)"
+      >
+        <img v-if="course.thumbnail" :src="course.thumbnail" alt="">
+        <div class="copy">
+          <strong>{{ course.title }}</strong>
+          <span>{{ t('instructor.dashboard.enrollments', { n: course.enrollments_count || 0 }) }}</span>
+        </div>
+        <i class="pi pi-angle-right" />
+      </button>
+      <div v-if="!loading && !courses.length" class="empty">{{ t('common.noData') }}</div>
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.page { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 2vw, 1.8rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.grid { display: grid; gap: 10px; }
+.card {
+  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px;
+  width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--text);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
+.card img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
+.copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy span { color: var(--text-muted); font-size: .85rem; font-weight: 500; }
+.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+</style>

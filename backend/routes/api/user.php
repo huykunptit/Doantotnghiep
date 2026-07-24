@@ -99,6 +99,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me/dashboard', [StudentDashboardController::class, 'dashboard']);
     Route::get('/me/learning-path', [StudentDashboardController::class, 'learningPath']);
     Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    Route::get('/me/learner-profile', [StudentDashboardController::class, 'learnerProfile']);
+    Route::get('/me/curriculum-evaluation', [StudentDashboardController::class, 'curriculumEvaluation']);
     Route::get('/me/exams', [StudentDashboardController::class, 'exams']);
     Route::get('/me/tasks', [StudentDashboardController::class, 'tasks']);
     Route::get('/me/recommendations/extensions', [StudentDashboardController::class, 'recommendations']);
@@ -117,6 +119,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Users
         Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/export', [AdminController::class, 'exportUsers']);
+        Route::get('/users/import-template', [AdminController::class, 'importUsersTemplate']);
+        Route::post('/users/import-preview', [AdminController::class, 'importUsersPreview']);
+        Route::post('/users/import-execute', [AdminController::class, 'importUsersExecute']);
+        Route::post('/users/bulk-delete', [AdminController::class, 'bulkDestroyUsers']);
         Route::get('/students', [AdminController::class, 'listStudents']);
         Route::get('/instructors', [AdminController::class, 'listInstructors']);
         Route::post('/users', [AdminController::class, 'storeUser']);

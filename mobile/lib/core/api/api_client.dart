@@ -7,7 +7,7 @@ import 'api_constants.dart';
 part 'api_client.g.dart';
 
 @riverpod
-Dio apiClient(Ref ref) {
+Dio apiClient(ApiClientRef ref) {
   final storage = ref.read(secureStorageProvider);
   final dio = Dio(BaseOptions(
     baseUrl: ApiConstants.baseUrl,

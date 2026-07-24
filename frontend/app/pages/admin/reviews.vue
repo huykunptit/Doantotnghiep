@@ -1,477 +1,288 @@
-<script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Download, Trash2, Star, BookOpen, TrendingUp, ThumbsUp, ThumbsDown, BarChart2 } from 'lucide-vue-next'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import { useToast } from '~/composables/useToast'
+﻿<script setup lang="ts">
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
+
+interface AdminReview {
+  id: number
+  rating: number
+  comment?: string | null
+  created_at?: string
+  user?: { id: number, name?: string, email?: string, avatar?: string | null } | null
+  course?: { id: number, title?: string } | null
+}
+
+interface Paginator<T> {
+  data: T[]
+  total: number
+}
+
+const { t, locale } = useI18n()
 const toast = useToast()
+const confirm = useConfirm()
 
-definePageMeta({ layout: 'admin' })
+const loading = ref(false)
+const rows = ref<AdminReview[]>([])
+const total = ref(0)
+const page = ref(1)
+const perPage = ref(15)
+const tableSearch = ref('')
 
-const token = useAuthTokenCookie()
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
-
-const reviews = ref<any[]>([])
-const allReviews = ref<any[]>([])
-const loading = ref(true)
-const search = ref('')
-const ratingFilter = ref('')
-const currentPage = ref(1)
-const totalPages = ref(1)
-const totalItems = ref(0)
-
-const formatDate = (date?: string) =>
-  !date ? '—' : new Date(date).toLocaleDateString('vi-VN', { year: 'numeric', month: 'short', day: 'numeric' })
-
-const positiveCount = computed(() => allReviews.value.filter(r => r.rating >= 4).length)
-const negativeCount = computed(() => allReviews.value.filter(r => r.rating <= 2).length)
-const avgRating = computed(() => {
-  if (!allReviews.value.length) return 0
-  return (allReviews.value.reduce((s, r) => s + (r.rating || 0), 0) / allReviews.value.length).toFixed(1)
+const filters = reactive({
+  rating: null as number | null,
 })
-const positivePercent = computed(() =>
-  allReviews.value.length ? Math.round((positiveCount.value / allReviews.value.length) * 100) : 0
-)
-const negativePercent = computed(() =>
-  allReviews.value.length ? Math.round((negativeCount.value / allReviews.value.length) * 100) : 0
-)
 
-async function fetchReviews(page = 1) {
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const ratingOptions = computed(() => [
+  { label: t('common.all'), value: null },
+  { label: t('admin.reviews.stars', { n: 5 }), value: 5 },
+  { label: t('admin.reviews.stars', { n: 4 }), value: 4 },
+  { label: t('admin.reviews.stars', { n: 3 }), value: 3 },
+  { label: t('admin.reviews.stars', { n: 2 }), value: 2 },
+  { label: t('admin.reviews.stars', { n: 1 }), value: 1 },
+])
+
+const activeFilterCount = computed(() => (filters.rating ? 1 : 0))
+
+function fmtDate(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).format(new Date(value))
+}
+
+function ratingTone(rating: number) {
+  if (rating >= 4) return 'tone-good'
+  if (rating <= 2) return 'tone-bad'
+  return 'tone-mid'
+}
+
+async function load() {
   loading.value = true
-  currentPage.value = page
   try {
-    const q = new URLSearchParams({ page: String(page), per_page: '12' })
-    if (search.value.trim()) q.set('search', search.value.trim())
-    if (ratingFilter.value) q.set('rating', ratingFilter.value)
-    const data = await useApi<any>(`/admin/reviews?${q}`, { headers: authHeaders() })
-    reviews.value = data.data || []
-    totalPages.value = data.last_page || 1
-    totalItems.value = data.total || 0
-
-    if (allReviews.value.length === 0) {
-      const all = await useApi<any>('/admin/reviews?per_page=200', { headers: authHeaders() })
-      allReviews.value = all.data || []
-    }
+    const res = await useApi<Paginator<AdminReview>>('/admin/reviews', {
+      query: {
+        page: page.value,
+        per_page: perPage.value,
+        search: tableSearch.value || undefined,
+        rating: filters.rating || undefined,
+      },
+    })
+    rows.value = res.data || []
+    total.value = res.total || 0
   }
-  catch { reviews.value = [] }
-  finally { loading.value = false }
-}
-
-async function removeReview(review: any) {
-  if (!confirm(`Xoá đánh giá ${review.rating}★ của "${review.user?.name}"? Không thể hoàn tác.`)) return
-  try {
-    await useApi(`/admin/reviews/${review.id}`, { method: 'DELETE', headers: authHeaders() })
-    allReviews.value = allReviews.value.filter(r => r.id !== review.id)
-    toast.success('Đã xoá đánh giá', `Đánh giá của ${review.user?.name || 'người dùng'} đã được xoá.`)
-    await fetchReviews(currentPage.value)
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.reviews.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
   }
-  catch (e: any) {
-    toast.error('Xoá thất bại', e?.data?.message || 'Không thể xoá đánh giá này.')
+  finally {
+    loading.value = false
   }
 }
 
-function exportCSV() {
-  const rows = reviews.value.map(r => [
-    r.id, r.course?.title || '', r.user?.name || '', r.user?.email || '',
-    r.rating, `"${(r.comment || '').replace(/"/g, '""')}"`, formatDate(r.created_at),
-  ])
-  const header = ['ID', 'Khoá học', 'Người đánh giá', 'Email', 'Số sao', 'Nội dung', 'Ngày tạo']
-  const csv = [header, ...rows].map(r => r.join(',')).join('\n')
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = 'reviews_export.csv'; a.click()
-  URL.revokeObjectURL(url)
+function onTableSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    load()
+  }, 350)
 }
 
-const visiblePages = computed(() => {
-  const range: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1)
-  for (let i = start; i <= end; i++) { if (i >= 1) range.push(i) }
-  return range
-})
+function applyFilters() {
+  page.value = 1
+  load()
+}
 
-const ratingTier = (r: number) => r >= 4 ? 'positive' : r <= 2 ? 'negative' : 'neutral'
+function resetFilters() {
+  filters.rating = null
+  page.value = 1
+  load()
+}
 
-onMounted(() => fetchReviews(1))
+function onPage(event: { page: number, rows: number }) {
+  page.value = event.page + 1
+  perPage.value = event.rows
+  load()
+}
+
+function askDelete(review: AdminReview) {
+  confirm.require({
+    message: t('admin.reviews.deleteConfirm', {
+      name: review.user?.name || t('admin.reviews.anonymous'),
+      rating: review.rating,
+    }),
+    header: t('admin.reviews.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/admin/reviews/${review.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.reviews.deleted'), life: 2200 })
+        await load()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.reviews.deleteError'),
+          detail: error?.data?.message,
+          life: 3500,
+        })
+      }
+    },
+  })
+}
+
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Kiểm duyệt đánh giá"
-    description="Quản lý chất lượng khoá học qua nhận xét của học viên. Gỡ bỏ đánh giá vi phạm tiêu chuẩn cộng đồng."
-    :breadcrumb="['Trang chủ', 'Nội dung', 'Đánh giá']"
-  >
-    <!-- KPI Strip -->
-    <div class="ds-stats mb-5">
-      <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><BarChart2 :size="16" /></div>
-        <p class="ds-stat-label">Tổng đánh giá</p>
-        <strong class="ds-stat-value">{{ totalItems }}</strong>
-        <span class="ds-stat-sub">lượt đánh giá</span>
+  <div class="page reviews-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.courses') }}</span>
+        <h1>{{ t('admin.reviews.title') }}</h1>
+        <p>{{ t('admin.reviews.subtitle') }}</p>
       </div>
-      <div class="ds-stat ds-stat--blue">
-        <div class="ds-stat-icon"><Star :size="16" /></div>
-        <p class="ds-stat-label">Điểm trung bình</p>
-        <strong class="ds-stat-value">{{ avgRating }}</strong>
-        <span class="ds-stat-sub">trên 5 sao</span>
-      </div>
-      <div class="ds-stat ds-stat--green">
-        <div class="ds-stat-icon"><ThumbsUp :size="16" /></div>
-        <p class="ds-stat-label">Tích cực (4-5★)</p>
-        <strong class="ds-stat-value">{{ positivePercent }}<small>%</small></strong>
-        <span class="ds-stat-sub">{{ positiveCount }} đánh giá</span>
-      </div>
-      <div class="ds-stat ds-stat--red">
-        <div class="ds-stat-icon"><ThumbsDown :size="16" /></div>
-        <p class="ds-stat-label">Tiêu cực (1-2★)</p>
-        <strong class="ds-stat-value">{{ negativePercent }}<small>%</small></strong>
-        <span class="ds-stat-sub">{{ negativeCount }} đánh giá</span>
-      </div>
-    </div>
+    </header>
 
-    <!-- Panel -->
-    <section class="dashboard-card crud-panel">
-      <!-- Toolbar -->
-      <div class="crud-toolbar">
-        <div class="crud-toolbar-main">
-          <input
-            v-model="search"
-            class="crud-search"
-            type="text"
-            placeholder="Tìm nội dung đánh giá..."
-            @keyup.enter="fetchReviews(1)"
-          >
-          <select v-model="ratingFilter" class="crud-select" @change="fetchReviews(1)">
-            <option value="">Tất cả sao</option>
-            <option value="5">5 sao ★★★★★</option>
-            <option value="4">4 sao ★★★★</option>
-            <option value="3">3 sao ★★★</option>
-            <option value="2">2 sao ★★</option>
-            <option value="1">1 sao ★</option>
-          </select>
+    <section class="table-panel">
+      <div class="filter-bar">
+        <div class="filter-title">
+          <strong>{{ t('admin.reviews.filters') }}</strong>
+          <Tag v-if="activeFilterCount" :value="String(activeFilterCount)" severity="info" />
         </div>
-        <div class="crud-toolbar-right">
-          <button type="button" class="crud-export-btn" @click="exportCSV">
-            <Download :size="16" :stroke-width="1.75" />
-            Xuất CSV
-          </button>
+        <div class="filter-grid">
+          <label class="field">
+            <span>{{ t('admin.reviews.rating') }}</span>
+            <Select
+              v-model="filters.rating"
+              :options="ratingOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </label>
+        </div>
+        <div class="filter-actions">
+          <Button :label="t('admin.reviews.apply')" icon="pi pi-filter" size="small" @click="applyFilters" />
+          <Button :label="t('admin.reviews.reset')" severity="secondary" text size="small" @click="resetFilters" />
         </div>
       </div>
 
-      <!-- Skeleton -->
-      <div v-if="loading" class="rv-grid">
-        <div v-for="i in 9" :key="i" class="rv-skeleton" />
+      <div class="table-toolbar">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="tableSearch" :placeholder="t('admin.reviews.searchPh')" @input="onTableSearch" />
+        </IconField>
+        <div class="toolbar-actions">
+          <strong>{{ t('admin.users.result', { n: total }) }}</strong>
+          <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
+        </div>
       </div>
 
-      <!-- Empty -->
-      <div v-else-if="reviews.length === 0" class="crud-empty">
-        Không có đánh giá nào khớp với bộ lọc.
-      </div>
-
-      <!-- Grid -->
-      <div v-else class="rv-grid">
-        <div
-          v-for="review in reviews"
-          :key="review.id"
-          class="rv-card"
-          :class="`rv-card--${ratingTier(review.rating)}`"
-        >
-          <!-- Top row: avatar + meta + delete -->
-          <div class="rv-top">
-            <div class="rv-avatar">
-              {{ review.user?.name?.slice(0, 2).toUpperCase() || 'HV' }}
+      <DataTable
+        :value="rows"
+        data-key="id"
+        :loading="loading"
+        lazy
+        paginator
+        :rows="perPage"
+        :total-records="total"
+        :rows-per-page-options="[10, 15, 25, 50]"
+        @page="onPage"
+      >
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ (page - 1) * perPage + index + 1 }}</template>
+        </Column>
+        <Column :header="t('admin.reviews.learner')" style="min-width:160px">
+          <template #body="{ data }">
+            <div>
+              <strong>{{ data.user?.name || t('admin.reviews.anonymous') }}</strong>
+              <small>{{ data.user?.email || '—' }}</small>
             </div>
-            <div class="rv-meta">
-              <strong class="rv-name">{{ review.user?.name || 'Ẩn danh' }}</strong>
-              <span class="rv-date">{{ formatDate(review.created_at) }}</span>
-            </div>
-            <button class="rv-del" type="button" title="Xoá" @click="removeReview(review)">
-              <Trash2 :size="14" />
-            </button>
-          </div>
-
-          <!-- Stars + badge -->
-          <div class="rv-rating-row">
-            <div class="rv-stars">
-              <Star
-                v-for="star in 5"
-                :key="star"
-                :size="13"
-                :stroke-width="1.5"
-                :style="{
-                  color: star <= review.rating ? '#f59e0b' : 'var(--line-strong)',
-                  fill: star <= review.rating ? '#f59e0b' : 'none',
-                }"
-              />
-            </div>
-            <span class="rv-badge" :class="`rv-badge--${ratingTier(review.rating)}`">
-              {{ review.rating }}/5
-            </span>
-          </div>
-
-          <!-- Comment -->
-          <p class="rv-comment">{{ review.comment || 'Không có nhận xét chi tiết.' }}</p>
-
-          <!-- Course tag -->
-          <div class="rv-course">
-            <BookOpen :size="12" :stroke-width="1.75" />
-            <span>{{ review.course?.title || 'Không rõ khoá học' }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="crud-pagination">
-        <p>Trang {{ currentPage }} / {{ totalPages }} — {{ totalItems }} đánh giá</p>
-        <div class="crud-pagination-actions">
-          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchReviews(currentPage - 1)">Trước</button>
-          <div class="pagination-numbers">
-            <button
-              v-for="p in visiblePages"
-              :key="p"
-              class="pagination-num-btn"
-              :class="{ 'is-active': p === currentPage }"
-              type="button"
-              @click="fetchReviews(p)"
-            >{{ p }}</button>
-          </div>
-          <button class="pagination-num-btn" type="button" :disabled="currentPage >= totalPages" @click="fetchReviews(currentPage + 1)">Sau</button>
-        </div>
-      </div>
+          </template>
+        </Column>
+        <Column :header="t('admin.reviews.course')" style="min-width:180px">
+          <template #body="{ data }">{{ data.course?.title || '—' }}</template>
+        </Column>
+        <Column :header="t('admin.reviews.rating')" style="width:110px">
+          <template #body="{ data }">
+            <span class="pill" :class="ratingTone(data.rating)">{{ data.rating }}/5</span>
+          </template>
+        </Column>
+        <Column :header="t('admin.reviews.comment')" style="min-width:220px">
+          <template #body="{ data }">
+            <p class="comment">{{ data.comment || t('admin.reviews.noComment') }}</p>
+          </template>
+        </Column>
+        <Column :header="t('admin.reviews.createdAt')" style="width:120px">
+          <template #body="{ data }">{{ fmtDate(data.created_at) }}</template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:5rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-trash" text rounded severity="danger" @click="askDelete(data)" />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('common.noData') }}</div>
+        </template>
+      </DataTable>
     </section>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-/* ── Skeleton ── */
-.rv-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
+.reviews-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
+}
+.filter-bar { margin-bottom: 12px; }
+.filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.filter-actions { display: flex; gap: 8px; margin-top: 10px; }
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.toolbar-actions { display: flex; align-items: center; gap: 8px; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; }
+.w-full { width: 100%; }
+
+small { display: block; color: var(--text-muted); margin-top: 2px; }
+.comment {
+  margin: 0; max-width: 360px; white-space: pre-wrap;
+  color: var(--text-muted); font-size: .9rem; font-weight: 500;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
 
-.rv-skeleton {
-  height: 156px;
-  background: var(--bg, #eff2f0);
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  animation: rv-pulse 1.4s ease-in-out infinite;
+.pill {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+  font-size: .72rem; font-weight: 700;
 }
+.tone-good { background: #dcfce7; color: #15803d; }
+.tone-mid { background: #fef3c7; color: #b45309; }
+.tone-bad { background: #fee2e2; color: #b91c1c; }
 
-@keyframes rv-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-
-/* ── Review Card ── */
-.rv-card {
-  background: var(--surface-strong, #fff);
-  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
-  border-left-width: 3px;
-  border-left-color: var(--line-strong, rgba(31,49,43,0.16));
-  border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: box-shadow 160ms ease, transform 160ms ease;
-}
-
-.rv-card:hover {
-  box-shadow: 0 6px 20px rgba(31,49,43,0.08);
-  transform: translateY(-1px);
-}
-
-.rv-card--positive { border-left-color: var(--green, #1d9e75); }
-.rv-card--neutral  { border-left-color: #f59e0b; }
-.rv-card--negative { border-left-color: #ef4444; }
-
-/* ── Top row ── */
-.rv-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.rv-avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--green-soft, #e1f5ee);
-  border: 1.5px solid rgba(29,158,117,0.25);
-  color: var(--green-deep, #085041);
-  font-size: 0.72rem;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  letter-spacing: 0.3px;
-}
-
-.rv-meta {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.rv-name {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-}
-
-.rv-date {
-  font-size: 0.7rem;
-  color: var(--muted);
-}
-
-.rv-del {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color 140ms, background 140ms, border-color 140ms;
-}
-
-.rv-del:hover {
-  color: #ef4444;
-  background: #fff1f2;
-  border-color: rgba(239,68,68,0.2);
-}
-
-/* ── Rating row ── */
-.rv-rating-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rv-stars {
-  display: flex;
-  gap: 2px;
-}
-
-.rv-badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.rv-badge--positive {
-  background: rgba(29,158,117,0.1);
-  color: var(--green-deep, #085041);
-}
-
-.rv-badge--neutral {
-  background: rgba(245,158,11,0.12);
-  color: #92400e;
-}
-
-.rv-badge--negative {
-  background: rgba(239,68,68,0.1);
-  color: #b91c1c;
-}
-
-/* ── Comment ── */
-.rv-comment {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--text);
-  line-height: 1.6;
-  flex: 1;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* ── Course tag ── */
-.rv-course {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  background: var(--bg, #eff2f0);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--muted);
-  margin-top: auto;
-}
-
-.rv-course span {
-  font-size: 0.72rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Dark Mode ── */
-[data-theme="dark"] .rv-stat {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.1);
-}
-
-[data-theme="dark"] .rv-card {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.1);
-}
-
-[data-theme="dark"] .rv-card--positive { border-left-color: #5DCAA5; }
-[data-theme="dark"] .rv-card--neutral  { border-left-color: #fbbf24; }
-[data-theme="dark"] .rv-card--negative { border-left-color: #f87171; }
-
-[data-theme="dark"] .rv-skeleton {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .rv-course {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .rv-del:hover {
-  background: rgba(239,68,68,0.15);
-  border-color: rgba(239,68,68,0.25);
-}
-
-[data-theme="dark"] .rv-avatar {
-  background: rgba(29,158,117,0.2);
-  border-color: rgba(29,158,117,0.3);
-}
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .rv-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
-  .rv-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-  .rv-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.empty { padding: 36px; text-align: center; color: var(--text-muted); }
 </style>

@@ -8,7 +8,7 @@ import '../models/exam_list_model.dart';
 part 'exam_list_repository.g.dart';
 
 @riverpod
-ExamListRepository examListRepository(Ref ref) =>
+ExamListRepository examListRepository(ExamListRepositoryRef ref) =>
     ExamListRepository(dio: ref.read(apiClientProvider));
 
 class ExamListRepository {
@@ -22,11 +22,27 @@ class ExamListRepository {
         '/me/exams',
         queryParameters: tab != null && tab.isNotEmpty ? {'tab': tab} : null,
       );
-      final data = response.data!;
-      final list = data['data'] as List<dynamic>? ?? data as List<dynamic>? ?? [];
-      return list
-          .map((e) => ExamListItemModel.fromJson(e as Map<String, dynamic>))
+      final data = response.data ?? <String, dynamic>{};
+      final raw = data['exams'] ?? data['data'] ?? data['items'];
+      final list = raw is List ? raw : <dynamic>[];
+      var exams = list
+          .whereType<Map>()
+          .map((e) => ExamListItemModel.fromJson(Map<String, dynamic>.from(e)))
           .toList();
+
+      // Backend returns all exams; filter tabs on client.
+      switch (tab) {
+        case 'upcoming':
+          exams = exams.where((e) => e.isUpcoming).toList();
+          break;
+        case 'active':
+          exams = exams.where((e) => e.isLive).toList();
+          break;
+        case 'done':
+          exams = exams.where((e) => e.isDone).toList();
+          break;
+      }
+      return exams;
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }

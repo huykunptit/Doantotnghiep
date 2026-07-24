@@ -1,23 +1,21 @@
-<script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import DataTableFooter from '~/components/common/DataTableFooter.vue'
-import UiStatCard from '~/components/dashboard/charts/UiStatCard.vue'
+﻿<script setup lang="ts">
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
 
 interface AiSettings {
   id: number
   provider: string
   model: string
-  api_key?: string
   monthly_token_quota: number
   tokens_used: number
   max_requests_per_minute: number
   is_active: boolean
-  quota_reset_at?: string
+  quota_reset_at?: string | null
   has_api_key: boolean
   usage_percent: number
 }
@@ -29,47 +27,45 @@ interface AiStats {
   unique_users: number
   total_tokens: number
   avg_response_time: number
+  total_cvs?: number
+  total_recommendations?: number
 }
 
-interface EndpointStat { endpoint: string; count: number; tokens: number }
-interface ProviderStat  { provider: string; count: number; tokens: number }
-interface DailyPoint    { date: string; count: number; tokens: number }
-
+interface EndpointStat { endpoint: string, count: number, tokens: number }
+interface ProviderStat { provider: string, count: number, tokens: number }
+interface DailyPoint { date: string, count: number, tokens: number }
 interface RecentLog {
   id: number
-  user?: { name: string; email: string; avatar?: string }
+  user?: { name?: string, email?: string } | null
   endpoint: string
   provider: string
   model: string
   tokens_used: number
   response_time_ms: number
-  status: 'success' | 'error'
-  error_message?: string
+  status: 'success' | 'error' | string
+  error_message?: string | null
   created_at: string
 }
+interface ProviderModel { id: string, name: string, tier: string }
+interface Provider { id: string, name: string, color?: string, models: ProviderModel[] }
 
-interface ProviderModel { id: string; name: string; tier: string }
-interface Provider      { id: string; name: string; icon: string; color: string; models: ProviderModel[] }
+const { t, locale } = useI18n()
+const toast = useToast()
+const confirm = useConfirm()
 
-// ─── State ────────────────────────────────────────────────────────────────────
-
-const loading   = ref(true)
-const saving    = ref(false)
+const loading = ref(true)
+const saving = ref(false)
 const resetting = ref(false)
-const error     = ref('')
-const success   = ref('')
 
-const settings     = ref<AiSettings | null>(null)
-const stats        = ref<AiStats | null>(null)
-const byEndpoint   = ref<EndpointStat[]>([])
-const byProvider   = ref<ProviderStat[]>([])
-const dailyPoints  = ref<DailyPoint[]>([])
-const recentLogs   = ref<RecentLog[]>([])
-const providers    = ref<Provider[]>([])
-const logPage      = ref(1)
-const logPerPage   = ref(10)
+const settings = ref<AiSettings | null>(null)
+const stats = ref<AiStats | null>(null)
+const byEndpoint = ref<EndpointStat[]>([])
+const byProvider = ref<ProviderStat[]>([])
+const dailyPoints = ref<DailyPoint[]>([])
+const recentLogs = ref<RecentLog[]>([])
+const providers = ref<Provider[]>([])
 
-const form = ref({
+const form = reactive({
   provider: 'chatgpt',
   model: 'gpt-4o-mini',
   api_key: '',
@@ -78,136 +74,27 @@ const form = ref({
   is_active: true,
 })
 
-// ─── Composable ───────────────────────────────────────────────────────────────
-
-const token = useAuthTokenCookie()
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
-
-// ─── Fetch ────────────────────────────────────────────────────────────────────
-
-async function fetchDashboard() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [dash, prov] = await Promise.all([
-      useApi<any>('/admin/ai/dashboard', { headers: authHeaders() }),
-      useApi<any>('/admin/ai/providers',  { headers: authHeaders() }),
-    ])
-
-    settings.value   = dash.settings
-    stats.value      = dash.stats
-    byEndpoint.value = dash.by_endpoint  ?? []
-    byProvider.value = dash.by_provider  ?? []
-    dailyPoints.value = dash.daily_requests ?? []
-    recentLogs.value = dash.recent_logs  ?? []
-    providers.value  = prov.providers    ?? []
-
-    if (settings.value) {
-      form.value.provider              = settings.value.provider
-      form.value.model                 = settings.value.model
-      form.value.monthly_token_quota   = settings.value.monthly_token_quota
-      form.value.max_requests_per_minute = settings.value.max_requests_per_minute
-      form.value.is_active             = settings.value.is_active
-    }
-  }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Không thể tải dữ liệu AI.'
-  }
-  finally {
-    loading.value = false
-  }
-}
-
-async function saveSettings() {
-  saving.value = true
-  success.value = ''
-  error.value   = ''
-  try {
-    const body: any = {
-      provider:                form.value.provider,
-      model:                   form.value.model,
-      monthly_token_quota:     form.value.monthly_token_quota,
-      max_requests_per_minute: form.value.max_requests_per_minute,
-      is_active:               form.value.is_active,
-    }
-    if (form.value.api_key.trim()) body.api_key = form.value.api_key.trim()
-
-    const res = await useApi<any>('/admin/ai/settings', {
-      method: 'PUT',
-      body,
-      headers: authHeaders(),
-    })
-    settings.value    = res.settings
-    form.value.api_key = ''
-    success.value = 'Đã lưu cài đặt AI.'
-  }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Không thể lưu cài đặt.'
-  }
-  finally {
-    saving.value = false
-  }
-}
-
-async function resetQuota() {
-  if (!confirm('Reset token quota về 0?')) return
-  resetting.value = true
-  try {
-    const res = await useApi<any>('/admin/ai/reset-quota', {
-      method: 'POST',
-      headers: authHeaders(),
-    })
-    settings.value = res.settings
-    if (stats.value) stats.value.total_tokens = 0
-    success.value = 'Đã reset quota.'
-  }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Không thể reset quota.'
-  }
-  finally {
-    resetting.value = false
-  }
-}
-
-// ─── Computed ────────────────────────────────────────────────────────────────
-
-const currentProvider = computed(() =>
-  providers.value.find(p => p.id === form.value.provider)
+const providerOptions = computed(() =>
+  providers.value.map(p => ({ label: p.name, value: p.id })),
 )
 
-const availableModels = computed(() =>
-  currentProvider.value?.models ?? []
-)
+const modelOptions = computed(() => {
+  const current = providers.value.find(p => p.id === form.provider)
+  return (current?.models || []).map(m => ({
+    label: m.name,
+    value: m.id,
+    tier: m.tier,
+  }))
+})
 
 const usagePercent = computed(() => settings.value?.usage_percent ?? 0)
-const logLastPage = computed(() => Math.max(1, Math.ceil(recentLogs.value.length / logPerPage.value)))
-const pagedLogs = computed(() => {
-  const start = (logPage.value - 1) * logPerPage.value
-  return recentLogs.value.slice(start, start + logPerPage.value)
-})
-
-const quotaBarColor = computed(() => {
-  if (usagePercent.value >= 90) return '#dc2626'
-  if (usagePercent.value >= 70) return '#d97706'
-  return 'var(--green)'
-})
-
 const tokensRemaining = computed(() => {
   if (!settings.value) return 0
   return Math.max(0, settings.value.monthly_token_quota - settings.value.tokens_used)
 })
-
 const chartMax = computed(() => Math.max(...dailyPoints.value.map(d => d.tokens), 1))
 
-function tierBadge(tier: string) {
-  const map: Record<string, { label: string; color: string }> = {
-    free:     { label: 'Free',    color: '#16a34a' },
-    economy:  { label: 'Economy', color: '#2563eb' },
-    standard: { label: 'Standard', color: '#7c3aed' },
-    premium:  { label: 'Premium', color: '#b45309' },
-  }
-  return map[tier] ?? { label: tier, color: '#64748b' }
-}
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 
 function formatK(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -219,8 +106,12 @@ function formatMs(ms: number) {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`
 }
 
-function formatDate(str: string) {
-  return new Date(str).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+function formatDate(str?: string | null) {
+  if (!str) return '—'
+  return new Intl.DateTimeFormat(numberLocale.value, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(str))
 }
 
 function formatDayLabel(str: string) {
@@ -228,467 +119,453 @@ function formatDayLabel(str: string) {
   return `${d.getDate()}/${d.getMonth() + 1}`
 }
 
-onMounted(fetchDashboard)
+function quotaTone() {
+  if (usagePercent.value >= 90) return 'tone-danger'
+  if (usagePercent.value >= 70) return 'tone-warn'
+  return 'tone-ok'
+}
+
+function applyForm(s: AiSettings) {
+  form.provider = s.provider
+  form.model = s.model
+  form.monthly_token_quota = s.monthly_token_quota
+  form.max_requests_per_minute = s.max_requests_per_minute
+  form.is_active = s.is_active
+  form.api_key = ''
+}
+
+async function load() {
+  loading.value = true
+  try {
+    const [dash, prov] = await Promise.all([
+      useApi<{
+        settings: AiSettings
+        stats: AiStats
+        by_endpoint?: EndpointStat[]
+        by_provider?: ProviderStat[]
+        daily_requests?: DailyPoint[]
+        recent_logs?: RecentLog[]
+      }>('/admin/ai/dashboard'),
+      useApi<{ providers: Provider[] }>('/admin/ai/providers'),
+    ])
+    settings.value = dash.settings
+    stats.value = dash.stats
+    byEndpoint.value = dash.by_endpoint ?? []
+    byProvider.value = dash.by_provider ?? []
+    dailyPoints.value = dash.daily_requests ?? []
+    recentLogs.value = dash.recent_logs ?? []
+    providers.value = prov.providers ?? []
+    if (dash.settings) applyForm(dash.settings)
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.ai.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+watch(() => form.provider, (next) => {
+  const models = providers.value.find(p => p.id === next)?.models || []
+  if (models.length && !models.some(m => m.id === form.model)) {
+    form.model = models[0]!.id
+  }
+})
+
+async function save() {
+  saving.value = true
+  try {
+    const body: Record<string, unknown> = {
+      provider: form.provider,
+      model: form.model,
+      monthly_token_quota: form.monthly_token_quota,
+      max_requests_per_minute: form.max_requests_per_minute,
+      is_active: form.is_active,
+    }
+    if (form.api_key.trim()) body.api_key = form.api_key.trim()
+
+    const res = await useApi<{ settings: AiSettings }>('/admin/ai/settings', {
+      method: 'PUT',
+      body,
+    })
+    settings.value = res.settings
+    applyForm(res.settings)
+    toast.add({ severity: 'success', summary: t('admin.ai.saved'), life: 2500 })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.ai.saveError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+function askResetQuota() {
+  confirm.require({
+    message: t('admin.ai.resetConfirm'),
+    header: t('admin.ai.resetQuota'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      resetting.value = true
+      try {
+        const res = await useApi<{ settings: AiSettings }>('/admin/ai/reset-quota', { method: 'POST' })
+        settings.value = res.settings
+        toast.add({ severity: 'success', summary: t('admin.ai.resetSuccess'), life: 2500 })
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.ai.resetError'),
+          detail: error?.data?.message,
+          life: 3500,
+        })
+      }
+      finally {
+        resetting.value = false
+      }
+    },
+  })
+}
+
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý AI"
-    description="Cấu hình provider, model, theo dõi token và thống kê sử dụng AI."
-    :breadcrumb="['Admin', 'Quản lý AI']"
-  >
-    <!-- Alert -->
-    <div v-if="error"   class="crud-alert is-error"   >{{ error }}</div>
-    <div v-if="success" class="crud-alert is-success"  >{{ success }}</div>
-
-    <!-- Stats -->
-    <div class="ai-stats-grid">
-      <UiStatCard
-        label="Token đã dùng"
-        :value="formatK(settings?.tokens_used ?? 0)"
-        icon="token"
-        icon-bg="rgba(124,58,237,0.1)"
-        icon-color="#7c3aed"
-        :loading="loading"
-      />
-      <UiStatCard
-        label="Token còn lại"
-        :value="formatK(tokensRemaining)"
-        icon="savings"
-        icon-bg="rgba(22,163,74,0.1)"
-        icon-color="#16a34a"
-        :loading="loading"
-      />
-      <UiStatCard
-        label="Tổng yêu cầu"
-        :value="formatK(stats?.total_requests ?? 0)"
-        icon="chat_bubble"
-        icon-bg="rgba(37,99,235,0.1)"
-        icon-color="#2563eb"
-        :loading="loading"
-      />
-      <UiStatCard
-        label="Thời gian TB"
-        :value="formatMs(stats?.avg_response_time ?? 0)"
-        icon="timer"
-        icon-bg="rgba(217,119,6,0.1)"
-        icon-color="#d97706"
-        :loading="loading"
-      />
-    </div>
-
-    <!-- Quota bar -->
-    <div class="dashboard-card ai-quota-card">
-      <div class="ai-quota-header">
-        <span class="ai-quota-title">Quota tháng này</span>
-        <span class="ai-quota-pct" :style="{ color: quotaBarColor }">{{ usagePercent }}%</span>
+  <div class="page ai-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.system') }}</span>
+        <h1>{{ t('admin.ai.title') }}</h1>
+        <p>{{ t('admin.ai.subtitle') }}</p>
       </div>
-      <div class="ai-quota-bar-bg">
-        <div
-          class="ai-quota-bar-fill"
-          :style="{ width: `${Math.min(usagePercent, 100)}%`, background: quotaBarColor }"
+      <div class="page-actions">
+        <Button
+          :label="t('common.refresh')"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :loading="loading"
+          @click="load"
+        />
+        <Button
+          :label="t('admin.ai.resetQuota')"
+          icon="pi pi-replay"
+          severity="danger"
+          outlined
+          :loading="resetting"
+          :disabled="loading"
+          @click="askResetQuota"
+        />
+        <Button
+          :label="t('common.save')"
+          icon="pi pi-check"
+          :loading="saving"
+          :disabled="loading"
+          @click="save"
         />
       </div>
-      <div class="ai-quota-meta">
-        <span>{{ formatK(settings?.tokens_used ?? 0) }} / {{ formatK(settings?.monthly_token_quota ?? 0) }} tokens</span>
-        <button class="ai-reset-btn" :disabled="resetting" @click="resetQuota">
-          <span class="material-symbols-outlined">restart_alt</span>
-          {{ resetting ? 'Đang reset...' : 'Reset quota' }}
-        </button>
-      </div>
+    </header>
+
+    <div v-if="loading" class="loading-box">
+      <ProgressSpinner style="width:36px;height:36px" stroke-width="4" />
+      <span>{{ t('common.loading') }}</span>
     </div>
 
-    <div class="ai-main-grid">
-      <!-- Settings card -->
-      <div class="dashboard-card ai-settings-card">
-        <h3 class="ai-card-title">
-          <span class="material-symbols-outlined">settings</span> Cài đặt Provider
-        </h3>
-
-        <!-- Provider selector -->
-        <p class="ai-field-label">Provider</p>
-        <div class="ai-provider-grid">
-          <button
-            v-for="prov in providers"
-            :key="prov.id"
-            class="ai-provider-btn"
-            :class="{ 'is-active': form.provider === prov.id }"
-            :style="form.provider === prov.id ? { borderColor: prov.color, boxShadow: `0 0 0 3px ${prov.color}22` } : {}"
-            @click="form.provider = prov.id; form.model = prov.models[0]?.id ?? ''"
-          >
-            <span class="material-symbols-outlined" :style="{ color: prov.color }">{{ prov.icon }}</span>
-            <span class="ai-provider-name">{{ prov.name }}</span>
-          </button>
+    <template v-else>
+      <section class="metric-rail">
+        <div class="metric">
+          <strong>{{ formatK(stats?.total_requests || 0) }}</strong>
+          <span>{{ t('admin.ai.totalRequests') }}</span>
         </div>
-
-        <!-- Model selector -->
-        <p class="ai-field-label">Model</p>
-        <div class="ai-model-grid">
-          <button
-            v-for="m in availableModels"
-            :key="m.id"
-            class="ai-model-btn"
-            :class="{ 'is-active': form.model === m.id }"
-            @click="form.model = m.id"
-          >
-            <span class="ai-model-name">{{ m.name }}</span>
-            <span
-              class="ai-model-tier"
-              :style="{ background: `${tierBadge(m.tier).color}18`, color: tierBadge(m.tier).color }"
-            >{{ tierBadge(m.tier).label }}</span>
-          </button>
+        <div class="metric">
+          <strong>{{ formatK(stats?.success_requests || 0) }}</strong>
+          <span>{{ t('admin.ai.successRequests') }}</span>
         </div>
+        <div class="metric">
+          <strong>{{ formatK(stats?.error_requests || 0) }}</strong>
+          <span>{{ t('admin.ai.errorRequests') }}</span>
+        </div>
+        <div class="metric">
+          <strong>{{ formatK(stats?.unique_users || 0) }}</strong>
+          <span>{{ t('admin.ai.uniqueUsers') }}</span>
+        </div>
+        <div class="metric">
+          <strong>{{ formatK(stats?.total_tokens || 0) }}</strong>
+          <span>{{ t('admin.ai.totalTokens') }}</span>
+        </div>
+        <div class="metric">
+          <strong>{{ formatMs(stats?.avg_response_time || 0) }}</strong>
+          <span>{{ t('admin.ai.avgResponse') }}</span>
+        </div>
+      </section>
 
-        <!-- API Key -->
-        <p class="ai-field-label">
-          API Key
-          <span v-if="settings?.has_api_key" class="ai-key-set">
-            <span class="material-symbols-outlined">check_circle</span> Đã cấu hình
-          </span>
-        </p>
-        <input
-          v-model="form.api_key"
-          type="password"
-          class="ai-input"
-          :placeholder="settings?.has_api_key ? '••••••••  (để trống = giữ key cũ)' : 'Nhập API key...'"
-        />
-
-        <!-- Quota settings -->
-        <div class="ai-row">
-          <div class="ai-col">
-            <p class="ai-field-label">Quota hàng tháng (tokens)</p>
-            <input v-model.number="form.monthly_token_quota" type="number" class="ai-input" min="1000" step="100000" />
+      <div class="grid-2">
+        <section class="panel">
+          <div class="panel-head">
+            <h2>{{ t('admin.ai.settingsTitle') }}</h2>
+            <span class="pill" :class="settings?.is_active ? 'tone-ok' : 'tone-muted'">
+              {{ settings?.is_active ? t('admin.ai.active') : t('admin.ai.inactive') }}
+            </span>
           </div>
-          <div class="ai-col">
-            <p class="ai-field-label">Giới hạn req/phút</p>
-            <input v-model.number="form.max_requests_per_minute" type="number" class="ai-input" min="1" max="1000" />
+
+          <div class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.ai.provider') }}</span>
+              <Select
+                v-model="form.provider"
+                :options="providerOptions"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+              />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.ai.model') }}</span>
+              <Select
+                v-model="form.model"
+                :options="modelOptions"
+                option-label="label"
+                option-value="value"
+                class="w-full"
+              />
+            </label>
+            <label class="field full">
+              <span>{{ t('admin.ai.apiKey') }}</span>
+              <Password
+                v-model="form.api_key"
+                :feedback="false"
+                toggle-mask
+                :placeholder="settings?.has_api_key ? t('admin.ai.apiKeyConfigured') : t('admin.ai.apiKeyPh')"
+                class="w-full"
+                input-class="w-full"
+                :disabled="form.provider === 'ollama'"
+              />
+              <small>{{ form.provider === 'ollama' ? 'Ollama local — không cần API key (model chạy trên máy bạn).' : t('admin.ai.apiKeyHint') }}</small>
+            </label>
+            <label class="field">
+              <span>{{ t('admin.ai.monthlyQuota') }}</span>
+              <InputNumber v-model="form.monthly_token_quota" :min="1000" :step="1000" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.ai.rateLimit') }}</span>
+              <InputNumber v-model="form.max_requests_per_minute" :min="1" :max="1000" class="w-full" />
+            </label>
+            <label class="field switch-field">
+              <span>{{ t('admin.ai.enableAi') }}</span>
+              <ToggleSwitch v-model="form.is_active" />
+            </label>
           </div>
-        </div>
+        </section>
 
-        <!-- Active toggle -->
-        <label class="ai-toggle">
-          <input v-model="form.is_active" type="checkbox" />
-          <span class="ai-toggle-track" />
-          <span class="ai-toggle-label">Kích hoạt AI</span>
-        </label>
-
-        <button class="ai-save-btn" :disabled="saving" @click="saveSettings">
-          <span class="material-symbols-outlined">save</span>
-          {{ saving ? 'Đang lưu...' : 'Lưu cài đặt' }}
-        </button>
-      </div>
-
-      <!-- Right column -->
-      <div class="ai-right-col">
-        <!-- Daily chart -->
-        <div class="dashboard-card ai-chart-card">
-          <h3 class="ai-card-title">
-            <span class="material-symbols-outlined">bar_chart</span> Token theo ngày (14 ngày)
-          </h3>
-          <div v-if="loading" class="ai-chart-skeleton" />
-          <div v-else-if="dailyPoints.length === 0" class="ai-empty">Chưa có dữ liệu</div>
-          <div v-else class="ai-bar-chart">
-            <div
-              v-for="pt in dailyPoints"
-              :key="pt.date"
-              class="ai-bar-col"
-              :title="`${formatDayLabel(pt.date)}: ${formatK(pt.tokens)} tokens, ${pt.count} req`"
-            >
-              <div class="ai-bar-wrap">
-                <div
-                  class="ai-bar"
-                  :style="{ height: `${Math.max(4, Math.round((pt.tokens / chartMax) * 120))}px` }"
-                />
+        <section class="panel">
+          <div class="panel-head">
+            <h2>{{ t('admin.ai.quotaTitle') }}</h2>
+            <span class="pill" :class="quotaTone()">{{ usagePercent }}%</span>
+          </div>
+          <div class="quota-block">
+            <ProgressBar :value="Math.min(100, usagePercent)" :show-value="false" />
+            <div class="quota-meta">
+              <div>
+                <span>{{ t('admin.ai.used') }}</span>
+                <strong>{{ formatK(settings?.tokens_used || 0) }}</strong>
               </div>
-              <span class="ai-bar-label">{{ formatDayLabel(pt.date) }}</span>
+              <div>
+                <span>{{ t('admin.ai.remaining') }}</span>
+                <strong>{{ formatK(tokensRemaining) }}</strong>
+              </div>
+              <div>
+                <span>{{ t('admin.ai.quota') }}</span>
+                <strong>{{ formatK(settings?.monthly_token_quota || 0) }}</strong>
+              </div>
             </div>
+            <small v-if="settings?.quota_reset_at">
+              {{ t('admin.ai.lastReset') }}: {{ formatDate(settings.quota_reset_at) }}
+            </small>
           </div>
-        </div>
 
-        <!-- By endpoint & provider -->
-        <div class="ai-two-col">
-          <div class="dashboard-card">
-            <h3 class="ai-card-title">
-              <span class="material-symbols-outlined">api</span> Theo endpoint
-            </h3>
-            <div v-if="byEndpoint.length === 0" class="ai-empty">Chưa có dữ liệu</div>
-            <div v-for="ep in byEndpoint" :key="ep.endpoint" class="ai-stat-row">
-              <span class="ai-stat-label">{{ ep.endpoint }}</span>
-              <span class="ai-stat-val">{{ formatK(ep.tokens) }}</span>
-              <span class="ai-stat-count">{{ ep.count }} req</span>
+          <div class="chart-block">
+            <h3>{{ t('admin.ai.dailyUsage') }}</h3>
+            <div v-if="dailyPoints.length" class="bars">
+              <div v-for="point in dailyPoints" :key="point.date" class="bar-col">
+                <div
+                  class="bar"
+                  :style="{ height: `${Math.max(8, (point.tokens / chartMax) * 100)}%` }"
+                  :title="`${formatK(point.tokens)} tokens`"
+                />
+                <span>{{ formatDayLabel(point.date) }}</span>
+              </div>
             </div>
+            <p v-else class="empty-inline">{{ t('common.noData') }}</p>
           </div>
-          <div class="dashboard-card">
-            <h3 class="ai-card-title">
-              <span class="material-symbols-outlined">hub</span> Theo provider
-            </h3>
-            <div v-if="byProvider.length === 0" class="ai-empty">Chưa có dữ liệu</div>
-            <div v-for="pv in byProvider" :key="pv.provider" class="ai-stat-row">
-              <span class="ai-stat-label">{{ pv.provider }}</span>
-              <span class="ai-stat-val">{{ formatK(pv.tokens) }}</span>
-              <span class="ai-stat-count">{{ pv.count }} req</span>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
-    </div>
 
-    <!-- Recent logs -->
-    <div class="dashboard-card ai-logs-card">
-      <h3 class="ai-card-title">
-        <span class="material-symbols-outlined">history</span> Nhật ký gần đây
-      </h3>
-      <div v-if="loading" class="ai-empty">Đang tải...</div>
-      <div v-else-if="recentLogs.length === 0" class="ai-empty">Chưa có yêu cầu nào.</div>
-      <div v-else class="ai-table-wrap">
-        <table class="ai-table">
-          <thead>
-            <tr>
-              <th>Người dùng</th>
-              <th>Điểm cuối (Endpoint)</th>
-              <th>Nhà cung cấp / Mô hình</th>
-              <th>Số Token</th>
-              <th>Thời gian phản hồi</th>
-              <th>Trạng thái</th>
-              <th>Thời điểm gọi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="log in pagedLogs" :key="log.id">
-              <td>
-                <div class="ai-user-cell">
-                  <img v-if="log.user?.avatar" :src="log.user.avatar" class="ai-avatar" />
-                  <div v-else class="ai-avatar-placeholder">{{ (log.user?.name ?? '?')[0] }}</div>
-                  <span>{{ log.user?.name ?? '—' }}</span>
-                </div>
-              </td>
-              <td><code class="ai-code">{{ log.endpoint }}</code></td>
-              <td>
-                <span class="ai-provider-tag">{{ log.provider }}</span>
-                <span class="ai-model-tag">{{ log.model }}</span>
-              </td>
-              <td>{{ formatK(log.tokens_used) }}</td>
-              <td>{{ formatMs(log.response_time_ms) }}</td>
-              <td>
-                <span class="ai-status-badge" :class="log.status === 'success' ? 'is-success' : 'is-error'">
-                  {{ log.status === 'success' ? 'OK' : 'Lỗi' }}
-                </span>
-              </td>
-              <td class="ai-date">{{ formatDate(log.created_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <DataTableFooter
-          :current="logPage"
-          :last="logLastPage"
-          :total="recentLogs.length"
-          :per-page="logPerPage"
-          @page="logPage = $event"
-          @update:per-page="logPerPage = $event; logPage = 1"
-        />
+      <div class="grid-2">
+        <section class="panel">
+          <h2>{{ t('admin.ai.byEndpoint') }}</h2>
+          <DataTable :value="byEndpoint" data-key="endpoint" size="small" striped-rows>
+            <Column field="endpoint" :header="t('admin.ai.endpoint')" />
+            <Column field="count" :header="t('admin.ai.requests')" />
+            <Column field="tokens" :header="t('admin.ai.tokens')">
+              <template #body="{ data }">{{ formatK(data.tokens || 0) }}</template>
+            </Column>
+            <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+          </DataTable>
+        </section>
+        <section class="panel">
+          <h2>{{ t('admin.ai.byProvider') }}</h2>
+          <DataTable :value="byProvider" data-key="provider" size="small" striped-rows>
+            <Column field="provider" :header="t('admin.ai.provider')" />
+            <Column field="count" :header="t('admin.ai.requests')" />
+            <Column field="tokens" :header="t('admin.ai.tokens')">
+              <template #body="{ data }">{{ formatK(data.tokens || 0) }}</template>
+            </Column>
+            <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+          </DataTable>
+        </section>
       </div>
-    </div>
-  </AdminWorkspaceShell>
+
+      <section class="panel">
+        <h2>{{ t('admin.ai.recentLogs') }}</h2>
+        <DataTable
+          :value="recentLogs"
+          data-key="id"
+          paginator
+          :rows="10"
+          :rows-per-page-options="[10, 20]"
+          striped-rows
+          size="small"
+        >
+          <Column :header="t('admin.ai.user')" style="min-width:160px">
+            <template #body="{ data }">
+              <div class="user-cell">
+                <strong>{{ data.user?.name || '—' }}</strong>
+                <small>{{ data.user?.email || '' }}</small>
+              </div>
+            </template>
+          </Column>
+          <Column field="endpoint" :header="t('admin.ai.endpoint')" />
+          <Column field="provider" :header="t('admin.ai.provider')" />
+          <Column field="model" :header="t('admin.ai.model')" />
+          <Column field="tokens_used" :header="t('admin.ai.tokens')">
+            <template #body="{ data }">{{ formatK(data.tokens_used || 0) }}</template>
+          </Column>
+          <Column field="response_time_ms" :header="t('admin.ai.responseTime')">
+            <template #body="{ data }">{{ formatMs(data.response_time_ms || 0) }}</template>
+          </Column>
+          <Column field="status" :header="t('admin.ai.status')">
+            <template #body="{ data }">
+              <span class="pill" :class="data.status === 'success' ? 'tone-ok' : 'tone-danger'">
+                {{ data.status }}
+              </span>
+            </template>
+          </Column>
+          <Column field="created_at" :header="t('admin.ai.time')">
+            <template #body="{ data }">{{ formatDate(data.created_at) }}</template>
+          </Column>
+          <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+        </DataTable>
+      </section>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-/* Stats */
-.ai-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 16px;
+.ai-page { gap: 14px; }
+.workspace-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
-@media (max-width: 900px) { .ai-stats-grid { grid-template-columns: repeat(2, 1fr); } }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* Quota */
-.ai-quota-card { margin-bottom: 16px; }
-.ai-quota-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.ai-quota-title  { font-weight: 700; font-size: 0.9rem; }
-.ai-quota-pct    { font-size: 1.1rem; font-weight: 800; }
-.ai-quota-bar-bg { height: 10px; background: var(--surface-dim, #e5e7eb); border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
-.ai-quota-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
-.ai-quota-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--on-surface-variant); }
-.ai-reset-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 5px 12px; border-radius: 8px; border: 1px solid var(--surface-dim);
-  background: transparent; cursor: pointer; font-size: 0.82rem; color: var(--on-surface-variant);
-  transition: background 0.15s;
-}
-.ai-reset-btn:hover { background: var(--surface-low); }
-.ai-reset-btn .material-symbols-outlined { font-size: 16px; }
-.ai-reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* Main grid */
-.ai-main-grid {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-  align-items: start;
-}
-@media (max-width: 1100px) { .ai-main-grid { grid-template-columns: 1fr; } }
-
-/* Settings card */
-.ai-card-title {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.92rem; font-weight: 700; margin: 0 0 16px;
-}
-.ai-card-title .material-symbols-outlined { font-size: 18px; color: var(--green); }
-
-.ai-field-label {
-  font-size: 0.76rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: var(--on-surface-variant); margin: 0 0 8px;
-  display: flex; align-items: center; gap: 6px;
-}
-.ai-key-set {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 0.72rem; color: #16a34a; text-transform: none; letter-spacing: 0;
-}
-.ai-key-set .material-symbols-outlined { font-size: 13px; }
-
-/* Provider buttons */
-.ai-provider-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
-.ai-provider-btn {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--surface-dim);
-  background: var(--surface-lowest); cursor: pointer; font-size: 0.85rem;
-  font-weight: 600; color: var(--on-surface); transition: all 0.15s;
-}
-.ai-provider-btn:hover { background: var(--surface-low); }
-.ai-provider-btn.is-active { background: var(--surface-low); }
-.ai-provider-btn .material-symbols-outlined { font-size: 20px; }
-.ai-provider-name { line-height: 1.2; }
-
-/* Model buttons */
-.ai-model-grid { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; max-height: 220px; overflow-y: auto; }
-.ai-model-btn {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--surface-dim);
-  background: var(--surface-lowest); cursor: pointer; text-align: left; transition: all 0.15s;
-}
-.ai-model-btn:hover  { background: var(--surface-low); }
-.ai-model-btn.is-active { border-color: var(--green); background: rgba(var(--green-rgb), 0.06); }
-.ai-model-name { font-size: 0.85rem; font-weight: 500; color: var(--on-surface); }
-.ai-model-tier {
-  font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
-  border-radius: 99px; text-transform: uppercase; letter-spacing: 0.06em;
+.loading-box {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 240px; color: var(--text-muted);
 }
 
-/* Input */
-.ai-input {
-  width: 100%; padding: 9px 12px; border-radius: 9px;
-  border: 1.5px solid var(--surface-dim); background: var(--surface-lowest);
-  font-size: 0.88rem; color: var(--on-surface); outline: none;
-  transition: border-color 0.15s; margin-bottom: 14px; box-sizing: border-box;
+.metric-rail {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px;
 }
-.ai-input:focus { border-color: var(--green); }
+.metric {
+  display: flex; flex-direction: column; gap: 2px;
+  min-height: 72px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
+}
+.metric strong { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; }
+.metric span { color: var(--text-muted); font-size: .74rem; font-weight: 600; }
 
-.ai-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.ai-col  {}
+.grid-2 { display: grid; grid-template-columns: 1.1fr .9fr; gap: 12px; }
+.panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 16px;
+}
+.panel h2 { margin: 0 0 12px; font-size: 1.05rem; }
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px;
+}
+.panel-head h2 { margin: 0; }
 
-/* Toggle */
-.ai-toggle {
-  display: flex; align-items: center; gap: 10px;
-  cursor: pointer; margin-bottom: 16px; user-select: none;
-}
-.ai-toggle input { display: none; }
-.ai-toggle-track {
-  width: 38px; height: 22px; border-radius: 99px;
-  background: var(--surface-dim); position: relative; transition: background 0.2s;
-  flex-shrink: 0;
-}
-.ai-toggle-track::after {
-  content: ''; position: absolute; top: 3px; left: 3px;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: #fff; transition: transform 0.2s;
-}
-.ai-toggle input:checked ~ .ai-toggle-track { background: var(--green); }
-.ai-toggle input:checked ~ .ai-toggle-track::after { transform: translateX(16px); }
-.ai-toggle-label { font-size: 0.88rem; font-weight: 600; color: var(--on-surface); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.field small { color: var(--text-muted); font-size: .74rem; font-weight: 500; }
+.field.full { grid-column: 1 / -1; }
+.switch-field { flex-direction: row; align-items: center; justify-content: space-between; }
+.w-full { width: 100%; }
 
-.ai-save-btn {
-  display: flex; align-items: center; gap: 6px; justify-content: center;
-  width: 100%; padding: 11px; border-radius: 10px; border: none;
-  background: var(--green); color: #fff; font-size: 0.9rem; font-weight: 700;
-  cursor: pointer; transition: opacity 0.15s;
+.quota-block { display: grid; gap: 12px; margin-bottom: 18px; }
+.quota-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.quota-meta span { display: block; color: var(--text-muted); font-size: .7rem; font-weight: 700; }
+.quota-meta strong { font-size: .95rem; }
+.chart-block h3 { margin: 0 0 10px; font-size: .9rem; }
+.bars {
+  display: flex; align-items: flex-end; gap: 6px; height: 120px;
 }
-.ai-save-btn:hover   { opacity: 0.88; }
-.ai-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ai-save-btn .material-symbols-outlined { font-size: 18px; }
+.bar-col {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  height: 100%; gap: 4px;
+}
+.bar {
+  width: 100%; max-width: 18px; border-radius: 6px 6px 2px 2px;
+  background: color-mix(in srgb, var(--brand) 75%, #94a3b8);
+}
+.bar-col span { color: var(--text-muted); font-size: .62rem; font-weight: 600; }
 
-/* Right col */
-.ai-right-col { display: flex; flex-direction: column; gap: 16px; }
+.pill {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+  font-size: .74rem; font-weight: 700; white-space: nowrap;
+}
+.tone-ok { background: #dcfce7; color: #15803d; }
+.tone-warn { background: #fef9c3; color: #a16207; }
+.tone-danger { background: #fee2e2; color: #b91c1c; }
+.tone-muted { background: var(--surface-hover); color: var(--text-muted); }
 
-/* Chart */
-.ai-chart-card {}
-.ai-chart-skeleton { height: 140px; background: var(--surface-low); border-radius: 10px; animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-.ai-bar-chart {
-  display: flex; align-items: flex-end; gap: 6px;
-  height: 140px; padding-top: 8px;
-}
-.ai-bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 4px; }
-.ai-bar-wrap { flex: 1; display: flex; align-items: flex-end; }
-.ai-bar {
-  width: 100%; background: var(--green); border-radius: 4px 4px 0 0;
-  opacity: 0.8; transition: opacity 0.15s; min-height: 4px;
-}
-.ai-bar-col:hover .ai-bar { opacity: 1; }
-.ai-bar-label { font-size: 0.65rem; color: var(--on-surface-variant); white-space: nowrap; }
+.user-cell strong { display: block; font-size: .86rem; }
+.user-cell small { color: var(--text-muted); font-size: .74rem; }
+.empty, .empty-inline { padding: 20px; color: var(--text-muted); text-align: center; }
 
-/* Two col */
-.ai-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 700px) { .ai-two-col { grid-template-columns: 1fr; } }
-
-.ai-stat-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 0; border-bottom: 1px solid var(--surface-dim); font-size: 0.84rem;
+@media (max-width: 1100px) {
+  .metric-rail { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
 }
-.ai-stat-row:last-child { border-bottom: none; }
-.ai-stat-label { flex: 1; color: var(--on-surface); font-weight: 500; }
-.ai-stat-val   { font-weight: 700; color: var(--on-surface); }
-.ai-stat-count { font-size: 0.76rem; color: var(--on-surface-variant); }
-
-/* Logs */
-.ai-logs-card {}
-.ai-table-wrap { overflow-x: auto; }
-.ai-table {
-  width: 100%; border-collapse: collapse; font-size: 0.84rem;
+@media (max-width: 700px) {
+  .metric-rail, .form-grid, .quota-meta { grid-template-columns: 1fr; }
 }
-.ai-table th {
-  text-align: left; padding: 8px 12px; font-size: 0.72rem;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--on-surface-variant); border-bottom: 1px solid var(--surface-dim);
-}
-.ai-table td { padding: 10px 12px; border-bottom: 1px solid var(--surface-dim); vertical-align: middle; }
-.ai-table tr:last-child td { border-bottom: none; }
-
-.ai-user-cell { display: flex; align-items: center; gap: 8px; }
-.ai-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-.ai-avatar-placeholder {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--green); color: #fff;
-  display: grid; place-items: center; font-size: 0.75rem; font-weight: 700;
-}
-.ai-code { font-family: monospace; font-size: 0.78rem; background: var(--surface-low); padding: 2px 6px; border-radius: 4px; }
-.ai-provider-tag {
-  display: inline-block; font-size: 0.72rem; font-weight: 700;
-  background: rgba(124,58,237,0.1); color: #7c3aed;
-  padding: 2px 6px; border-radius: 4px; margin-right: 4px;
-}
-.ai-model-tag {
-  display: inline-block; font-size: 0.72rem;
-  color: var(--on-surface-variant); font-family: monospace;
-}
-.ai-status-badge {
-  display: inline-block; padding: 2px 10px; border-radius: 99px;
-  font-size: 0.74rem; font-weight: 700;
-}
-.ai-status-badge.is-success { background: rgba(22,163,74,0.1); color: #16a34a; }
-.ai-status-badge.is-error   { background: rgba(220,38,38,0.1); color: #dc2626; }
-.ai-date { color: var(--on-surface-variant); font-size: 0.8rem; white-space: nowrap; }
-
-.ai-empty { color: var(--on-surface-variant); font-size: 0.88rem; padding: 16px 0; text-align: center; }
 </style>

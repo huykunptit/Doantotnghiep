@@ -1,0 +1,54 @@
+---
+description: Roadmap module admin — trạng thái triển khai UI
+globs: frontend/app/pages/admin/**/*
+alwaysApply: false
+---
+
+# Admin module roadmap
+
+Thiết kế theo contract `sylva-admin-crud.mdc`. UI + API + fix trong cùng vòng.
+
+## Trạng thái
+
+| Module | Trạng thái |
+|--------|------------|
+| Dashboard | Done |
+| Người dùng + Phân quyền | Done |
+| Học vụ (calendar, catalog, lớp HC, lớp TC, ghi danh, CTĐT) | Done |
+| **Portal GV** (`/instructor`) | Done — dashboard, courses+builder, revenue, students |
+| **Portal SV** (`/student`, catalog, checkout, learn) | Done — B2C → PayOS/sandbox → player |
+| **AI cá nhân hoá** (recommend, learn tip, SV chat + `course_id`) | Done |
+| **Mobile Flutter SV** | Done — recommend, AI chat, learn tip, catalog/buy/learn/quiz |
+| Khóa học (duyệt, manage, **builder**, categories, reviews, certs) | Done |
+| Khảo thí (quiz, NHCH, exam-tracking) | Done |
+| Báo cáo (courses, exams, progress, activity, payments) | Done (thin) |
+| Tài chính (orders + payment report) | Done |
+| AI + chat + settings | Done |
+
+## Smoke-test fixes (done)
+
+- Builder meta: status allow-list includes `pending_review`/`rejected`; thumbnail via `POST` + `_method=PUT`
+- Lesson `video_url` accepts relative/storage paths
+- Question bank `[id]` resolves `courseId` when query missing
+- Academic pickers use `/admin/students` + `/admin/instructors` (not ignored `user_type`)
+- Quiz create requires ≥1 question
+- Dynamic i18n gaps: closed/archived/assignment/scorm
+
+## Out / stub giữ nguyên (không trong menu demo)
+
+- exam-monitor, payouts, points, email-templates, reports/errors, lnd/reports
+
+## Builder scope
+
+**In:** video, page, file, quiz — sections/lessons reorder, publish, video upload  
+**Deferred:** SCORM/H5P/assignment/live class, rich-text nâng cao
+
+## Thứ tự smoke-test đề xuất
+
+1. Users / Roles  
+2. Academic calendar → catalog → classes → sections → enrollment → CTĐT  
+3. Manage courses → builder → approve queue  
+4. Orders  
+5. Quiz + question bank  
+6. AI / chat / settings  
+7. Reports thin

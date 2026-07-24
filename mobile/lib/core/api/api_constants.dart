@@ -17,5 +17,7 @@ class ApiConstants {
   static const googleLoginUrlPath = '/auth/google/url';
   static const enrollmentsPath = '/enrollments';
   static const coursesPath = '/courses';
+  static const careerPathsPath = '/career-paths';
+  static const ordersPath = '/orders';
   static const myCertificatesPath = '/my-certificates';
 }

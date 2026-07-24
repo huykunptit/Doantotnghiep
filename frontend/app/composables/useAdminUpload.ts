@@ -11,30 +11,21 @@ export interface AdminUploadResponse {
 }
 
 export function useAdminUpload() {
-  const token = useAuthTokenCookie()
-
-  async function uploadImage(file: File, folder: 'users' | 'settings' | 'courses', oldPath?: string | null) {
+  async function uploadImage(
+    file: File,
+    folder: 'users' | 'settings' | 'courses',
+    oldPath?: string | null,
+  ) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('folder', folder)
-
-    if (oldPath) {
-      formData.append('old_path', oldPath)
-    }
+    if (oldPath) formData.append('old_path', oldPath)
 
     return await useApi<AdminUploadResponse, FormData>('/admin/upload', {
       method: 'POST',
       body: formData,
-      headers: token.value
-        ? {
-            Authorization: `Bearer ${token.value}`,
-          }
-        : {},
     })
   }
 
-  return {
-    uploadImage,
-  }
+  return { uploadImage }
 }
-

@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { RefreshCw, CloudUpload, Trash2, CircleAlert } from 'lucide-vue-next'
-import { useAdminUpload } from '~/composables/useAdminUpload'
-
 type Folder = 'users' | 'settings' | 'courses'
 type Variant = 'avatar' | 'thumbnail' | 'banner' | 'square'
 
@@ -17,7 +13,6 @@ const props = withDefaults(
     variant?: Variant
     placeholderInitial?: string
     disabled?: boolean
-    /** Auto-delete the previous file on the server when uploading a new one. */
     cleanupPrevious?: boolean
   }>(),
   {
@@ -34,11 +29,12 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | null]
-  uploaded: [payload: { url: string; path: string }]
+  uploaded: [payload: { url: string, path: string }]
   error: [message: string]
 }>()
 
 const { uploadImage } = useAdminUpload()
+const { t } = useI18n()
 
 const inputEl = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
@@ -48,16 +44,11 @@ const lastPath = ref<string | null>(null)
 
 const currentUrl = computed(() => props.modelValue || null)
 const hasImage = computed(() => Boolean(currentUrl.value))
+const variantClass = computed(() => `preview--${props.variant}`)
 
-const variantClass = computed(() => `media-upload-preview--${props.variant}`)
-
-watch(
-  () => props.modelValue,
-  (val) => {
-    // Reset cached path when caller swaps the value externally.
-    if (!val) lastPath.value = null
-  },
-)
+watch(() => props.modelValue, (val) => {
+  if (!val) lastPath.value = null
+})
 
 function openPicker() {
   if (props.disabled || isUploading.value) return
@@ -86,19 +77,17 @@ async function onChange(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) await handleFile(file)
-  // Allow re-selecting the same file later.
   target.value = ''
 }
 
 async function handleFile(file: File) {
   errorMessage.value = ''
-
   if (props.accept.startsWith('image/') && !file.type.startsWith('image/')) {
-    fail('Vui lòng chọn tệp hình ảnh.')
+    fail(t('upload.imageOnly'))
     return
   }
   if (file.size > props.maxSizeMb * 1024 * 1024) {
-    fail(`Tệp vượt quá ${props.maxSizeMb}MB.`)
+    fail(t('upload.tooLarge', { n: props.maxSizeMb }))
     return
   }
 
@@ -112,9 +101,11 @@ async function handleFile(file: File) {
     lastPath.value = response.path
     emit('update:modelValue', response.url)
     emit('uploaded', { url: response.url, path: response.path })
-  } catch (err: any) {
-    fail(err?.data?.message || err?.message || 'Tải lên thất bại.')
-  } finally {
+  }
+  catch (err: any) {
+    fail(err?.data?.message || err?.message || t('upload.failed'))
+  }
+  finally {
     isUploading.value = false
   }
 }
@@ -132,54 +123,48 @@ function clear() {
 </script>
 
 <template>
-  <div class="media-upload" :class="{ 'is-disabled': disabled, 'is-dragging': isDragging }">
-    <div class="media-upload-shell">
+  <div class="media-upload" :class="{ disabled, dragging: isDragging }">
+    <div class="shell">
       <div
-        class="media-upload-preview"
+        class="preview"
         :class="variantClass"
+        role="button"
+        tabindex="0"
         @click="openPicker"
+        @keydown.enter.prevent="openPicker"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
         @drop="onDrop"
       >
-        <img v-if="hasImage" :src="currentUrl!" :alt="label" class="media-upload-image">
-        <span v-else class="media-upload-initial">{{ placeholderInitial }}</span>
-
-        <div v-if="isUploading" class="media-upload-overlay">
-          <span class="media-upload-spinner" />
-          <span>Đang tải...</span>
+        <img v-if="hasImage" :src="currentUrl!" :alt="label" class="image">
+        <span v-else class="initial">{{ placeholderInitial }}</span>
+        <div v-if="isUploading" class="overlay">
+          <span class="spinner" />
+          <span>{{ t('upload.uploading') }}</span>
         </div>
       </div>
 
-      <div class="media-upload-body">
-        <p class="media-upload-label">{{ label }}</p>
-        <p class="media-upload-hint">{{ hint }}</p>
-
-        <div class="media-upload-actions">
-          <button
-            type="button"
-            class="media-upload-btn is-primary"
-            :disabled="disabled || isUploading"
-            @click="openPicker"
-          >
-            <RefreshCw v-if="hasImage" :size="18" :stroke-width="1.75" />
-            <CloudUpload v-else :size="18" :stroke-width="1.75" />
-            <span>{{ hasImage ? 'Thay ảnh' : 'Chọn tệp' }}</span>
+      <div class="body">
+        <p class="label">{{ label }}</p>
+        <p class="hint">{{ hint }}</p>
+        <div class="actions">
+          <button type="button" class="btn primary" :disabled="disabled || isUploading" @click="openPicker">
+            <i :class="hasImage ? 'pi pi-refresh' : 'pi pi-cloud-upload'" />
+            <span>{{ hasImage ? t('upload.replace') : t('upload.choose') }}</span>
           </button>
           <button
             v-if="hasImage"
             type="button"
-            class="media-upload-btn is-ghost"
+            class="btn ghost"
             :disabled="disabled || isUploading"
             @click="clear"
           >
-            <Trash2 :size="18" :stroke-width="1.75" />
-            <span>Xoá</span>
+            <i class="pi pi-trash" />
+            <span>{{ t('upload.remove') }}</span>
           </button>
         </div>
-
-        <p v-if="errorMessage" class="media-upload-error">
-          <CircleAlert :size="16" :stroke-width="1.75" />
+        <p v-if="errorMessage" class="error">
+          <i class="pi pi-exclamation-circle" />
           {{ errorMessage }}
         </p>
       </div>
@@ -189,7 +174,7 @@ function clear() {
       ref="inputEl"
       type="file"
       :accept="accept"
-      class="media-upload-input"
+      class="hidden"
       :disabled="disabled || isUploading"
       @change="onChange"
     >
@@ -197,184 +182,57 @@ function clear() {
 </template>
 
 <style scoped>
-.media-upload {
-  width: 100%;
+.media-upload { width: 100%; }
+.shell {
+  display: flex; align-items: stretch; gap: 16px; padding: 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--border) 90%, var(--brand));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
-
-.media-upload-shell {
-  display: flex;
-  align-items: stretch;
-  gap: 16px;
-  padding: 14px;
-  border: 1.5px dashed rgba(17, 17, 17, 0.14);
-  border-radius: 16px;
-  background: rgba(var(--green-rgb), 0.025);
-  transition: border-color 160ms ease, background-color 160ms ease;
+.dragging .shell {
+  border-color: var(--brand);
+  background: var(--brand-soft);
 }
-
-.media-upload.is-dragging .media-upload-shell {
-  border-color: rgba(var(--green-rgb), 0.55);
-  background: rgba(var(--green-rgb), 0.08);
+.disabled { opacity: .55; pointer-events: none; }
+.preview {
+  position: relative; flex-shrink: 0; display: grid; place-items: center;
+  overflow: hidden; cursor: pointer; background: var(--brand-soft); color: var(--brand);
 }
-
-.media-upload.is-disabled {
-  opacity: 0.6;
-  pointer-events: none;
+.preview--avatar { width: 96px; height: 96px; border-radius: 50%; }
+.preview--thumbnail { width: 144px; height: 96px; border-radius: 12px; }
+.preview--banner { width: min(240px, 42vw); height: 96px; border-radius: 12px; }
+.preview--square { width: 96px; height: 96px; border-radius: 12px; }
+.image { width: 100%; height: 100%; object-fit: cover; display: block; }
+.initial { font-weight: 800; font-size: 1.35rem; }
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; gap: 6px;
+  background: rgba(15, 23, 42, .55); color: #fff; font-size: .78rem; font-weight: 650;
 }
-
-.media-upload-preview {
-  position: relative;
-  flex-shrink: 0;
-  background: rgba(var(--green-rgb), 0.08);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  overflow: hidden;
-  color: var(--green-deep);
-  transition: transform 160ms ease, box-shadow 160ms ease;
+.spinner {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2.5px solid rgba(255,255,255,.3); border-top-color: #fff;
+  animation: spin .7s linear infinite;
 }
-.media-upload-preview:hover {
-  transform: translateY(-1px);
+@keyframes spin { to { transform: rotate(360deg); } }
+.body { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.label { margin: 0; font-weight: 750; color: var(--text); }
+.hint { margin: 0; color: var(--text-muted); font-size: .85rem; font-weight: 500; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; border-radius: 999px;
+  padding: 8px 12px; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer;
 }
-
-.media-upload-preview--avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
+.btn.primary { border: 0; background: var(--brand); color: #fff; }
+.btn.ghost {
+  border: 1px solid var(--border); background: transparent; color: var(--text-muted);
 }
-.media-upload-preview--thumbnail {
-  width: 144px;
-  height: 96px;
-  border-radius: 12px;
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.error {
+  margin: 4px 0 0; display: flex; gap: 6px; align-items: center;
+  color: var(--p-red-500, #c0392b); font-size: .82rem; font-weight: 600;
 }
-.media-upload-preview--banner {
-  width: 240px;
-  height: 96px;
-  border-radius: 12px;
-}
-.media-upload-preview--square {
-  width: 96px;
-  height: 96px;
-  border-radius: 12px;
-}
-
-.media-upload-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.media-upload-initial {
-  font-weight: 800;
-  font-size: 1.4rem;
-  letter-spacing: 0.02em;
-}
-
-.media-upload-overlay {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  gap: 6px;
-  background: rgba(17, 17, 17, 0.55);
-  color: #fff;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.media-upload-spinner {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2.5px solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  animation: media-spin 0.7s linear infinite;
-}
-@keyframes media-spin { to { transform: rotate(360deg); } }
-
-.media-upload-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.media-upload-label {
-  margin: 0;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--text);
-}
-
-.media-upload-hint {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
-.media-upload-actions {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.media-upload-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
-  white-space: nowrap;
-}
-.media-upload-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.media-upload-btn.is-primary {
-  background: var(--green-deep, #166534);
-  color: #fff;
-}
-.media-upload-btn.is-primary:hover:not(:disabled) {
-  background: var(--green, #16a34a);
-  transform: translateY(-1px);
-}
-
-.media-upload-btn.is-ghost {
-  background: transparent;
-  color: var(--muted);
-  border-color: rgba(17, 17, 17, 0.12);
-}
-.media-upload-btn.is-ghost:hover:not(:disabled) {
-  background: rgba(220, 38, 38, 0.08);
-  color: #b91c1c;
-  border-color: rgba(220, 38, 38, 0.3);
-}
-
-.media-upload-error {
-  margin: 6px 0 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  color: #b91c1c;
-}
-
-.media-upload-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
+.hidden { display: none; }
+@media (max-width: 560px) {
+  .shell { flex-direction: column; align-items: flex-start; }
 }
 </style>

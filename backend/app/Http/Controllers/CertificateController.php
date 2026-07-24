@@ -121,7 +121,11 @@ class CertificateController extends Controller
 
     public function myCertificates(Request $request): JsonResponse
     {
-        $certificates = UserCertificate::with(['course:id,title', 'certificateTemplate'])
+        $certificates = UserCertificate::with([
+            'course:id,title',
+            'careerPath:id,title,slug',
+            'certificateTemplate',
+        ])
             ->where('user_id', $request->user()->id)
             ->orderByDesc('issued_at')
             ->get();
@@ -131,7 +135,12 @@ class CertificateController extends Controller
 
     public function showByCredential(string $credentialId): JsonResponse
     {
-        $certificate = UserCertificate::with(['user:id,name', 'course:id,title', 'certificateTemplate'])
+        $certificate = UserCertificate::with([
+            'user:id,name',
+            'course:id,title',
+            'careerPath:id,title,slug',
+            'certificateTemplate',
+        ])
             ->where('credential_id', $credentialId)
             ->firstOrFail();
 

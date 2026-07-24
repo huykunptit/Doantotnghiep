@@ -1,0 +1,41 @@
+---
+description: Sylva admin UI patterns — list/filter/CRUD/import/export, test APIs while designing
+globs: frontend/app/pages/admin/**/*.{vue,ts}
+alwaysApply: false
+---
+
+# Admin UI design contract
+
+When building or restyling any admin page, follow `/admin/users` as the reference.
+
+## Layout
+
+- Page head: eyebrow + title + subtitle only (no floating action cluster in the hero).
+- Primary actions (**Import / Export / Add**) live in the **table toolbar**, next to quick search.
+- Filters sit **above the table**, horizontal grid; **Apply / Reset below** the filter fields.
+- Prefer **center Dialog** for View / Create / Edit — not right Drawer for long forms.
+- Surfaces: translucent panel + `body-bg.jpg`; IBM Plex; base ≥ 16.5px / weight ≥ 500.
+
+## Filters & table
+
+- Filters: only fields that matter for that domain; use **MultiSelect** (chips) when multi-value helps.
+- Table: **STT**, quick search, **sortable** columns, colored status/role pills, View + Edit + Delete.
+- Export must respect **active filters** (server-side CSV via `useApiDownload` / native `fetch`).
+
+## Import UX
+
+- Clear steps: (1) download template → (2) drag-drop / pick file → (3) auto-validate result.
+- Show file name, size, upload progress %; auto-run preview after file select (no separate “check” click).
+- Confirm import only when `import_token` exists.
+
+## CRUD + API discipline
+
+- While designing a screen: call real APIs, exercise happy path + empty/error states, **fix bugs immediately**.
+- Add missing backend endpoints in the same change when UI needs them (export/import/bulk/sort/multi-filter).
+- All user-facing strings go through i18n (`vi` + `en`).
+
+## Do not
+
+- Copy old `frontend_superbackup` layout 1:1.
+- Put long filter rails on the left.
+- Ship stubs that claim features without wired APIs.

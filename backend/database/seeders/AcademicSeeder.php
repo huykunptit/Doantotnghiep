@@ -7,6 +7,8 @@ use App\Models\ClassSection;
 use App\Models\Cohort;
 use App\Models\Course;
 use App\Models\CourseLearningOutcome;
+use App\Models\Curriculum;
+use App\Models\CurriculumCourse;
 use App\Models\Enrollment;
 use App\Models\GradeComponent;
 use App\Models\GradeEntry;
@@ -19,15 +21,16 @@ use Illuminate\Database\Seeder;
 
 
 /**
- * Seeds academic-side enrollment data:
- *  - ClassSection (lớp học phần) per (core course × term × cohort) with a lecturer
- *  - Enrollment with enrollment_source='academic' for every student in the cohort
- *
- * Runs after CourseSeeder (in DatabaseSeeder) and OrgAcademicSeeder so all
- * dependencies (cohorts, terms, core courses, lecturers) exist.
+ * Seeds academic-side enrollment data (demo năm học hiện tại):
+ *  - ClassSection cho core courses × term hiện tại × cohort D23/D24
+ *  - Enrollment academic + điểm mẫu
+ *  - Ghi danh môn CTĐT theo kỳ (đã học kỳ trước + đang học kỳ hiện tại) để evaluation/recommend có dữ liệu
  */
 class AcademicSeeder extends Seeder
 {
+    /** Cohort đang học trong năm 2025–2026 */
+    private const DEMO_START_YEARS = [2023, 2024];
+
     public function run(): void
     {
         $currentTerm = Term::query()
@@ -41,15 +44,14 @@ class AcademicSeeder extends Seeder
             return;
         }
 
-        $cohorts = Cohort::query()->get();
+        $cohorts = Cohort::query()
+            ->whereIn('start_year', self::DEMO_START_YEARS)
+            ->get();
         if ($cohorts->isEmpty()) {
-            $this->command?->warn('Bỏ qua AcademicSeeder: chưa có Cohort nào.');
+            $this->command?->warn('Bỏ qua AcademicSeeder: chưa có cohort demo D23/D24.');
             return;
         }
 
-        // Chỉ tạo class_section mẫu cho core courses có category_id (4 courses gốc trong DatabaseSeeder.seedCourses).
-        // Courses từ TrainingProgramSeeder (CTĐT) không có category_id và sẽ được tạo class_section
-        // thông qua UI/quy trình mở lớp tín chỉ theo kỳ thực tế.
         $coreCourses = Course::query()
             ->where('course_mode', 'core')
             ->where('status', 'published')
@@ -86,7 +88,6 @@ class AcademicSeeder extends Seeder
                 continue;
             }
 
-            // Lấy tất cả lớp hành chính thuộc cohort này để phân bổ sinh viên theo lớp
             $adminClassIds = AdministrativeClass::query()
                 ->where('cohort_id', $cohort->id)
                 ->pluck('id');
@@ -95,12 +96,15 @@ class AcademicSeeder extends Seeder
                 ->where('cohort_id', $cohort->id)
                 ->pluck('id');
 
+            if ($studentIds->isEmpty()) {
+                continue;
+            }
+
             foreach ($cohortCourses->values() as $idx => $course) {
                 $lecturer = $lecturerPool->isEmpty()
                     ? null
                     : $lecturerPool[($cohort->id + $idx) % $lecturerPool->count()];
 
-                // Tạo 1 lớp tín chỉ per (course × term × cohort), gán lớp hành chính đầu tiên làm đại diện
                 $primaryAdminClassId = $adminClassIds->first();
                 $sectionCode = sprintf('%s-%s-%s', $course->id, $currentTerm->code, $cohort->code);
 
@@ -162,9 +166,115 @@ class AcademicSeeder extends Seeder
         ));
 
         $this->seedGradeComponents($coreCourses);
+        $this->seedCurriculumProgress($currentTerm, $lecturerPool);
         $this->seedSampleGrades();
         $this->seedLearningOutcomes($coreCourses);
         $this->seedSkills();
+    }
+
+    /**
+     * Ghi danh môn CTĐT theo kỳ: kỳ trước = completed + điểm; kỳ hiện tại = đang học.
+     * D23 (nhập 2023) ≈ kỳ 5–6; D24 (nhập 2024) ≈ kỳ 3–4.
+     */
+    private function seedCurriculumProgress(Term $currentTerm, $lecturerPool): void
+    {
+        $students = User::query()
+            ->where('user_type', 'student')
+            ->whereNotNull('administrative_class_id')
+            ->with(['administrativeClass', 'cohort'])
+            ->get();
+
+        $created = 0;
+        $completed = 0;
+
+        foreach ($students as $student) {
+            $curriculumId = $student->administrativeClass?->curriculum_id;
+            if (!$curriculumId) {
+                continue;
+            }
+
+            $startYear = (int) ($student->cohort?->start_year ?? 2024);
+            // Năm học hiện tại 2025–2026: D23 → năm 3 (kỳ ~5), D24 → năm 2 (kỳ ~3)
+            $currentTermNumber = $startYear <= 2023 ? 5 : 3;
+
+            $rows = CurriculumCourse::query()
+                ->where('curriculum_id', $curriculumId)
+                ->where('term_number', '<=', $currentTermNumber)
+                ->with('course:id,title,credit_value,is_credit_bearing,status')
+                ->get();
+
+            foreach ($rows as $cc) {
+                $course = $cc->course;
+                if (!$course || $course->status !== 'published') {
+                    continue;
+                }
+
+                $isPast = (int) $cc->term_number < $currentTermNumber;
+
+                $enrollment = Enrollment::query()->updateOrCreate(
+                    [
+                        'user_id' => $student->id,
+                        'course_id' => $course->id,
+                    ],
+                    [
+                        'term_id' => $currentTerm->id,
+                        'cohort_id' => $student->cohort_id,
+                        'enrollment_source' => 'academic',
+                        'enrolled_at' => now()->subDays($isPast ? 90 : 15),
+                    ]
+                );
+                $created++;
+
+                $this->ensureGradeComponents($course->id);
+
+                if ($isPast) {
+                    $finalScore = round(5.5 + (($student->id + $cc->course_id) % 40) / 10, 1);
+                    $this->seedEnrollmentGrades($enrollment, $finalScore, $lecturerPool->first()?->id);
+                    $completed++;
+                }
+            }
+        }
+
+        $this->command?->info("AcademicSeeder: CTĐT progress — {$created} enrollments ({$completed} completed past terms).");
+    }
+
+    private function ensureGradeComponents(int $courseId): void
+    {
+        $template = [
+            ['name' => 'Chuyên cần', 'weight' => 10, 'max_score' => 10, 'position' => 1],
+            ['name' => 'Giữa kỳ', 'weight' => 30, 'max_score' => 10, 'position' => 2],
+            ['name' => 'Cuối kỳ', 'weight' => 60, 'max_score' => 10, 'position' => 3],
+        ];
+        foreach ($template as $row) {
+            GradeComponent::query()->updateOrCreate(
+                ['course_id' => $courseId, 'name' => $row['name']],
+                array_merge($row, ['course_id' => $courseId, 'is_required' => true]),
+            );
+        }
+    }
+
+    private function seedEnrollmentGrades(Enrollment $enrollment, float $finalScore, ?int $gradedBy): void
+    {
+        $components = GradeComponent::query()->where('course_id', $enrollment->course_id)->get();
+        foreach ($components as $component) {
+            $score = match ($component->name) {
+                'Chuyên cần' => min(10, max(7, $finalScore)),
+                'Giữa kỳ' => round(max(4, $finalScore - 0.5), 1),
+                'Cuối kỳ' => $finalScore,
+                default => $finalScore,
+            };
+            GradeEntry::query()->updateOrCreate(
+                [
+                    'enrollment_id' => $enrollment->id,
+                    'grade_component_id' => $component->id,
+                ],
+                [
+                    'score' => $score,
+                    'graded_by' => $gradedBy,
+                    'graded_at' => now()->subDays(mt_rand(5, 40)),
+                ]
+            );
+        }
     }
 
     /**
@@ -175,19 +285,8 @@ class AcademicSeeder extends Seeder
      */
     private function seedGradeComponents($coreCourses): void
     {
-        $template = [
-            ['name' => 'Chuyên cần', 'weight' => 10, 'max_score' => 10, 'position' => 1],
-            ['name' => 'Giữa kỳ',    'weight' => 30, 'max_score' => 10, 'position' => 2],
-            ['name' => 'Cuối kỳ',    'weight' => 60, 'max_score' => 10, 'position' => 3],
-        ];
-
         foreach ($coreCourses as $course) {
-            foreach ($template as $row) {
-                GradeComponent::query()->updateOrCreate(
-                    ['course_id' => $course->id, 'name' => $row['name']],
-                    array_merge($row, ['course_id' => $course->id, 'is_required' => true]),
-                );
-            }
+            $this->ensureGradeComponents($course->id);
         }
     }
 

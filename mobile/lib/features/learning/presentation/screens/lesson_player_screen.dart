@@ -12,6 +12,7 @@ import '../../../courses/data/models/course_model.dart';
 import '../../data/repositories/learning_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../ai/presentation/widgets/learn_tip_card.dart';
 
 class LessonPlayerScreen extends ConsumerStatefulWidget {
   const LessonPlayerScreen({
@@ -161,6 +162,11 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
         ),
         actions: [
           IconButton(
+            tooltip: 'Trợ lý AI',
+            icon: const Icon(Icons.auto_awesome_outlined),
+            onPressed: () => context.push('/ai-chat?courseId=${widget.courseId}'),
+          ),
+          IconButton(
             icon: const Icon(Icons.list_alt_outlined),
             onPressed: () {
               // Open curriculum bottom drawer
@@ -207,15 +213,26 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                       lesson.title,
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    if (lesson.description != null && lesson.description!.isNotEmpty) ...[
+                    if (lesson.description != null &&
+                        lesson.description!.isNotEmpty &&
+                        lesson.type == 'video') ...[
                       AppSpacing.h8,
                       Text(
-                        lesson.description!,
+                        _plainText(lesson.description!),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ],
                 ),
+              ),
+
+              LearnTipCard(
+                courseId: widget.courseId,
+                lessonId: widget.lessonId,
+                lessonTitle: lesson.title,
+                lessonType: lesson.type,
               ),
 
               // Tabs
@@ -315,17 +332,53 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                 child: const Text('Bắt đầu làm bài'),
               ),
             ],
+            if ((lesson.type == 'file' || lesson.type == 'document') &&
+                lesson.videoUrl != null &&
+                lesson.videoUrl!.isNotEmpty) ...[
+              AppSpacing.h12,
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.tryParse(lesson.videoUrl!);
+                  if (uri != null) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Mở tài liệu'),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
+  String _plainText(String html) {
+    return html
+        .replaceAll(RegExp(r'<[^>]*>'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
   Widget _buildContentTab(LessonDetailModel lesson) {
     final theme = Theme.of(context);
+    final body = _plainText(lesson.description ?? '');
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (lesson.type == 'page' || lesson.type == 'document') ...[
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                body.isEmpty ? 'Chưa có nội dung trang.' : body,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+              ),
+            ),
+          ),
+          AppSpacing.h12,
+        ],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -349,7 +402,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                 Text(
                   lesson.isCompleted ? 'Trạng thái: Đã hoàn thành ✅' : 'Trạng thái: Chưa hoàn thành ⏳',
                 ),
-                if (!lesson.isCompleted && lesson.type != 'video') ...[
+                if (!lesson.isCompleted && lesson.type != 'video' && lesson.type != 'quiz') ...[
                   AppSpacing.h16,
                   FilledButton(
                     onPressed: () async {

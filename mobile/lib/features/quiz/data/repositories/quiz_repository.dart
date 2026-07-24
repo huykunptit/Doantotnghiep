@@ -8,7 +8,7 @@ import '../models/quiz_model.dart';
 part 'quiz_repository.g.dart';
 
 @riverpod
-QuizRepository quizRepository(Ref ref) =>
+QuizRepository quizRepository(QuizRepositoryRef ref) =>
     QuizRepository(dio: ref.read(apiClientProvider));
 
 class QuizRepository {

@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\UserCertificate;
+use App\Services\CareerPathFulfillmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -67,6 +68,11 @@ class LessonProgressController extends Controller
                     'issued_at' => now(),
                 ]);
             }
+        }
+
+        if ($completed) {
+            app(CareerPathFulfillmentService::class)
+                ->refreshProgressForUserCourse($user->id, $course->id);
         }
 
         return response()->json(['message' => 'Progress saved', 'progress' => $progress]);

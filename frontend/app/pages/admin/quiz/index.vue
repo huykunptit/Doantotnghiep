@@ -1,521 +1,558 @@
-<script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Download, Plus, Eye, MonitorPlay, Trash2, BookOpen, Target } from 'lucide-vue-next'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import DataTableFooter from '~/components/common/DataTableFooter.vue'
-import { useAuthTokenCookie, useAuthUserCookie } from '~/composables/useAuthSession'
-import SearchableCourseSelect from '~/components/dashboard/SearchableCourseSelect.vue'
-import { useExport } from '~/composables/useExport'
-import { useToast } from '~/composables/useToast'
+﻿<script setup lang="ts">
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học để quản lý quiz / đề thi...' })
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
 
-interface CourseItem { id: number; title: string; category?: { name: string } | null }
+interface CourseItem { id: number, title: string }
 interface ExamItem {
-  id: number; title: string; description?: string | null; type?: string
-  duration?: number | null; pass_score?: number | null; max_attempts?: number
-  status?: string | null; starts_at?: string | null; ends_at?: string | null
+  id: number
+  title: string
+  description?: string | null
+  type?: string | null
+  duration?: number | null
+  pass_score?: number | null
+  max_attempts?: number | null
+  status?: string | null
+  starts_at?: string | null
+  ends_at?: string | null
   exam_enrollments_count?: number
+  quiz?: { id?: number } | null
+  course_id?: number | null
 }
 
-const STATUS_MAP: Record<string, string> = {
-  draft: 'Nháp', scheduled: 'Lên lịch', active: 'Đang thi', closed: 'Đã đóng', archived: 'Lưu trữ',
-}
-
-const user = useAuthUserCookie(); const token = useAuthTokenCookie()
-if (!user.value || !token.value) await navigateTo('/login', { replace: true })
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+const { t, locale } = useI18n()
 const toast = useToast()
+const confirm = useConfirm()
 
-const activeTab = ref<'course' | 'standalone'>('standalone')
+const activeScope = ref<'standalone' | 'course'>('standalone')
 const courses = ref<CourseItem[]>([])
 const exams = ref<ExamItem[]>([])
-const standaloneExams = ref<ExamItem[]>([])
 const selectedCourseId = ref<number | null>(null)
 const loadingCourses = ref(false)
-const loadingExams = ref(false)
-const confirmOpen = ref(false)
-const selectedExam = ref<ExamItem | null>(null)
-const examPage = ref(1)
-const examPerPage = ref(10)
+const loading = ref(false)
+const tableSearch = ref('')
+const statusFilter = ref<string | null>(null)
 
-const allCurrentExams = computed(() => activeTab.value === 'standalone' ? standaloneExams.value : exams.value)
-const currentExams = computed(() => {
-  const start = (examPage.value - 1) * examPerPage.value
-  return allCurrentExams.value.slice(start, start + examPerPage.value)
+const modalOpen = ref(false)
+const modalMode = ref<'create' | 'edit'>('create')
+const editing = ref<ExamItem | null>(null)
+const saving = ref(false)
+
+const form = reactive({
+  title: '',
+  description: '',
+  status: 'draft',
+  duration: 60,
+  pass_score: 70,
+  max_attempts: 1,
+  shuffle_questions: false,
+  shuffle_answers: false,
+  course_id: null as number | null,
 })
-const examLastPage = computed(() => Math.max(1, Math.ceil(allCurrentExams.value.length / examPerPage.value)))
-const selectedCourse = computed(() => courses.value.find(c => c.id === selectedCourseId.value))
 
-async function fetchCourses() {
+const statusOptions = computed(() => [
+  { label: t('admin.reports.examStatuses.draft'), value: 'draft' },
+  { label: t('admin.reports.examStatuses.scheduled'), value: 'scheduled' },
+  { label: t('admin.reports.examStatuses.active'), value: 'active' },
+  { label: t('admin.reports.examStatuses.closed'), value: 'closed' },
+  { label: t('admin.reports.examStatuses.archived'), value: 'archived' },
+])
+
+const scopeOptions = computed(() => [
+  { label: t('admin.quiz.standalone'), value: 'standalone' },
+  { label: t('admin.quiz.courseExams'), value: 'course' },
+])
+
+const filtered = computed(() => {
+  const q = tableSearch.value.trim().toLowerCase()
+  return exams.value.filter((exam) => {
+    if (statusFilter.value && (exam.status || 'draft') !== statusFilter.value) return false
+    if (!q) return true
+    return exam.title.toLowerCase().includes(q)
+      || (exam.description || '').toLowerCase().includes(q)
+  })
+})
+
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+
+function fmtDate(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat(numberLocale.value, {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).format(new Date(value))
+}
+
+function statusLabel(status?: string | null) {
+  const key = `admin.reports.examStatuses.${status || 'draft'}`
+  const translated = t(key)
+  return translated === key ? (status || 'draft') : translated
+}
+
+function statusTone(status?: string | null) {
+  if (status === 'active') return 'tone-ok'
+  if (status === 'scheduled') return 'tone-info'
+  if (status === 'closed') return 'tone-danger'
+  if (status === 'archived') return 'tone-muted'
+  return 'tone-warn'
+}
+
+async function loadCourses() {
   loadingCourses.value = true
   try {
-    const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=100', { headers: authHeaders() })
+    const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=100')
     courses.value = res.data || []
-  } catch { toast.error('Không thể tải danh sách khóa học.') }
-  finally { loadingCourses.value = false }
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.quiz.coursesError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    loadingCourses.value = false
+  }
 }
 
-async function fetchExams() {
-  if (!selectedCourseId.value) return
-  loadingExams.value = true
+async function loadExams() {
+  loading.value = true
   try {
-    exams.value = await useApi<ExamItem[]>(`/courses/${selectedCourseId.value}/exams`, { headers: authHeaders() })
-  } catch { toast.error('Không thể tải danh sách đề thi.') }
-  finally { loadingExams.value = false }
-}
-
-async function fetchStandaloneExams() {
-  loadingExams.value = true
-  try {
-    standaloneExams.value = await useApi<ExamItem[]>('/exams/standalone', { headers: authHeaders() })
-  } catch { toast.error('Không thể tải kỳ thi độc lập.') }
-  finally { loadingExams.value = false }
-}
-
-async function deleteExam() {
-  if (!selectedExam.value) return
-  try {
-    if (activeTab.value === 'standalone') {
-      await useApi(`/exams/${selectedExam.value.id}`, { method: 'DELETE', headers: authHeaders() })
-      await fetchStandaloneExams()
-    } else if (selectedCourseId.value) {
-      await useApi(`/courses/${selectedCourseId.value}/exams/${selectedExam.value.id}`, { method: 'DELETE', headers: authHeaders() })
-      await fetchExams()
+    if (activeScope.value === 'standalone') {
+      exams.value = await useApi<ExamItem[]>('/exams/standalone')
     }
-    toast.success('Đã xóa đề thi.')
-    confirmOpen.value = false; selectedExam.value = null
-  } catch (e: any) { toast.error(e?.data?.message || 'Không thể xóa đề thi.') }
+    else if (selectedCourseId.value) {
+      exams.value = await useApi<ExamItem[]>(`/courses/${selectedCourseId.value}/exams`)
+    }
+    else {
+      exams.value = []
+    }
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.quiz.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    loading.value = false
+  }
 }
 
-function onTabChange(tab: 'course' | 'standalone') {
-  activeTab.value = tab
-  examPage.value = 1
-  if (tab === 'standalone') fetchStandaloneExams()
-  else if (selectedCourseId.value) fetchExams()
+function onScopeChange(value: 'standalone' | 'course') {
+  activeScope.value = value
+  if (value === 'standalone') loadExams()
+  else if (selectedCourseId.value) loadExams()
+  else exams.value = []
 }
 
-const { exportToCSV } = useExport()
-function exportData() {
-  const cols = [
-    { key: 'id', label: 'ID' },
-    { key: 'title', label: 'Tên đề thi' },
-    { key: 'duration', label: 'Thời lượng (phút)', format: (v: any) => String(v || 0) },
-    { key: 'pass_score', label: 'Điểm đạt (%)', format: (v: any) => String(v || 0) },
-    { key: 'max_attempts', label: 'Số lần thi', format: (v: any) => String(v || 1) },
-    { key: 'exam_enrollments_count', label: 'Học viên', format: (v: any) => String(v || 0) },
-    { key: 'status', label: 'Trạng thái', format: (v: any) => STATUS_MAP[v] || v },
-  ]
-  exportToCSV(currentExams.value, cols, `de_thi_${activeTab.value}`)
+function resetForm() {
+  form.title = ''
+  form.description = ''
+  form.status = 'draft'
+  form.duration = 60
+  form.pass_score = 70
+  form.max_attempts = 1
+  form.shuffle_questions = false
+  form.shuffle_answers = false
+  form.course_id = selectedCourseId.value
 }
 
-function goCreate() {
-  navigateTo(`/admin/quiz/create?type=${activeTab.value === 'standalone' ? 'standalone' : 'course_final'}`)
+function openCreate() {
+  modalMode.value = 'create'
+  editing.value = null
+  resetForm()
+  if (activeScope.value === 'course') form.course_id = selectedCourseId.value
+  modalOpen.value = true
 }
 
-const fmtDate = (d?: string | null) =>
-  d ? new Date(d).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'
+function openEdit(exam: ExamItem) {
+  modalMode.value = 'edit'
+  editing.value = exam
+  form.title = exam.title
+  form.description = exam.description || ''
+  form.status = exam.status || 'draft'
+  form.duration = exam.duration ?? 60
+  form.pass_score = exam.pass_score ?? 70
+  form.max_attempts = exam.max_attempts ?? 1
+  form.shuffle_questions = false
+  form.shuffle_answers = false
+  form.course_id = exam.course_id || selectedCourseId.value
+  modalOpen.value = true
+}
+
+async function saveExam() {
+  if (!form.title.trim()) {
+    toast.add({ severity: 'warn', summary: t('admin.quiz.titleRequired'), life: 2500 })
+    return
+  }
+  if (activeScope.value === 'course' && modalMode.value === 'create' && !form.course_id) {
+    toast.add({ severity: 'warn', summary: t('admin.quiz.courseRequired'), life: 2500 })
+    return
+  }
+
+  saving.value = true
+  try {
+    const body = {
+      title: form.title.trim(),
+      description: form.description || null,
+      status: form.status,
+      duration: form.duration,
+      pass_score: form.pass_score,
+      max_attempts: form.max_attempts,
+      shuffle_questions: form.shuffle_questions,
+      shuffle_answers: form.shuffle_answers,
+    }
+
+    if (modalMode.value === 'create') {
+      if (activeScope.value === 'standalone') {
+        await useApi('/exams/standalone', { method: 'POST', body })
+      }
+      else {
+        await useApi(`/courses/${form.course_id}/exams`, { method: 'POST', body })
+      }
+      toast.add({ severity: 'success', summary: t('admin.quiz.created'), life: 2500 })
+    }
+    else if (editing.value) {
+      if (activeScope.value === 'standalone' || !editing.value.course_id) {
+        await useApi(`/exams/${editing.value.id}`, { method: 'PUT', body })
+      }
+      else {
+        await useApi(`/courses/${editing.value.course_id}/exams/${editing.value.id}`, {
+          method: 'PUT',
+          body,
+        })
+      }
+      toast.add({ severity: 'success', summary: t('admin.quiz.updated'), life: 2500 })
+    }
+
+    modalOpen.value = false
+    await loadExams()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.quiz.saveError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+function askDelete(exam: ExamItem) {
+  confirm.require({
+    message: t('admin.quiz.deleteConfirm', { title: exam.title }),
+    header: t('admin.quiz.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        if (activeScope.value === 'standalone' || !exam.course_id) {
+          await useApi(`/exams/${exam.id}`, { method: 'DELETE' })
+        }
+        else {
+          await useApi(`/courses/${exam.course_id}/exams/${exam.id}`, { method: 'DELETE' })
+        }
+        toast.add({ severity: 'success', summary: t('admin.quiz.deleted'), life: 2500 })
+        await loadExams()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.quiz.deleteError'),
+          detail: error?.data?.message,
+          life: 3500,
+        })
+      }
+    },
+  })
+}
+
+function goCreatePage() {
+  navigateTo(`/admin/quiz/create?type=${activeScope.value === 'standalone' ? 'standalone' : 'course_final'}`)
+}
 
 onMounted(async () => {
-  await fetchCourses()
-  await fetchStandaloneExams()
+  await loadCourses()
+  await loadExams()
 })
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý Quiz / Đề thi"
-    description="Quản lý đề thi theo từng khóa học hoặc kỳ thi độc lập."
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Quiz / Đề thi']"
-  >
-    <!-- ── Tabs + Course selector ── -->
-    <div class="dashboard-card qz-tabs-card">
-      <div class="qz-tabs">
-        <button
-          class="qz-tab" :class="{ 'qz-tab--on': activeTab === 'standalone' }"
-          type="button" @click="onTabChange('standalone')"
-        >
-          <BookOpen :size="15" />
-          Kỳ thi độc lập
-          <span class="qz-count">{{ standaloneExams.length }}</span>
-        </button>
-        <button
-          class="qz-tab" :class="{ 'qz-tab--on': activeTab === 'course' }"
-          type="button" @click="onTabChange('course')"
-        >
-          <Target :size="15" />
-          Đề thi khóa học
-          <span class="qz-count">{{ exams.length }}</span>
-        </button>
+  <div class="page quiz-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.assessment') }}</span>
+        <h1>{{ t('admin.quiz.title') }}</h1>
+        <p>{{ t('admin.quiz.subtitle') }}</p>
       </div>
+    </header>
 
-      <div v-if="activeTab === 'course'" class="qz-course-row" style="z-index:20;position:relative;">
-        <label class="qz-course-label">Khóa học</label>
-        <SearchableCourseSelect
-          v-model="selectedCourseId"
-          :courses="courses"
-          :loading="loadingCourses"
-          @change="fetchExams"
-        />
-      </div>
-    </div>
-
-    <!-- ── Exam table ── -->
-    <div class="dashboard-card crud-panel">
-      <!-- Toolbar -->
-      <div class="crud-toolbar">
-        <div>
-          <p class="section-kicker">{{ activeTab === 'standalone' ? 'Kỳ thi độc lập' : 'Đề thi khóa học' }}</p>
-          <h3 class="ds-section-title">
-            {{ activeTab === 'standalone' ? 'Danh sách kỳ thi' : (selectedCourse?.title || 'Chưa chọn khóa học') }}
-          </h3>
+    <section class="table-panel">
+      <div class="filter-bar">
+        <div class="filter-title">
+          <i class="pi pi-filter" />
+          <strong>{{ t('admin.quiz.filters') }}</strong>
         </div>
-        <div class="crud-toolbar-right">
-          <button class="crud-export-btn" type="button" @click="exportData">
-            <Download :size="15" :stroke-width="1.75" /> Xuất CSV
-          </button>
-          <button class="crud-primary-btn" type="button" @click="goCreate">
-            <Plus :size="15" :stroke-width="2" /> Thêm đề thi
-          </button>
+        <div class="filter-grid">
+          <label class="field">
+            <span>{{ t('admin.quiz.scope') }}</span>
+            <Select
+              :model-value="activeScope"
+              :options="scopeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              @update:model-value="onScopeChange"
+            />
+          </label>
+          <label v-if="activeScope === 'course'" class="field">
+            <span>{{ t('admin.quiz.course') }}</span>
+            <Select
+              v-model="selectedCourseId"
+              :options="courses"
+              option-label="title"
+              option-value="id"
+              filter
+              :loading="loadingCourses"
+              :placeholder="t('admin.quiz.selectCourse')"
+              class="w-full"
+              @change="loadExams"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.quiz.status') }}</span>
+            <Select
+              v-model="statusFilter"
+              :options="statusOptions"
+              option-label="label"
+              option-value="value"
+              show-clear
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+        </div>
+        <div class="filter-actions">
+          <Button :label="t('admin.quiz.apply')" icon="pi pi-filter" size="small" @click="loadExams" />
+          <Button
+            :label="t('admin.quiz.reset')"
+            icon="pi pi-times"
+            size="small"
+            severity="secondary"
+            text
+            @click="statusFilter = null; tableSearch = ''"
+          />
         </div>
       </div>
 
-      <!-- Table -->
-      <div class="crud-table-wrap">
-        <table class="crud-table qz-table">
-          <thead>
-            <tr>
-              <th>Tên đề thi</th>
-              <th>Thời lượng</th>
-              <th>Điểm đạt</th>
-              <th>Số lần thi</th>
-              <th>Học viên</th>
-              <th>Lịch thi</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loadingExams">
-              <td colspan="8" class="crud-empty">
-                <span class="qz-spin" /> Đang tải...
-              </td>
-            </tr>
-            <tr v-else-if="allCurrentExams.length === 0">
-              <td colspan="8">
-                <div class="qz-empty">
-                  <div class="qz-empty-icon"><BookOpen :size="24" /></div>
-                  <strong>Chưa có đề thi nào</strong>
-                  <p>{{ activeTab === 'course' && !selectedCourseId ? 'Chọn khóa học để xem danh sách.' : 'Tạo đề thi đầu tiên để bắt đầu.' }}</p>
-                  <button v-if="activeTab === 'standalone' || selectedCourseId" class="crud-primary-btn" type="button" @click="goCreate">
-                    <Plus :size="14" /> Tạo đề thi
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-for="exam in currentExams" :key="exam.id">
-              <td>
-                <strong class="qz-title">{{ exam.title }}</strong>
-                <span v-if="exam.description" class="qz-sub">{{ exam.description }}</span>
-              </td>
-              <td class="qz-num">{{ exam.duration ?? 0 }}<span class="qz-unit"> phút</span></td>
-              <td class="qz-num">{{ exam.pass_score ?? 0 }}<span class="qz-unit">%</span></td>
-              <td class="qz-num">{{ exam.max_attempts ?? 1 }}</td>
-              <td class="qz-num">{{ exam.exam_enrollments_count ?? '—' }}</td>
-              <td class="qz-date">{{ fmtDate(exam.starts_at) }}</td>
-              <td>
-                <span class="qz-badge" :class="`qz-badge--${exam.status || 'draft'}`">
-                  {{ STATUS_MAP[exam.status ?? 'draft'] ?? exam.status }}
-                </span>
-              </td>
-              <td>
-                <div class="qz-actions">
-                  <NuxtLink :to="`/exam/${exam.id}`" class="qz-btn qz-btn--view" target="_blank">
-                    <Eye :size="13" /> Thi thử
-                  </NuxtLink>
-                  <NuxtLink :to="`/admin/exam-monitor?exam=${exam.id}`" class="qz-btn qz-btn--monitor">
-                    <MonitorPlay :size="13" /> Giám sát
-                  </NuxtLink>
-                  <button class="qz-btn qz-btn--del" type="button" @click="selectedExam = exam; confirmOpen = true">
-                    <Trash2 :size="13" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <IconField>
+            <InputIcon class="pi pi-search" />
+            <InputText v-model="tableSearch" :placeholder="t('admin.quiz.searchPh')" />
+          </IconField>
+          <strong>{{ t('admin.users.result', { n: filtered.length }) }}</strong>
+        </div>
+        <div class="toolbar-actions">
+          <Button
+            :label="t('admin.quiz.add')"
+            icon="pi pi-plus"
+            size="small"
+            :disabled="activeScope === 'course' && !selectedCourseId"
+            @click="openCreate"
+          />
+          <Button
+            :label="t('admin.quiz.builder')"
+            icon="pi pi-cog"
+            size="small"
+            severity="secondary"
+            outlined
+            @click="goCreatePage"
+          />
+          <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="loadExams" />
+        </div>
       </div>
 
-      <DataTableFooter
-        :current="examPage" :last="examLastPage"
-        :total="allCurrentExams.length" :per-page="examPerPage"
-        @page="examPage = $event"
-        @update:per-page="examPerPage = $event; examPage = 1"
-      />
-    </div>
+      <DataTable
+        :value="filtered"
+        data-key="id"
+        :loading="loading"
+        paginator
+        :rows="15"
+        :rows-per-page-options="[10, 15, 25]"
+        striped-rows
+      >
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ index + 1 }}</template>
+        </Column>
+        <Column field="title" :header="t('admin.quiz.examTitle')" sortable style="min-width:220px">
+          <template #body="{ data }">
+            <div class="exam-cell">
+              <strong>{{ data.title }}</strong>
+              <small>{{ data.description || '—' }}</small>
+            </div>
+          </template>
+        </Column>
+        <Column field="duration" :header="t('admin.quiz.duration')" sortable style="min-width:100px">
+          <template #body="{ data }">{{ data.duration ?? 0 }} {{ t('admin.quiz.minutes') }}</template>
+        </Column>
+        <Column field="pass_score" :header="t('admin.quiz.passScore')" sortable style="min-width:90px">
+          <template #body="{ data }">{{ data.pass_score ?? 0 }}%</template>
+        </Column>
+        <Column field="status" :header="t('admin.quiz.status')" sortable style="min-width:110px">
+          <template #body="{ data }">
+            <span class="pill" :class="statusTone(data.status)">{{ statusLabel(data.status) }}</span>
+          </template>
+        </Column>
+        <Column :header="t('admin.quiz.enrolled')" style="min-width:90px">
+          <template #body="{ data }">{{ data.exam_enrollments_count ?? '—' }}</template>
+        </Column>
+        <Column :header="t('admin.quiz.schedule')" style="min-width:140px">
+          <template #body="{ data }">{{ fmtDate(data.starts_at) }} – {{ fmtDate(data.ends_at) }}</template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:9rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.quiz.edit')" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" :aria-label="t('admin.quiz.deleteTitle')" @click="askDelete(data)" />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">
+            {{ activeScope === 'course' && !selectedCourseId ? t('admin.quiz.pickCourse') : t('common.noData') }}
+          </div>
+        </template>
+      </DataTable>
+    </section>
 
-    <CrudConfirmModal
-      :open="confirmOpen"
-      title="Xóa đề thi"
-      :description="'Xóa ' + (selectedExam?.title ?? 'đề thi này') + '? Thao tác không thể hoàn tác.'"
-      confirm-text="Xóa đề thi"
-      tone="danger"
-      @close="confirmOpen = false"
-      @confirm="deleteExam"
-    />
-  </AdminWorkspaceShell>
+    <Dialog
+      v-model:visible="modalOpen"
+      modal
+      :header="modalMode === 'create' ? t('admin.quiz.add') : t('admin.quiz.edit')"
+      :style="{ width: 'min(640px, 96vw)' }"
+      :dismissable-mask="true"
+    >
+      <div class="modal-grid">
+        <label v-if="modalMode === 'create' && activeScope === 'course'" class="field full">
+          <span>{{ t('admin.quiz.course') }}</span>
+          <Select
+            v-model="form.course_id"
+            :options="courses"
+            option-label="title"
+            option-value="id"
+            filter
+            class="w-full"
+          />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.quiz.examTitle') }} *</span>
+          <InputText v-model="form.title" class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.quiz.description') }}</span>
+          <Textarea v-model="form.description" rows="3" auto-resize class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.status') }}</span>
+          <Select
+            v-model="form.status"
+            :options="statusOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.duration') }}</span>
+          <InputNumber v-model="form.duration" :min="0" suffix=" min" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.passScore') }}</span>
+          <InputNumber v-model="form.pass_score" :min="0" :max="100" suffix="%" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.maxAttempts') }}</span>
+          <InputNumber v-model="form.max_attempts" :min="1" :max="99" class="w-full" />
+        </label>
+        <label class="field switch-field">
+          <span>{{ t('admin.quiz.shuffleQuestions') }}</span>
+          <ToggleSwitch v-model="form.shuffle_questions" />
+        </label>
+        <label class="field switch-field">
+          <span>{{ t('admin.quiz.shuffleAnswers') }}</span>
+          <ToggleSwitch v-model="form.shuffle_answers" />
+        </label>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
+        <Button :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="saveExam" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <style scoped>
-/* ── Tabs card ── */
-.qz-tabs-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.quiz-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
+}
+.filter-bar { margin-bottom: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle); }
+.filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.w-full { width: 100%; }
+
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar-left strong { font-size: .92rem; white-space: nowrap; }
+.toolbar-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.exam-cell strong { display: block; }
+.exam-cell small {
+  display: block; color: var(--text-muted); font-size: .78rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28rem;
 }
 
-.qz-tabs {
-  display: flex;
-  gap: 6px;
+.pill {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+  font-size: .74rem; font-weight: 700; white-space: nowrap;
 }
+.tone-ok { background: #dcfce7; color: #15803d; }
+.tone-info { background: #e0f2fe; color: #0369a1; }
+.tone-warn { background: #fef9c3; color: #a16207; }
+.tone-danger { background: #fee2e2; color: #b91c1c; }
+.tone-muted { background: var(--surface-hover); color: var(--text-muted); }
 
-.qz-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 140ms, color 140ms, border-color 140ms;
+.empty { padding: 40px; color: var(--text-muted); text-align: center; }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field.full { grid-column: 1 / -1; }
+.switch-field { flex-direction: row; align-items: center; justify-content: space-between; }
+
+@media (max-width: 720px) {
+  .modal-grid { grid-template-columns: 1fr; }
 }
-
-.qz-tab:hover {
-  background: var(--bg);
-  color: var(--text);
-}
-
-.qz-tab--on {
-  background: var(--green-soft, #e1f5ee);
-  color: var(--green-deep, #085041);
-  border-color: rgba(29, 158, 117, 0.3);
-}
-
-.qz-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: rgba(17, 17, 17, 0.07);
-  color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
-.qz-tab--on .qz-count {
-  background: rgba(29, 158, 117, 0.18);
-  color: var(--green-deep);
-}
-
-.qz-course-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: 4px;
-  border-top: 1px solid var(--line);
-}
-
-.qz-course-label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-/* ── Table ── */
-.qz-table th {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 10px 14px;
-  background: transparent;
-  border-bottom: 2px solid var(--line-strong, rgba(31,49,43,0.16));
-}
-
-.qz-table td {
-  padding: 11px 14px;
-  vertical-align: middle;
-}
-
-.qz-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* ── Cell content ── */
-.qz-title {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text);
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.qz-sub {
-  display: block;
-  font-size: 0.72rem;
-  color: var(--muted);
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-top: 2px;
-}
-
-.qz-num {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.qz-unit {
-  font-size: 0.72rem;
-  color: var(--muted);
-  font-weight: 400;
-}
-
-.qz-date {
-  font-size: 0.78rem;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-/* ── Status badges ── */
-.qz-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-
-.qz-badge--draft    { background: rgba(17,17,17,0.06);   color: var(--muted);          border-color: var(--line); }
-.qz-badge--scheduled{ background: rgba(55,138,221,0.1);  color: #1a5fa8;               border-color: rgba(55,138,221,0.22); }
-.qz-badge--active   { background: rgba(29,158,117,0.1);  color: var(--green-deep);     border-color: rgba(29,158,117,0.22); }
-.qz-badge--closed   { background: rgba(239,68,68,0.1);   color: #b91c1c;               border-color: rgba(239,68,68,0.22); }
-.qz-badge--archived { background: rgba(17,17,17,0.04);   color: var(--muted);          border-color: var(--line); }
-
-/* ── Action buttons ── */
-.qz-actions {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.qz-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-size: 0.74rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background 120ms, border-color 120ms, transform 120ms;
-}
-
-.qz-btn:hover { transform: translateY(-1px); }
-
-.qz-btn--view    { background: rgba(55,138,221,0.08); color: #1a5fa8;       border-color: rgba(55,138,221,0.18); }
-.qz-btn--monitor { background: rgba(29,158,117,0.08); color: var(--green-deep); border-color: rgba(29,158,117,0.18); }
-.qz-btn--del     { background: rgba(239,68,68,0.07);  color: #b91c1c;       border-color: rgba(239,68,68,0.15); padding: 0 8px; }
-
-.qz-btn--view:hover    { background: rgba(55,138,221,0.15); border-color: rgba(55,138,221,0.3); }
-.qz-btn--monitor:hover { background: rgba(29,158,117,0.15); border-color: rgba(29,158,117,0.3); }
-.qz-btn--del:hover     { background: rgba(239,68,68,0.14);  border-color: rgba(239,68,68,0.28); }
-
-/* ── Loading ── */
-.crud-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.qz-spin {
-  display: inline-block;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  border: 2px solid var(--line);
-  border-top-color: var(--green);
-  animation: qz-spin 0.75s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes qz-spin { to { transform: rotate(360deg); } }
-
-/* ── Empty state ── */
-.qz-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 48px 24px;
-  text-align: center;
-}
-
-.qz-empty-icon {
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-
-.qz-empty strong { font-size: 0.95rem; font-weight: 700; color: var(--text); }
-.qz-empty p { margin: 0; font-size: 0.84rem; color: var(--muted); max-width: 300px; }
-
-/* ── Dark mode ── */
-[data-theme="dark"] .qz-tab:hover       { background: rgba(255,255,255,0.06); }
-[data-theme="dark"] .qz-tab--on         { background: rgba(29,158,117,0.15); border-color: rgba(29,158,117,0.35); }
-[data-theme="dark"] .qz-count           { background: rgba(255,255,255,0.1); }
-[data-theme="dark"] .qz-tab--on .qz-count { background: rgba(29,158,117,0.25); }
-[data-theme="dark"] .qz-table th        { background: transparent; border-bottom-color: rgba(255,255,255,0.15); }
-[data-theme="dark"] .qz-badge--draft,
-[data-theme="dark"] .qz-badge--archived { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .qz-badge--scheduled{ background: rgba(55,138,221,0.15); color: #7db8ed; }
-[data-theme="dark"] .qz-badge--active   { background: rgba(29,158,117,0.15); color: #5ddfb4; }
-[data-theme="dark"] .qz-badge--closed   { background: rgba(239,68,68,0.15);  color: #f87171; }
-[data-theme="dark"] .qz-btn--view       { background: rgba(55,138,221,0.12); color: #7db8ed; }
-[data-theme="dark"] .qz-btn--monitor    { background: rgba(29,158,117,0.12); color: #5ddfb4; }
-[data-theme="dark"] .qz-btn--del        { background: rgba(239,68,68,0.12);  color: #f87171; }
-[data-theme="dark"] .qz-empty-icon      { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .qz-course-row      { border-color: rgba(255,255,255,0.08); }
 </style>

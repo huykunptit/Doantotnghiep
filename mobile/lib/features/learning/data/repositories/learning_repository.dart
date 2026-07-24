@@ -12,7 +12,7 @@ import '../models/attachment_model.dart';
 part 'learning_repository.g.dart';
 
 @riverpod
-LearningRepository learningRepository(Ref ref) => LearningRepository(
+LearningRepository learningRepository(LearningRepositoryRef ref) => LearningRepository(
       dio: ref.read(apiClientProvider),
       cache: ref.read(localCacheServiceProvider),
       syncManager: ref.read(offlineSyncManagerProvider),

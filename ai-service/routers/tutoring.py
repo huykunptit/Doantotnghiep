@@ -5,10 +5,11 @@ Phase 4.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from models.schemas import TutoringRequest, TutoringResponse
 from services import tutoring_service
+from utils.providers import require_api_key
 
 router = APIRouter(prefix="/tutoring", tags=["Smart Tutoring"])
 
@@ -25,9 +26,5 @@ async def get_recommendations(payload: TutoringRequest) -> TutoringResponse:
     - Mẹo học tập
     - Tóm tắt tình hình
     """
-    if not payload.api_key:
-        raise HTTPException(
-            status_code=400,
-            detail="Thiếu API key. Vui lòng cấu hình trong phần Quản lý AI.",
-        )
+    require_api_key(payload.provider, payload.api_key)
     return await tutoring_service.get_recommendations(payload)

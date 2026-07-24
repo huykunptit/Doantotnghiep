@@ -1,87 +1,61 @@
+<script setup lang="ts">
+const { isDark, toggle } = useTheme()
+const { t } = useI18n()
+</script>
+
 <template>
-  <main class="min-h-screen overflow-x-hidden bg-surface px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-    <div class="mx-auto grid min-h-[calc(100vh-2.5rem)] w-full max-w-6xl overflow-hidden rounded-[28px] border border-white/70 bg-white/88 shadow-[0_24px_80px_-32px_rgba(29,158,117,0.2)] backdrop-blur lg:min-h-[calc(100vh-4rem)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-      <section class="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between bg-primary p-12 text-white">
-        <NuxtLink to="/" class="relative z-10 block space-y-3">
-          <p class="text-xs font-semibold uppercase tracking-[0.32em] text-white/70">Sylva LMS</p>
-          <div>
-            <h1 class="font-headline text-4xl font-extrabold tracking-[-0.04em] text-white">Học tập thích nghi, vững tri thức.</h1>
-            <p class="mt-4 max-w-sm text-base leading-7 text-white/80">
-              Một không gian học tập thông minh, nuôi dưỡng kỹ năng thực tế bền vững theo tiến trình của chính bạn.
-            </p>
-          </div>
-        </NuxtLink>
-
-        <div class="relative z-10 max-w-md space-y-6">
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-              <p class="text-white/65">Khóa học</p>
-              <p class="mt-2 text-2xl font-bold tracking-tight">120+</p>
-            </div>
-            <div class="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
-              <p class="text-white/65">Lớp đang học</p>
-              <p class="mt-2 text-2xl font-bold tracking-tight">24/7</p>
-            </div>
-          </div>
-
-          <div class="rounded-[24px] border border-white/15 bg-white/12 p-6 backdrop-blur-md">
-            <p class="text-sm uppercase tracking-[0.24em] text-white/55">Trải nghiệm</p>
-            <p class="mt-4 text-lg leading-8 text-white/88">
-              "Giao diện mới giúp sinh viên vào bài nhanh hơn, còn giảng viên theo dõi tiến độ thuận mắt hơn hẳn."
-            </p>
-            <div class="mt-6 flex items-center gap-3">
-              <div class="flex h-11 w-11 items-center justify-center rounded-full bg-white/18 text-sm font-bold text-white">SY</div>
-              <div>
-                <p class="text-sm font-semibold text-white">Hệ sinh thái đào tạo Sylva</p>
-                <p class="text-sm text-white/60">Tối ưu hóa khả năng thích nghi và tiếp thu kiến thức</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pointer-events-none absolute inset-0">
-          <div class="absolute -left-24 top-20 h-64 w-64 rounded-full bg-white/12 blur-3xl"></div>
-          <div class="absolute right-0 top-0 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl"></div>
-          <div class="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-cyan-200/10 blur-3xl"></div>
-        </div>
-      </section>
-
-      <section class="flex min-h-full flex-col bg-surface-lowest/95">
-        <div class="border-b border-outline-variant/20 px-5 py-5 sm:px-8 lg:hidden">
-          <div>
-            <NuxtLink to="/" class="inline-block">
-              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-primary/70">Sylva LMS</p>
-            </NuxtLink>
-            <h1 class="mt-2 font-headline text-2xl font-bold tracking-[-0.03em] text-on-surface">Đăng nhập để tiếp tục học tập</h1>
-            <p class="mt-2 max-w-lg text-sm leading-6 text-on-surface-variant">Một không gian học trực tuyến thích nghi, tập trung vào khóa học và tiến độ của bạn.</p>
-          </div>
-        </div>
-
-        <div class="flex flex-1 flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
-          <div class="mx-auto w-full max-w-[560px]">
-            <div class="rounded-[28px] border border-outline-variant/20 bg-surface-lowest p-6 shadow-[0_18px_40px_-24px_rgba(29,158,117,0.15)] sm:p-8">
-              <slot />
-            </div>
-          </div>
-        </div>
-
-        <footer class="border-t border-outline-variant/20 px-5 py-4 sm:px-8 lg:px-14">
-          <div class="flex flex-col gap-3 text-sm text-on-surface-variant sm:flex-row sm:items-center sm:justify-between">
-            <p>&copy; 2026 Sylva LMS.</p>
-            <div class="flex flex-wrap gap-4">
-              <NuxtLink to="/" class="transition-colors hover:text-primary">Chính sách</NuxtLink>
-              <NuxtLink to="/" class="transition-colors hover:text-primary">Điều khoản</NuxtLink>
-              <NuxtLink to="/" class="transition-colors hover:text-primary">Hỗ trợ</NuxtLink>
-            </div>
-          </div>
-        </footer>
-      </section>
-    </div>
-  </main>
+  <div class="auth-shell">
+    <header class="auth-header">
+      <NuxtLink to="/" class="auth-brand"><span><i class="pi pi-sparkles" /></span><strong>Sylva LMS</strong></NuxtLink>
+      <div class="auth-actions">
+        <LocaleSwitcher />
+        <Button :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'" severity="secondary" text rounded :aria-label="t('common.theme')" @click="toggle" />
+      </div>
+    </header>
+    <main class="auth-content"><slot /></main>
+  </div>
 </template>
 
 <style scoped>
-/* ====== DARK MODE OVERRIDES ====== */
-[data-theme="dark"] .bg-white\/88 { background-color: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .bg-surface-lowest\/95, [data-theme="dark"] .bg-surface-lowest { background-color: var(--surface); border-color: rgba(255, 255, 255, 0.08); }
+.auth-shell {
+  min-height: 100dvh;
+  background: transparent;
+}
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 clamp(18px, 4vw, 56px);
+}
+.auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+}
+.auth-brand > span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--brand);
+  color: white;
+}
+.auth-brand strong {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.auth-content {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 64px);
+  padding: 24px;
+}
 </style>

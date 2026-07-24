@@ -55,6 +55,11 @@ class AiSetting extends Model
      */
     public function getHasApiKeyAttribute(): bool
     {
+        // Ollama chạy local — không cần API key cloud
+        if ($this->provider === 'ollama') {
+            return true;
+        }
+
         return !empty($this->api_key);
     }
 }

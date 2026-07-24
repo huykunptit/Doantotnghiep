@@ -1,15 +1,10 @@
-<script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import CategoryNode from '~/components/categories/CategoryNode.vue'
-import { useAuthUserCookie } from '~/composables/useAuthSession'
-import { useAuthTokenCookie } from '~/composables/useAuthSession'
-import { useExport } from '~/composables/useExport'
+﻿<script setup lang="ts">
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'admin',
-  adminSearchPlaceholder: 'Tìm danh mục...'
+  middleware: ['auth', 'admin'],
 })
 
 interface CategoryItem {
@@ -17,65 +12,71 @@ interface CategoryItem {
   name: string
   icon?: string | null
   parent_id?: number | null
-  parent?: { id: number; name: string } | null
+  parent?: { id: number, name: string } | null
   courses_count?: number
   sort_order?: number
 }
 
-interface TreeCategoryItem extends CategoryItem {
+interface TreeCategory extends CategoryItem {
   depth: number
-  hasChildren: boolean
   parentLabel: string
 }
 
-const user = useAuthUserCookie()
-if (!user.value) {
-  await navigateTo('/login', { replace: true })
-}
+const { t } = useI18n()
+const toast = useToast()
+const confirm = useConfirm()
 
-const token = useAuthTokenCookie()
-const categories = ref<CategoryItem[]>([])
 const loading = ref(false)
 const saving = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
-const modalOpen = ref(false)
-const confirmOpen = ref(false)
-const modalMode = ref<'create' | 'edit'>('create')
-const selectedCategory = ref<CategoryItem | null>(null)
-const selectedIds = ref<number[]>([])
+const categories = ref<CategoryItem[]>([])
+const tableSearch = ref('')
 
+const modalOpen = ref(false)
+const editing = ref<CategoryItem | null>(null)
 const form = reactive({
   name: '',
   icon: '',
-  parent_id: '',
-  sort_order: 0
+  parent_id: null as number | null,
+  sort_order: 0,
 })
-
-const authHeaders = () => ({
-  Authorization: `Bearer ${token.value}`
-})
-
-const rootCategories = computed(() => categories.value.filter(item => !item.parent_id))
 
 const childrenByParent = computed(() => {
-  const map: Record<number, CategoryItem[]> = { 0: [] }
-  categories.value.forEach(cat => {
-    const pId = cat.parent_id || 0
-    if (!map[pId]) map[pId] = []
-    map[pId].push(cat)
-  })
-  Object.keys(map).forEach(key => map[Number(key)].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)))
+  const map: Record<number, CategoryItem[]> = {}
+  for (const cat of categories.value) {
+    const pid = cat.parent_id || 0
+    if (!map[pid]) map[pid] = []
+    map[pid].push(cat)
+  }
+  Object.values(map).forEach(list => list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)))
   return map
 })
 
-const descendantIds = computed(() => {
-  if (!selectedCategory.value) return new Set<number>()
-  const ids = new Set<number>()
-  const stack = [selectedCategory.value.id]
-  while (stack.length) {
-    const parentId = stack.pop()!
+const treeRows = computed<TreeCategory[]>(() => {
+  const result: TreeCategory[] = []
+  const q = tableSearch.value.trim().toLowerCase()
+  const walk = (parentId: number, depth: number) => {
     for (const child of childrenByParent.value[parentId] || []) {
+      const row: TreeCategory = {
+        ...child,
+        depth,
+        parentLabel: child.parent?.name || t('admin.categories.root'),
+      }
+      const match = !q || child.name.toLowerCase().includes(q)
+      if (match) result.push(row)
+      walk(child.id, depth + 1)
+    }
+  }
+  walk(0, 0)
+  return result
+})
+
+const descendantIds = computed(() => {
+  if (!editing.value) return new Set<number>()
+  const ids = new Set<number>()
+  const stack = [editing.value.id]
+  while (stack.length) {
+    const id = stack.pop()!
+    for (const child of childrenByParent.value[id] || []) {
       if (!ids.has(child.id)) {
         ids.add(child.id)
         stack.push(child.id)
@@ -85,290 +86,248 @@ const descendantIds = computed(() => {
   return ids
 })
 
-const treeCategories = computed<TreeCategoryItem[]>(() => {
-  const result: TreeCategoryItem[] = []
-  const traverse = (parentId: number, depth: number) => {
-    const children = childrenByParent.value[parentId] || []
-    children.forEach(child => {
-      result.push({
-        ...child,
-        depth,
-        hasChildren: (childrenByParent.value[child.id] || []).length > 0,
-        parentLabel: child.parent?.name || 'Danh mục gốc'
-      })
-      traverse(child.id, depth + 1)
-    })
-  }
-  traverse(0, 0)
-  return result
-})
+const parentOptions = computed(() =>
+  treeRows.value
+    .filter(item => item.id !== editing.value?.id && !descendantIds.value.has(item.id))
+    .map(item => ({
+      label: `${'— '.repeat(item.depth)}${item.name}`,
+      value: item.id,
+    })),
+)
 
-const parentOptions = computed(() => {
-  return treeCategories.value.filter(item =>
-    item.id !== selectedCategory.value?.id &&
-    !descendantIds.value.has(item.id)
-  )
-})
-
-function resetForm() {
-  form.name = ''
-  form.icon = ''
-  form.parent_id = ''
-  form.sort_order = 0
-}
-
-function openCreateModal() {
-  modalMode.value = 'create'
-  selectedCategory.value = null
-  resetForm()
-  modalOpen.value = true
-}
-
-function openEditModal(item: CategoryItem) {
-  modalMode.value = 'edit'
-  selectedCategory.value = item
-  form.name = item.name
-  form.icon = item.icon || ''
-  form.parent_id = item.parent_id ? String(item.parent_id) : ''
-  form.sort_order = item.sort_order || 0
-  modalOpen.value = true
-}
-
-async function fetchCategories() {
+async function load() {
   loading.value = true
   try {
-    categories.value = await useApi<CategoryItem[]>('/admin/categories', {
-      headers: authHeaders()
+    const res = await useApi<CategoryItem[] | { data: CategoryItem[] }>('/admin/categories')
+    categories.value = Array.isArray(res) ? res : (res.data || [])
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.categories.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
     })
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải danh mục.'
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
-async function submitForm() {
+function resetForm() {
+  Object.assign(form, { name: '', icon: '', parent_id: null, sort_order: 0 })
+}
+
+function openCreate() {
+  editing.value = null
+  resetForm()
+  modalOpen.value = true
+}
+
+function openEdit(item: CategoryItem) {
+  editing.value = item
+  Object.assign(form, {
+    name: item.name || '',
+    icon: item.icon || '',
+    parent_id: item.parent_id ?? null,
+    sort_order: item.sort_order || 0,
+  })
+  modalOpen.value = true
+}
+
+async function save() {
+  if (!form.name.trim()) {
+    toast.add({ severity: 'warn', summary: t('admin.categories.nameRequired'), life: 2500 })
+    return
+  }
   saving.value = true
-  errorMessage.value = ''
   try {
     const body = {
       name: form.name.trim(),
       icon: form.icon.trim() || null,
-      parent_id: form.parent_id ? Number(form.parent_id) : null,
-      sort_order: Number(form.sort_order || 0)
+      parent_id: form.parent_id || null,
+      sort_order: Number(form.sort_order) || 0,
     }
-
-    if (modalMode.value === 'create') {
-      await useApi('/admin/categories', {
-        method: 'POST',
-        headers: authHeaders(),
-        body
-      })
-    } else if (selectedCategory.value) {
-      await useApi(`/admin/categories/${selectedCategory.value.id}`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body
-      })
+    if (editing.value) {
+      await useApi(`/admin/categories/${editing.value.id}`, { method: 'PUT', body })
+      toast.add({ severity: 'success', summary: t('admin.categories.updated'), life: 2200 })
     }
-
-    successMessage.value = modalMode.value === 'create' ? 'Đã tạo danh mục.' : 'Đã cập nhật danh mục.'
+    else {
+      await useApi('/admin/categories', { method: 'POST', body })
+      toast.add({ severity: 'success', summary: t('admin.categories.created'), life: 2200 })
+    }
     modalOpen.value = false
-    await fetchCategories()
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể lưu danh mục.'
-  } finally {
+    await load()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.categories.saveError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
     saving.value = false
   }
 }
 
-async function deleteCategory(item?: CategoryItem) {
-  if (item) {
-    selectedCategory.value = item
-    confirmOpen.value = true
-    return
-  }
-
-  if (!selectedCategory.value) return
-
-  try {
-    await useApi(`/admin/categories/${selectedCategory.value.id}`, {
-      method: 'DELETE',
-      headers: authHeaders()
-    })
-    successMessage.value = 'Đã xóa danh mục.'
-    confirmOpen.value = false
-    await fetchCategories()
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể xóa danh mục.'
-  }
+function askDelete(item: CategoryItem) {
+  confirm.require({
+    message: t('admin.categories.deleteConfirm', { name: item.name }),
+    header: t('admin.categories.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/admin/categories/${item.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.categories.deleted'), life: 2200 })
+        await load()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.categories.deleteError'),
+          detail: error?.data?.message,
+          life: 3500,
+        })
+      }
+    },
+  })
 }
 
-const { exportToCSV } = useExport()
-
-function exportData() {
-  const cols = [
-    { key: 'id', label: 'ID Danh mục' },
-    { key: 'name', label: 'Tên danh mục' },
-    { key: 'parentLabel', label: 'Cha', format: (_: any, row: TreeCategoryItem) => row.parentLabel || 'Danh mục gốc' },
-    { key: 'icon', label: 'Icon', format: (val: any) => String(val || '--') },
-    { key: 'courses_count', label: 'Số khóa học', format: (val: any) => String(val || 0) },
-    { key: 'sort_order', label: 'Thứ tự', format: (val: any) => String(val || 0) }
-  ]
-  exportToCSV(treeCategories.value, cols, 'danh_sach_danh_muc')
-}
-
-onMounted(fetchCategories)
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản lý khóa học', 'Danh mục']"
-    description="Quản lý cấu trúc danh mục học tập theo dạng cây thư mục thông minh. Bạn có thể mở rộng, thu gọn và tương tác trực quan với các danh mục."
-    title="Quản lý danh mục"
-  >
-    <section class="crud-overview-grid">
-      <article class="dashboard-card mini-card tone-green">
-        <p class="mini-title">Tổng danh mục</p>
-        <div class="mini-head">
-          <strong>{{ categories.length }}</strong>
-          <span>Đang hoạt động trên hệ thống</span>
-        </div>
-      </article>
+  <div class="page cat-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.courses') }}</span>
+        <h1>{{ t('admin.categories.title') }}</h1>
+        <p>{{ t('admin.categories.subtitle') }}</p>
+      </div>
+    </header>
 
-      <article class="dashboard-card mini-card tone-amber">
-        <p class="mini-title">Danh mục gốc</p>
-        <div class="mini-head">
-          <strong>{{ rootCategories.length }}</strong>
-          <span>Dùng để tổ chức cây danh mục</span>
-        </div>
-      </article>
-
-      <article class="dashboard-card mini-card">
-        <p class="mini-title">Mô hình</p>
-        <div class="mini-head">
-          <strong>Collapsible Tree</strong>
-          <span>Cây danh mục có khả năng đóng/mở trực quan</span>
-        </div>
-      </article>
-    </section>
-
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <div>
-          <p class="section-kicker">Danh mục khóa học</p>
-          <h3>Cấu trúc danh mục hiện tại</h3>
-        </div>
-        <div class="crud-toolbar-right">
-          <button class="crud-export-btn" type="button" @click="exportData">
-            <span class="material-symbols-outlined">download</span>
-            Xuất Excel
-          </button>
-          <button class="crud-primary-btn" type="button" @click="openCreateModal">
-            Tạo danh mục
-          </button>
+    <section class="table-panel">
+      <div class="table-toolbar">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="tableSearch" :placeholder="t('admin.categories.searchPh')" />
+        </IconField>
+        <div class="toolbar-actions">
+          <strong>{{ t('admin.users.result', { n: treeRows.length }) }}</strong>
+          <Button :label="t('admin.categories.add')" icon="pi pi-plus" size="small" @click="openCreate" />
+          <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
         </div>
       </div>
 
-      <div v-if="errorMessage" class="crud-alert is-error">
-        {{ errorMessage }}
-      </div>
-      <div v-if="successMessage" class="crud-alert is-success">
-        {{ successMessage }}
-      </div>
-
-      <div class="categories-tree-container">
-        <div v-if="loading" class="crud-empty">Đang tải danh mục...</div>
-        <div v-else-if="categories.length === 0" class="crud-empty">Chưa có danh mục nào.</div>
-        <div v-else class="tree-root">
-          <CategoryNode
-            v-for="item in rootCategories"
-            :key="item.id"
-            :category="item"
-            :children-map="childrenByParent"
-            :depth="0"
-            @edit="openEditModal($event)"
-            @delete="deleteCategory($event)"
-          />
-        </div>
-      </div>
-    </section>
-
-    <UModal v-model:open="modalOpen" :ui="{ width: 'max-w-lg' }">
-      <template #content>
-        <div class="crud-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ modalMode === 'create' ? 'Tạo mới' : 'Chỉnh sửa' }}</p>
-              <h3>{{ modalMode === 'create' ? 'Tạo danh mục' : 'Cập nhật danh mục' }}</h3>
+      <DataTable :value="treeRows" data-key="id" :loading="loading">
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ index + 1 }}</template>
+        </Column>
+        <Column :header="t('admin.categories.name')" style="min-width:220px">
+          <template #body="{ data }">
+            <div class="name-cell" :style="{ paddingLeft: `${data.depth * 16}px` }">
+              <span v-if="data.icon" class="icon">{{ data.icon }}</span>
+              <strong>{{ data.name }}</strong>
             </div>
-            <button class="topbar-ghost" type="button" @click="modalOpen = false">✕</button>
-          </div>
+          </template>
+        </Column>
+        <Column :header="t('admin.categories.parent')" style="min-width:140px">
+          <template #body="{ data }">{{ data.parentLabel }}</template>
+        </Column>
+        <Column :header="t('admin.categories.courses')" style="width:110px">
+          <template #body="{ data }"><strong>{{ data.courses_count ?? 0 }}</strong></template>
+        </Column>
+        <Column :header="t('admin.categories.sortOrder')" style="width:100px">
+          <template #body="{ data }">{{ data.sort_order ?? 0 }}</template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:8rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-pencil" text rounded severity="secondary" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" @click="askDelete(data)" />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('common.noData') }}</div>
+        </template>
+      </DataTable>
+    </section>
 
-          <div class="crud-form-grid" style="padding: 24px 28px;">
-            <label class="crud-field">
-              <span>Tên danh mục</span>
-              <input v-model="form.name" type="text" placeholder="Ví dụ: Lập trình web">
-            </label>
-            <label class="crud-field">
-              <span>Icon</span>
-              <input v-model="form.icon" type="text" placeholder="Ví dụ: 💻">
-            </label>
-            <label class="crud-field">
-              <span>Danh mục cha</span>
-              <select v-model="form.parent_id">
-                <option value="">Danh mục gốc</option>
-                <option v-for="item in parentOptions" :key="item.id" :value="String(item.id)">
-                  {{ `${'— '.repeat(item.depth)}${item.name}` }}
-                </option>
-              </select>
-            </label>
-            <label class="crud-field">
-              <span>Thứ tự sắp xếp</span>
-              <input v-model="form.sort_order" type="number" placeholder="Ví dụ: 1">
-            </label>
-          </div>
-
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" :disabled="saving" @click="modalOpen = false">
-              Hủy
-            </button>
-            <button class="crud-primary-btn" type="button" :disabled="saving" @click="submitForm">
-              {{ saving ? 'Đang lưu...' : 'Lưu' }}
-            </button>
-          </div>
-        </div>
+    <Dialog
+      v-model:visible="modalOpen"
+      modal
+      :header="editing ? t('admin.categories.edit') : t('admin.categories.add')"
+      :style="{ width: 'min(520px, 96vw)' }"
+    >
+      <div class="form">
+        <label class="field full">
+          <span>{{ t('admin.categories.name') }}</span>
+          <InputText v-model="form.name" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.categories.icon') }}</span>
+          <InputText v-model="form.icon" class="w-full" :placeholder="t('admin.categories.iconPh')" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.categories.sortOrder') }}</span>
+          <InputNumber v-model="form.sort_order" :min="0" class="w-full" input-class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.categories.parent') }}</span>
+          <Select
+            v-model="form.parent_id"
+            :options="parentOptions"
+            option-label="label"
+            option-value="value"
+            show-clear
+            filter
+            :placeholder="t('admin.categories.root')"
+            class="w-full"
+          />
+        </label>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
+        <Button :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="save" />
       </template>
-    </UModal>
-
-    <CrudConfirmModal
-      :open="confirmOpen"
-      title="Xóa danh mục"
-      message="Bạn có chắc chắn muốn xóa danh mục này? Hành động này không thể hoàn tác và các danh mục con liên quan cũng sẽ chịu ảnh hưởng."
-      @close="confirmOpen = false"
-      @confirm="deleteCategory()"
-    />
-  </AdminWorkspaceShell>
+    </Dialog>
+  </div>
 </template>
 
 <style scoped>
-.categories-tree-container {
-  padding: 12px 0;
+.cat-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
-.tree-root {
-  display: flex;
-  flex-direction: column;
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
 }
-
-.dropdown-item.is-danger:hover {
-  background-color: #fef2f2;
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px; flex-wrap: wrap;
 }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.dropdown-divider {
-  height: 1px;
-  background-color: rgba(17, 17, 17, 0.1);
-  margin: 4px 0;
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; }
+.w-full { width: 100%; }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form .full { grid-column: 1 / -1; }
+
+.name-cell { display: flex; align-items: center; gap: 8px; }
+.icon { font-size: 1.1rem; }
+.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+
+@media (max-width: 640px) {
+  .form { grid-template-columns: 1fr; }
 }
 </style>
-

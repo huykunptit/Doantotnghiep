@@ -1,96 +1,153 @@
-<template>
-  <InstructorWorkspaceShell
-    title="Doanh thu"
-    description="Theo dõi doanh thu, số đơn hàng và hiệu suất kinh doanh theo từng khóa học."
-    :breadcrumb="['Trang chủ', 'Doanh thu']"
-  >
-    <template #actions>
-      <NuxtLink to="/instructor/courses" class="crud-secondary-btn">Xem khóa học</NuxtLink>
-    </template>
-
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <form class="crud-toolbar-main" @submit.prevent>
-          <input v-model="search" class="crud-search" type="text" placeholder="Tìm khóa học...">
-        </form>
-      </div>
-      <div class="crud-table-wrap">
-        <table class="crud-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Khóa học</th>
-              <th>Học viên</th>
-              <th>Bài học</th>
-              <th>Giá</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="7" class="crud-empty">Đang tải...</td>
-            </tr>
-            <tr v-else-if="filteredCourses.length === 0">
-              <td colspan="7" class="crud-empty">Chưa có khóa học.</td>
-            </tr>
-            <tr v-for="(course, idx) in filteredCourses" :key="course.id">
-              <td>{{ idx + 1 }}</td>
-              <td>
-                <div class="crud-course">
-                  <div class="crud-course-thumb">
-                    <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
-                    <span v-else>📘</span>
-                  </div>
-                  <div><strong>{{ course.title }}</strong></div>
-                </div>
-              </td>
-              <td>{{ course.enrollments_count || 0 }}</td>
-              <td>{{ course.lessons_count || 0 }}</td>
-              <td>{{ formatPrice(course.price) }}</td>
-              <td><span class="crud-badge" :class="statusClass(course.status)">{{ statusLabel(course.status) }}</span></td>
-              <td>
-                <div class="crud-actions">
-                  <NuxtLink :to="`/instructor/courses/${course.id}/revenue`" class="action-btn is-view">Chi tiết</NuxtLink>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </InstructorWorkspaceShell>
-</template>
-
 <script setup lang="ts">
-import InstructorWorkspaceShell from '~/components/dashboard/InstructorWorkspaceShell.vue'
-definePageMeta({ layout: 'instructor', middleware: 'instructor' })
+import { useToast } from 'primevue/usetoast'
 
-const courseStore = useCourseStore()
-const loading = ref(true)
-const courses = ref<any[]>([])
-const search = ref('')
+definePageMeta({
+  layout: 'instructor',
+  middleware: ['auth', 'instructor'],
+})
 
-const formatPrice = (price: number) => price <= 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
-
-const statusLabel = (status: string) => {
-  const map: Record<string, string> = { published: 'Đã xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Bị từ chối' }
-  return map[status] || status
+interface MonthPoint { month: string, label: string, value: number }
+interface MyCourse {
+  id: number
+  title: string
+  price?: number
+  enrollments_count?: number
+}
+interface InstructorStats {
+  total_revenue?: number
+  revenue_by_month?: MonthPoint[]
 }
 
-const statusClass = (s: string) => ({ published: 'role-instructor', pending_review: 'role-student', draft: 'role-admin', rejected: 'role-admin' }[s] || 'role-admin')
+const { t, locale } = useI18n()
+const toast = useToast()
+const loading = ref(true)
+const stats = ref<InstructorStats>({})
+const courses = ref<MyCourse[]>([])
 
-const filteredCourses = computed(() => {
-  if (!search.value.trim()) return courses.value
-  const q = search.value.toLowerCase()
-  return courses.value.filter(c => c.title?.toLowerCase().includes(q))
-})
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+const formatVnd = (n = 0) => new Intl.NumberFormat(numberLocale.value, { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n)
 
-onMounted(async () => {
-  try {
-    courses.value = await courseStore.fetchMyCourses()
-  } finally {
-    loading.value = false
+function chartColors() {
+  const dark = import.meta.client && document.documentElement.classList.contains('dark')
+  return {
+    text: dark ? '#a8b8b4' : '#4a5a57',
+    grid: dark ? 'rgba(255,255,255,.08)' : 'rgba(15,118,110,.12)',
+    brand: '#0f766e',
+    brandSoft: 'rgba(15,118,110,.25)',
+  }
+}
+
+const revenueChart = computed(() => {
+  const c = chartColors()
+  const points = stats.value.revenue_by_month || []
+  return {
+    data: {
+      labels: points.map(p => p.label),
+      datasets: [{
+        data: points.map(p => p.value),
+        borderColor: c.brand,
+        backgroundColor: c.brandSoft,
+        fill: true,
+        tension: .35,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: c.text }, grid: { color: c.grid } },
+        y: { ticks: { color: c.text }, grid: { color: c.grid } },
+      },
+    },
   }
 })
+
+async function load() {
+  loading.value = true
+  try {
+    const [s, c] = await Promise.all([
+      useApi<InstructorStats>('/instructor/stats'),
+      useApi<{ data: MyCourse[] }>('/my-courses', { query: { per_page: 100 } }),
+    ])
+    stats.value = s
+    courses.value = c.data || []
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('instructor.revenue.loadError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+onMounted(load)
 </script>
+
+<template>
+  <div class="page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('instructor.console') }}</span>
+        <h1>{{ t('instructor.revenue.title') }}</h1>
+        <p>{{ t('instructor.revenue.subtitle') }}</p>
+      </div>
+      <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
+    </header>
+
+    <section class="kpi">
+      <span>{{ t('instructor.revenue.total') }}</span>
+      <strong>{{ formatVnd(stats.total_revenue || 0) }}</strong>
+    </section>
+
+    <section class="panel">
+      <header class="panel-head"><strong>{{ t('instructor.revenue.trend') }}</strong></header>
+      <ChartsUiChart type="line" :data="revenueChart.data" :options="revenueChart.options" height="240px" />
+    </section>
+
+    <section class="table-panel">
+      <header class="panel-head"><strong>{{ t('instructor.revenue.byCourse') }}</strong></header>
+      <DataTable :value="courses" data-key="id" :loading="loading">
+        <Column :header="t('instructor.revenue.courseTitle')">
+          <template #body="{ data }">
+            <NuxtLink :to="`/instructor/courses/${data.id}/revenue`" class="link">{{ data.title }}</NuxtLink>
+          </template>
+        </Column>
+        <Column :header="t('instructor.revenue.price')">
+          <template #body="{ data }">{{ formatVnd(data.price || 0) }}</template>
+        </Column>
+        <Column :header="t('instructor.revenue.enrollments')">
+          <template #body="{ data }">{{ data.enrollments_count || 0 }}</template>
+        </Column>
+        <Column style="width:8rem">
+          <template #body="{ data }">
+            <Button :label="t('instructor.revenue.viewDetail')" size="small" text @click="navigateTo(`/instructor/courses/${data.id}/revenue`)" />
+          </template>
+        </Column>
+        <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+      </DataTable>
+    </section>
+  </div>
+</template>
+
+<style scoped>
+.page { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.workspace-head { display: flex; justify-content: space-between; gap: 12px; }
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 2vw, 1.8rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.kpi, .panel, .table-panel {
+  border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
+}
+.kpi { display: flex; flex-direction: column; gap: 4px; max-width: 320px; }
+.kpi span { color: var(--text-muted); font-size: .78rem; font-weight: 650; }
+.kpi strong { font-family: var(--font-display); font-size: 1.6rem; }
+.panel-head { margin-bottom: 10px; }
+.link { font-weight: 700; color: var(--text); }
+.link:hover { color: var(--brand); }
+.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+</style>

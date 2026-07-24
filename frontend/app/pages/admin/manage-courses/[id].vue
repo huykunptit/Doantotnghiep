@@ -1,109 +1,153 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin' })
-
-const route = useRoute()
-const courseId = route.params.id as string
-const runtimeConfig = useRuntimeConfig()
-
-const user = useAuthUserCookie(); const token = useAuthTokenCookie(); if (!user.value || !token.value) await navigateTo('/login', { replace: true })
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
-
-interface LessonItem { id: number; title: string; type: string; duration: number; is_preview: boolean }
-interface SectionItem { id: number; title: string; position: number; lessons?: LessonItem[] }
-interface CourseDetail { id: number; title: string }
-
-const course = ref<CourseDetail | null>(null)
-const sections = ref<SectionItem[]>([])
-const loading = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
-
-const sectionModalOpen = ref(false)
-const sectionForm = reactive({ title: '', id: null as number | null })
-
-const pickerModalOpen = ref(false)
-const selectedSectionId = ref<number | null>(null)
-const contentTypes = [
-  { key: 'video', label: 'Bài học video', kind: 'resource', icon: 'play_circle' },
-  { key: 'audio', label: 'Audio', kind: 'resource', icon: 'headphones' },
-  { key: 'file', label: 'Tệp', kind: 'resource', icon: 'description' },
-  { key: 'page', label: 'Trang', kind: 'resource', icon: 'article' },
-  { key: 'scorm', label: 'Gói SCORM', kind: 'resource', icon: 'deployed_code' },
-  { key: 'h5p', label: 'H5P', kind: 'resource', icon: 'extension' },
-  { key: 'quiz', label: 'Đề thi', kind: 'activity', icon: 'quiz' },
-  { key: 'assignment', label: 'Bài tập về nhà', kind: 'activity', icon: 'assignment' },
-  { key: 'forum', label: 'Diễn đàn', kind: 'activity', icon: 'forum' },
-  { key: 'survey', label: 'Khảo sát', kind: 'activity', icon: 'poll' },
-  { key: 'zoom', label: 'Zoom', kind: 'activity', icon: 'video_camera_front' },
-  { key: 'meet', label: 'Google Meet', kind: 'activity', icon: 'video_chat' },
-]
-
-const pickerTab = ref<'all' | 'activity' | 'resource'>('all')
-const pickerSearch = ref('')
-const filteredContentTypes = computed(() => {
-  return contentTypes.filter((item) => {
-    const matchesTab = pickerTab.value === 'all' || item.kind === pickerTab.value
-    const matchesSearch = !pickerSearch.value.trim() || item.label.toLowerCase().includes(pickerSearch.value.trim().toLowerCase())
-    return matchesTab && matchesSearch
-  })
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
 })
 
-function typeHelperText(type: string) {
-  return {
-    video: 'Dùng cho bài giảng video học tập.',
-    audio: 'Dùng cho podcast, bài nghe hoặc luyện phát âm.',
-    file: 'Dùng để chia sẻ file PDF, DOCX, slide hoặc tài liệu tải về.',
-    page: 'Dùng để viết nội dung trực tiếp giống một trang bài học.',
-    quiz: 'Dùng để tạo bài kiểm tra / đề thi cho học viên.',
-    assignment: 'Dùng cho bài tập nộp bài và giao bài về nhà.',
-    forum: 'Dùng để mở chủ đề thảo luận giữa giảng viên và học viên.',
-    survey: 'Dùng để khảo sát hoặc lấy phản hồi.',
-    zoom: 'Dùng để tổ chức lớp học trực tuyến qua Zoom.',
-    meet: 'Dùng để tổ chức lớp học trực tuyến qua Google Meet.',
-    scorm: 'Dùng để nhúng gói học liệu SCORM.',
-    h5p: 'Dùng để nhúng học liệu tương tác H5P.',
-  }[type] || 'Cấu hình học liệu phù hợp với nhu cầu giảng dạy.'
+interface CategoryItem { id: number, name: string }
+interface LessonItem {
+  id: number
+  title: string
+  type: string
+  duration?: number
+  is_preview?: boolean
+  order?: number
+  description?: string | null
+  video_url?: string | null
+}
+interface SectionItem {
+  id: number
+  title: string
+  position: number
+  lessons?: LessonItem[]
+}
+interface CourseDetail {
+  id: number
+  title: string
+  description?: string | null
+  price?: number
+  status?: string
+  thumbnail?: string | null
+  category_id?: number | null
+  category?: { id: number, name: string } | null
+  instructor?: { id?: number, name?: string } | null
+  learning_outcomes?: string[] | null
+  benefits?: string[] | null
+  requirements?: string[] | null
+  level?: string | null
+  trailer_url?: string | null
 }
 
-function lessonDescriptionLabel(type: string) {
-  return {
-    page: 'Nội dung trang học',
-    forum: 'Mô tả chủ đề thảo luận',
-    survey: 'Mô tả khảo sát',
-    assignment: 'Yêu cầu bài tập',
-    quiz: 'Mô tả bài kiểm tra',
-    zoom: 'Mô tả buổi học trực tuyến',
-    meet: 'Mô tả buổi học trực tuyến',
-  }[type] || 'Nội dung / mô tả'
+type Selection =
+  | { kind: 'course' }
+  | { kind: 'section', sectionId: number }
+  | { kind: 'lesson', sectionId: number, lessonId: number }
+
+const CONTENT_TYPES = ['video', 'page', 'file', 'document', 'quiz', 'assignment'] as const
+
+const route = useRoute()
+const courseId = computed(() => String(route.params.id))
+const runtimeConfig = useRuntimeConfig()
+const { t } = useI18n()
+const toast = useToast()
+const confirm = useConfirm()
+
+const loading = ref(true)
+const savingMeta = ref(false)
+const savingLesson = ref(false)
+const publishing = ref(false)
+const course = ref<CourseDetail | null>(null)
+const sections = ref<SectionItem[]>([])
+const categories = ref<CategoryItem[]>([])
+const selection = ref<Selection>({ kind: 'course' })
+const expanded = ref<Record<number, boolean>>({})
+
+const metaForm = reactive({
+  title: '',
+  description: '',
+  price: 0,
+  category_id: null as number | null,
+  status: 'draft',
+  level: '' as string,
+  trailer_url: '',
+  learning_outcomes: [''] as string[],
+  benefits: [''] as string[],
+  requirements: [''] as string[],
+})
+const thumbnailFile = ref<File | null>(null)
+const thumbnailUrl = ref<string | null>(null)
+
+const sectionDialogOpen = ref(false)
+const sectionForm = reactive({ id: null as number | null, title: '' })
+
+const pickerOpen = ref(false)
+const pickerSectionId = ref<number | null>(null)
+
+const lessonForm = reactive({
+  id: null as number | null,
+  section_id: null as number | null,
+  title: '',
+  type: 'video',
+  description: '',
+  video_url: '',
+  duration: 0,
+  is_preview: false,
+})
+const videoSourceMode = ref<'embed' | 'upload'>('embed')
+const videoFile = ref<File | null>(null)
+const videoUploading = ref(false)
+const videoUploadProgress = ref(0)
+const videoUploadError = ref('')
+const resourceFile = ref<File | null>(null)
+const quizConfig = reactive({ title: '', description: '', time_limit: 15, pass_score: 70 })
+const selectedQuestionIds = ref<number[]>([])
+const questionOptions = ref<{ label: string, value: number }[]>([])
+const quizSyncQuestions = ref(false)
+const assignmentConfig = reactive({
+  instructions: '',
+  max_file_size: 10240,
+  allowed_extensions: 'pdf,doc,docx,zip',
+  due_at: '' as string,
+})
+
+const categoryOptions = computed(() =>
+  categories.value.map(c => ({ label: c.name, value: c.id })),
+)
+
+const statusOptions = computed(() => [
+  { label: t('admin.builder.statuses.draft'), value: 'draft' },
+  { label: t('admin.builder.statuses.pending_review'), value: 'pending_review' },
+  { label: t('admin.builder.statuses.published'), value: 'published' },
+  { label: t('admin.builder.statuses.rejected'), value: 'rejected' },
+  { label: t('admin.builder.statuses.closed'), value: 'closed' },
+])
+
+const contentTypeOptions = computed(() =>
+  CONTENT_TYPES.map(key => ({
+    key,
+    label: t(`admin.builder.types.${key}`),
+    icon: typeIcon(key),
+  })),
+)
+
+function typeIcon(type: string) {
+  return ({
+    video: 'pi pi-play-circle',
+    page: 'pi pi-file-edit',
+    file: 'pi pi-file',
+    document: 'pi pi-book',
+    quiz: 'pi pi-question-circle',
+    assignment: 'pi pi-pencil',
+  } as Record<string, string>)[type] || 'pi pi-book'
 }
 
-function lessonDescriptionPlaceholder(type: string) {
-  return {
-    page: 'Nhập nội dung bài học dạng trang để học viên đọc trực tiếp...',
-    forum: 'Giới thiệu chủ đề thảo luận, mục tiêu trao đổi, quy tắc tương tác...',
-    survey: 'Mô tả mục tiêu khảo sát và hướng dẫn học viên trả lời...',
-    assignment: 'Nêu đề bài, yêu cầu đầu ra, cách nộp bài và tiêu chí chấm...',
-    quiz: 'Mô tả phạm vi kiến thức, thời lượng, hướng dẫn làm bài...',
-    zoom: 'Mô tả lịch học, cách tham gia, lưu ý trước buổi học...',
-    meet: 'Mô tả lịch học, cách tham gia, lưu ý trước buổi học...',
-  }[type] || 'Nhập nội dung hoặc hướng dẫn cho học liệu này'
-}
-
-function lessonLinkPlaceholder(type: string) {
-  return {
-    video: 'https://video.example.com/lesson-1',
-    audio: 'https://audio.example.com/podcast-1.mp3',
-    file: 'https://files.example.com/tai-lieu.pdf',
-    scorm: 'https://storage.example.com/scorm/package.zip',
-    h5p: 'https://storage.example.com/h5p/content',
-    zoom: 'https://zoom.us/j/123456789',
-    meet: 'https://meet.google.com/xxx-yyyy-zzz',
-  }[type] || 'https://...'
+function typeLabel(type: string) {
+  const key = `admin.builder.types.${type}`
+  const translated = t(key)
+  return translated === key ? type : translated
 }
 
 function detectVideoProvider(url?: string | null) {
@@ -116,169 +160,344 @@ function detectVideoProvider(url?: string | null) {
 }
 
 function inferVideoSourceMode(url?: string | null) {
-  return ['youtube', 'gdrive', 'onedrive'].includes(detectVideoProvider(url)) ? 'embed' : 'upload'
+  return ['youtube', 'gdrive', 'onedrive'].includes(detectVideoProvider(url)) ? 'embed' : (url ? 'upload' : 'embed')
 }
 
+function errDetail(error: any) {
+  return error?.data?.message || error?.message
+}
 
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
+function truncateText(text: string, max = 80) {
+  const plain = stripHtml(text)
+  return plain.length > max ? `${plain.slice(0, max)}…` : plain
+}
 
-const lessonModalOpen = ref(false)
-const lessonForm = reactive({
-  title: '',
-  section_id: '',
-  type: 'video',
-  description: '',
-  video_url: '',
-  duration: 0,
-  is_preview: false,
-  id: null as number | null,
-})
-const resourceFile = ref<File | null>(null)
-const videoFile = ref<File | null>(null)
-const videoSourceMode = ref<'embed' | 'upload'>('embed')
-const videoUploading = ref(false)
-const videoUploadProgress = ref(0)
-const videoUploadError = ref('')
-const scormFile = ref<File | null>(null)
-const lessonSaving = ref(false)
-const quizConfig = reactive({ title: '', description: '', time_limit: 15, pass_score: 70 })
-const assignmentConfig = reactive({ instructions: '', available_from: '', submission_open_at: '', due_at: '', allowed_extensions: 'pdf,doc,docx,zip', max_file_size: 10240 })
-const liveConfig = reactive({ provider: 'zoom', meeting_id: '', meeting_password: '', join_url: '', start_at: '', duration: 60 })
-const scormConfig = reactive({ entry_url: '', title: '', identifier: '', version: '1.2' })
+function onQuizQuestionsChange() {
+  quizSyncQuestions.value = true
+}
 
-async function fetchCourseDetails() {
+async function loadQuestionOptions() {
   try {
-    course.value = await useApi<CourseDetail>(`/courses/${courseId}`, { headers: authHeaders() })
-  } catch {
-    errorMessage.value = 'Không thể tải thông tin khóa học.'
+    const res = await useApi<{ banks: Array<{ id: number }> }>(`/courses/${courseId.value}/question-banks`)
+    const map = new Map<number, { label: string, value: number }>()
+    for (const bank of res.banks || []) {
+      try {
+        const detail = await useApi<{
+          questions?: Array<{ id: number, content: string }>
+          groups?: Array<{ questions?: Array<{ id: number, content: string }> }>
+        }>(`/courses/${courseId.value}/question-banks/${bank.id}`)
+        const fromBank = detail.questions || []
+        const fromGroups = (detail.groups || []).flatMap(g => g.questions || [])
+        for (const q of [...fromBank, ...fromGroups]) {
+          if (!map.has(q.id)) {
+            map.set(q.id, { label: truncateText(q.content || `#${q.id}`), value: q.id })
+          }
+        }
+      }
+      catch {
+        /* skip bank */
+      }
+    }
+    questionOptions.value = [...map.values()]
+  }
+  catch {
+    questionOptions.value = []
   }
 }
 
-async function fetchCurriculum() {
+async function loadCategories() {
+  try {
+    categories.value = await useApi<CategoryItem[]>('/admin/categories')
+  }
+  catch {
+    try {
+      categories.value = await useApi<CategoryItem[]>('/courses/categories')
+    }
+    catch {
+      categories.value = []
+    }
+  }
+}
+
+async function loadCourse() {
+  try {
+    const detail = await useApi<CourseDetail>(`/admin/courses/${courseId.value}`).catch(() => null)
+    if (detail) {
+      course.value = detail
+    }
+    else {
+      course.value = await useApi<CourseDetail>(`/courses/${courseId.value}`)
+    }
+    metaForm.title = course.value.title || ''
+    metaForm.description = course.value.description || ''
+    metaForm.price = Number(course.value.price || 0)
+    metaForm.category_id = course.value.category_id ?? course.value.category?.id ?? null
+    metaForm.status = course.value.status || 'draft'
+    metaForm.level = course.value.level || ''
+    metaForm.trailer_url = course.value.trailer_url || ''
+    metaForm.learning_outcomes = (course.value.learning_outcomes?.length ? [...course.value.learning_outcomes] : [''])
+    metaForm.benefits = (course.value.benefits?.length ? [...course.value.benefits] : [''])
+    metaForm.requirements = (course.value.requirements?.length ? [...course.value.requirements] : [''])
+    thumbnailUrl.value = course.value.thumbnail || null
+    thumbnailFile.value = null
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.loadError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+  }
+}
+
+async function loadCurriculum() {
   loading.value = true
   try {
-    const res = await useApi<{ data: SectionItem[] }>(`/courses/${courseId}/sections`, { headers: authHeaders() })
-    sections.value = res.data
-  } catch {
-    errorMessage.value = 'Lỗi tải nội dung bài giảng.'
-  } finally {
+    const res = await useApi<{ data: SectionItem[] }>(`/courses/${courseId.value}/sections`)
+    sections.value = res.data || []
+    for (const section of sections.value) {
+      if (expanded.value[section.id] === undefined) expanded.value[section.id] = true
+    }
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.curriculumError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+  }
+  finally {
     loading.value = false
   }
 }
 
-function openSectionModal(section?: SectionItem) {
-  if (section) {
-    sectionForm.id = section.id
-    sectionForm.title = section.title
-  } else {
-    sectionForm.id = null
-    sectionForm.title = ''
-  }
-  sectionModalOpen.value = true
+function selectCourse() {
+  selection.value = { kind: 'course' }
+}
+
+function selectLesson(sectionId: number, lessonId: number) {
+  selection.value = { kind: 'lesson', sectionId, lessonId }
+  openLessonEditor(sectionId, lessonId)
+}
+
+function toggleSection(id: number) {
+  expanded.value[id] = !expanded.value[id]
+}
+
+function openSectionDialog(section?: SectionItem) {
+  sectionForm.id = section?.id ?? null
+  sectionForm.title = section?.title ?? ''
+  sectionDialogOpen.value = true
 }
 
 async function saveSection() {
   if (!sectionForm.title.trim()) return
   try {
     if (sectionForm.id) {
-      await useApi(`/sections/${sectionForm.id}`, { method: 'PUT', headers: authHeaders(), body: { title: sectionForm.title } })
-      successMessage.value = 'Đã cập nhật chương.'
-    } else {
-      await useApi(`/courses/${courseId}/sections`, { method: 'POST', headers: authHeaders(), body: { title: sectionForm.title } })
-      successMessage.value = 'Đã thêm chương mới.'
+      await useApi(`/sections/${sectionForm.id}`, {
+        method: 'PUT',
+        body: { title: sectionForm.title.trim() },
+      })
+      toast.add({ severity: 'success', summary: t('admin.builder.sectionUpdated'), life: 2000 })
     }
-    sectionModalOpen.value = false
-    fetchCurriculum()
-  } catch {
-    errorMessage.value = 'Lỗi lưu chương / phần học.'
+    else {
+      await useApi(`/courses/${courseId.value}/sections`, {
+        method: 'POST',
+        body: { title: sectionForm.title.trim() },
+      })
+      toast.add({ severity: 'success', summary: t('admin.builder.sectionCreated'), life: 2000 })
+    }
+    sectionDialogOpen.value = false
+    await loadCurriculum()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.sectionSaveError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
   }
 }
 
-async function deleteSection(id: number) {
-  if (!confirm('Xác nhận xóa chương này? Tất cả học liệu bên trong phải được xóa trước.')) return
+function askDeleteSection(section: SectionItem) {
+  confirm.require({
+    message: t('admin.builder.deleteSectionConfirm', { title: section.title }),
+    header: t('admin.builder.deleteSectionTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/sections/${section.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.builder.sectionDeleted'), life: 2000 })
+        if (selection.value.kind === 'lesson' && selection.value.sectionId === section.id) {
+          selection.value = { kind: 'course' }
+        }
+        await loadCurriculum()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.builder.sectionDeleteError'),
+          detail: errDetail(error),
+          life: 3500,
+        })
+      }
+    },
+  })
+}
+
+async function moveSection(index: number, direction: -1 | 1) {
+  const next = index + direction
+  if (next < 0 || next >= sections.value.length) return
+  const copy = [...sections.value]
+  const [item] = copy.splice(index, 1)
+  copy.splice(next, 0, item)
+  sections.value = copy
   try {
-    await useApi(`/sections/${id}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Đã xóa chương.'
-    fetchCurriculum()
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Lỗi khi xóa chương.'
+    await useApi(`/courses/${courseId.value}/sections/reorder`, {
+      method: 'POST',
+      body: {
+        sections: copy.map((s, i) => ({ id: s.id, position: i + 1 })),
+      },
+    })
   }
-}
-
-function lessonTypeLabel(type: string) {
-  return contentTypes.find(item => item.key === type)?.label || type
-}
-
-function lessonTypeIcon(type: string) {
-  return contentTypes.find(item => item.key === type)?.icon || 'book'
-}
-
-
-function resourceUrlLabel(type: string) {
-  return {
-    video: 'Đường dẫn video',
-    audio: 'Đường dẫn audio',
-    file: 'Đường dẫn tệp',
-    scorm: 'Đường dẫn gói SCORM',
-    h5p: 'Đường dẫn nội dung H5P',
-    zoom: 'Link Zoom',
-    meet: 'Link Google Meet',
-  }[type] || 'Đường dẫn tài nguyên'
-}
-
-function needsResourceUrl(type: string) {
-  return ['video', 'audio', 'file', 'scorm', 'h5p', 'zoom', 'meet'].includes(type)
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.reorderError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+    await loadCurriculum()
+  }
 }
 
 function openContentPicker(sectionId: number) {
-  selectedSectionId.value = sectionId
-  pickerModalOpen.value = true
+  pickerSectionId.value = sectionId
+  pickerOpen.value = true
 }
 
 function chooseContentType(type: string) {
-  pickerModalOpen.value = false
-  openLessonModal(selectedSectionId.value || 0, undefined, type)
+  pickerOpen.value = false
+  resetLessonForm()
+  lessonForm.section_id = pickerSectionId.value
+  lessonForm.type = type
+  lessonForm.id = null
+  selection.value = {
+    kind: 'lesson',
+    sectionId: pickerSectionId.value!,
+    lessonId: -1,
+  }
+  if (type === 'quiz') {
+    loadQuestionOptions()
+  }
 }
 
-function resetLessonConfigs() {
+function resetLessonForm() {
+  lessonForm.id = null
+  lessonForm.section_id = null
+  lessonForm.title = ''
+  lessonForm.type = 'video'
   lessonForm.description = ''
   lessonForm.video_url = ''
   lessonForm.duration = 0
   lessonForm.is_preview = false
-  resourceFile.value = null
-  videoFile.value = null
   videoSourceMode.value = 'embed'
-  scormFile.value = null
+  videoFile.value = null
+  videoUploadProgress.value = 0
+  videoUploadError.value = ''
+  resourceFile.value = null
   Object.assign(quizConfig, { title: '', description: '', time_limit: 15, pass_score: 70 })
-  Object.assign(assignmentConfig, { instructions: '', available_from: '', submission_open_at: '', due_at: '', allowed_extensions: 'pdf,doc,docx,zip', max_file_size: 10240 })
-  Object.assign(liveConfig, { provider: 'zoom', meeting_id: '', meeting_password: '', join_url: '', start_at: '', duration: 60 })
-  Object.assign(scormConfig, { entry_url: '', title: '', identifier: '', version: '1.2' })
+  selectedQuestionIds.value = []
+  quizSyncQuestions.value = false
+  Object.assign(assignmentConfig, {
+    instructions: '',
+    max_file_size: 10240,
+    allowed_extensions: 'pdf,doc,docx,zip',
+    due_at: '',
+  })
 }
 
-async function loadLessonConfigs(lessonId: number, type: string) {
+async function openLessonEditor(sectionId: number, lessonId: number) {
+  resetLessonForm()
+  lessonForm.section_id = sectionId
+  lessonForm.id = lessonId
   try {
-    if (type === 'quiz') {
-      const res = await useApi<{ quiz: { title?: string; description?: string; time_limit?: number | null; pass_score?: number | null } }>(`/courses/${courseId}/lessons/${lessonId}/quiz`, { headers: authHeaders() })
-      Object.assign(quizConfig, { title: res.quiz?.title || '', description: res.quiz?.description || '', time_limit: res.quiz?.time_limit || 15, pass_score: res.quiz?.pass_score || 70 })
-    } else if (type === 'assignment') {
-      const res = await useApi<{ instructions?: string; available_from?: string | null; submission_open_at?: string | null; due_at?: string | null; allowed_extensions?: string | null; max_file_size?: number | null }>(`/courses/${courseId}/lessons/${lessonId}/assignment`, { headers: authHeaders() })
-      Object.assign(assignmentConfig, {
-        instructions: res.instructions || '',
-        available_from: res.available_from ? String(res.available_from).slice(0, 16) : '',
-        submission_open_at: res.submission_open_at ? String(res.submission_open_at).slice(0, 16) : '',
-        due_at: res.due_at ? String(res.due_at).slice(0, 16) : '',
-        allowed_extensions: res.allowed_extensions || 'pdf,doc,docx,zip',
-        max_file_size: res.max_file_size || 10240,
-      })
-    } else if (['zoom', 'meet', 'virtual_class'].includes(type)) {
-      const res = await useApi<{ provider?: string; meeting_id?: string; meeting_password?: string; join_url?: string; start_at?: string; duration?: number }>(`/courses/${courseId}/lessons/${lessonId}/virtual-class`, { headers: authHeaders() })
-      Object.assign(liveConfig, { provider: res.provider === 'google_meet' ? 'meet' : (res.provider || 'zoom'), meeting_id: res.meeting_id || '', meeting_password: res.meeting_password || '', join_url: res.join_url || '', start_at: res.start_at ? String(res.start_at).slice(0, 16) : '', duration: res.duration || 60 })
-    } else if (['scorm', 'h5p'].includes(type)) {
-      const res = await useApi<{ entry_url?: string; title?: string; identifier?: string; version?: string }>(`/courses/${courseId}/lessons/${lessonId}/scorm-package`, { headers: authHeaders() })
-      Object.assign(scormConfig, { entry_url: res.entry_url || '', title: res.title || '', identifier: res.identifier || '', version: res.version || '1.2' })
+    const detail = await useApi<LessonItem>(`/courses/${courseId.value}/lessons/${lessonId}`)
+    lessonForm.title = detail.title || ''
+    lessonForm.type = detail.type || 'video'
+    lessonForm.description = detail.description || ''
+    lessonForm.video_url = detail.video_url || ''
+    lessonForm.duration = detail.duration || 0
+    lessonForm.is_preview = !!detail.is_preview
+    if (lessonForm.type === 'video') {
+      videoSourceMode.value = inferVideoSourceMode(lessonForm.video_url)
     }
-  } catch {
-    // ignore missing config on new/unstyled lessons
+    if (lessonForm.type === 'quiz') {
+      try {
+        const res = await useApi<{
+          quiz?: {
+            title?: string
+            description?: string
+            time_limit?: number | null
+            pass_score?: number | null
+            questions?: Array<{ id: number }>
+          }
+          questions?: Array<{ id: number }>
+        }>(
+          `/courses/${courseId.value}/lessons/${lessonId}/quiz`,
+        )
+        Object.assign(quizConfig, {
+          title: res.quiz?.title || '',
+          description: res.quiz?.description || '',
+          time_limit: res.quiz?.time_limit || 15,
+          pass_score: res.quiz?.pass_score || 70,
+        })
+        const ids = res.questions?.map(q => q.id)
+          || res.quiz?.questions?.map(q => q.id)
+          || []
+        selectedQuestionIds.value = ids
+        if (ids.length) quizSyncQuestions.value = true
+      }
+      catch {
+        /* new quiz lesson */
+      }
+      await loadQuestionOptions()
+    }
+    if (lessonForm.type === 'assignment') {
+      try {
+        const asg = await useApi<{
+          instructions?: string
+          max_file_size?: number
+          allowed_extensions?: string
+          due_at?: string | null
+        }>(`/courses/${courseId.value}/lessons/${lessonId}/assignment`)
+        Object.assign(assignmentConfig, {
+          instructions: asg.instructions || '',
+          max_file_size: asg.max_file_size || 10240,
+          allowed_extensions: asg.allowed_extensions || 'pdf,doc,docx,zip',
+          due_at: asg.due_at ? String(asg.due_at).slice(0, 16) : '',
+        })
+      }
+      catch {
+        /* new assignment */
+      }
+    }
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.lessonLoadError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
   }
 }
 
@@ -290,19 +509,15 @@ async function uploadLessonVideo(lessonId: number) {
   videoUploadProgress.value = 0
   videoUploadError.value = ''
 
-  // Hit Laravel backend directly to bypass the Nuxt /api proxy which buffers
-  // multipart bodies in memory and rejects larger files with HTTP 413.
-  const base = (runtimeConfig.public.apiBase as string).replace(/\/$/, '')
-  const url = `${base}/courses/${courseId}/lessons/${lessonId}/upload-video`
+  const token = useCookie<string | null>('sylva-token').value
+  const base = String(runtimeConfig.public.apiBase || '').replace(/\/$/, '')
+  const url = `${base}/courses/${courseId.value}/lessons/${lessonId}/upload-video`
 
   try {
     await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       xhr.open('POST', url, true)
-      const headers = authHeaders()
-      if (headers.Authorization) {
-        xhr.setRequestHeader('Authorization', headers.Authorization)
-      }
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       xhr.setRequestHeader('Accept', 'application/json')
 
       xhr.upload.onprogress = (event) => {
@@ -317,1453 +532,911 @@ async function uploadLessonVideo(lessonId: number) {
           resolve()
           return
         }
-        // eslint-disable-next-line no-console
-        console.error(`[upload-video HTTP ${xhr.status}]`, xhr.responseText)
         let body: any = null
-        try { body = JSON.parse(xhr.responseText || '{}') } catch { /* not JSON */ }
+        try { body = JSON.parse(xhr.responseText || '{}') }
+        catch { /* ignore */ }
         const errs = body?.errors ? Object.values(body.errors).flat().join(' / ') : ''
-        const message = body?.message || ''
-        if (xhr.status === 413) {
-          reject(new Error(message || 'File quá lớn so với giới hạn server.'))
-        } else if (xhr.status === 422) {
-          reject(new Error(`Upload bị từ chối (422): ${errs || message || 'không rõ lý do'}`))
-        } else {
-          reject(new Error(message || xhr.statusText || `Upload thất bại (HTTP ${xhr.status}).`))
-        }
+        reject(new Error(body?.message || errs || `HTTP ${xhr.status}`))
       }
-
-      xhr.onerror = () => reject(new Error('Lỗi mạng khi tải lên video.'))
+      xhr.onerror = () => reject(new Error(t('admin.builder.videoNetworkError')))
 
       const formData = new FormData()
       formData.append('video', file)
       xhr.send(formData)
     })
-  } catch (error: any) {
-    videoUploadError.value = error?.message || 'Lỗi upload video.'
+  }
+  catch (error: any) {
+    videoUploadError.value = error?.message || t('admin.builder.videoUploadError')
     throw error
-  } finally {
+  }
+  finally {
     videoUploading.value = false
   }
 }
 
-async function onVideoFileSelected(file: File | null) {
+async function onVideoFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0] || null
   videoFile.value = file
   videoUploadError.value = ''
   videoUploadProgress.value = 0
-  if (!file) return
-  // Auto-start upload as soon as a file is dropped on an existing lesson so
-  // the user can see progress immediately instead of waiting for "Lưu học liệu".
-  if (lessonForm.id) {
-    try {
-      await uploadLessonVideo(lessonForm.id)
-      // Clear the staged file so saveLesson doesn't re-upload it.
-      videoFile.value = null
-      successMessage.value = 'Đã tải video lên thành công.'
-    } catch {
-      /* error message is shown via videoUploadError */
-    }
+  if (!file || !lessonForm.id || lessonForm.id < 0) return
+  try {
+    await uploadLessonVideo(lessonForm.id)
+    videoFile.value = null
+    toast.add({ severity: 'success', summary: t('admin.builder.videoUploaded'), life: 2200 })
+    await loadCurriculum()
   }
-}
-
-async function openLessonModal(sectionId: number, lesson?: LessonItem, forcedType?: string) {
-  lessonForm.section_id = String(sectionId)
-  resetLessonConfigs()
-  if (lesson) {
-    lessonForm.id = lesson.id
-    lessonForm.title = lesson.title
-    lessonForm.type = lesson.type || 'video'
-    lessonForm.duration = lesson.duration || 0
-    lessonForm.is_preview = lesson.is_preview || false
-    const lessonDetail = await useApi<{ description?: string | null; video_url?: string | null }>(`/courses/${courseId}/lessons/${lesson.id}`, { headers: authHeaders() }).catch(() => null)
-    lessonForm.description = lessonDetail?.description || ''
-    lessonForm.video_url = lessonDetail?.video_url || ''
-    if (lessonForm.type === 'video') {
-      videoSourceMode.value = inferVideoSourceMode(lessonForm.video_url)
-    }
-    await loadLessonConfigs(lesson.id, lessonForm.type)
-  } else {
-    lessonForm.id = null
-    lessonForm.title = ''
-    lessonForm.type = forcedType || 'video'
-    if (lessonForm.type === 'video') {
-      videoSourceMode.value = 'embed'
-    }
+  catch {
+    /* shown via videoUploadError */
   }
-  lessonModalOpen.value = true
 }
 
 async function saveLesson() {
   if (!lessonForm.title.trim() || !lessonForm.section_id) return
-
-  if (!token.value) {
-    errorMessage.value = 'Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.'
-    await navigateTo('/login', { replace: true })
-    return
-  }
-
-  lessonSaving.value = true
+  savingLesson.value = true
   try {
-    const payload = {
-      title: lessonForm.title,
-      section_id: Number(lessonForm.section_id),
+    const payload: Record<string, unknown> = {
+      title: lessonForm.title.trim(),
+      section_id: lessonForm.section_id,
       type: lessonForm.type,
       description: lessonForm.description || undefined,
-      duration: lessonForm.duration,
+      duration: lessonForm.duration || 0,
       is_preview: lessonForm.is_preview,
-      video_url: lessonForm.type === 'video' && videoSourceMode.value === 'upload' ? undefined : (lessonForm.video_url || undefined),
     }
 
-    const lessonResponse = lessonForm.id
-      ? await useApi<{ lesson: { id: number } }>(`/courses/${courseId}/lessons/${lessonForm.id}`, { method: 'PUT', headers: authHeaders(), body: payload })
-      : await useApi<{ lesson: { id: number } }>(`/courses/${courseId}/lessons`, { method: 'POST', headers: authHeaders(), body: payload })
+    if (lessonForm.type === 'video' && videoSourceMode.value === 'embed' && lessonForm.video_url) {
+      payload.video_url = lessonForm.video_url
+    }
+    else if ((lessonForm.type === 'file' || lessonForm.type === 'document') && lessonForm.video_url && !resourceFile.value) {
+      payload.video_url = lessonForm.video_url
+    }
+
+    const isNew = !lessonForm.id || lessonForm.id < 0
+    const lessonResponse = isNew
+      ? await useApi<{ lesson: { id: number } }>(`/courses/${courseId.value}/lessons`, {
+          method: 'POST',
+          body: payload,
+        })
+      : await useApi<{ lesson: { id: number } }>(`/courses/${courseId.value}/lessons/${lessonForm.id}`, {
+          method: 'PUT',
+          body: payload,
+        })
 
     const lessonId = lessonResponse.lesson.id
 
     if (lessonForm.type === 'video' && videoSourceMode.value === 'upload' && videoFile.value) {
       await uploadLessonVideo(lessonId)
+      videoFile.value = null
     }
 
-    if (['file', 'audio'].includes(lessonForm.type) && resourceFile.value) {
+    if ((lessonForm.type === 'file' || lessonForm.type === 'document') && resourceFile.value) {
       const formData = new FormData()
       formData.append('file', resourceFile.value)
-      const attachmentResponse = await useApi<{ attachment: { url: string } }, FormData>(`/courses/${courseId}/lessons/${lessonId}/attachments`, { method: 'POST', headers: authHeaders(), body: formData })
-      await useApi(`/courses/${courseId}/lessons/${lessonId}`, { method: 'PUT', headers: authHeaders(), body: { video_url: attachmentResponse.attachment.url } })
+      const attachmentResponse = await useApi<{ attachment: { url: string } }, FormData>(
+        `/courses/${courseId.value}/lessons/${lessonId}/attachments`,
+        { method: 'POST', body: formData },
+      )
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}`, {
+        method: 'PUT',
+        body: { video_url: attachmentResponse.attachment.url },
+      })
+      resourceFile.value = null
     }
 
     if (lessonForm.type === 'quiz') {
-      await useApi(`/courses/${courseId}/lessons/${lessonId}/quiz`, {
-        method: 'POST', headers: authHeaders(), body: {
-          title: quizConfig.title || lessonForm.title,
-          description: quizConfig.description || lessonForm.description || null,
-          time_limit: quizConfig.time_limit,
-          pass_score: quizConfig.pass_score,
-          question_ids: [],
-        },
+      const quizBody: Record<string, unknown> = {
+        title: quizConfig.title || lessonForm.title,
+        description: quizConfig.description || lessonForm.description || null,
+        time_limit: quizConfig.time_limit,
+        pass_score: quizConfig.pass_score,
+      }
+      if (quizSyncQuestions.value || selectedQuestionIds.value.length) {
+        quizBody.question_ids = selectedQuestionIds.value
+      }
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}/quiz`, {
+        method: 'POST',
+        body: quizBody,
       })
     }
 
     if (lessonForm.type === 'assignment') {
-      await useApi(`/courses/${courseId}/lessons/${lessonId}/assignment`, {
-        method: 'POST', headers: authHeaders(), body: {
-          instructions: assignmentConfig.instructions || lessonForm.description,
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}/assignment`, {
+        method: 'POST',
+        body: {
+          instructions: assignmentConfig.instructions || lessonForm.description || lessonForm.title,
           max_file_size: assignmentConfig.max_file_size,
           allowed_extensions: assignmentConfig.allowed_extensions,
-          available_from: assignmentConfig.available_from || null,
-          submission_open_at: assignmentConfig.submission_open_at || null,
           due_at: assignmentConfig.due_at || null,
         },
       })
     }
 
-    if (['zoom', 'meet'].includes(lessonForm.type)) {
-      await useApi(`/courses/${courseId}/lessons/${lessonId}/virtual-class`, {
-        method: 'POST', headers: authHeaders(), body: {
-          provider: lessonForm.type === 'meet' ? 'google_meet' : 'zoom',
-          meeting_id: liveConfig.meeting_id || null,
-          meeting_password: liveConfig.meeting_password || null,
-          join_url: liveConfig.join_url,
-          start_url: null,
-          start_at: liveConfig.start_at,
-          duration: liveConfig.duration,
+    toast.add({
+      severity: 'success',
+      summary: isNew ? t('admin.builder.lessonCreated') : t('admin.builder.lessonUpdated'),
+      life: 2200,
+    })
+    await loadCurriculum()
+    selection.value = { kind: 'lesson', sectionId: lessonForm.section_id, lessonId }
+    lessonForm.id = lessonId
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.lessonSaveError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+  }
+  finally {
+    savingLesson.value = false
+  }
+}
+
+function askDeleteLesson(sectionId: number, lesson: LessonItem) {
+  confirm.require({
+    message: t('admin.builder.deleteLessonConfirm', { title: lesson.title }),
+    header: t('admin.builder.deleteLessonTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/courses/${courseId.value}/lessons/${lesson.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.builder.lessonDeleted'), life: 2000 })
+        if (selection.value.kind === 'lesson' && selection.value.lessonId === lesson.id) {
+          selection.value = { kind: 'course' }
+        }
+        await loadCurriculum()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.builder.lessonDeleteError'),
+          detail: errDetail(error),
+          life: 3500,
+        })
+      }
+    },
+  })
+}
+
+async function moveLesson(section: SectionItem, index: number, direction: -1 | 1) {
+  const lessons = [...(section.lessons || [])]
+  const next = index + direction
+  if (next < 0 || next >= lessons.length) return
+  const [item] = lessons.splice(index, 1)
+  lessons.splice(next, 0, item)
+  section.lessons = lessons
+  try {
+    await useApi(`/courses/${courseId.value}/lessons/reorder`, {
+      method: 'POST',
+      body: { order: lessons.map(l => l.id) },
+    })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.reorderError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+    await loadCurriculum()
+  }
+}
+
+const metaTab = ref<'basic' | 'sell' | 'media'>('basic')
+const metaTabs = computed(() => [
+  { key: 'basic' as const, label: t('admin.builder.metaTabs.basic') },
+  { key: 'sell' as const, label: t('admin.builder.metaTabs.sell') },
+  { key: 'media' as const, label: t('admin.builder.metaTabs.media') },
+])
+
+const levelOptions = computed(() => [
+  { label: t('admin.builder.levels.beginner'), value: 'beginner' },
+  { label: t('admin.builder.levels.intermediate'), value: 'intermediate' },
+  { label: t('admin.builder.levels.advanced'), value: 'advanced' },
+])
+
+function metaStatusForApi() {
+  if (['draft', 'published', 'closed', 'pending_review', 'rejected'].includes(metaForm.status)) {
+    return metaForm.status
+  }
+  return 'draft'
+}
+
+function cleanList(items: string[]) {
+  return items.map(s => s.trim()).filter(Boolean)
+}
+
+function addListItem(key: 'learning_outcomes' | 'benefits' | 'requirements') {
+  metaForm[key].push('')
+}
+
+function removeListItem(key: 'learning_outcomes' | 'benefits' | 'requirements', index: number) {
+  if (metaForm[key].length <= 1) {
+    metaForm[key][0] = ''
+    return
+  }
+  metaForm[key].splice(index, 1)
+}
+
+function metaPayload() {
+  return {
+    title: metaForm.title.trim(),
+    description: metaForm.description || null,
+    price: metaForm.price,
+    category_id: metaForm.category_id,
+    status: metaStatusForApi(),
+    level: metaForm.level || null,
+    trailer_url: metaForm.trailer_url || null,
+    learning_outcomes: cleanList(metaForm.learning_outcomes),
+    benefits: cleanList(metaForm.benefits),
+    requirements: cleanList(metaForm.requirements),
+  }
+}
+
+async function saveCourseMeta() {
+  if (!metaForm.title.trim()) return
+  savingMeta.value = true
+  try {
+    const payload = metaPayload()
+    if (thumbnailFile.value) {
+      const formData = new FormData()
+      formData.append('_method', 'PUT')
+      formData.append('title', payload.title)
+      formData.append('description', payload.description || '')
+      formData.append('price', String(payload.price || 0))
+      if (payload.category_id) formData.append('category_id', String(payload.category_id))
+      formData.append('status', payload.status)
+      formData.append('level', payload.level || '')
+      formData.append('trailer_url', payload.trailer_url || '')
+      formData.append('learning_outcomes', JSON.stringify(payload.learning_outcomes))
+      formData.append('benefits', JSON.stringify(payload.benefits))
+      formData.append('requirements', JSON.stringify(payload.requirements))
+      formData.append('thumbnail_file', thumbnailFile.value)
+      const res = await useApi<{ course: CourseDetail }, FormData>(`/courses/${courseId.value}`, {
+        method: 'POST',
+        body: formData,
+      })
+      course.value = res.course
+      metaForm.status = res.course.status || metaForm.status
+      thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
+      thumbnailFile.value = null
+    }
+    else {
+      const res = await useApi<{ course: CourseDetail }>(`/courses/${courseId.value}`, {
+        method: 'PUT',
+        body: {
+          ...payload,
+          ...(thumbnailUrl.value ? { thumbnail: thumbnailUrl.value } : {}),
         },
       })
+      course.value = res.course
+      metaForm.status = res.course.status || metaForm.status
+      thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
     }
-
-    if (['scorm', 'h5p'].includes(lessonForm.type)) {
-      const formData = new FormData()
-      formData.append('type', lessonForm.type)
-      if (lessonForm.type === 'h5p') {
-        // Accept either a bare URL or a pasted iframe embed snippet — extract the src.
-        const raw = scormConfig.entry_url.trim()
-        const match = raw.match(/<iframe[^>]+src=["']([^"']+)["']/i)
-        const src = match ? match[1] : raw
-        if (src) formData.append('entry_url', src)
-      }
-      if (lessonForm.type === 'scorm' && scormFile.value) formData.append('scorm_file', scormFile.value)
-      await useApi(`/courses/${courseId}/lessons/${lessonId}/scorm-package`, { method: 'POST', headers: authHeaders(), body: formData })
-    }
-
-    successMessage.value = lessonForm.id ? 'Đã cập nhật học liệu.' : 'Đã thêm học liệu mới.'
-    lessonModalOpen.value = false
-    fetchCurriculum()
-  } catch (error: any) {
-    // eslint-disable-next-line no-console
-    console.error('[saveLesson]', { status: error?.status || error?.statusCode, url: error?.request, data: error?.data, raw: error })
-    if ((error?.status || error?.statusCode) === 401) {
-      errorMessage.value = 'Phiên đăng nhập đã hết. Vui lòng đăng xuất và đăng nhập lại.'
-    } else {
-      errorMessage.value = error?.data?.message || 'Lỗi lưu học liệu.'
-    }
-  } finally {
-    lessonSaving.value = false
+    toast.add({ severity: 'success', summary: t('admin.builder.metaSaved'), life: 2200 })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.metaSaveError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+  }
+  finally {
+    savingMeta.value = false
   }
 }
 
-async function deleteLesson(lessonId: number) {
-  if (!confirm('Xác nhận xóa học liệu này?')) return
+async function publishCourse() {
+  publishing.value = true
   try {
-    await useApi(`/courses/${courseId}/lessons/${lessonId}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Đã xóa học liệu.'
-    fetchCurriculum()
-  } catch (error) {
-    errorMessage.value = 'Lỗi khi xóa học liệu.'
+    const res = await useApi<{ message?: string, course: CourseDetail }>(`/courses/${courseId.value}/publish`, {
+      method: 'POST',
+    })
+    course.value = res.course
+    metaForm.status = res.course.status || metaForm.status
+    toast.add({
+      severity: 'success',
+      summary: t('admin.builder.published'),
+      detail: res.message,
+      life: 2800,
+    })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.builder.publishError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+  }
+  finally {
+    publishing.value = false
   }
 }
 
-// ─── Quick lesson preview (admin can verify content without leaving the page)
-const previewModalOpen = ref(false)
-const previewLesson = ref<any>(null)
-const previewLoading = ref(false)
-const previewError = ref('')
+const isNewLessonDraft = computed(() =>
+  selection.value.kind === 'lesson' && (!lessonForm.id || lessonForm.id < 0),
+)
 
-async function openLessonPreview(lesson: { id: number; title?: string; type?: string }) {
-  previewModalOpen.value = true
-  previewLesson.value = { id: lesson.id, title: lesson.title, type: lesson.type }
-  previewLoading.value = true
-  previewError.value = ''
-  try {
-    const detail = await useApi<any>(`/courses/${courseId}/lessons/${lesson.id}`, { headers: authHeaders() })
-    previewLesson.value = detail
-  } catch (err: any) {
-    previewError.value = err?.data?.message || 'Không tải được nội dung học liệu để xem trước.'
-  } finally {
-    previewLoading.value = false
-  }
-}
+const showLessonEditor = computed(() =>
+  selection.value.kind === 'lesson',
+)
 
-function closeLessonPreview() {
-  previewModalOpen.value = false
-  // Drop reference next tick so iframe/video unmounts cleanly.
-  setTimeout(() => { previewLesson.value = null }, 200)
-}
-
-function openCoursePreview() {
-  if (import.meta.client) window.open(`/courses/${courseId}`, '_blank', 'noopener')
-}
-
-function previewLessonTypeLabel(type?: string) {
-  const map: Record<string, string> = {
-    video: 'Video', audio: 'Audio', file: 'Tệp', page: 'Trang', forum: 'Diễn đàn', survey: 'Khảo sát',
-    scorm: 'SCORM', h5p: 'H5P', virtual_class: 'Lớp trực tuyến', zoom: 'Zoom', meet: 'Google Meet',
-    offline: 'Offline', assignment: 'Bài tập', quiz: 'Kiểm tra',
-  }
-  return map[type || ''] || 'Học liệu'
-}
-
-onMounted(() => {
-  fetchCourseDetails()
-  fetchCurriculum()
+onMounted(async () => {
+  await Promise.all([loadCategories(), loadCourse(), loadCurriculum()])
 })
 </script>
 
 <template>
-  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Khóa học', course?.title || 'Đang tải...']" description="Sắp xếp và quản lý nội dung giảng dạy. Bạn có thể xây dựng cấu trúc theo các phần học và bài giảng." title="Xây dựng Nội dung">
+  <div class="page builder-page">
+    <header class="builder-topbar">
+      <div class="top-left">
+        <Button
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          text
+          rounded
+          :aria-label="t('admin.builder.back')"
+          @click="navigateTo('/admin/manage-courses')"
+        />
+        <div class="titles">
+          <span class="eyebrow">{{ t('admin.builder.eyebrow') }}</span>
+          <h1>{{ course?.title || t('common.loading') }}</h1>
+        </div>
+      </div>
+      <div class="top-actions">
+        <Button
+          :label="t('admin.builder.courseSettings')"
+          icon="pi pi-cog"
+          severity="secondary"
+          outlined
+          @click="selectCourse"
+        />
+        <Button
+          :label="t('common.save')"
+          icon="pi pi-save"
+          :loading="savingMeta"
+          severity="secondary"
+          @click="saveCourseMeta"
+        />
+        <Button
+          :label="t('admin.builder.publish')"
+          icon="pi pi-send"
+          :loading="publishing"
+          @click="publishCourse"
+        />
+      </div>
+    </header>
 
-    <div class="crud-toolbar" style="margin-bottom: 24px;">
-      <button class="crud-primary-btn" type="button" @click="openSectionModal()">+ Thêm Chương mới</button>
-      <button class="crud-secondary-btn" style="display:inline-flex;align-items:center;gap:6px;" type="button" @click="openCoursePreview">
-        <span class="material-symbols-outlined" style="font-size:16px;">open_in_new</span>
-        Xem trang khóa học
-      </button>
-      <button class="crud-secondary-btn" type="button" @click="navigateTo('/admin/manage-courses')">← Quay lại danh sách</button>
-    </div>
-
-    <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-    <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
-
-    <div v-if="loading" style="padding: 40px; text-align: center; color: var(--muted);">Đang tải cấu trúc nội dung...</div>
-
-    <div v-else-if="sections.length === 0" class="crud-empty dashboard-card">
-      Chưa có nội dung nào được tạo. Hãy bắt đầu bằng cách bấm "Thêm Chương mới".
-    </div>
-
-    <div v-else class="curriculum-builder">
-      <div v-for="(section, index) in sections" :key="section.id" class="section-card dashboard-card">
-        <div class="section-header">
-          <div class="section-title">
-            <strong>Chương {{ index + 1 }}:</strong> <span>{{ section.title }}</span>
-          </div>
-          <div class="section-actions">
-            <button class="action-btn is-edit" type="button" @click="openSectionModal(section)">Sửa chương</button>
-            <button class="action-btn is-delete" type="button" @click="deleteSection(section.id)">Xóa chương</button>
-            <button class="action-btn is-add" type="button" @click="openContentPicker(section.id)">
-              <span class="material-symbols-outlined" style="font-size: 16px;">add</span>
-              Thêm hoạt động / tài nguyên
-            </button>
-          </div>
+    <div class="builder-layout">
+      <aside class="tree-panel surface">
+        <div class="tree-head">
+          <strong>{{ t('admin.builder.curriculum') }}</strong>
+          <Button
+            icon="pi pi-plus"
+            size="small"
+            text
+            rounded
+            :aria-label="t('admin.builder.addSection')"
+            @click="openSectionDialog()"
+          />
         </div>
 
-        <div class="lessons-list">
-          <div v-if="!section.lessons || section.lessons.length === 0" class="no-lessons">
-            Chưa có học liệu nào trong phần này.
-          </div>
-          <div v-for="(lesson, lIndex) in section.lessons" :key="lesson.id" class="lesson-item">
-            <div class="lesson-info">
-              <span class="lesson-icon material-symbols-outlined" style="font-size: 16px;">{{ lessonTypeIcon(lesson.type) }}</span>
-              <div>
-                <span class="lesson-name">{{ lIndex + 1 }}. {{ lesson.title }}</span>
-                <div class="lesson-meta-row">
-                  <span class="crud-badge role-admin">{{ lessonTypeLabel(lesson.type) }}</span>
-                  <span v-if="lesson.is_preview" class="crud-badge role-instructor">Học thử</span>
-                  <span class="lesson-duration" v-if="lesson.duration">{{ lesson.duration }} phút</span>
-                </div>
-              </div>
-            </div>
-            <div class="lesson-actions">
-              <button class="action-btn is-preview" type="button" @click="openLessonPreview(lesson)" title="Xem thử nhanh">
-                <span class="material-symbols-outlined">visibility</span>
-                Xem thử
+        <div v-if="loading" class="tree-loading">
+          <ProgressSpinner style="width:28px;height:28px" stroke-width="4" />
+        </div>
+
+        <div v-else-if="!sections.length" class="tree-empty">
+          {{ t('admin.builder.emptyCurriculum') }}
+          <Button :label="t('admin.builder.addSection')" icon="pi pi-plus" size="small" class="mt-2" @click="openSectionDialog()" />
+        </div>
+
+        <div v-else class="tree-list">
+          <div v-for="(section, sIndex) in sections" :key="section.id" class="section-block">
+            <div class="section-row">
+              <button type="button" class="expand" @click="toggleSection(section.id)">
+                <i :class="expanded[section.id] ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" />
               </button>
-              <button class="action-btn is-edit" type="button" @click="openLessonModal(section.id, lesson)">Sửa</button>
-              <button class="action-btn is-delete" type="button" @click="deleteLesson(lesson.id)">Xóa</button>
+              <button type="button" class="section-title" @click="expanded[section.id] = true">
+                <span>{{ t('admin.builder.sectionN', { n: sIndex + 1 }) }}</span>
+                <strong>{{ section.title }}</strong>
+              </button>
+              <div class="row-actions">
+                <Button icon="pi pi-arrow-up" text rounded size="small" :disabled="sIndex === 0" @click="moveSection(sIndex, -1)" />
+                <Button icon="pi pi-arrow-down" text rounded size="small" :disabled="sIndex === sections.length - 1" @click="moveSection(sIndex, 1)" />
+                <Button icon="pi pi-pencil" text rounded size="small" @click="openSectionDialog(section)" />
+                <Button icon="pi pi-plus" text rounded size="small" @click="openContentPicker(section.id)" />
+                <Button icon="pi pi-trash" text rounded size="small" severity="danger" @click="askDeleteSection(section)" />
+              </div>
+            </div>
+
+            <div v-if="expanded[section.id]" class="lesson-list">
+              <div v-if="!section.lessons?.length" class="lesson-empty">
+                {{ t('admin.builder.noLessons') }}
+              </div>
+              <button
+                v-for="(lesson, lIndex) in section.lessons"
+                :key="lesson.id"
+                type="button"
+                class="lesson-row"
+                :class="{ on: selection.kind === 'lesson' && selection.lessonId === lesson.id }"
+                @click="selectLesson(section.id, lesson.id)"
+              >
+                <i :class="typeIcon(lesson.type)" />
+                <div class="lesson-meta">
+                  <strong>{{ lIndex + 1 }}. {{ lesson.title }}</strong>
+                  <span>{{ typeLabel(lesson.type) }}</span>
+                </div>
+                <div class="row-actions" @click.stop>
+                  <Button icon="pi pi-arrow-up" text rounded size="small" :disabled="lIndex === 0" @click="moveLesson(section, lIndex, -1)" />
+                  <Button icon="pi pi-arrow-down" text rounded size="small" :disabled="lIndex === (section.lessons?.length || 0) - 1" @click="moveLesson(section, lIndex, 1)" />
+                  <Button icon="pi pi-trash" text rounded size="small" severity="danger" @click="askDeleteLesson(section.id, lesson)" />
+                </div>
+              </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </aside>
 
-    <!-- Section Modal -->
-    <Teleport to="body">
-      <div v-if="sectionModalOpen" class="crud-modal-backdrop" @click.self="sectionModalOpen = false">
-        <div class="crud-modal">
-          <div class="crud-modal-head">
+      <section class="editor-panel surface">
+        <template v-if="!showLessonEditor">
+          <div class="editor-head">
             <div>
-              <p class="section-kicker">Chương / Phần</p>
-              <h3>{{ sectionForm.id ? 'Sửa tên chương' : 'Thêm chương mới' }}</h3>
+              <span class="eyebrow">{{ t('admin.builder.courseSettings') }}</span>
+              <h2>{{ t('admin.builder.metaTitle') }}</h2>
             </div>
-            <button class="topbar-ghost" type="button" @click="sectionModalOpen = false">✕</button>
-          </div>
-          <div class="crud-form-grid">
-            <label class="crud-field crud-field-full">
-              <span>Tên chương</span>
-              <input v-model="sectionForm.title" type="text" placeholder="Ví dụ: Giới thiệu khóa học">
-            </label>
-          </div>
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="sectionModalOpen = false">Hủy</button>
-            <button class="crud-primary-btn" type="button" @click="saveSection">Lưu chương</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Content Picker Modal -->
-    <Teleport to="body">
-      <div v-if="pickerModalOpen" class="crud-modal-backdrop" @click.self="pickerModalOpen = false">
-        <div class="crud-modal crud-modal-wide">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">Thêm học liệu</p>
-              <h3>Chọn hoạt động hoặc tài nguyên</h3>
-            </div>
-            <button class="topbar-ghost" type="button" @click="pickerModalOpen = false">✕</button>
-          </div>
-          <div class="picker-body">
-            <div class="picker-toolbar">
-              <input v-model="pickerSearch" class="crud-search" type="text" placeholder="Tìm kiếm hoạt động hoặc tài nguyên...">
-              <div class="picker-tabs">
-                <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'all' }]" @click="pickerTab = 'all'">Tất cả</button>
-                <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'activity' }]" @click="pickerTab = 'activity'">Hoạt động</button>
-                <button type="button" :class="['picker-tab', { 'is-active': pickerTab === 'resource' }]" @click="pickerTab = 'resource'">Tài nguyên</button>
-              </div>
-            </div>
-            <ul class="content-picker-list">
-              <li v-for="item in filteredContentTypes" :key="item.key" class="content-picker-item" @click="chooseContentType(item.key)">
-                <div class="item-icon-wrapper">
-                  <span class="material-symbols-outlined item-icon">{{ item.icon }}</span>
-                </div>
-                <div class="item-details">
-                  <strong class="item-title">{{ item.label }}</strong>
-                  <p class="item-desc">{{ typeHelperText(item.key) }}</p>
-                </div>
-                <div class="item-badge-container">
-                  <span :class="['item-badge', item.kind]">{{ item.kind === 'activity' ? 'Hoạt động' : 'Tài nguyên' }}</span>
-                </div>
-              </li>
-            </ul>
-            <div v-if="filteredContentTypes.length === 0" class="crud-empty">Không tìm thấy loại học liệu phù hợp.</div>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Lesson Modal -->
-    <Teleport to="body">
-      <div v-if="lessonModalOpen" class="crud-modal-backdrop" @click.self="lessonModalOpen = false">
-        <div class="crud-modal crud-modal-wide">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ lessonTypeLabel(lessonForm.type) }}</p>
-              <h3>{{ lessonForm.id ? 'Cập nhật học liệu' : 'Tạo học liệu' }}</h3>
-            </div>
-            <button class="topbar-ghost" type="button" @click="lessonModalOpen = false">✕</button>
-          </div>
-          <div class="crud-form-grid">
-            <label class="crud-field crud-field-full">
-              <span>Tên học liệu</span>
-              <input v-model="lessonForm.title" type="text" placeholder="Ví dụ: Bài 1 - Giới thiệu tổng quan">
-            </label>
-            <div v-if="lessonForm.type === 'video'" class="crud-field crud-field-full lesson-config-grid">
-              <div class="video-mode-switch">
-                <button type="button" :class="['picker-tab', { 'is-active': videoSourceMode === 'embed' }]" @click="videoSourceMode = 'embed'">Video iframe / link</button>
-                <button type="button" :class="['picker-tab', { 'is-active': videoSourceMode === 'upload' }]" @click="videoSourceMode = 'upload'">Tự tải lên</button>
-              </div>
-              <label v-if="videoSourceMode === 'embed'" class="crud-field crud-field-full">
-                <span>Link video (YouTube / Google Drive / OneDrive)</span>
-                <input v-model="lessonForm.video_url" type="url" placeholder="https://youtube.com/... hoặc https://drive.google.com/...">
-              </label>
-              <div v-else class="crud-field crud-field-full">
-                <span>Upload file video</span>
-                <label class="upload-dropzone">
-                  <input class="upload-dropzone-input" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo" @change="onVideoFileSelected(($event.target as HTMLInputElement)?.files?.[0] || null)">
-                  <span class="upload-dropzone-icon material-symbols-outlined">movie</span>
-                  <strong>Tải video bài học</strong>
-                  <span>{{ videoFile?.name || 'Chọn file MP4, WebM, MOV hoặc AVI để tải lên MinIO.' }}</span>
-                </label>
-                <div v-if="videoUploading" class="mt-4">
-                  <div class="h-2 w-full bg-surface-high rounded-full overflow-hidden">
-                    <div class="h-full progress-gradient transition-all duration-200" :style="{ width: `${videoUploadProgress}%` }"></div>
-                  </div>
-                  <p class="text-xs text-on-surface-variant mt-2">Đang tải lên video: {{ videoUploadProgress }}%</p>
-                </div>
-                <p v-if="videoUploadError" class="text-sm text-error mt-3">{{ videoUploadError }}</p>
-                <p class="lesson-upload-help">Video sẽ được tải lên MinIO và học viên sẽ xem qua URL ký tạm thời.</p>
-              </div>
-            </div>
-
-            <label class="crud-field">
-              <span>Loại học liệu</span>
-              <input :value="lessonTypeLabel(lessonForm.type)" type="text" disabled>
-            </label>
-            <div class="crud-field crud-field-full lesson-helper-box">
-              <span>Gợi ý cấu hình</span>
-              <p>{{ typeHelperText(lessonForm.type) }}</p>
-              <div v-if="lessonForm.type === 'quiz'" class="crud-inline-actions crud-modal-foot">
-                <button class="crud-secondary-btn" type="button" @click="navigateTo(`/admin/question-bank`)">Đi tới Ngân hàng câu hỏi</button>
-                <button class="crud-secondary-btn" type="button" @click="navigateTo(`/admin/quiz`)">Đi tới Đề thi</button>
-              </div>
-              <div v-else-if="lessonForm.type === 'assignment'" class="lesson-helper-tags">
-                <span class="crud-badge role-student">Deadline</span>
-                <span class="crud-badge role-admin">Nộp bài</span>
-                <span class="crud-badge role-instructor">Chấm điểm</span>
-              </div>
-              <div v-else-if="lessonForm.type === 'forum'" class="lesson-helper-tags">
-                <span class="crud-badge role-student">Chủ đề</span>
-                <span class="crud-badge role-admin">Trao đổi</span>
-              </div>
-              <div v-else-if="['zoom', 'meet'].includes(lessonForm.type)" class="lesson-helper-tags">
-                <span class="crud-badge role-instructor">Lớp trực tuyến</span>
-                <span class="crud-badge role-admin">Lịch học</span>
-              </div>
-            </div>
-            <label v-if="needsResourceUrl(lessonForm.type) && lessonForm.type !== 'video'" class="crud-field">
-              <span>{{ resourceUrlLabel(lessonForm.type) }}</span>
-              <input v-model="lessonForm.video_url" type="url" :placeholder="lessonLinkPlaceholder(lessonForm.type)">
-            </label>
-            <div v-if="['file', 'audio'].includes(lessonForm.type)" class="crud-field">
-              <span>Tải file thật</span>
-              <label class="upload-dropzone upload-dropzone-compact">
-                <input class="upload-dropzone-input" type="file" @change="resourceFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                <span class="upload-dropzone-icon material-symbols-outlined">upload_file</span>
-                <strong>{{ lessonForm.type === 'audio' ? 'Tải file audio' : 'Tải tài liệu đính kèm' }}</strong>
-                <span>{{ resourceFile?.name || 'Chọn file để đính kèm cho học viên.' }}</span>
-              </label>
-            </div>
-            <label v-if="lessonForm.type !== 'assignment'" class="crud-field">
-              <span>Thời lượng (phút)</span>
-              <input v-model="lessonForm.duration" type="number" min="0">
-            </label>
-            <div v-if="lessonForm.type === 'quiz'" class="crud-field crud-field-full lesson-config-grid">
-              <label class="crud-field"><span>Tiêu đề quiz</span><input v-model="quizConfig.title" type="text" placeholder="Quiz chương 1"></label>
-              <label class="crud-field"><span>Thời gian làm bài (phút)</span><input v-model="quizConfig.time_limit" type="number" min="0"></label>
-              <label class="crud-field"><span>Điểm đạt</span><input v-model="quizConfig.pass_score" type="number" min="0" max="100"></label>
-              <div class="crud-field crud-field-full"><span>Mô tả quiz</span><RichTextEditor v-model="quizConfig.description" placeholder="Mô tả quiz và hướng dẫn làm bài" enable-images upload-folder="courses" /></div>
-            </div>
-            <div v-if="lessonForm.type === 'assignment'" class="crud-field crud-field-full lesson-config-grid">
-              <div class="crud-field crud-field-full assignment-timeline">
-                <span class="assignment-timeline-title">Mốc thời gian</span>
-                <div class="assignment-timeline-grid">
-                  <label class="assignment-date-card assignment-date-card--open">
-                    <span class="assignment-date-card-head">
-                      <span class="material-symbols-outlined">event_available</span>
-                      Ngày nhận bài
-                    </span>
-                    <input v-model="assignmentConfig.available_from" type="datetime-local">
-                    <span class="assignment-date-card-hint">Lúc bài tập hiển thị cho học viên</span>
-                  </label>
-
-                  <span class="assignment-timeline-bar"></span>
-
-                  <label class="assignment-date-card assignment-date-card--submit">
-                    <span class="assignment-date-card-head">
-                      <span class="material-symbols-outlined">task_alt</span>
-                      Ngày bắt đầu nộp
-                    </span>
-                    <input v-model="assignmentConfig.submission_open_at" type="datetime-local">
-                    <span class="assignment-date-card-hint">Học viên được phép submit từ lúc này</span>
-                  </label>
-
-                  <span class="assignment-timeline-bar"></span>
-
-                  <label class="assignment-date-card assignment-date-card--close">
-                    <span class="assignment-date-card-head">
-                      <span class="material-symbols-outlined">lock_clock</span>
-                      Ngày đóng
-                    </span>
-                    <input v-model="assignmentConfig.due_at" type="datetime-local">
-                    <span class="assignment-date-card-hint">Sau lúc này không nộp được nữa</span>
-                  </label>
-                </div>
-              </div>
-
-              <label class="crud-field"><span>Dung lượng tối đa (KB)</span><input v-model="assignmentConfig.max_file_size" type="number" min="1"></label>
-              <label class="crud-field crud-field-full"><span>Định dạng cho phép</span><input v-model="assignmentConfig.allowed_extensions" type="text" placeholder="pdf,doc,docx,zip"></label>
-              <div class="crud-field crud-field-full"><span>Yêu cầu bài tập</span><RichTextEditor v-model="assignmentConfig.instructions" placeholder="Mô tả yêu cầu, đầu ra, cách nộp bài" enable-images upload-folder="courses" /></div>
-            </div>
-            <div v-if="['zoom', 'meet'].includes(lessonForm.type)" class="crud-field crud-field-full lesson-config-grid">
-              <label class="crud-field"><span>Link tham gia</span><input v-model="liveConfig.join_url" type="url" :placeholder="lessonLinkPlaceholder(lessonForm.type)"></label>
-              <label class="crud-field"><span>Bắt đầu lúc</span><input v-model="liveConfig.start_at" type="datetime-local"></label>
-              <label class="crud-field"><span>Thời lượng buổi học (phút)</span><input v-model="liveConfig.duration" type="number" min="1"></label>
-              <label class="crud-field"><span>Mã phòng</span><input v-model="liveConfig.meeting_id" type="text" placeholder="Meeting ID"></label>
-              <label class="crud-field"><span>Mật khẩu</span><input v-model="liveConfig.meeting_password" type="text" placeholder="Mật khẩu phòng"></label>
-            </div>
-            <div v-if="lessonForm.type === 'h5p'" class="crud-field crud-field-full lesson-config-grid">
-              <label class="crud-field crud-field-full">
-                <span>Link nhúng H5P</span>
-                <textarea v-model="scormConfig.entry_url" class="crud-textarea" rows="2" placeholder="https://h5p.org/h5p/embed/612 — hoặc dán nguyên đoạn <iframe src=&quot;...&quot;>...</iframe>"></textarea>
-                <small class="crud-field-hint">Hỗ trợ dán URL trần hoặc nguyên đoạn embed code. Hệ thống tự bóc <code>src</code> và bật h5p-resizer.</small>
-              </label>
-            </div>
-            <div v-if="lessonForm.type === 'scorm'" class="crud-field crud-field-full lesson-config-grid">
-              <div class="crud-field crud-field-full">
-                <span>Upload gói SCORM (.zip)</span>
-                <label class="upload-dropzone upload-dropzone-compact">
-                  <input class="upload-dropzone-input" type="file" accept=".zip,application/zip" @change="scormFile = ($event.target as HTMLInputElement)?.files?.[0] || null">
-                  <span class="upload-dropzone-icon material-symbols-outlined">deployed_code</span>
-                  <strong>Tải gói SCORM</strong>
-                  <span>{{ scormFile?.name || 'Chọn file ZIP. Phiên bản (1.2 / 2004) sẽ tự nhận diện từ imsmanifest.xml.' }}</span>
-                </label>
-              </div>
-            </div>
-            <div v-if="lessonForm.type !== 'assignment'" class="crud-field crud-field-full">
-              <span>{{ lessonDescriptionLabel(lessonForm.type) }}</span>
-              <RichTextEditor v-model="lessonForm.description" :placeholder="lessonDescriptionPlaceholder(lessonForm.type)" enable-images upload-folder="courses" />
-            </div>
-            <label class="crud-field checkbox-field" style="display: flex; align-items: center; gap: 8px;">
-              <input v-model="lessonForm.is_preview" type="checkbox">
-              <span>Cho phép Học thử (Miễn phí)</span>
-            </label>
-          </div>
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="lessonModalOpen = false">Hủy</button>
-            <button class="crud-primary-btn" type="button" @click="saveLesson">Lưu học liệu</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
-    <!-- Quick lesson preview modal -->
-    <Teleport to="body">
-      <div v-if="previewModalOpen" class="crud-modal-backdrop" @click.self="closeLessonPreview">
-        <div class="crud-modal preview-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ previewLessonTypeLabel(previewLesson?.type) }}</p>
-              <h3>{{ previewLesson?.title || 'Xem thử học liệu' }}</h3>
-            </div>
-            <button class="topbar-ghost" type="button" @click="closeLessonPreview">✕</button>
+            <Button :label="t('common.save')" icon="pi pi-save" :loading="savingMeta" @click="saveCourseMeta" />
           </div>
 
-          <div class="preview-modal-body">
-            <div v-if="previewLoading" class="preview-state">
-              <span class="material-symbols-outlined preview-state-spin">progress_activity</span>
-              <p>Đang tải nội dung...</p>
-            </div>
-            <div v-else-if="previewError" class="preview-state preview-state--error">
-              <span class="material-symbols-outlined">error</span>
-              <p>{{ previewError }}</p>
-            </div>
-            <div v-else-if="previewLesson" class="preview-stage" :data-type="previewLesson.type">
-              <!-- Video -->
-              <template v-if="previewLesson.type === 'video'">
-                <VideoPlayer
-                  v-if="previewLesson.video_url"
-                  :key="`preview-video-${previewLesson.id}`"
-                  :course-id="Number(courseId)"
-                  :lesson-id="previewLesson.id"
-                  class="preview-fill"
-                />
-                <div v-else class="preview-state">
-                  <span class="material-symbols-outlined">play_circle</span>
-                  <p>Bài học này chưa có video.</p>
-                </div>
-              </template>
-
-              <!-- Audio -->
-              <template v-else-if="previewLesson.type === 'audio'">
-                <div class="preview-resource">
-                  <span class="material-symbols-outlined preview-resource-icon">podcasts</span>
-                  <h4>{{ previewLesson.title }}</h4>
-                  <audio v-if="previewLesson.video_url" :src="previewLesson.video_url" controls class="preview-audio" />
-                  <p v-else>Chưa có file audio.</p>
-                </div>
-              </template>
-
-              <!-- File / Page -->
-              <template v-else-if="['file', 'page'].includes(previewLesson.type)">
-                <div class="preview-resource">
-                  <span class="material-symbols-outlined preview-resource-icon">{{ previewLesson.type === 'page' ? 'article' : 'draft' }}</span>
-                  <h4>{{ previewLesson.title }}</h4>
-                  <a v-if="previewLesson.video_url" :href="previewLesson.video_url" target="_blank" class="preview-link">
-                    <span class="material-symbols-outlined">open_in_new</span>
-                    Mở tài liệu
-                  </a>
-                  <div v-if="previewLesson.description" class="preview-rich" v-html="previewLesson.description" />
-                </div>
-              </template>
-
-              <!-- SCORM -->
-              <template v-else-if="previewLesson.type === 'scorm'">
-                <ScormPlayer
-                  v-if="previewLesson.scorm_package"
-                  :course-id="Number(courseId)"
-                  :lesson-id="previewLesson.id"
-                  :package-data="previewLesson.scorm_package"
-                  class="preview-fill"
-                />
-                <div v-else class="preview-state">
-                  <span class="material-symbols-outlined">subscriptions</span>
-                  <p>Chưa upload gói SCORM.</p>
-                </div>
-              </template>
-
-              <!-- H5P -->
-              <template v-else-if="previewLesson.type === 'h5p'">
-                <H5PEmbed :src="previewLesson.scorm_package?.entry_url" class="preview-fill" />
-              </template>
-
-              <!-- Quiz -->
-              <template v-else-if="previewLesson.type === 'quiz'">
-                <StudentQuiz :course-id="Number(courseId)" :lesson-id="previewLesson.id" class="preview-scroll" />
-              </template>
-
-              <!-- Assignment -->
-              <template v-else-if="previewLesson.type === 'assignment'">
-                <AssignmentView
-                  v-if="previewLesson.assignment"
-                  :data="previewLesson.assignment"
-                  :course-id="Number(courseId)"
-                  :lesson-id="previewLesson.id"
-                  class="preview-scroll"
-                />
-                <div v-else class="preview-state">
-                  <span class="material-symbols-outlined">assignment</span>
-                  <p>Chưa cấu hình bài tập.</p>
-                </div>
-              </template>
-
-              <!-- Virtual class -->
-              <template v-else-if="['virtual_class', 'zoom', 'meet'].includes(previewLesson.type)">
-                <div class="preview-resource">
-                  <span class="material-symbols-outlined preview-resource-icon">video_camera_front</span>
-                  <h4>{{ previewLesson.title }}</h4>
-                  <p v-if="previewLesson.virtual_class">
-                    <strong>Mã phòng:</strong> {{ previewLesson.virtual_class.meeting_id || '—' }}<br>
-                    <strong>Bắt đầu:</strong> {{ previewLesson.virtual_class.start_at || '—' }}
-                  </p>
-                  <a v-if="previewLesson.virtual_class?.join_url" :href="previewLesson.virtual_class.join_url" target="_blank" class="preview-link">
-                    <span class="material-symbols-outlined">open_in_new</span>
-                    Mở phòng học trực tuyến
-                  </a>
-                </div>
-              </template>
-
-              <!-- Forum / Survey / fallback -->
-              <template v-else>
-                <div class="preview-resource">
-                  <span class="material-symbols-outlined preview-resource-icon">{{ previewLesson.type === 'forum' ? 'forum' : (previewLesson.type === 'survey' ? 'bar_chart' : 'description') }}</span>
-                  <h4>{{ previewLesson.title }}</h4>
-                  <div v-if="previewLesson.description" class="preview-rich" v-html="previewLesson.description" />
-                  <p v-else>Bài học loại "{{ previewLessonTypeLabel(previewLesson.type) }}" — không có player riêng để xem thử.</p>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="closeLessonPreview">Đóng</button>
-            <button class="crud-primary-btn" type="button" @click="previewLesson?.id && navigateTo(`/learn/${courseId}/${previewLesson.id}`)">
-              Mở trong trang học
+          <div class="meta-tabs" role="tablist">
+            <button
+              v-for="tab in metaTabs"
+              :key="tab.key"
+              type="button"
+              role="tab"
+              :class="{ on: metaTab === tab.key }"
+              :aria-selected="metaTab === tab.key"
+              @click="metaTab = tab.key"
+            >
+              {{ tab.label }}
             </button>
           </div>
-        </div>
+
+          <div v-show="metaTab === 'basic'" class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.title') }}</span>
+              <InputText v-model="metaForm.title" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.description') }}</span>
+              <Textarea v-model="metaForm.description" rows="5" class="w-full" auto-resize />
+            </label>
+            <div class="form-row">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.price') }}</span>
+                <InputNumber v-model="metaForm.price" :min="0" class="w-full" />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.level') }}</span>
+                <Select
+                  v-model="metaForm.level"
+                  :options="levelOptions"
+                  option-label="label"
+                  option-value="value"
+                  show-clear
+                  class="w-full"
+                />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.category') }}</span>
+                <Select
+                  v-model="metaForm.category_id"
+                  :options="categoryOptions"
+                  option-label="label"
+                  option-value="value"
+                  show-clear
+                  class="w-full"
+                />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.status') }}</span>
+                <Select
+                  v-model="metaForm.status"
+                  :options="statusOptions"
+                  option-label="label"
+                  option-value="value"
+                  class="w-full"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div v-show="metaTab === 'sell'" class="form-grid">
+            <p class="tab-lead">{{ t('admin.builder.metaTabs.sellLead') }}</p>
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.outcomes') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('learning_outcomes')" />
+              </div>
+              <p class="list-hint">{{ t('admin.builder.fields.outcomesHint') }}</p>
+              <div v-for="(_item, idx) in metaForm.learning_outcomes" :key="`out-${idx}`" class="list-row">
+                <InputText v-model="metaForm.learning_outcomes[idx]" class="w-full" :placeholder="t('admin.builder.fields.outcomesPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('learning_outcomes', idx)" />
+              </div>
+            </div>
+
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.benefits') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('benefits')" />
+              </div>
+              <p class="list-hint">{{ t('admin.builder.fields.benefitsHint') }}</p>
+              <div v-for="(_item, idx) in metaForm.benefits" :key="`ben-${idx}`" class="list-row">
+                <InputText v-model="metaForm.benefits[idx]" class="w-full" :placeholder="t('admin.builder.fields.benefitsPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('benefits', idx)" />
+              </div>
+            </div>
+
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.requirements') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('requirements')" />
+              </div>
+              <div v-for="(_item, idx) in metaForm.requirements" :key="`req-${idx}`" class="list-row">
+                <InputText v-model="metaForm.requirements[idx]" class="w-full" :placeholder="t('admin.builder.fields.requirementsPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('requirements', idx)" />
+              </div>
+            </div>
+          </div>
+
+          <div v-show="metaTab === 'media'" class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.trailer') }}</span>
+              <InputText v-model="metaForm.trailer_url" class="w-full" placeholder="https://..." />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.thumbnail') }}</span>
+              <CommonMediaUpload
+                v-model="thumbnailUrl"
+                folder="courses"
+                :label="t('admin.builder.fields.thumbnail')"
+                :hint="t('upload.imageOnly')"
+                variant="thumbnail"
+                :placeholder-initial="(metaForm.title || 'C').slice(0, 1).toUpperCase()"
+              />
+            </label>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="editor-head">
+            <div>
+              <span class="eyebrow">{{ typeLabel(lessonForm.type) }}</span>
+              <h2>{{ isNewLessonDraft ? t('admin.builder.newLesson') : t('admin.builder.editLesson') }}</h2>
+            </div>
+            <Button :label="t('common.save')" icon="pi pi-save" :loading="savingLesson || videoUploading" @click="saveLesson" />
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.lessonTitle') }}</span>
+              <InputText v-model="lessonForm.title" class="w-full" />
+            </label>
+
+            <div class="form-row">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.duration') }}</span>
+                <InputNumber v-model="lessonForm.duration" :min="0" class="w-full" />
+              </label>
+              <label class="field check-field">
+                <span>{{ t('admin.builder.fields.preview') }}</span>
+                <div class="check-row">
+                  <Checkbox v-model="lessonForm.is_preview" :binary="true" input-id="preview" />
+                  <label for="preview">{{ t('admin.builder.fields.previewHint') }}</label>
+                </div>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>
+                {{ lessonForm.type === 'page'
+                  ? t('admin.builder.fields.pageContent')
+                  : t('admin.builder.fields.description') }}
+              </span>
+              <Textarea v-model="lessonForm.description" rows="8" class="w-full" auto-resize />
+            </label>
+
+            <template v-if="lessonForm.type === 'video'">
+              <div class="source-tabs">
+                <button type="button" :class="{ on: videoSourceMode === 'embed' }" @click="videoSourceMode = 'embed'">
+                  {{ t('admin.builder.videoEmbed') }}
+                </button>
+                <button type="button" :class="{ on: videoSourceMode === 'upload' }" @click="videoSourceMode = 'upload'">
+                  {{ t('admin.builder.videoUpload') }}
+                </button>
+              </div>
+              <label v-if="videoSourceMode === 'embed'" class="field">
+                <span>{{ t('admin.builder.fields.videoUrl') }}</span>
+                <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
+              </label>
+              <label v-else class="field">
+                <span>{{ t('admin.builder.fields.videoFile') }}</span>
+                <CommonFileDropzone
+                  v-model="videoFile"
+                  :label="t('admin.builder.fields.videoFile')"
+                  hint="MP4, WEBM, MOV — kéo thả hoặc chọn tệp"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.mkv,.m4v,.avi"
+                  :max-size-mb="500"
+                  :uploading="videoUploading"
+                  :progress="videoUploadProgress"
+                  :existing-url="lessonForm.video_url"
+                  icon="pi pi-video"
+                />
+                <small v-if="videoUploadError" class="error">{{ videoUploadError }}</small>
+              </label>
+            </template>
+
+            <template v-if="lessonForm.type === 'file' || lessonForm.type === 'document'">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.fileUrl') }}</span>
+                <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.fileUpload') }}</span>
+                <CommonFileDropzone
+                  v-model="resourceFile"
+                  :label="t('admin.builder.fields.fileUpload')"
+                  hint="PDF, DOC, ZIP… — kéo thả hoặc chọn tệp"
+                  :max-size-mb="100"
+                  :existing-url="lessonForm.video_url"
+                  icon="pi pi-file"
+                />
+              </label>
+            </template>
+
+            <template v-if="lessonForm.type === 'assignment'">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.assignmentInstructions') }}</span>
+                <Textarea v-model="assignmentConfig.instructions" rows="6" class="w-full" auto-resize />
+              </label>
+              <div class="form-row">
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.assignmentExt') }}</span>
+                  <InputText v-model="assignmentConfig.allowed_extensions" class="w-full" />
+                </label>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.assignmentMaxMb') }}</span>
+                  <InputNumber v-model="assignmentConfig.max_file_size" :min="1024" :step="1024" class="w-full" />
+                </label>
+              </div>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.assignmentDue') }}</span>
+                <InputText v-model="assignmentConfig.due_at" type="datetime-local" class="w-full" />
+              </label>
+            </template>
+
+            <template v-if="lessonForm.type === 'quiz'">
+              <div class="quiz-box">
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.quizTitle') }}</span>
+                  <InputText v-model="quizConfig.title" class="w-full" />
+                </label>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.quizDescription') }}</span>
+                  <Textarea v-model="quizConfig.description" rows="3" class="w-full" auto-resize />
+                </label>
+                <div class="form-row">
+                  <label class="field">
+                    <span>{{ t('admin.builder.fields.timeLimit') }}</span>
+                    <InputNumber v-model="quizConfig.time_limit" :min="1" class="w-full" />
+                  </label>
+                  <label class="field">
+                    <span>{{ t('admin.builder.fields.passScore') }}</span>
+                    <InputNumber v-model="quizConfig.pass_score" :min="0" :max="100" class="w-full" />
+                  </label>
+                </div>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.quizQuestions') }}</span>
+                  <MultiSelect
+                    v-model="selectedQuestionIds"
+                    :options="questionOptions"
+                    option-label="label"
+                    option-value="value"
+                    display="chip"
+                    filter
+                    class="w-full"
+                    :placeholder="t('admin.builder.fields.quizQuestions')"
+                    @update:model-value="onQuizQuestionsChange"
+                  />
+                </label>
+                <NuxtLink to="/admin/question-bank" class="question-bank-link">
+                  <Button
+                    :label="t('admin.menu.questionBank')"
+                    icon="pi pi-external-link"
+                    severity="secondary"
+                    text
+                    size="small"
+                  />
+                </NuxtLink>
+                <p class="hint">{{ t('admin.builder.quizHint') }}</p>
+              </div>
+            </template>
+          </div>
+        </template>
+      </section>
+    </div>
+
+    <Dialog
+      v-model:visible="sectionDialogOpen"
+      modal
+      :header="sectionForm.id ? t('admin.builder.editSection') : t('admin.builder.addSection')"
+      :style="{ width: 'min(420px, 96vw)' }"
+    >
+      <label class="field">
+        <span>{{ t('admin.builder.fields.sectionTitle') }}</span>
+        <InputText v-model="sectionForm.title" class="w-full" autofocus />
+      </label>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="sectionDialogOpen = false" />
+        <Button :label="t('common.save')" icon="pi pi-check" @click="saveSection" />
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="pickerOpen"
+      modal
+      :header="t('admin.builder.pickType')"
+      :style="{ width: 'min(560px, 96vw)' }"
+    >
+      <div class="type-grid">
+        <button
+          v-for="item in contentTypeOptions"
+          :key="item.key"
+          type="button"
+          class="type-card"
+          @click="chooseContentType(item.key)"
+        >
+          <i :class="item.icon" />
+          <strong>{{ item.label }}</strong>
+          <span>{{ t(`admin.builder.typeHints.${item.key}`) }}</span>
+        </button>
       </div>
-    </Teleport>
-  </AdminWorkspaceShell>
+    </Dialog>
+  </div>
 </template>
 
 <style scoped>
-.curriculum-builder {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.builder-page { gap: 12px; min-height: calc(100vh - 120px); }
+.builder-topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 14px; border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
 }
-
-.section-card {
-  padding: 0;
-  border-radius: 12px;
-  overflow: hidden;
+.top-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.titles { min-width: 0; }
+.eyebrow {
+  display: block; color: var(--brand); font-size: .74rem; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
 }
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: var(--bg-alt);
-  border-bottom: 1px solid var(--border);
+.titles h1 {
+  margin: 2px 0 0; font-size: clamp(1.15rem, 1.8vw, 1.45rem); font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
-.section-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.builder-layout {
+  display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 12px;
+  align-items: start; min-height: 0; flex: 1;
 }
-
-.action-btn.is-add {
-  color: var(--green-deep);
-  background: rgba(var(--green-rgb), 0.08);
-  border-color: rgba(var(--green-rgb), 0.18);
+.tree-panel, .editor-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
+  min-height: 520px;
 }
-
-.action-btn.is-add:hover {
-  background: rgba(var(--green-rgb), 0.15);
-  border-color: rgba(var(--green-rgb), 0.3);
+.tree-head, .editor-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
 }
-
+.editor-head h2 { margin: 2px 0 0; font-size: 1.15rem; }
+.tree-loading, .tree-empty {
+  display: grid; place-items: center; gap: 8px; padding: 36px 16px;
+  color: var(--text-muted); text-align: center;
+}
+.tree-list { padding: 8px; max-height: calc(100vh - 220px); overflow: auto; }
+.section-block { margin-bottom: 6px; }
+.section-row, .lesson-row {
+  display: flex; align-items: center; gap: 4px; width: 100%;
+  border-radius: 10px; padding: 6px 4px;
+}
+.section-row:hover, .lesson-row:hover { background: var(--surface-subtle); }
+.lesson-row.on {
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+.expand {
+  width: 28px; height: 28px; border: 0; background: transparent; color: var(--text-muted); cursor: pointer;
+}
 .section-title {
-  font-size: 1rem;
+  flex: 1; min-width: 0; border: 0; background: transparent; text-align: left; cursor: pointer; color: var(--text);
+  display: flex; flex-direction: column; gap: 1px; padding: 2px 4px;
+}
+.section-title span { font-size: .7rem; color: var(--text-muted); font-weight: 600; }
+.section-title strong { font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-actions { display: flex; align-items: center; opacity: .7; }
+.section-row:hover .row-actions, .lesson-row:hover .row-actions { opacity: 1; }
+.lesson-list { padding: 0 0 4px 18px; display: grid; gap: 2px; }
+.lesson-empty { padding: 8px 10px; color: var(--text-muted); font-size: .82rem; }
+.lesson-row {
+  border: 0; background: transparent; cursor: pointer; color: inherit; font: inherit; text-align: left;
+}
+.lesson-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lesson-meta strong { font-size: .86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-meta span { font-size: .72rem; color: var(--text-muted); }
+.lesson-row > i { color: var(--brand); font-size: .95rem; }
+
+.editor-panel { padding-bottom: 16px; }
+.meta-tabs {
+  display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--border);
+}
+.meta-tabs button {
+  border: 0; background: transparent; padding: 10px 14px; cursor: pointer; font-weight: 650;
+  color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.meta-tabs button.on { color: var(--brand); border-bottom-color: var(--brand); }
+.tab-lead { margin: 0; color: var(--text-muted); font-weight: 500; font-size: .9rem; }
+.form-grid { display: grid; gap: 12px; padding: 14px; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.list-field { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.list-head > span { font-size: .8rem; font-weight: 700; color: var(--brand); }
+.list-hint { margin: 0; color: var(--text-muted); font-size: .78rem; font-weight: 500; }
+.list-row { display: flex; gap: 6px; align-items: center; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: .8rem; font-weight: 700; color: var(--brand); }
+.check-row { display: flex; align-items: center; gap: 8px; min-height: 38px; }
+.hint { color: var(--text-muted); font-size: .78rem; }
+.question-bank-link { display: inline-flex; text-decoration: none; }
+.error { color: #b91c1c; font-size: .78rem; }
+.thumb-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.thumb-preview {
+  width: 72px; height: 72px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border);
+}
+.source-tabs { display: flex; gap: 6px; }
+.source-tabs button {
+  border: 1px solid var(--border); background: var(--surface-subtle); color: var(--text);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer;
+}
+.source-tabs button.on {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+  background: var(--brand-soft); color: var(--brand);
+}
+.quiz-box {
+  display: grid; gap: 12px; padding: 12px; border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--brand) 35%, var(--border));
+  background: color-mix(in srgb, var(--brand-soft) 45%, transparent);
+}
+.type-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.type-card {
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  padding: 14px; border-radius: 14px; border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, transparent); cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.type-card:hover {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--border));
+  background: var(--brand-soft);
+}
+.type-card i { color: var(--brand); font-size: 1.2rem; }
+.type-card strong { font-size: .95rem; }
+.type-card span { color: var(--text-muted); font-size: .78rem; line-height: 1.35; }
+
+@media (max-width: 960px) {
+  .builder-layout { grid-template-columns: 1fr; }
+  .tree-panel, .editor-panel { min-height: 0; }
+  .tree-list { max-height: 360px; }
 }
-.section-title strong {
-  margin-right: 6px;
-  color: var(--text);
-}
-.section-title span {
-  font-weight: 500;
-  color: var(--text);
-}
-
-.lessons-list {
-  padding: 12px 20px;
-}
-
-.no-lessons {
-  padding: 20px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 0.95rem;
-  background: rgba(17,17,17,0.02);
-  border-radius: 8px;
-  border: 1px dashed rgba(17,17,17,0.1);
-}
-
-.lesson-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
-  margin-bottom: 8px;
-  background: #fff;
-  border: 1px solid rgba(17,17,17,0.08);
-  border-radius: 10px;
-  transition: all 0.2s;
-}
-
-.lesson-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
-}
-
-.lesson-actions .action-btn {
-  white-space: nowrap;
-}
-
-.lesson-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-.picker-toolbar {
-  display: grid;
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.picker-tabs {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.picker-tab {
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid rgba(17, 17, 17, 0.08);
-  border-radius: 999px;
-  background: #fff;
-  cursor: pointer;
-}
-
-.picker-tab.is-active {
-  background: rgba(var(--green-rgb), 0.12);
-  color: var(--green-deep);
-  border-color: rgba(var(--green-rgb), 0.2);
-}
-
-.picker-body {
-  padding: 24px 28px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.content-picker-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-@media (max-width: 640px) {
-  .content-picker-list {
-    grid-template-columns: 1fr;
-  }
-}
-
-.content-picker-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-.content-picker-item:hover {
-  border-color: rgba(var(--green-rgb), 0.3);
-  background: rgba(var(--green-rgb), 0.02);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-  transform: translateY(-1px);
-}
-
-.item-icon-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: rgba(var(--green-rgb), 0.08);
-  color: var(--green-deep);
-  flex-shrink: 0;
-}
-
-.item-icon {
-  font-size: 24px;
-}
-
-.item-details {
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.item-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.item-desc {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin: 0;
-  line-height: 1.3;
-}
-
-.item-badge-container {
-  flex-shrink: 0;
-}
-
-.item-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-
-.item-badge.resource {
-  background: rgba(55, 138, 221, 0.08);
-  color: #1a5fa8;
-}
-
-.item-badge.activity {
-  background: rgba(16, 185, 129, 0.08);
-  color: var(--green-deep);
-}
-
-.lesson-helper-box {
-  padding: 16px;
-  border: 1px dashed rgba(17, 17, 17, 0.12);
-  border-radius: 18px;
-  background: rgba(17, 17, 17, 0.02);
-}
-
-.lesson-helper-box p {
-  margin: 6px 0 0;
-  color: var(--muted);
-}
-
-.lesson-helper-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-
-.lesson-upload-help {
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.upload-dropzone {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  padding: 28px 20px;
-  border: 2px dashed rgba(16, 185, 129, 0.85);
-  border-radius: 24px;
-  background: rgba(236, 253, 245, 0.75);
-  text-align: center;
-  cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-}
-
-.upload-dropzone:hover {
-  transform: translateY(-1px);
-  border-color: rgba(5, 150, 105, 0.95);
-  box-shadow: 0 20px 40px -28px rgba(16, 185, 129, 0.45);
-}
-
-.upload-dropzone-compact {
-  justify-items: start;
-  text-align: left;
-  padding: 20px 18px;
-  border-radius: 20px;
-}
-
-.upload-dropzone-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.upload-dropzone-icon {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  font-size: 1.6rem;
-}
-
-.upload-dropzone strong {
-  font-size: 1.02rem;
-  color: var(--text);
-}
-
-.upload-dropzone span:last-child {
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.video-mode-switch {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-
-.lesson-item:last-child {
-  margin-bottom: 0;
-}
-
-.lesson-item:hover {
-  border-color: rgba(17,17,17,0.15);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  transform: translateY(-1px);
-}
-
-.lesson-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.lesson-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: rgba(var(--green-rgb), 0.08);
-  color: var(--green-deep);
-  border-radius: 8px;
-}
-
-.lesson-icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.lesson-name {
-  font-weight: 500;
-  color: var(--text);
-  font-size: 0.95rem;
-}
-
-.lesson-duration {
-  font-size: 0.85rem;
-  color: var(--muted);
-  background: rgba(17,17,17,0.04);
-  padding: 4px 8px;
-  border-radius: 6px;
-  margin-left: auto;
-}
-
-@media (max-width: 1080px) {
-  .content-picker-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 760px) {
-  .section-header,
-  .lesson-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .content-picker-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .content-picker-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ───── Field hint (small explanatory caption) ───── */
-.crud-field-hint {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.78rem;
-  color: #64748b;
-  line-height: 1.5;
-}
-.crud-field-hint code {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(15, 23, 42, 0.06);
-  font-size: 0.92em;
-  font-family: ui-monospace, SFMono-Regular, monospace;
-}
-
-/* ───── Assignment milestone timeline ───── */
-.assignment-timeline {
-  padding: 18px;
-  border-radius: 18px;
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-}
-
-.assignment-timeline-title {
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #64748b;
-  margin-bottom: 14px;
-}
-
-.assignment-timeline-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr;
-  gap: 12px;
-  align-items: stretch;
-}
-
-.assignment-timeline-bar {
-  align-self: center;
-  height: 2px;
-  width: 28px;
-  background: rgba(15, 23, 42, 0.15);
-  border-radius: 2px;
-}
-
-.assignment-date-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 14px 12px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
-  cursor: pointer;
-}
-
-.assignment-date-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-}
-
-.assignment-date-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 14px;
-  right: 14px;
-  height: 3px;
-  border-radius: 0 0 3px 3px;
-  background: currentColor;
-  opacity: 0.85;
-}
-
-.assignment-date-card--open   { color: #10b981; }
-.assignment-date-card--submit { color: #10b981; }
-.assignment-date-card--close  { color: #dc2626; }
-
-.assignment-date-card-head {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #1f2937;
-}
-
-.assignment-date-card-head .material-symbols-outlined {
-  font-size: 16px;
-  color: currentColor;
-}
-
-.assignment-date-card input[type="datetime-local"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  border-radius: 10px;
-  background: #ffffff;
-  font: inherit;
-  font-size: 0.88rem;
-  color: #0f172a;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.assignment-date-card input[type="datetime-local"]:hover {
-  background: #fff;
-}
-
-.assignment-date-card input[type="datetime-local"]:focus {
-  border-color: currentColor;
-  background: #fff;
-  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
-}
-
-.assignment-date-card input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.6;
-  filter: invert(20%);
-  padding: 4px;
-  border-radius: 6px;
-  transition: opacity 0.15s, background 0.15s;
-}
-
-.assignment-date-card input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-  background: rgba(15, 23, 42, 0.06);
-}
-
-.assignment-date-card-hint {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  line-height: 1.4;
-}
-
-@media (max-width: 720px) {
-  .assignment-timeline-grid {
-    grid-template-columns: 1fr;
-  }
-  .assignment-timeline-bar {
-    height: 16px;
-    width: 2px;
-    justify-self: center;
-    background: rgba(15, 23, 42, 0.15);
-  }
-}
-
-/* ───── Preview button + modal ───── */
-.action-btn.is-preview {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #1d4ed8;
-  background: rgba(var(--green-rgb), 0.1);
-  font-weight: 600;
-}
-.action-btn.is-preview:hover { background: rgba(var(--green-rgb), 0.18); }
-.action-btn.is-preview .material-symbols-outlined { font-size: 16px; }
-
-.preview-modal {
-  width: min(100%, 1100px) !important;
-  max-height: 92vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0;
-  background: #0f172a;
-  min-height: 320px;
-  max-height: calc(92vh - 160px);
-  display: flex;
-}
-
-.preview-stage {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.preview-stage[data-type="video"],
-.preview-stage[data-type="scorm"],
-.preview-stage[data-type="h5p"] {
-  aspect-ratio: 16 / 9;
-  max-height: calc(92vh - 160px);
-}
-
-.preview-fill {
-  width: 100%;
-  height: 100%;
-  flex: 1;
-}
-
-.preview-scroll {
-  background: #f8fafc;
-  color: #0f172a;
-  overflow-y: auto;
-  padding: 0;
-  width: 100%;
-}
-
-.preview-resource {
-  background: #fff;
-  color: #0f172a;
-  padding: 32px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 12px;
-}
-.preview-resource h4 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-.preview-resource p {
-  margin: 0;
-  color: #475569;
-}
-.preview-resource-icon {
-  font-size: 56px;
-  color: #059669;
-  background: #ecfdf5;
-  border-radius: 16px;
-  padding: 14px;
-}
-.preview-audio {
-  width: min(100%, 540px);
-}
-.preview-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 999px;
-  background: #10b981;
-  color: #fff;
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-.preview-link:hover { filter: brightness(1.05); }
-.preview-link .material-symbols-outlined { font-size: 16px; }
-
-.preview-rich {
-  text-align: left;
-  width: 100%;
-  max-width: 760px;
-  line-height: 1.7;
-  color: #334155;
-  margin-top: 8px;
-}
-.preview-rich :deep(p) { margin: 0 0 8px; }
-
-.preview-state {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 60px 24px;
-  color: #cbd5e1;
-  text-align: center;
-}
-.preview-state .material-symbols-outlined { font-size: 44px; color: #059669; }
-.preview-state-spin { animation: preview-spin 1.2s linear infinite; }
-.preview-state--error .material-symbols-outlined { color: #ef4444; }
-
-@keyframes preview-spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ====== DARK MODE OVERRIDES ====== */
-[data-theme="dark"] .course-builder-shell { background: var(--bg); }
-[data-theme="dark"] .cb-sidebar, [data-theme="dark"] .cb-main, [data-theme="dark"] .course-header, [data-theme="dark"] .course-tab-panel, [data-theme="dark"] .course-info-panel, [data-theme="dark"] .preview-resource, [data-theme="dark"] .preview-scroll { background: var(--surface-strong); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .cb-sidebar-link:hover, [data-theme="dark"] .cb-sidebar-link.is-active { background: rgba(255, 255, 255, 0.05); color: #10b981; }
-[data-theme="dark"] .cb-form-field input, [data-theme="dark"] .cb-form-field textarea, [data-theme="dark"] .cb-form-field select { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--text); }
-[data-theme="dark"] .preview-resource h4, [data-theme="dark"] .preview-resource p, [data-theme="dark"] .preview-rich { color: var(--text); }
-[data-theme="dark"] .curriculum-section, [data-theme="dark"] .curriculum-lesson { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
-[data-theme="dark"] .action-btn { background: rgba(255, 255, 255, 0.06); color: var(--text); }
-[data-theme="dark"] .action-btn.is-add {
-  color: #6ee7b7;
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.25);
-}
-[data-theme="dark"] .action-btn.is-add:hover {
-  background: rgba(16, 185, 129, 0.25);
-  border-color: rgba(16, 185, 129, 0.4);
-}
-[data-theme="dark"] .course-settings-panel { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
-[data-theme="dark"] .cb-topbar { background: rgba(15, 34, 25, 0.95); border-color: rgba(255, 255, 255, 0.08); }
-
-/* Dark mode for section cards */
-[data-theme="dark"] .section-card { background: rgba(255, 255, 255, 0.05); }
-[data-theme="dark"] .section-header { background: rgba(255, 255, 255, 0.03); border-color: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .section-title, [data-theme="dark"] .section-title strong, [data-theme="dark"] .section-title span { color: var(--text); }
-
-/* Dark mode for lesson items */
-[data-theme="dark"] .lesson-item { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.08); color: var(--text); }
-[data-theme="dark"] .lesson-item:hover { border-color: rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-[data-theme="dark"] .lesson-name, [data-theme="dark"] .lesson-icon { color: var(--text); background: rgba(16, 185, 129, 0.12); }
-
-/* Dark mode for modals */
-[data-theme="dark"] .crud-modal-backdrop { background: rgba(0, 0, 0, 0.6); }
-[data-theme="dark"] .crud-modal { background: var(--surface-strong); color: var(--text); border-color: rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .crud-modal-head { background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-[data-theme="dark"] .crud-form-grid input, [data-theme="dark"] .crud-form-grid textarea, [data-theme="dark"] .crud-form-grid select { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--text); }
-[data-theme="dark"] .crud-form-grid input:focus, [data-theme="dark"] .crud-form-grid textarea:focus, [data-theme="dark"] .crud-form-grid select:focus { background: rgba(255, 255, 255, 0.12); border-color: rgba(16, 185, 129, 0.4); }
-[data-theme="dark"] .crud-form-grid input::placeholder { color: rgba(255, 255, 255, 0.5); }
-
-/* Dark mode for picker tabs */
-[data-theme="dark"] .picker-tab { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); color: var(--text); }
-[data-theme="dark"] .picker-tab.is-active { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.3); color: #a7f3d0; }
-
-/* Dark mode for content picker list items */
-[data-theme="dark"] .content-picker-item {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-[data-theme="dark"] .content-picker-item:hover {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-[data-theme="dark"] .item-icon-wrapper {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-}
-
-[data-theme="dark"] .item-badge.resource {
-  background: rgba(55, 138, 221, 0.15);
-  color: #93c5fd;
-}
-
-[data-theme="dark"] .item-badge.activity {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-}
-
-/* Dark mode for helper boxes */
-[data-theme="dark"] .lesson-helper-box { background: rgba(255, 255, 255, 0.02); border-color: rgba(255, 255, 255, 0.1); }
-
-/* Dark mode for assignment timeline */
-[data-theme="dark"] .assignment-timeline { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .assignment-date-card { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); }
-[data-theme="dark"] .assignment-date-card input[type="datetime-local"] { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--text); }
-[data-theme="dark"] .assignment-date-card input[type="datetime-local"]:hover { background: rgba(255, 255, 255, 0.12); }
-[data-theme="dark"] .assignment-date-card input[type="datetime-local"]:focus { background: rgba(255, 255, 255, 0.15); border-color: currentColor; }
-
-/* Dark mode for upload dropzone */
-[data-theme="dark"] .upload-dropzone { background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3); }
-[data-theme="dark"] .upload-dropzone:hover { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 20px 40px -28px rgba(16, 185, 129, 0.3); }
-[data-theme="dark"] .upload-dropzone-icon { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; }
-[data-theme="dark"] .upload-dropzone strong { color: var(--text); }
-[data-theme="dark"] .upload-dropzone span:last-child { color: rgba(255, 255, 255, 0.6); }
-
-/* Dark mode for preview elements */
-[data-theme="dark"] .preview-modal-body { background: #1a1f2e; }
-[data-theme="dark"] .preview-scroll { background: #0f172a; color: var(--text); }
-[data-theme="dark"] .preview-resource { background: rgba(255, 255, 255, 0.05); color: var(--text); }
-[data-theme="dark"] .preview-resource-icon { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
-[data-theme="dark"] .preview-link { background: #10b981; color: #fff; }
-[data-theme="dark"] .preview-link:hover { filter: brightness(1.2); }
-[data-theme="dark"] .preview-state { color: rgba(255, 255, 255, 0.7); }
-[data-theme="dark"] .preview-state .material-symbols-outlined { color: #10b981; }
 </style>

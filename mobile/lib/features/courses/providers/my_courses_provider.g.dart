@@ -6,7 +6,7 @@ part of 'my_courses_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$myEnrollmentsHash() => r'774e94296a039250a3f3fb0052752b512d33af92';
+String _$myEnrollmentsHash() => r'c18d465266f305c06954365243bb15b7d385d740';
 
 /// See also [myEnrollments].
 @ProviderFor(myEnrollments)

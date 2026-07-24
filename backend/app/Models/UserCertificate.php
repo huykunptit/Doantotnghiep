@@ -9,6 +9,7 @@ class UserCertificate extends Model
     protected $fillable = [
         'user_id',
         'course_id',
+        'career_path_id',
         'certificate_template_id',
         'credential_id',
         'issued_at',
@@ -26,6 +27,11 @@ class UserCertificate extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function careerPath()
+    {
+        return $this->belongsTo(CareerPath::class);
     }
 
     public function certificateTemplate()

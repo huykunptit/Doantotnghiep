@@ -100,9 +100,17 @@ class AcademicManagementController extends Controller
                 $query->where('major_id', $mid);
             }
         }
+        if ($resource === 'terms') {
+            if ($yid = $request->integer('academic_year_id')) {
+                $query->where('academic_year_id', $yid);
+            }
+        }
         if ($resource === 'administrative-classes') {
             foreach (['program_id', 'unit_id', 'cohort_id', 'major_id', 'advisor_id'] as $k) {
-                if ($v = $request->integer($k)) {
+                $vals = $request->input($k);
+                if (is_array($vals) && count($vals)) {
+                    $query->whereIn($k, array_map('intval', $vals));
+                } elseif ($v = $request->integer($k)) {
                     $query->where($k, $v);
                 }
             }

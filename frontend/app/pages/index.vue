@@ -1,26 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import {
-  Compass, Briefcase, GraduationCap, Sparkles,
-  ArrowRight, BookOpen, User, PlayCircle, Users, UserPlus, Map,
-  Award, CheckCircle, ChevronRight, Zap, BarChart3,
-} from 'lucide-vue-next'
-
-definePageMeta({
-  layout: 'default',
-})
+definePageMeta({ layout: 'default' })
 
 interface Course {
   id: number
   title: string
-  slug?: string
   description?: string
-  thumbnail?: string
+  thumbnail?: string | null
   price?: number
   enrollments_count?: number
   lessons_count?: number
   reviews_avg_rating?: number | string | null
-  instructor?: { id: number; name: string; avatar?: string } | null
+  instructor?: { id: number; name: string } | null
   category?: { id: number; name: string; slug?: string } | null
 }
 
@@ -31,32 +21,37 @@ interface Category {
   courses_count?: number
 }
 
-const config = useRuntimeConfig()
-const apiBase = config.public.apiBase
+const { settings } = useSiteSettings()
+const brand = computed(() => settings.value.site_name || 'Sylva LMS')
+const tagline = computed(() => settings.value.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.')
 
-const { data: coursesData } = await useFetch<{ data?: Course[] }>(`${apiBase}/courses`, {
-  key: 'home-courses',
-  query: { per_page: 8, status: 'published' },
-  default: () => ({ data: [] }),
-})
+const { data: coursesData } = await useAsyncData('home-courses', () =>
+  useApi<{ data?: Course[] }>('/courses', {
+    query: { per_page: 8, status: 'published' },
+    token: null,
+  }).catch(() => ({ data: [] as Course[] })),
+)
 
-const { data: categoriesData } = await useFetch<Category[]>(`${apiBase}/courses/categories`, {
-  key: 'home-categories',
-  default: () => [],
-})
+const { data: categoriesData } = await useAsyncData('home-categories', () =>
+  useApi<Category[]>('/courses/categories', { token: null }).catch(() => [] as Category[]),
+)
 
 const featuredCourses = computed(() => coursesData.value?.data ?? [])
 const categories = computed(() => (categoriesData.value ?? []).slice(0, 8))
 
 const stats = computed(() => {
-  const totalCourses = featuredCourses.value.length
-  const totalStudents = featuredCourses.value.reduce((sum, c) => sum + (c.enrollments_count || 0), 0)
-  const totalLessons = featuredCourses.value.reduce((sum, c) => sum + (c.lessons_count || 0), 0)
-  return { totalCourses, totalStudents, totalLessons }
+  const students = featuredCourses.value.reduce((sum, course) => sum + (course.enrollments_count || 0), 0)
+  const lessons = featuredCourses.value.reduce((sum, course) => sum + (course.lessons_count || 0), 0)
+  return [
+    { label: 'Khóa học nổi bật', value: featuredCourses.value.length || '—' },
+    { label: 'Lượt ghi danh', value: students || '—' },
+    { label: 'Bài học', value: lessons || '—' },
+    { label: 'Lĩnh vực', value: categories.value.length || '—' },
+  ]
 })
 
-const formatPrice = (price?: number) => {
-  if (!price || price === 0) return 'Miễn phí'
+function formatPrice(price?: number) {
+  if (!price) return 'Miễn phí'
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
@@ -64,1338 +59,529 @@ const formatPrice = (price?: number) => {
   }).format(price)
 }
 
-const SITE_URL = 'https://sylva.edu.vn'
-const SITE_NAME = 'Sylva LMS'
-const SITE_DESCRIPTION =
-  'Sylva LMS — Nền tảng học tập trực tuyến thích nghi thế hệ mới, được thiết kế tinh tế, hỗ trợ thi giám sát tự động và tích hợp trợ lý AI theo ngữ cảnh.'
+function formatRating(value?: number | string | null) {
+  const rating = Number(value || 0)
+  return rating > 0 ? rating.toFixed(1) : 'Mới'
+}
 
 useSeoMeta({
-  title: 'Sylva LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
-  description: SITE_DESCRIPTION,
-  ogType: 'website',
-  ogTitle: 'Sylva LMS — Nền tảng học tập thích nghi',
-  ogDescription: SITE_DESCRIPTION,
-  ogUrl: SITE_URL,
-  ogSiteName: SITE_NAME,
-  ogLocale: 'vi_VN',
-  ogImage: `${SITE_URL}/og-cover.png`,
-  twitterCard: 'summary_large_image',
-  twitterTitle: 'Sylva LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
-  twitterDescription: SITE_DESCRIPTION,
-  twitterImage: `${SITE_URL}/og-cover.png`,
-  robots: 'index,follow,max-image-preview:large',
-  themeColor: '#1D9E75',
-})
-
-const courseListJsonLd = computed(() => ({
-  '@context': 'https://schema.org',
-  '@type': 'ItemList',
-  itemListElement: featuredCourses.value.map((course, idx) => ({
-    '@type': 'ListItem',
-    position: idx + 1,
-    url: `${SITE_URL}/courses/${course.id}`,
-    name: course.title,
-  })),
-}))
-
-useHead({
-  htmlAttrs: { lang: 'vi' },
-  link: [{ rel: 'canonical', href: SITE_URL }],
-  script: [
-    {
-      type: 'application/ld+json',
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'EducationalOrganization',
-        name: SITE_NAME,
-        url: SITE_URL,
-        logo: `${SITE_URL}/logo.png`,
-        description: SITE_DESCRIPTION,
-      }),
-    },
-    {
-      type: 'application/ld+json',
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: SITE_NAME,
-        url: SITE_URL,
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: `${SITE_URL}/courses?search={search_term_string}`,
-          'query-input': 'required name=search_term_string',
-        },
-      }),
-    },
-    { type: 'application/ld+json', innerHTML: JSON.stringify(courseListJsonLd.value) },
-  ],
-})
-
-const features = [
-  {
-    icon: GraduationCap,
-    title: 'Học tập thích nghi linh hoạt',
-    desc: 'Hệ thống gợi ý bài giảng theo tiến trình riêng của từng người học, mềm dẻo thích nghi như cành liễu trước gió.',
-    color: 'green',
-  },
-  {
-    icon: BarChart3,
-    title: 'Đánh giá & phát triển bền vững',
-    desc: 'Theo dõi tiến trình tích lũy kiến thức sâu sắc qua thời gian, đảm bảo phát triển kỹ năng thực tế bền vững.',
-    color: 'blue',
-  },
-  {
-    icon: Sparkles,
-    title: 'Trợ lý AI đồng hành thân thiện',
-    desc: 'Trợ lý AI am hiểu sâu tài liệu học tập của bạn, giải đáp thắc mắc và gợi ý lộ trình nghề nghiệp cá nhân hóa.',
-    color: 'accent',
-  },
-]
-
-const steps = [
-  { num: '01', icon: UserPlus, title: 'Đăng ký mục tiêu', desc: 'Chọn lộ trình học tập và định hướng kỹ năng bạn mong muốn tích lũy.' },
-  { num: '02', icon: BookOpen, title: 'Tự do trải nghiệm', desc: 'Học qua video bài giảng, quiz tương tác, trao đổi cùng AI chatbot 24/7.' },
-  { num: '03', icon: Award, title: 'Đạt chuẩn năng lực', desc: 'Đạt các cột mốc kiểm tra để nhận chứng chỉ số và khẳng định năng lực bền vững.' },
-]
-
-const googleMapsApiKey = (config.public.googleMapsApiKey as string | undefined) || ''
-const mapQuery = encodeURIComponent('Hà Nội, Việt Nam')
-const googleMapEmbedUrl = computed(() => {
-  if (googleMapsApiKey) {
-    return `https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${mapQuery}`
-  }
-  return `https://www.google.com/maps?q=${mapQuery}&z=13&output=embed`
+  title: `${brand.value} — Hệ thống học tập trực tuyến`,
+  description: tagline.value,
 })
 </script>
 
 <template>
   <div class="home">
-
-    <!-- ── Hero ─────────────────────────────── -->
-    <section class="hero" aria-labelledby="hero-title">
-      <!-- Background layers -->
-      <div class="hero-bg" aria-hidden="true">
-        <div class="hero-grid" />
-        <div class="hero-glow hero-glow-1" />
-        <div class="hero-glow hero-glow-2" />
-        <div class="hero-glow hero-glow-3" />
-      </div>
-
-      <div class="hero-inner">
-        <!-- Eyebrow badge -->
-        <div class="hero-badge">
-          <span class="hero-badge-dot" />
-          Nền tảng học tập thích nghi thế hệ mới
-        </div>
-
-        <h1 id="hero-title" class="hero-title">
-          Phát triển bản thân<br>
-          cùng <em class="hero-em">Sylva LMS</em>
-        </h1>
-
-        <p class="hero-lead">
-          Hệ thống quản lý học tập thông minh — thích nghi linh hoạt, đánh giá
-          trực quan và trợ lý AI đồng hành suốt hành trình của bạn.
-        </p>
-
-        <div class="hero-checks">
-          <span v-for="item in ['Miễn phí đăng ký', 'AI hỗ trợ 24/7', 'Chứng chỉ số']" :key="item" class="hero-check">
-            <CheckCircle :size="14" :stroke-width="2.5" />
-            {{ item }}
-          </span>
-        </div>
-
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="hero-brand">{{ brand }}</p>
+        <h1>Học tập thích nghi cho hành trình tri thức bền vững.</h1>
+        <p class="hero-lead">{{ tagline }}</p>
         <div class="hero-actions">
-          <NuxtLink to="/courses" class="btn-hero-primary">
-            <Compass :size="18" :stroke-width="1.75" />
-            Khám phá khoá học
-            <ChevronRight :size="16" :stroke-width="2.5" />
-          </NuxtLink>
-          <NuxtLink to="/career" class="btn-hero-ghost">
-            <Briefcase :size="17" :stroke-width="1.75" />
-            Lộ trình nghề nghiệp
-          </NuxtLink>
+          <Button label="Bắt đầu học ngay" icon="pi pi-arrow-right" icon-pos="right" size="large" @click="navigateTo('/register')" />
+          <Button label="Khám phá khóa học" severity="secondary" outlined size="large" @click="navigateTo('/courses')" />
         </div>
       </div>
-
-      <!-- Stats floating shelf -->
-      <div class="hero-stats" role="list" aria-label="Thống kê nền tảng">
-        <div class="hero-stat" role="listitem">
-          <strong>{{ stats.totalCourses || '50' }}+</strong>
-          <span>Khoá học</span>
-        </div>
-        <div class="hero-stat-sep" aria-hidden="true" />
-        <div class="hero-stat" role="listitem">
-          <strong>{{ stats.totalStudents.toLocaleString('vi-VN') || '2.000' }}+</strong>
-          <span>Lượt ghi danh</span>
-        </div>
-        <div class="hero-stat-sep" aria-hidden="true" />
-        <div class="hero-stat" role="listitem">
-          <strong>{{ stats.totalLessons || '500' }}+</strong>
-          <span>Bài học</span>
-        </div>
-        <div class="hero-stat-sep" aria-hidden="true" />
-        <div class="hero-stat" role="listitem">
-          <strong>{{ categories.length || '10' }}+</strong>
-          <span>Lĩnh vực</span>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="hero-orb" />
+        <div class="hero-panel">
+          <span>Học kỳ đang diễn ra</span>
+          <strong>Tiến độ trung bình 78%</strong>
+          <div class="hero-bars">
+            <i style="--w:72%" /><i style="--w:88%" /><i style="--w:64%" /><i style="--w:91%" />
+          </div>
+          <small>Theo dõi lớp học, kỳ thi và chứng chỉ trong một không gian.</small>
         </div>
       </div>
     </section>
 
-    <!-- ── Features ─────────────────────────── -->
-    <section class="section features" aria-labelledby="features-title">
-      <header class="section-head center">
-        <p class="section-kicker">Vì sao chọn Sylva LMS</p>
-        <h2 id="features-title">Một nền tảng — trọn vẹn trải nghiệm</h2>
-        <p class="section-sub">Từ bài giảng linh hoạt đến chứng chỉ số, Sylva đồng hành mọi bước tiến trình của người học.</p>
-      </header>
-      <div class="features-grid">
-        <article v-for="f in features" :key="f.title" class="feature-card" :class="`feature-card--${f.color}`">
-          <div class="feature-icon-wrap" :class="`feature-icon-wrap--${f.color}`">
-            <component :is="f.icon" :size="22" :stroke-width="1.75" />
-          </div>
-          <h3>{{ f.title }}</h3>
-          <p>{{ f.desc }}</p>
-          <div class="feature-bottom-link">
-            Tìm hiểu thêm <ArrowRight :size="14" :stroke-width="2" />
-          </div>
-        </article>
+    <section class="stats-band" aria-label="Thống kê">
+      <div v-for="item in stats" :key="item.label" class="stat-item">
+        <strong>{{ item.value }}</strong>
+        <span>{{ item.label }}</span>
       </div>
     </section>
 
-    <!-- ── Categories ───────────────────────── -->
-    <section v-if="categories.length" class="section categories" aria-labelledby="categories-title">
-      <header class="section-head">
+    <section class="section">
+      <div class="section-head">
         <div>
-          <p class="section-kicker">Danh mục học tập</p>
-          <h2 id="categories-title">Khám phá theo lĩnh vực</h2>
+          <h2>Lĩnh vực đào tạo</h2>
+          <p>Chọn hướng đi phù hợp với lộ trình nghề nghiệp của bạn.</p>
         </div>
-        <NuxtLink to="/courses" class="section-link">
-          Xem tất cả <ArrowRight :size="15" :stroke-width="2" />
-        </NuxtLink>
-      </header>
-      <div class="categories-grid">
+        <NuxtLink to="/courses" class="section-link">Xem tất cả <i class="pi pi-arrow-right" /></NuxtLink>
+      </div>
+      <div class="category-grid">
         <NuxtLink
-          v-for="cat in categories"
-          :key="cat.id"
-          :to="`/courses?category=${cat.slug || cat.id}`"
-          class="category-card"
+          v-for="category in categories"
+          :key="category.id"
+          :to="`/courses?category=${category.slug || category.id}`"
+          class="category-item"
         >
-          <div class="category-icon">
-            <Zap :size="18" :stroke-width="1.75" />
-          </div>
-          <div class="category-body">
-            <h3>{{ cat.name }}</h3>
-            <p v-if="cat.courses_count">{{ cat.courses_count }} khoá học</p>
-          </div>
-          <ArrowRight :size="15" :stroke-width="2" class="category-arrow" />
+          <strong>{{ category.name }}</strong>
+          <span>{{ category.courses_count || 0 }} khóa học</span>
         </NuxtLink>
+        <div v-if="!categories.length" class="empty-note">Danh mục sẽ xuất hiện khi hệ thống có dữ liệu công khai.</div>
       </div>
     </section>
 
-    <!-- ── Featured Courses ─────────────────── -->
-    <section v-if="featuredCourses.length" class="section courses" aria-labelledby="courses-title">
-      <header class="section-head">
+    <section class="section">
+      <div class="section-head">
         <div>
-          <p class="section-kicker">Khoá học nổi bật</p>
-          <h2 id="courses-title">Bắt đầu học ngay hôm nay</h2>
+          <h2>Khóa học nổi bật</h2>
+          <p>Nội dung được tuyển chọn để bắt đầu nhanh và học sâu.</p>
         </div>
-        <NuxtLink to="/courses" class="section-link">
-          Tất cả khoá học <ArrowRight :size="15" :stroke-width="2" />
-        </NuxtLink>
-      </header>
-
-      <div class="courses-grid">
-        <article
-          v-for="course in featuredCourses.slice(0, 8)"
+        <NuxtLink to="/courses" class="section-link">Duyệt khoá học <i class="pi pi-arrow-right" /></NuxtLink>
+      </div>
+      <div class="course-grid">
+        <NuxtLink
+          v-for="course in featuredCourses"
           :key="course.id"
-          class="course-card"
-          itemscope
-          itemtype="https://schema.org/Course"
+          :to="`/courses/${course.id}`"
+          class="course-item"
         >
-          <NuxtLink :to="`/courses/${course.id}`" class="course-thumb-link" :aria-label="course.title">
-            <img
-              v-if="course.thumbnail"
-              :src="course.thumbnail"
-              :alt="course.title"
-              class="course-thumb"
-              loading="lazy"
-              width="320"
-              height="180"
-              itemprop="image"
-            />
-            <div v-else class="course-thumb course-thumb-placeholder" aria-hidden="true">
-              <BookOpen :size="32" :stroke-width="1.5" />
-            </div>
-            <div class="course-thumb-overlay">
-              <div class="course-play-btn">
-                <PlayCircle :size="28" :stroke-width="1.5" />
-              </div>
-            </div>
-          </NuxtLink>
-
+          <div class="course-media" :style="course.thumbnail ? { backgroundImage: `url(${course.thumbnail})` } : undefined">
+            <span v-if="!course.thumbnail"><i class="pi pi-book" /></span>
+          </div>
           <div class="course-body">
-            <p v-if="course.category" class="course-category">{{ course.category.name }}</p>
-            <h3 class="course-title">
-              <NuxtLink :to="`/courses/${course.id}`" itemprop="name">{{ course.title }}</NuxtLink>
-            </h3>
-            <meta itemprop="description" :content="course.description || course.title" />
-
-            <p v-if="course.instructor" class="course-instructor" itemprop="provider" itemscope itemtype="https://schema.org/Person">
-              <User :size="13" :stroke-width="1.75" />
-              <span itemprop="name">{{ course.instructor.name }}</span>
-            </p>
-
-            <footer class="course-foot">
-              <span class="course-meta">
-                <PlayCircle :size="13" :stroke-width="1.75" />
-                {{ course.lessons_count || 0 }} bài
-              </span>
-              <span class="course-meta">
-                <Users :size="13" :stroke-width="1.75" />
-                {{ (course.enrollments_count || 0).toLocaleString('vi-VN') }}
-              </span>
-              <strong class="course-price" :class="{ 'is-free': !course.price || course.price === 0 }">
-                {{ formatPrice(course.price) }}
-              </strong>
-            </footer>
+            <small>{{ course.category?.name || 'Khóa học' }}</small>
+            <strong>{{ course.title }}</strong>
+            <p>{{ course.instructor?.name || 'Giảng viên Sylva' }}</p>
+            <div class="course-meta">
+              <span><i class="pi pi-star-fill" /> {{ formatRating(course.reviews_avg_rating) }}</span>
+              <span>{{ formatPrice(course.price) }}</span>
+            </div>
           </div>
-        </article>
+        </NuxtLink>
+        <div v-if="!featuredCourses.length" class="empty-note">Chưa có khóa học công khai. Hãy quay lại sau.</div>
       </div>
     </section>
 
-    <!-- ── How it works ─────────────────────── -->
-    <section class="section steps" aria-labelledby="steps-title">
-      <div class="steps-bg" aria-hidden="true" />
-      <header class="section-head center">
-        <p class="section-kicker">Bắt đầu thế nào</p>
-        <h2 id="steps-title">3 bước để phát triển năng lực</h2>
-        <p class="section-sub">Đơn giản, nhanh chóng và hiệu quả ngay từ ngày đầu tiên.</p>
-      </header>
-      <ol class="steps-list">
-        <li v-for="(step, idx) in steps" :key="step.num" class="step-item">
-          <div class="step-num-badge">{{ step.num }}</div>
-          <div v-if="idx < steps.length - 1" class="step-connector" aria-hidden="true" />
-          <div class="step-icon-wrap">
-            <component :is="step.icon" :size="24" :stroke-width="1.75" />
-          </div>
-          <h3>{{ step.title }}</h3>
-          <p>{{ step.desc }}</p>
-        </li>
-      </ol>
-    </section>
-
-    <!-- ── CTA band ──────────────────────────── -->
-    <section class="cta" aria-labelledby="cta-title">
-      <div class="cta-bg" aria-hidden="true">
-        <div class="cta-glow" />
+    <section class="process">
+      <div class="section-head">
+        <div>
+          <h2>Ba bước để bắt đầu</h2>
+          <p>Từ đăng ký đến hoàn thành chứng chỉ trong một luồng rõ ràng.</p>
+        </div>
       </div>
-      <div class="cta-inner">
-        <div class="cta-copy">
-          <p class="cta-kicker">Bắt đầu ngay hôm nay</p>
-          <h2 id="cta-title">Sẵn sàng cho hành trình<br>học tập bền vững?</h2>
-          <p>Tham gia cùng hàng nghìn học viên đang phát triển bản thân trên Sylva LMS mỗi ngày.</p>
-        </div>
-        <div class="cta-actions">
-          <NuxtLink to="/register" class="btn-cta-primary">
-            <UserPlus :size="18" :stroke-width="1.75" />
-            Tạo tài khoản miễn phí
-          </NuxtLink>
-          <NuxtLink to="/courses" class="btn-cta-ghost">
-            Xem khoá học
-          </NuxtLink>
-        </div>
+      <div class="process-grid">
+        <div><span>01</span><strong>Tạo tài khoản</strong><p>Đăng ký miễn phí và xác minh email để mở hồ sơ học tập.</p></div>
+        <div><span>02</span><strong>Chọn khóa học</strong><p>Duyệt danh mục, ghi danh và học theo tiến độ của riêng bạn.</p></div>
+        <div><span>03</span><strong>Theo dõi kết quả</strong><p>Làm bài kiểm tra, nhận phản hồi và lưu chứng chỉ hoàn thành.</p></div>
       </div>
     </section>
 
-    <!-- ── Map ──────────────────────────────── -->
-    <section class="section map" aria-labelledby="map-title">
-      <div class="map-inner">
-        <div class="map-copy">
-          <p class="section-kicker">Liên hệ</p>
-          <h2 id="map-title">Tìm đường đến văn phòng Sylva</h2>
-          <p>Xem nhanh vị trí hỗ trợ kỹ thuật và vận hành hệ thống Sylva LMS trên bản đồ Google Maps.</p>
-          <div class="map-actions">
-            <a
-              class="btn-map-primary"
-              :href="`https://www.google.com/maps/search/?api=1&query=${mapQuery}`"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Map :size="17" :stroke-width="1.75" />
-              Mở Google Maps
-            </a>
-            <NuxtLink to="/register" class="btn-map-secondary">
-              Tạo tài khoản miễn phí
-            </NuxtLink>
-          </div>
-        </div>
-
-        <div class="map-frame-wrap">
-          <iframe
-            class="map-frame"
-            :src="googleMapEmbedUrl"
-            title="Bản đồ Sylva LMS trên Google Maps"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-            allowfullscreen
-          />
-        </div>
+    <section class="cta">
+      <div>
+        <h2>Sẵn sàng bắt đầu cùng {{ brand }}?</h2>
+        <p>Tạo tài khoản ngay để truy cập khóa học, lịch học và hệ thống hỗ trợ học tập.</p>
+      </div>
+      <div class="cta-actions">
+        <Button label="Đăng ký miễn phí" icon="pi pi-user-plus" @click="navigateTo('/register')" />
+        <Button label="Tôi đã có tài khoản" severity="secondary" outlined @click="navigateTo('/login')" />
       </div>
     </section>
-
   </div>
 </template>
 
 <style scoped>
-/* ── Base ── */
 .home {
-  display: flex;
-  flex-direction: column;
+  overflow: hidden;
 }
 
-.section {
-  max-width: 1280px;
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
+  gap: 28px;
+  align-items: end;
+  width: min(1180px, calc(100% - 32px));
+  min-height: calc(100dvh - 68px);
   margin: 0 auto;
-  padding: 88px 24px;
-  width: 100%;
+  padding: 48px 0 36px;
 }
 
-/* ── Section header ── */
-.section-head {
+.hero-brand {
+  margin: 0 0 14px;
+  color: var(--brand);
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -.06em;
+  line-height: 1;
+}
+
+.hero h1 {
+  max-width: 14ch;
+  margin: 0 0 16px;
+  color: var(--text);
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  line-height: 1.2;
+  letter-spacing: -.035em;
+  font-weight: 650;
+}
+
+.hero-lead {
+  max-width: 42ch;
+  margin: 0 0 28px;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.hero-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 44px;
+  gap: 10px;
 }
 
-.section-head.center {
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+.hero-visual {
+  position: relative;
+  min-height: 420px;
 }
 
-.section-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 10px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--green);
+.hero-orb {
+  position: absolute;
+  inset: 8% 4% auto auto;
+  width: min(420px, 100%);
+  aspect-ratio: 1;
+  border-radius: 40% 60% 55% 45%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .28), transparent 40%),
+    linear-gradient(145deg, #0f766e, #134e4a 55%, #0b3d39);
+  filter: saturate(1.05);
 }
 
-.section-head h2 {
-  margin: 0;
-  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.hero-panel {
+  position: absolute;
+  right: 0;
+  bottom: 28px;
+  left: 12%;
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, white 18%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, #0b3d39 72%, transparent);
+  color: white;
+  backdrop-filter: blur(18px);
+}
+
+.hero-panel span,
+.hero-panel small {
+  color: rgba(255, 255, 255, .72);
+  font-size: .72rem;
+}
+
+.hero-panel strong {
+  font-size: 1.35rem;
+  letter-spacing: -.03em;
+}
+
+.hero-bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  height: 72px;
+  margin: 8px 0;
+}
+
+.hero-bars i {
+  display: block;
+  align-self: end;
+  height: var(--w);
+  border-radius: 8px 8px 4px 4px;
+  background: linear-gradient(180deg, #7dd3c7, #2dd4bf);
+}
+
+.stats-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 56px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--border);
+}
+
+.stat-item {
+  display: grid;
+  gap: 4px;
+  padding: 22px;
+  background: var(--surface);
+}
+
+.stat-item strong {
   color: var(--text);
-  line-height: 1.15;
+  font-size: 1.4rem;
+  letter-spacing: -.03em;
 }
 
-.section-sub {
-  margin: 14px 0 0;
-  max-width: 52ch;
-  font-size: 0.9625rem;
-  color: var(--muted);
-  line-height: 1.75;
+.stat-item span {
+  color: var(--text-muted);
+  font-size: .72rem;
+}
+
+.section,
+.process,
+.cta {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 64px;
+}
+
+.section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.section-head h2,
+.process h2,
+.cta h2 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+  letter-spacing: -.03em;
+}
+
+.section-head p,
+.process p,
+.cta p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
 }
 
 .section-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--green);
-  text-decoration: none;
-  white-space: nowrap;
-  transition: gap 150ms;
-}
-
-.section-link:hover { gap: 8px; }
-
-/* ── Hero ── */
-.hero {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #071812 0%, #0d2e1e 50%, #163d2a 100%);
-  color: #fff;
-  padding: 130px 24px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.hero-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-/* Subtle grid lines */
-.hero-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(29,158,117,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(29,158,117,0.05) 1px, transparent 1px);
-  background-size: 60px 60px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 100%);
-}
-
-.hero-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  pointer-events: none;
-}
-
-.hero-glow-1 {
-  width: 500px; height: 500px;
-  top: -200px; right: -100px;
-  background: radial-gradient(circle, rgba(29,158,117,0.18) 0%, transparent 70%);
-}
-
-.hero-glow-2 {
-  width: 400px; height: 400px;
-  bottom: 40px; left: -120px;
-  background: radial-gradient(circle, rgba(29,158,117,0.1) 0%, transparent 70%);
-}
-
-.hero-glow-3 {
-  width: 320px; height: 320px;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(29,158,117,0.07) 0%, transparent 70%);
-}
-
-.hero-inner {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  max-width: 820px;
-  width: 100%;
-}
-
-/* Badge */
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 28px;
-  padding: 7px 18px;
-  background: rgba(29,158,117,0.12);
-  border: 1px solid rgba(29,158,117,0.3);
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #6eedc7;
-}
-
-.hero-badge-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px rgba(29,158,117,0.25);
-  animation: pulse-dot 2s ease infinite;
-  flex-shrink: 0;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(29,158,117,0.25); }
-  50% { box-shadow: 0 0 0 6px rgba(29,158,117,0.1); }
-}
-
-.hero-title {
-  margin: 0;
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: clamp(2.6rem, 6.5vw, 4.2rem);
-  font-weight: 900;
-  line-height: 1.08;
-  letter-spacing: -0.05em;
-  color: #fff;
-}
-
-.hero-em {
-  font-style: normal;
-  background: linear-gradient(90deg, #1D9E75 0%, #34d39b 50%, #6eedc7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-lead {
-  margin: 24px 0 32px;
-  max-width: 54ch;
-  font-size: 1.0625rem;
-  line-height: 1.75;
-  color: rgba(255,255,255,0.72);
-}
-
-.hero-checks {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 36px;
-}
-
-.hero-check {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: rgba(255,255,255,0.65);
-}
-
-.hero-check svg { color: var(--green); flex-shrink: 0; }
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 80px;
-}
-
-.btn-hero-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 50px;
-  padding: 0 28px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--green) 0%, #0d7a5a 100%);
-  color: #fff;
-  font-size: 0.9375rem;
+  color: var(--brand);
+  font-size: .8rem;
   font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 4px 20px rgba(29,158,117,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
-  transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms;
-}
-
-.btn-hero-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(29,158,117,0.5);
-}
-
-.btn-hero-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 50px;
-  padding: 0 24px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.07);
-  color: rgba(255,255,255,0.88);
-  border: 1px solid rgba(255,255,255,0.15);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-decoration: none;
-  backdrop-filter: blur(4px);
-  transition: background 150ms, border-color 150ms, transform 200ms cubic-bezier(0.34,1.56,0.64,1);
-}
-
-.btn-hero-ghost:hover {
-  background: rgba(255,255,255,0.12);
-  border-color: rgba(255,255,255,0.3);
-  transform: translateY(-2px);
-}
-
-/* Hero stats shelf */
-.hero-stats {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  width: 100%;
-  max-width: 740px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-bottom: none;
-  border-radius: 20px 20px 0 0;
-  padding: 28px 32px;
-  backdrop-filter: blur(12px);
-}
-
-.hero-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  flex: 1;
-  min-width: 100px;
-  padding: 4px 12px;
-}
-
-.hero-stat strong {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  font-size: 1.85rem;
-  font-weight: 900;
-  letter-spacing: -0.05em;
-  color: #6eedc7;
-  line-height: 1;
-}
-
-.hero-stat span {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: rgba(255,255,255,0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.hero-stat-sep {
-  width: 1px;
-  height: 36px;
-  background: rgba(255,255,255,0.1);
-  flex-shrink: 0;
-}
-
-/* ── Features ── */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.feature-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  padding: 32px 28px 28px;
-  background: var(--surface-strong, #fff);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  overflow: hidden;
-  transition: transform 280ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 280ms;
-}
-
-.feature-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 250ms;
-  border-radius: inherit;
-  pointer-events: none;
-}
-
-.feature-card--green::before { background: linear-gradient(135deg, rgba(29,158,117,0.04) 0%, transparent 60%); }
-.feature-card--blue::before  { background: linear-gradient(135deg, rgba(59,130,246,0.04) 0%, transparent 60%); }
-.feature-card--accent::before{ background: linear-gradient(135deg, rgba(139,92,246,0.04) 0%, transparent 60%); }
-
-.feature-card:hover { transform: translateY(-5px); box-shadow: 0 20px 48px rgba(0,0,0,0.08); }
-.feature-card:hover::before { opacity: 1; }
-
-.feature-card--green { border-top: 3px solid var(--green); }
-.feature-card--blue  { border-top: 3px solid #3b82f6; }
-.feature-card--accent{ border-top: 3px solid #8b5cf6; }
-
-.feature-icon-wrap {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px; height: 52px;
-  border-radius: 14px;
-  margin-bottom: 22px;
-}
-
-.feature-icon-wrap--green  { background: rgba(29,158,117,0.1); color: var(--green); }
-.feature-icon-wrap--blue   { background: rgba(59,130,246,0.1); color: #3b82f6; }
-.feature-icon-wrap--accent { background: rgba(139,92,246,0.1); color: #8b5cf6; }
-
-.feature-card h3 {
-  margin: 0 0 10px;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--text);
-}
-
-.feature-card p {
-  margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.75;
-  color: var(--muted);
-  flex: 1;
-}
-
-.feature-bottom-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 20px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--green);
-  transition: gap 150ms;
-}
-
-.feature-card:hover .feature-bottom-link { gap: 8px; }
-
-/* ── Categories ── */
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.category-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 18px;
-  background: var(--surface-strong, #fff);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  text-decoration: none;
-  color: var(--text);
-  transition: all 220ms cubic-bezier(0.34,1.56,0.64,1);
-}
-
-.category-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(29,158,117,0.35);
-  box-shadow: 0 8px 24px rgba(29,158,117,0.1);
-}
-
-.category-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  background: rgba(29,158,117,0.08);
-  color: var(--green);
-  flex-shrink: 0;
-  transition: background 150ms, color 150ms;
-}
-
-.category-card:hover .category-icon {
-  background: var(--green);
-  color: #fff;
-}
-
-.category-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.category-body h3 {
-  margin: 0 0 2px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.category-body p {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-.category-arrow {
-  color: var(--muted);
-  flex-shrink: 0;
-  transition: color 150ms, transform 150ms;
-}
-
-.category-card:hover .category-arrow {
-  color: var(--green);
-  transform: translateX(3px);
-}
-
-/* ── Courses ── */
-.courses-grid {
+.category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.course-card {
+.category-item {
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+  transition: .16s ease;
+}
+
+.category-item:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.category-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: .9rem;
+}
+
+.category-item span {
+  color: var(--text-muted);
+  font-size: .72rem;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.course-item {
   display: flex;
   flex-direction: column;
-  background: var(--surface-strong, #fff);
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  min-width: 0;
   overflow: hidden;
-  transition: transform 220ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 220ms, border-color 220ms;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  transition: transform .18s ease, border-color .18s ease;
 }
 
-.course-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 40px rgba(0,0,0,0.1);
-  border-color: rgba(29,158,117,0.25);
+.course-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand);
 }
 
-.course-thumb-link {
-  display: block;
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.course-thumb {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  transition: transform 400ms ease;
-  display: block;
-}
-
-.course-card:hover .course-thumb { transform: scale(1.05); }
-
-.course-thumb-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(4,12,8,0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 250ms;
-}
-
-.course-card:hover .course-thumb-overlay { background: rgba(4,12,8,0.35); }
-
-.course-play-btn {
-  color: #fff;
-  opacity: 0;
-  transform: scale(0.8);
-  transition: opacity 250ms, transform 250ms cubic-bezier(0.34,1.56,0.64,1);
-}
-
-.course-card:hover .course-play-btn { opacity: 1; transform: scale(1); }
-
-.course-thumb-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--green-soft);
-  color: var(--green);
-  width: 100%; height: 100%;
+.course-media {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--brand) 35%, #12352f), #0f766e);
+  background-size: cover;
+  background-position: center;
+  color: white;
+  font-size: 1.6rem;
 }
 
 .course-body {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 6px;
-  padding: 16px;
-  flex: 1;
+  padding: 14px;
 }
 
-.course-category {
-  margin: 0;
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--green);
+.course-body small,
+.course-body p {
+  color: var(--text-muted);
+  font-size: .68rem;
 }
 
-.course-title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  line-height: 1.4;
-  letter-spacing: -0.015em;
-  flex: 1;
-}
-
-.course-title a {
+.course-body strong {
   color: var(--text);
-  text-decoration: none;
-  transition: color 150ms;
-}
-
-.course-title a:hover { color: var(--green); }
-
-.course-instructor {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-
-.course-foot {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+  font-size: .86rem;
+  line-height: 1.35;
 }
 
 .course-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: .74rem;
+  font-weight: 650;
+}
+
+.course-meta span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.78rem;
-  color: var(--muted);
 }
 
-.course-price {
-  margin-left: auto;
-  font-size: 0.875rem;
-  font-weight: 800;
-  color: var(--text);
+.course-meta i {
+  color: #f59e0b;
+  font-size: .7rem;
 }
 
-.course-price.is-free { color: var(--green); }
-
-/* ── Steps ── */
-.steps {
-  position: relative;
-}
-
-.steps-bg {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(29,158,117,0.025) 50%, transparent 100%);
-  pointer-events: none;
-}
-
-.steps-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.process-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 32px;
-  position: relative;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
 }
 
-.step-item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 14px;
+.process-grid > div {
+  padding-top: 8px;
+  border-top: 2px solid var(--brand);
 }
 
-.step-num-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: rgba(29,158,117,0.6);
-  background: var(--green-soft, rgba(29,158,117,0.06));
-  border: 1px solid rgba(29,158,117,0.15);
-  border-radius: 999px;
-  padding: 2px 10px;
+.process-grid span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--brand);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .08em;
 }
 
-.step-connector {
-  position: absolute;
-  top: 44px;
-  left: calc(50% + 40px);
-  right: calc(-50% + 40px);
-  height: 0;
-  border-top: 2px dashed rgba(29,158,117,0.2);
-  display: none;
-}
-
-@media (min-width: 768px) {
-  .step-connector { display: block; }
-  .step-item:last-child .step-connector { display: none; }
-}
-
-.step-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px; height: 64px;
-  border-radius: 18px;
-  background: rgba(29,158,117,0.07);
-  color: var(--green);
-  border: 2px solid rgba(29,158,117,0.18);
-  margin-top: 24px;
-  flex-shrink: 0;
-  transition: background 200ms, border-color 200ms, color 200ms, transform 200ms;
-}
-
-.step-item:hover .step-icon-wrap {
-  background: var(--green);
-  color: #fff;
-  border-color: var(--green);
-  transform: translateY(-4px);
-}
-
-.step-item h3 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+.process-grid strong {
+  display: block;
+  margin-bottom: 8px;
   color: var(--text);
+  font-size: 1rem;
 }
 
-.step-item p {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: var(--muted);
-  max-width: 22ch;
+.process-grid p {
+  font-size: .82rem;
 }
 
-/* ── CTA band ── */
 .cta {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #071812 0%, #0d2e1e 50%, #163d2a 100%);
-  padding: 96px 24px;
-  margin: 16px 0;
-}
-
-.cta-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.cta-glow {
-  position: absolute;
-  width: 600px; height: 400px;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(ellipse, rgba(29,158,117,0.15) 0%, transparent 70%);
-  filter: blur(40px);
-}
-
-.cta-inner {
-  position: relative;
-  max-width: 1280px;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 40px;
-  flex-wrap: wrap;
+  gap: 24px;
+  padding: 36px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(255, 255, 255, .12), transparent 28%),
+    linear-gradient(135deg, #103d38, #0f766e);
+  color: white;
 }
 
-.cta-kicker {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: rgba(29,158,117,0.9);
-  margin: 0 0 12px;
+.cta h2,
+.cta p {
+  color: white;
 }
 
-.cta-copy h2 {
-  margin: 0 0 14px;
-  font-size: clamp(1.6rem, 3.2vw, 2.4rem);
-  font-weight: 900;
-  letter-spacing: -0.05em;
-  color: #fff;
-  line-height: 1.1;
-}
-
-.cta-copy p {
-  margin: 0;
-  font-size: 1rem;
-  color: rgba(255,255,255,0.65);
-  max-width: 44ch;
-  line-height: 1.7;
+.cta p {
+  max-width: 48ch;
+  color: rgba(255, 255, 255, .74);
 }
 
 .cta-actions {
   display: flex;
-  gap: 12px;
   flex-wrap: wrap;
-  flex-shrink: 0;
+  gap: 10px;
 }
 
-.btn-cta-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  height: 50px;
-  padding: 0 30px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--green) 0%, #0d7a5a 100%);
-  color: #fff;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  text-decoration: none;
-  box-shadow: 0 4px 20px rgba(29,158,117,0.4);
-  transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms;
+.empty-note {
+  grid-column: 1 / -1;
+  padding: 28px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
-.btn-cta-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(29,158,117,0.5);
-}
-
-.btn-cta-ghost {
-  display: inline-flex;
-  align-items: center;
-  height: 50px;
-  padding: 0 24px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.88);
-  border: 1px solid rgba(255,255,255,0.15);
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 150ms, border-color 150ms;
-}
-
-.btn-cta-ghost:hover {
-  background: rgba(255,255,255,0.15);
-  border-color: rgba(255,255,255,0.3);
-}
-
-/* ── Map ── */
-.map { padding-bottom: 96px; }
-
-.map-inner {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 56px;
-  align-items: center;
-}
-
-.map-copy h2 {
-  margin: 0 0 14px;
-  font-size: clamp(1.3rem, 2.6vw, 1.8rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.map-copy p {
-  margin: 0 0 28px;
-  font-size: 0.9375rem;
-  line-height: 1.75;
-  color: var(--muted);
-}
-
-.map-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-
-.btn-map-primary, .btn-map-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 22px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 200ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms;
-}
-
-.btn-map-primary {
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(29,158,117,0.25);
-}
-
-.btn-map-primary:hover {
-  background: var(--green-deep);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(29,158,117,0.35);
-}
-
-.btn-map-secondary {
-  background: var(--green-soft, rgba(29,158,117,0.08));
-  color: var(--green-deep, #0d6b4f);
-  border: 1px solid rgba(29,158,117,0.2);
-}
-
-.btn-map-secondary:hover {
-  background: rgba(29,158,117,0.14);
-  transform: translateY(-2px);
-}
-
-.map-frame-wrap {
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  aspect-ratio: 4 / 3;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
-}
-
-.map-frame {
-  width: 100%; height: 100%;
-  border: none;
-  display: block;
-}
-
-/* ── Responsive ── */
-@media (max-width: 960px) {
-  .map-inner { grid-template-columns: 1fr; gap: 32px; }
-  .cta-inner { flex-direction: column; align-items: flex-start; }
-}
-
-@media (max-width: 640px) {
-  .hero { padding: 110px 16px 0; }
-  .section { padding: 64px 16px; }
-
-  .hero-stats {
-    flex-wrap: wrap;
-    padding: 20px 16px;
-    max-width: 100%;
+@media (max-width: 980px) {
+  .hero,
+  .course-grid,
+  .category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .hero-stat-sep { display: none; }
-
-  .hero-stat {
-    flex: 1 0 40%;
-    padding: 10px;
+  .hero {
+    min-height: auto;
+    align-items: start;
   }
 
-  .hero-actions {
+  .hero-visual {
+    min-height: 320px;
+  }
+
+  .stats-band,
+  .process-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .hero,
+  .course-grid,
+  .category-grid,
+  .stats-band,
+  .process-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-visual {
+    order: -1;
+    min-height: 280px;
+  }
+
+  .hero-panel {
+    left: 0;
+  }
+
+  .section-head,
+  .cta {
     flex-direction: column;
-    align-items: stretch;
-    margin-bottom: 52px;
+    align-items: flex-start;
   }
 
-  .btn-hero-primary, .btn-hero-ghost {
-    justify-content: center;
+  .cta {
+    padding: 24px;
   }
-
-  .cta { padding: 72px 16px; margin: 0; }
-}
-
-/* ── Dark mode ── */
-:global([data-theme="dark"]) .feature-card,
-:global([data-theme="dark"]) .course-card,
-:global([data-theme="dark"]) .category-card {
-  background: rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.07);
-}
-
-:global([data-theme="dark"]) .feature-card:hover { box-shadow: 0 20px 48px rgba(0,0,0,0.4); }
-:global([data-theme="dark"]) .course-card:hover  { box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
-
-:global([data-theme="dark"]) .map-frame-wrap { border-color: rgba(255,255,255,0.07); }
-
-:global([data-theme="dark"]) .btn-map-secondary {
-  background: rgba(29,158,117,0.1);
-  color: #6eedc7;
-  border-color: rgba(29,158,117,0.2);
 }
 </style>

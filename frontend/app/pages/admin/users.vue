@@ -1,1358 +1,1257 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import { Download, Users } from 'lucide-vue-next'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import MediaUpload from '~/components/common/MediaUpload.vue'
-import DataTableFooter from '~/components/common/DataTableFooter.vue'
-import { useExport } from '~/composables/useExport'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'admin',
-  adminSearchPlaceholder: 'Tìm người dùng, email, MSSV...',
+  middleware: ['auth', 'admin'],
 })
 
-interface RoleItem { id: number; name: 'admin' | 'instructor' | 'student' | 'academic_manager' }
-interface RelItem { id: number; name: string; code?: string }
-
+interface RoleRef { id?: number, name: string }
+interface NamedRef { id: number, name?: string, code?: string }
 interface AdminUser {
   id: number
   name: string
   email: string
   avatar?: string | null
-  created_at?: string
-  updated_at?: string
-  roles?: RoleItem[]
-  // Academic fields
+  phone?: string | null
   student_code?: string | null
   staff_code?: string | null
-  phone?: string | null
-  gender?: 'male' | 'female' | 'other' | null
+  gender?: string | null
   date_of_birth?: string | null
-  nationality?: string | null
+  study_status?: string | null
+  email_verified_at?: string | null
+  created_at?: string
+  roles?: RoleRef[]
+  administrative_class?: NamedRef | null
+  administrativeClass?: NamedRef | null
+  cohort?: NamedRef | null
+  program?: NamedRef | null
+  major?: NamedRef | null
+  unit?: NamedRef | null
+  unit_id?: number | null
+  program_id?: number | null
+  major_id?: number | null
+  cohort_id?: number | null
+  administrative_class_id?: number | null
+  bio?: string | null
   hometown?: string | null
   permanent_address?: string | null
-  id_card_number?: string | null
-  study_status?: string | null
-  bio?: string | null
-  // Relations
-  administrative_class?: RelItem | null
-  administrative_class_id?: number | null
-  cohort?: RelItem | null
-  cohort_id?: number | null
-  program?: RelItem | null
-  program_id?: number | null
-  major?: RelItem | null
-  major_id?: number | null
-  unit?: RelItem | null
-  unit_id?: number | null
+  nationality?: string | null
 }
 
-interface AcademicSummary {
-  overall_gpa: number | null
-  total_credits: number
-  total_courses: number
-  terms: any[]
+interface Paginator<T> {
+  data: T[]
+  total: number
+  current_page: number
+  per_page: number
 }
 
-const STUDY_STATUS_LABELS: Record<string, string> = {
-  dang_hoc: 'Đang học',
-  bao_luu: 'Bảo lưu',
-  tot_nghiep: 'Tốt nghiệp',
-  thoi_hoc: 'Thôi học',
-  dinh_chi: 'Đình chỉ',
-  dang_cong_tac: 'Đang công tác',
-  nghi_phep: 'Nghỉ phép',
-  nghi_huu: 'Nghỉ hưu',
-}
+const { t, locale } = useI18n()
+const toast = useToast()
+const confirm = useConfirm()
 
-
-const user = useAuthUserCookie()
-const token = useAuthTokenCookie()
-
-if (!user.value || !token.value) await navigateTo('/login', { replace: true })
-if (user.value && normalizeRole(user.value.role) !== 'admin') await navigateTo(getDashboardPath(user.value.role), { replace: true })
+const loading = ref(false)
+const exporting = ref(false)
+const saving = ref(false)
+const importing = ref(false)
+const rows = ref<AdminUser[]>([])
+const total = ref(0)
+const selected = ref<AdminUser[]>([])
+const page = ref(1)
+const perPage = ref(15)
+const tableSearch = ref('')
+const sortBy = ref('created_at')
+const sortDir = ref<'asc' | 'desc'>('desc')
 
 const filters = reactive({
-  search: '',
-  role: '',
-  study_status: '',
-  gender: '',
-  cohort_id: '',
-  program_id: '',
-  administrative_class_id: '',
+  cohort_id: [] as number[],
+  administrative_class_id: [] as Array<number | string>,
+  program_id: [] as number[],
+  major_id: [] as number[],
+  unit_id: [] as number[],
 })
 
-const filterOpen = ref(false)
+/** Role chip quick filter (metrics), not in filter bar */
+const roleChip = ref<string | null>(null)
 
-const activeFilterCount = computed(() => {
-  return [filters.study_status, filters.gender, filters.cohort_id, filters.program_id, filters.administrative_class_id]
-    .filter(Boolean).length
-})
-const users = ref<AdminUser[]>([])
-const loading = ref(false)
-const saving = ref(false)
-const deletingId = ref<number | null>(null)
-const errorMessage = ref('')
-const successMessage = ref('')
-const currentPage = ref(1)
-const lastPage = ref(1)
-const totalUsers = ref(0)
-const perPage = ref(15)
-const selectedIds = ref<number[]>([])
+const counts = reactive({ all: 0, student: 0, instructor: 0, admin: 0 })
+const cohortOptions = ref<{ label: string, value: number }[]>([])
+const classOptions = ref<{ label: string, value: number | string }[]>([])
+const programOptions = ref<{ label: string, value: number }[]>([])
+const majorOptions = ref<{ label: string, value: number }[]>([])
+const unitOptions = ref<{ label: string, value: number }[]>([])
 
-// Stats
-const statsTotal = ref(0)
-const statsStudents = ref(0)
-const statsInstructors = ref(0)
-const statsAdmins = ref(0)
-
-// Academic summary (loaded per user on view)
-const academicSummary = ref<AcademicSummary | null>(null)
-const loadingSummary = ref(false)
-
-// Form options for dropdowns
-const optAdminClasses = ref<RelItem[]>([])
-const optCohorts = ref<RelItem[]>([])
-const optPrograms = ref<RelItem[]>([])
-const optMajors = ref<RelItem[]>([])
-const optionsLoaded = ref(false)
-
-const { exportToCSV } = useExport()
-
-const isAllSelected = computed(() =>
-  users.value.length > 0 && users.value.every(u => selectedIds.value.includes(u.id))
-)
-
-function toggleSelectAll() {
-  isAllSelected.value
-    ? (selectedIds.value = [])
-    : (selectedIds.value = users.value.map(u => u.id))
-}
-
-const modalMode = ref<'create' | 'edit' | 'view'>('create')
+type ModalMode = 'view' | 'create' | 'edit'
 const modalOpen = ref(false)
-const deleteModalOpen = ref(false)
-const selectedUser = ref<AdminUser | null>(null)
-const activeSection = ref<'account' | 'academic' | 'personal'>('account')
+const modalMode = ref<ModalMode>('create')
+const editing = ref<AdminUser | null>(null)
 
 const form = reactive({
   name: '',
   email: '',
   password: '',
-  avatar: '',
   role: 'student',
-  bio: '',
-  // Academic
+  phone: '',
   student_code: '',
   staff_code: '',
-  administrative_class_id: '',
-  cohort_id: '',
-  program_id: '',
-  major_id: '',
-  study_status: '',
-  // Personal
-  phone: '',
-  gender: '',
-  date_of_birth: '',
-  nationality: 'Việt Nam',
-  hometown: '',
-  permanent_address: '',
-  id_card_number: '',
+  gender: null as string | null,
+  date_of_birth: null as Date | null,
+  study_status: null as string | null,
+  cohort_id: null as number | null,
+  administrative_class_id: null as number | null,
+  program_id: null as number | null,
+  major_id: null as number | null,
+  unit_id: null as number | null,
+  bio: '',
+  avatar: '' as string | null,
 })
 
-function authHeaders() {
-  return token.value ? { Authorization: `Bearer ${token.value}` } : {}
-}
+const uploadingAvatar = ref(false)
+const avatarInput = ref<HTMLInputElement | null>(null)
 
-function resolveRole(item: AdminUser) {
-  return item.roles?.[0]?.name || 'student'
-}
+const importOpen = ref(false)
+const importFile = ref<File | null>(null)
+const importPreview = ref<any>(null)
+const importToken = ref<string | null>(null)
+const importProgress = ref(0)
+const importDragging = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
 
-function formatDate(value?: string | null) {
+const roleOptions = computed(() => [
+  { label: t('admin.users.roles.student'), value: 'student' },
+  { label: t('admin.users.roles.instructor'), value: 'instructor' },
+  { label: t('admin.users.roles.admin'), value: 'admin' },
+])
+
+const studyStatusOptions = computed(() => [
+  { label: t('admin.users.status.dang_hoc'), value: 'dang_hoc' },
+  { label: t('admin.users.status.bao_luu'), value: 'bao_luu' },
+  { label: t('admin.users.status.tot_nghiep'), value: 'tot_nghiep' },
+  { label: t('admin.users.status.thoi_hoc'), value: 'thoi_hoc' },
+  { label: t('admin.users.status.dinh_chi'), value: 'dinh_chi' },
+  { label: t('admin.users.status.dang_cong_tac'), value: 'dang_cong_tac' },
+  { label: t('admin.users.status.nghi_phep'), value: 'nghi_phep' },
+  { label: t('admin.users.status.nghi_huu'), value: 'nghi_huu' },
+])
+
+const genderOptions = computed(() => [
+  { label: t('admin.users.gender.male'), value: 'male' },
+  { label: t('admin.users.gender.female'), value: 'female' },
+  { label: t('admin.users.gender.other'), value: 'other' },
+])
+
+const activeFilterCount = computed(() => {
+  let n = 0
+  if (filters.cohort_id.length) n++
+  if (filters.administrative_class_id.length) n++
+  if (filters.program_id.length) n++
+  if (filters.major_id.length) n++
+  if (filters.unit_id.length) n++
+  return n
+})
+
+const modalTitle = computed(() => {
+  if (modalMode.value === 'view') return t('admin.users.view')
+  if (modalMode.value === 'edit') return t('admin.users.edit')
+  return t('admin.users.add')
+})
+
+const isReadonly = computed(() => modalMode.value === 'view')
+
+const importFileMeta = computed(() => {
+  if (!importFile.value) return null
+  const size = importFile.value.size
+  const kb = size / 1024
+  const sizeLabel = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`
+  return { name: importFile.value.name, sizeLabel }
+})
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+function fmtDate(value?: string | null) {
   if (!value) return '—'
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value))
+  return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'vi-VN', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).format(new Date(value))
 }
 
-function avatarInitials(name: string) {
-  return name.split(' ').slice(-2).map(p => p.charAt(0)).join('').toUpperCase()
+function roleOf(user: AdminUser) {
+  return user.roles?.[0]?.name || '—'
 }
 
-function studyStatusBadgeClass(status?: string | null) {
-  if (!status) return 'ds-badge ds-badge--draft'
+function roleLabel(user: AdminUser) {
+  const role = roleOf(user)
+  if (role === '—') return '—'
+  return t(`admin.users.roles.${role}`)
+}
+
+function roleTone(role: string) {
   const map: Record<string, string> = {
-    dang_hoc: 'ds-badge ds-badge--active',
-    bao_luu: 'ds-badge ds-badge--pending',
-    tot_nghiep: 'ds-badge ds-badge--info',
-    thoi_hoc: 'ds-badge ds-badge--closed',
-    dinh_chi: 'ds-badge ds-badge--closed',
-    dang_cong_tac: 'ds-badge ds-badge--active',
-    nghi_phep: 'ds-badge ds-badge--pending',
-    nghi_huu: 'ds-badge ds-badge--archived',
+    admin: 'tone-admin',
+    instructor: 'tone-instructor',
+    student: 'tone-student',
+    academic_manager: 'tone-academic',
+    advisor: 'tone-advisor',
+    finance: 'tone-finance',
   }
-  return map[status] || 'ds-badge ds-badge--draft'
+  return map[role] || 'tone-neutral'
 }
 
-function gpaClassification(gpa: number | null) {
-  if (gpa === null) return { label: '—', cls: '' }
-  if (gpa >= 3.6) return { label: 'Xuất sắc', cls: 'ds-badge--violet' }
-  if (gpa >= 3.2) return { label: 'Giỏi', cls: 'ds-badge--active' }
-  if (gpa >= 2.5) return { label: 'Khá', cls: 'ds-badge--info' }
-  if (gpa >= 2.0) return { label: 'Trung bình', cls: 'ds-badge--pending' }
-  return { label: 'Yếu / Kém', cls: 'ds-badge--closed' }
+function statusTone(status?: string | null) {
+  if (!status) return 'tone-neutral'
+  const map: Record<string, string> = {
+    dang_hoc: 'tone-active',
+    bao_luu: 'tone-deferred',
+    tot_nghiep: 'tone-graduated',
+    thoi_hoc: 'tone-dropped',
+    dinh_chi: 'tone-suspended',
+    dang_cong_tac: 'tone-staff',
+    nghi_phep: 'tone-leave',
+    nghi_huu: 'tone-retired',
+  }
+  return map[status] || 'tone-neutral'
 }
 
-async function fetchUsers(page = 1) {
-  loading.value = true
-  errorMessage.value = ''
+function named(ref?: NamedRef | null) {
+  if (!ref) return '—'
+  return ref.code ? `${ref.code} — ${ref.name || ''}` : (ref.name || '—')
+}
+
+function classOf(user: AdminUser) {
+  return named(user.administrativeClass || user.administrative_class)
+}
+
+function rowIndex(index: number) {
+  return (page.value - 1) * perPage.value + index + 1
+}
+
+function toQuery() {
+  return {
+    page: page.value,
+    per_page: perPage.value,
+    q: tableSearch.value || undefined,
+    role: roleChip.value || undefined,
+    cohort_id: filters.cohort_id.length ? filters.cohort_id : undefined,
+    administrative_class_id: filters.administrative_class_id.length ? filters.administrative_class_id : undefined,
+    program_id: filters.program_id.length ? filters.program_id : undefined,
+    major_id: filters.major_id.length ? filters.major_id : undefined,
+    unit_id: filters.unit_id.length ? filters.unit_id : undefined,
+    sort_by: sortBy.value,
+    sort_dir: sortDir.value,
+  }
+}
+
+async function loadCounts() {
   try {
-    const query = new URLSearchParams()
-    query.set('page', String(page))
-    query.set('per_page', String(perPage.value))
-    if (filters.search.trim()) query.set('search', filters.search.trim())
-    if (filters.role) query.set('role', filters.role)
-    if (filters.study_status) query.set('study_status', filters.study_status)
-    if (filters.gender) query.set('gender', filters.gender)
-    if (filters.cohort_id) query.set('cohort_id', filters.cohort_id)
-    if (filters.program_id) query.set('program_id', filters.program_id)
-    if (filters.administrative_class_id) query.set('administrative_class_id', filters.administrative_class_id)
+    const [all, student, instructor, admin] = await Promise.all([
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1 } }),
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1, role: 'student' } }),
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1, role: 'instructor' } }),
+      useApi<Paginator<AdminUser>>('/admin/users', { query: { per_page: 1, role: 'admin' } }),
+    ])
+    counts.all = all.total || 0
+    counts.student = student.total || 0
+    counts.instructor = instructor.total || 0
+    counts.admin = admin.total || 0
+  }
+  catch { /* ignore */ }
+}
 
-    const response = await useApi<any>(`/admin/users?${query.toString()}`, { headers: authHeaders() })
-    users.value = response.data
-    currentPage.value = response.current_page
-    lastPage.value = response.last_page
-    totalUsers.value = response.total
-    statsTotal.value = response.total
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể tải danh sách người dùng.'
-  } finally {
+async function loadOptions() {
+  const map = (res: any) => (res?.data || []).map((item: any) => ({
+    label: item.code ? `${item.code} — ${item.name}` : item.name,
+    value: item.id,
+  }))
+  try {
+    const [cohorts, classes, programs, majors, units] = await Promise.all([
+      useApi<any>('/admin/academic/cohorts', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/administrative-classes', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/programs', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/majors', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<any>('/admin/academic/units', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+    ])
+    cohortOptions.value = map(cohorts)
+    classOptions.value = [{ label: t('admin.users.noClass'), value: 'none' }, ...map(classes)]
+    programOptions.value = map(programs)
+    majorOptions.value = map(majors)
+    unitOptions.value = map(units)
+  }
+  catch { /* ignore */ }
+}
+
+async function loadUsers() {
+  loading.value = true
+  try {
+    const res = await useApi<Paginator<AdminUser>>('/admin/users', { query: toQuery() })
+    rows.value = res.data || []
+    total.value = res.total || 0
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.loadError'),
+      detail: error?.data?.message || t('admin.dashboard.tryAgain'),
+      life: 3500,
+    })
+  }
+  finally {
     loading.value = false
   }
 }
 
-async function fetchStats() {
-  try {
-    const [students, instructors, admins] = await Promise.all([
-      useApi<any>('/admin/users?role=student&per_page=1', { headers: authHeaders() }),
-      useApi<any>('/admin/users?role=instructor&per_page=1', { headers: authHeaders() }),
-      useApi<any>('/admin/users?role=admin&per_page=1', { headers: authHeaders() }),
-    ])
-    statsStudents.value = students.total
-    statsInstructors.value = instructors.total
-    statsAdmins.value = admins.total
-  } catch (_) {}
+function resetFilters() {
+  filters.cohort_id = []
+  filters.administrative_class_id = []
+  filters.program_id = []
+  filters.major_id = []
+  filters.unit_id = []
+  page.value = 1
+  loadUsers()
 }
 
-async function fetchFormOptions() {
-  if (optionsLoaded.value) return
-  try {
-    const headers = authHeaders()
-    const [adminClasses, cohorts, programs, majors] = await Promise.all([
-      useApi<any>('/admin/academic/administrative-classes?per_page=200', { headers }),
-      useApi<any>('/admin/academic/cohorts?per_page=200', { headers }),
-      useApi<any>('/admin/academic/programs?per_page=200', { headers }),
-      useApi<any>('/admin/academic/majors?per_page=200', { headers }),
-    ])
-    optAdminClasses.value = adminClasses.data || []
-    optCohorts.value = cohorts.data || []
-    optPrograms.value = programs.data || []
-    optMajors.value = majors.data || []
-    optionsLoaded.value = true
-  } catch (_) {}
+function applyFilters() {
+  page.value = 1
+  loadUsers()
 }
 
-async function fetchAcademicSummary(userId: number) {
-  academicSummary.value = null
-  loadingSummary.value = true
-  try {
-    const data = await useApi<AcademicSummary>(`/admin/users/${userId}/academic-summary`, { headers: authHeaders() })
-    academicSummary.value = data
-  } catch (_) {
-    academicSummary.value = null
-  } finally {
-    loadingSummary.value = false
-  }
+function onTableSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    loadUsers()
+  }, 350)
+}
+
+function onPage(event: { page: number, rows: number }) {
+  page.value = event.page + 1
+  perPage.value = event.rows
+  loadUsers()
+}
+
+function onSort(event: { sortField?: string | ((item: any) => string) | undefined, sortOrder?: number | null | undefined }) {
+  const field = typeof event.sortField === 'string' ? event.sortField : null
+  if (!field) return
+  sortBy.value = field
+  sortDir.value = event.sortOrder === 1 ? 'asc' : 'desc'
+  page.value = 1
+  loadUsers()
 }
 
 function resetForm() {
-  form.name = ''; form.email = ''; form.password = ''; form.avatar = ''
-  form.role = 'student'; form.bio = ''
-  form.student_code = ''; form.staff_code = ''
-  form.administrative_class_id = ''; form.cohort_id = ''
-  form.program_id = ''; form.major_id = ''
-  form.study_status = ''
-  form.phone = ''; form.gender = ''; form.date_of_birth = ''
-  form.nationality = 'Việt Nam'; form.hometown = ''
-  form.permanent_address = ''; form.id_card_number = ''
+  Object.assign(form, {
+    name: '', email: '', password: '', role: 'student', phone: '',
+    student_code: '', staff_code: '', gender: null, date_of_birth: null,
+    study_status: 'dang_hoc', cohort_id: null, administrative_class_id: null,
+    program_id: null, major_id: null, unit_id: null, bio: '', avatar: '',
+  })
 }
 
-function fillForm(item: AdminUser) {
-  form.name = item.name
-  form.email = item.email
-  form.password = ''
-  form.avatar = item.avatar || ''
-  form.role = resolveRole(item)
-  form.bio = item.bio || ''
-  form.student_code = item.student_code || ''
-  form.staff_code = item.staff_code || ''
-  form.administrative_class_id = item.administrative_class_id ? String(item.administrative_class_id) : ''
-  form.cohort_id = item.cohort_id ? String(item.cohort_id) : ''
-  form.program_id = item.program_id ? String(item.program_id) : ''
-  form.major_id = item.major_id ? String(item.major_id) : ''
-  form.study_status = item.study_status || ''
-  form.phone = item.phone || ''
-  form.gender = item.gender || ''
-  form.date_of_birth = item.date_of_birth ? item.date_of_birth.substring(0, 10) : ''
-  form.nationality = item.nationality || 'Việt Nam'
-  form.hometown = item.hometown || ''
-  form.permanent_address = item.permanent_address || ''
-  form.id_card_number = item.id_card_number || ''
+function fillForm(user: AdminUser) {
+  Object.assign(form, {
+    name: user.name || '',
+    email: user.email || '',
+    password: '',
+    role: roleOf(user) === '—' ? 'student' : roleOf(user),
+    phone: user.phone || '',
+    student_code: user.student_code || '',
+    staff_code: user.staff_code || '',
+    gender: user.gender || null,
+    date_of_birth: user.date_of_birth ? new Date(user.date_of_birth) : null,
+    study_status: user.study_status || null,
+    cohort_id: user.cohort_id || user.cohort?.id || null,
+    administrative_class_id: user.administrative_class_id || user.administrativeClass?.id || user.administrative_class?.id || null,
+    program_id: user.program_id || user.program?.id || null,
+    major_id: user.major_id || user.major?.id || null,
+    unit_id: user.unit_id || user.unit?.id || null,
+    bio: user.bio || '',
+    avatar: user.avatar || '',
+  })
 }
 
-function openCreateModal() {
+function openCreate() {
+  editing.value = null
   modalMode.value = 'create'
-  selectedUser.value = null
-  activeSection.value = 'account'
-  academicSummary.value = null
   resetForm()
   modalOpen.value = true
-  fetchFormOptions()
 }
 
-function openViewModal(item: AdminUser) {
-  modalMode.value = 'view'
-  selectedUser.value = item
-  activeSection.value = 'account'
-  fillForm(item)
-  modalOpen.value = true
-  if (resolveRole(item) === 'student') fetchAcademicSummary(item.id)
-}
-
-function openEditModal(item: AdminUser) {
+function openEdit(user: AdminUser) {
+  editing.value = user
   modalMode.value = 'edit'
-  selectedUser.value = item
-  activeSection.value = 'account'
-  academicSummary.value = null
-  fillForm(item)
+  fillForm(user)
   modalOpen.value = true
-  fetchFormOptions()
 }
 
-function closeModal() {
-  modalOpen.value = false
-  selectedUser.value = null
-  academicSummary.value = null
-  errorMessage.value = ''
-  successMessage.value = ''
+function openView(user: AdminUser) {
+  editing.value = user
+  modalMode.value = 'view'
+  fillForm(user)
+  modalOpen.value = true
 }
 
-function onAvatarUploaded() { successMessage.value = 'Đã tải ảnh đại diện lên.' }
-function onAvatarError(message: string) { errorMessage.value = message }
-
-async function saveUser() {
-  if (modalMode.value === 'view') return
-  saving.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
-
-  const payload: Record<string, any> = {
+function payloadFromForm() {
+  return {
     name: form.name,
     email: form.email,
-    avatar: form.avatar || null,
+    password: form.password || undefined,
     role: form.role,
-    bio: form.bio || null,
+    phone: form.phone || null,
     student_code: form.student_code || null,
     staff_code: form.staff_code || null,
-    administrative_class_id: form.administrative_class_id ? Number(form.administrative_class_id) : null,
-    cohort_id: form.cohort_id ? Number(form.cohort_id) : null,
-    program_id: form.program_id ? Number(form.program_id) : null,
-    major_id: form.major_id ? Number(form.major_id) : null,
-    study_status: form.study_status || null,
-    phone: form.phone || null,
-    gender: form.gender || null,
-    date_of_birth: form.date_of_birth || null,
-    nationality: form.nationality || null,
-    hometown: form.hometown || null,
-    permanent_address: form.permanent_address || null,
-    id_card_number: form.id_card_number || null,
+    gender: form.gender,
+    date_of_birth: form.date_of_birth ? form.date_of_birth.toISOString().slice(0, 10) : null,
+    study_status: form.study_status,
+    cohort_id: form.cohort_id,
+    administrative_class_id: form.administrative_class_id,
+    program_id: form.program_id,
+    major_id: form.major_id,
+    unit_id: form.unit_id,
+    bio: form.bio || null,
+    avatar: form.avatar || null,
   }
+}
 
+async function onAvatarPick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    toast.add({ severity: 'warn', summary: t('admin.users.avatarImageOnly'), life: 2500 })
+    return
+  }
+  uploadingAvatar.value = true
   try {
-    if (modalMode.value === 'create') {
-      payload.password = form.password
-      await useApi('/admin/users', { method: 'POST', headers: authHeaders(), body: payload })
-      successMessage.value = 'Đã tạo người dùng mới.'
-    } else if (selectedUser.value) {
-      if (form.password.trim()) payload.password = form.password
-      await useApi(`/admin/users/${selectedUser.value.id}`, { method: 'PUT', headers: authHeaders(), body: payload })
-      successMessage.value = 'Đã cập nhật người dùng.'
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('folder', 'users')
+    const res = await useApi<{ url?: string, path?: string }>('/admin/upload', { method: 'POST', body: fd })
+    form.avatar = res.url || res.path || ''
+    toast.add({ severity: 'success', summary: t('admin.users.avatarUpdated'), life: 2000 })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.avatarError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    uploadingAvatar.value = false
+    input.value = ''
+  }
+}
+
+function clearAvatar() {
+  form.avatar = ''
+}
+
+async function saveUser() {
+  if (isReadonly.value) return
+  saving.value = true
+  try {
+    if (editing.value && modalMode.value === 'edit') {
+      await useApi(`/admin/users/${editing.value.id}`, { method: 'PUT', body: payloadFromForm() })
+      toast.add({ severity: 'success', summary: t('admin.users.updateSuccess'), life: 2500 })
     }
-    closeModal()
-    await fetchUsers(currentPage.value)
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể lưu thông tin người dùng.'
-  } finally {
+    else {
+      if (!form.password || form.password.length < 6) {
+        toast.add({ severity: 'warn', summary: t('admin.users.passwordRequired'), life: 2500 })
+        return
+      }
+      await useApi('/admin/users', { method: 'POST', body: payloadFromForm() })
+      toast.add({ severity: 'success', summary: t('admin.users.createSuccess'), life: 2500 })
+    }
+    modalOpen.value = false
+    await Promise.all([loadUsers(), loadCounts()])
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.saveError'),
+      detail: error?.data?.message || Object.values(error?.data?.errors || {}).flat()?.[0] || t('admin.dashboard.tryAgain'),
+      life: 4000,
+    })
+  }
+  finally {
     saving.value = false
   }
 }
 
-async function deleteUser(item?: AdminUser) {
-  if (item) { selectedUser.value = item; deleteModalOpen.value = true; return }
-  if (!selectedUser.value) return
-  deletingId.value = selectedUser.value.id
+function askDelete(user: AdminUser) {
+  confirm.require({
+    message: t('admin.users.deleteConfirm', { name: user.name }),
+    header: t('admin.users.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/admin/users/${user.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.users.deleteSuccess'), life: 2500 })
+        selected.value = selected.value.filter(item => item.id !== user.id)
+        await Promise.all([loadUsers(), loadCounts()])
+      }
+      catch (error: any) {
+        toast.add({ severity: 'error', summary: t('admin.users.deleteError'), detail: error?.data?.message, life: 3500 })
+      }
+    },
+  })
+}
+
+function askBulkDelete() {
+  if (!selected.value.length) return
+  confirm.require({
+    message: t('admin.users.bulkDeleteConfirm', { n: selected.value.length }),
+    header: t('admin.users.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        const res = await useApi<{ deleted: number, skipped: any[] }>('/admin/users/bulk-delete', {
+          method: 'POST',
+          body: { ids: selected.value.map(u => u.id) },
+        })
+        toast.add({
+          severity: 'success',
+          summary: t('admin.users.bulkDeleted', { n: res.deleted }),
+          detail: res.skipped?.length ? t('admin.users.bulkSkipped', { n: res.skipped.length }) : undefined,
+          life: 3500,
+        })
+        selected.value = []
+        await Promise.all([loadUsers(), loadCounts()])
+      }
+      catch (error: any) {
+        toast.add({ severity: 'error', summary: t('admin.users.deleteError'), detail: error?.data?.message, life: 3500 })
+      }
+    },
+  })
+}
+
+async function exportCsv() {
+  exporting.value = true
   try {
-    await useApi(`/admin/users/${selectedUser.value.id}`, { method: 'DELETE', headers: authHeaders() })
-    successMessage.value = 'Đã xóa người dùng.'
-    deleteModalOpen.value = false
-    await fetchUsers(currentPage.value)
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || 'Không thể xóa người dùng.'
-  } finally {
-    deletingId.value = null
+    const query = { ...toQuery() } as Record<string, any>
+    delete query.page
+    delete query.per_page
+    await useApiDownload('/admin/users/export', {
+      query,
+      filename: `users_${new Date().toISOString().slice(0, 10)}.csv`,
+    })
+    toast.add({ severity: 'success', summary: t('admin.users.exported'), life: 2500 })
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('admin.users.exportError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
+    exporting.value = false
   }
 }
 
-function exportData() {
-  exportToCSV(users.value, [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Họ và tên' },
-    { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'SĐT' },
-    { key: 'student_code', label: 'MSSV' },
-    { key: 'role', label: 'Vai trò', format: (_: any, row: AdminUser) => resolveRole(row) },
-    { key: 'study_status', label: 'Trạng thái', format: (v: any) => STUDY_STATUS_LABELS[v] || v || '—' },
-    { key: 'administrative_class', label: 'Lớp HC', format: (_: any, row: AdminUser) => row.administrative_class?.name || '—' },
-    { key: 'cohort', label: 'Khóa', format: (_: any, row: AdminUser) => row.cohort?.name || '—' },
-    { key: 'created_at', label: 'Ngày tạo', format: (v: any) => formatDate(v) },
-  ], 'danh_sach_nguoi_dung')
+async function downloadTemplate() {
+  await useApiDownload('/admin/users/import-template', { filename: 'users_import_template.csv' })
 }
 
-function resetFilters() {
-  filters.search = ''
-  filters.role = ''
-  filters.study_status = ''
-  filters.gender = ''
-  filters.cohort_id = ''
-  filters.program_id = ''
-  filters.administrative_class_id = ''
-  fetchUsers(1)
+function openImport() {
+  importOpen.value = true
+  clearImportFile()
 }
 
-onMounted(() => {
-  fetchUsers()
-  fetchStats()
-  fetchFormOptions()
+function clearImportFile() {
+  importFile.value = null
+  importPreview.value = null
+  importToken.value = null
+  importProgress.value = 0
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+function onDrop(event: DragEvent) {
+  importDragging.value = false
+  const file = event.dataTransfer?.files?.[0]
+  if (file) void handleImportFile(file)
+}
+
+function onFilePicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) void handleImportFile(file)
+}
+
+async function handleImportFile(file: File) {
+  if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+    toast.add({ severity: 'warn', summary: t('admin.users.csvOnly'), life: 2500 })
+    return
+  }
+  importFile.value = file
+  importPreview.value = null
+  importToken.value = null
+  importProgress.value = 0
+
+  // Simulated local read progress for UX feedback, then auto-validate on server
+  await new Promise<void>((resolve) => {
+    const step = () => {
+      importProgress.value = Math.min(100, importProgress.value + 18)
+      if (importProgress.value >= 100) resolve()
+      else setTimeout(step, 40)
+    }
+    step()
+  })
+
+  await runImportPreview()
+}
+
+async function runImportPreview() {
+  if (!importFile.value) return
+  importing.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', importFile.value)
+    const res = await useApi<any>('/admin/users/import-preview', { method: 'POST', body: fd })
+    importPreview.value = res
+    importToken.value = res.import_token
+    toast.add({
+      severity: res.error_count ? 'warn' : 'success',
+      summary: t('admin.users.previewReady'),
+      detail: t('admin.users.previewSummary', { valid: res.valid_count || 0, error: res.error_count || 0 }),
+      life: 3500,
+    })
+  }
+  catch (error: any) {
+    importPreview.value = error?.data || null
+    importToken.value = error?.data?.import_token || null
+    toast.add({
+      severity: 'warn',
+      summary: t('admin.users.previewError'),
+      detail: error?.data?.message,
+      life: 4000,
+    })
+  }
+  finally {
+    importing.value = false
+  }
+}
+
+async function runImportExecute() {
+  if (!importToken.value) return
+  importing.value = true
+  try {
+    const res = await useApi<{ created: number }>('/admin/users/import-execute', {
+      method: 'POST',
+      body: { import_token: importToken.value },
+    })
+    toast.add({ severity: 'success', summary: t('admin.users.imported', { n: res.created }), life: 3000 })
+    importOpen.value = false
+    clearImportFile()
+    await Promise.all([loadUsers(), loadCounts()])
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('admin.users.importError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
+    importing.value = false
+  }
+}
+
+function setRoleChip(role: string | null) {
+  roleChip.value = role
+  page.value = 1
+  loadUsers()
+}
+
+onMounted(async () => {
+  await Promise.all([loadOptions(), loadCounts(), loadUsers()])
 })
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Quản lý người dùng"
-    description="Thêm, chỉnh sửa, xem hồ sơ học vụ và quản lý tài khoản trong hệ thống."
-    :breadcrumb="['Trang chủ', 'Quản lý người dùng']"
-  >
-    <div class="ds-stack">
+  <div class="page users-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.people') }}</span>
+        <h1>{{ t('admin.users.title') }}</h1>
+        <p>{{ t('admin.users.subtitle') }}</p>
+      </div>
+    </header>
 
-      <!-- KPI strip -->
-      <div class="ds-stats">
-        <div class="ds-stat ds-stat--green">
-          <p class="ds-stat-label">Tổng người dùng</p>
-          <strong class="ds-stat-value">{{ totalUsers }}</strong>
-          <span class="ds-stat-sub">tất cả vai trò</span>
+    <section class="metric-rail">
+      <button type="button" class="metric" :class="{ on: !roleChip }" @click="setRoleChip(null)">
+        <strong>{{ counts.all }}</strong>
+        <span>{{ t('admin.users.allUsers') }}</span>
+      </button>
+      <button type="button" class="metric" :class="{ on: roleChip === 'student' }" @click="setRoleChip('student')">
+        <strong>{{ counts.student }}</strong>
+        <span>{{ t('admin.users.roles.student') }}</span>
+      </button>
+      <button type="button" class="metric" :class="{ on: roleChip === 'instructor' }" @click="setRoleChip('instructor')">
+        <strong>{{ counts.instructor }}</strong>
+        <span>{{ t('admin.users.roles.instructor') }}</span>
+      </button>
+      <button type="button" class="metric" :class="{ on: roleChip === 'admin' }" @click="setRoleChip('admin')">
+        <strong>{{ counts.admin }}</strong>
+        <span>{{ t('admin.users.roles.admin') }}</span>
+      </button>
+    </section>
+
+    <section class="table-panel">
+      <div class="filter-bar">
+        <div class="filter-title">
+          <strong>{{ t('admin.users.filters') }}</strong>
+          <Tag v-if="activeFilterCount" :value="String(activeFilterCount)" severity="info" />
         </div>
-        <div class="ds-stat ds-stat--blue">
-          <p class="ds-stat-label">Sinh viên</p>
-          <strong class="ds-stat-value">{{ statsStudents }}</strong>
-          <span class="ds-stat-sub">đang học</span>
+
+        <div class="filter-grid">
+          <label class="field">
+            <span>{{ t('admin.users.class') }}</span>
+            <MultiSelect
+              v-model="filters.administrative_class_id"
+              :options="classOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.cohort') }}</span>
+            <MultiSelect
+              v-model="filters.cohort_id"
+              :options="cohortOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.program') }}</span>
+            <MultiSelect
+              v-model="filters.program_id"
+              :options="programOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.major') }}</span>
+            <MultiSelect
+              v-model="filters.major_id"
+              :options="majorOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.users.unit') }}</span>
+            <MultiSelect
+              v-model="filters.unit_id"
+              :options="unitOptions"
+              option-label="label"
+              option-value="value"
+              filter
+              display="chip"
+              :max-selected-labels="2"
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
         </div>
-        <div class="ds-stat ds-stat--amber">
-          <p class="ds-stat-label">Giảng viên</p>
-          <strong class="ds-stat-value">{{ statsInstructors }}</strong>
-          <span class="ds-stat-sub">instructor</span>
-        </div>
-        <div class="ds-stat ds-stat--violet">
-          <p class="ds-stat-label">Quản trị viên</p>
-          <strong class="ds-stat-value">{{ statsAdmins }}</strong>
-          <span class="ds-stat-sub">admin</span>
+
+        <div class="filter-actions">
+          <Button :label="t('admin.users.apply')" icon="pi pi-filter" size="small" @click="applyFilters" />
+          <Button :label="t('admin.users.reset')" icon="pi pi-times" size="small" severity="secondary" text @click="resetFilters" />
         </div>
       </div>
 
-      <!-- Main table panel -->
-      <section class="dashboard-card crud-panel">
-        <div class="crud-toolbar">
-          <form class="crud-toolbar-main" @submit.prevent="fetchUsers(1)">
-            <input v-model="filters.search" class="crud-search" placeholder="Tên, email, MSSV, mã NV..." type="text">
-            <select v-model="filters.role" class="crud-select" @change="fetchUsers(1)">
-              <option value="">Tất cả vai trò</option>
-              <option value="admin">Admin</option>
-              <option value="instructor">Giảng viên</option>
-              <option value="student">Sinh viên</option>
-            </select>
-            <button class="crud-secondary-btn" type="submit">Tìm kiếm</button>
-          </form>
-          <div class="crud-toolbar-right">
-            <!-- Filter toggle button -->
-            <button
-              class="uf-filter-btn"
-              :class="{ 'uf-filter-btn--active': filterOpen || activeFilterCount > 0 }"
-              type="button"
-              @click="filterOpen = !filterOpen"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Bộ lọc
-              <span v-if="activeFilterCount > 0" class="uf-filter-count">{{ activeFilterCount }}</span>
-            </button>
-            <button class="crud-export-btn" type="button" @click="exportData">
-              <Download :size="16" :stroke-width="1.75" /> Xuất CSV
-            </button>
-            <button class="crud-primary-btn" type="button" @click="openCreateModal">+ Thêm người dùng</button>
-          </div>
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <IconField>
+            <InputIcon class="pi pi-search" />
+            <InputText
+              v-model="tableSearch"
+              :placeholder="t('admin.users.tableSearch')"
+              @input="onTableSearch"
+            />
+          </IconField>
+          <strong>{{ t('admin.users.result', { n: total }) }}</strong>
         </div>
-
-        <!-- Advanced filter panel -->
-        <div v-if="filterOpen" class="uf-filter-panel">
-          <div class="uf-filter-grid">
-            <label class="uf-filter-field">
-              <span>Trạng thái học vụ</span>
-              <select v-model="filters.study_status" @change="fetchUsers(1)">
-                <option value="">Tất cả trạng thái</option>
-                <option value="dang_hoc">Đang học</option>
-                <option value="bao_luu">Bảo lưu</option>
-                <option value="tot_nghiep">Tốt nghiệp</option>
-                <option value="thoi_hoc">Thôi học</option>
-                <option value="dinh_chi">Đình chỉ</option>
-                <option value="dang_cong_tac">Đang công tác</option>
-                <option value="nghi_phep">Nghỉ phép</option>
-                <option value="nghi_huu">Nghỉ hưu</option>
-              </select>
-            </label>
-            <label class="uf-filter-field">
-              <span>Giới tính</span>
-              <select v-model="filters.gender" @change="fetchUsers(1)">
-                <option value="">Tất cả giới tính</option>
-                <option value="male">Nam</option>
-                <option value="female">Nữ</option>
-                <option value="other">Khác</option>
-              </select>
-            </label>
-            <label class="uf-filter-field">
-              <span>Khóa / Niên khóa</span>
-              <select v-model="filters.cohort_id" @change="fetchUsers(1)">
-                <option value="">Tất cả khóa</option>
-                <option v-for="c in optCohorts" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
-              </select>
-            </label>
-            <label class="uf-filter-field">
-              <span>Chương trình đào tạo</span>
-              <select v-model="filters.program_id" @change="fetchUsers(1)">
-                <option value="">Tất cả chương trình</option>
-                <option v-for="p in optPrograms" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
-              </select>
-            </label>
-            <label class="uf-filter-field">
-              <span>Lớp hành chính</span>
-              <select v-model="filters.administrative_class_id" @change="fetchUsers(1)">
-                <option value="">Tất cả lớp HC</option>
-                <option v-for="c in optAdminClasses" :key="c.id" :value="String(c.id)">{{ c.name }}</option>
-              </select>
-            </label>
-            <div class="uf-filter-actions">
-              <button
-                v-if="activeFilterCount > 0"
-                class="uf-reset-btn"
-                type="button"
-                @click="resetFilters"
-              >Xóa bộ lọc ({{ activeFilterCount }})</button>
-            </div>
-          </div>
-
-          <!-- Active filter chips -->
-          <div v-if="activeFilterCount > 0" class="uf-chips">
-            <span v-if="filters.study_status" class="uf-chip">
-              Trạng thái: {{ STUDY_STATUS_LABELS[filters.study_status] }}
-              <button type="button" @click="filters.study_status = ''; fetchUsers(1)">×</button>
-            </span>
-            <span v-if="filters.gender" class="uf-chip">
-              Giới tính: {{ { male: 'Nam', female: 'Nữ', other: 'Khác' }[filters.gender] }}
-              <button type="button" @click="filters.gender = ''; fetchUsers(1)">×</button>
-            </span>
-            <span v-if="filters.cohort_id" class="uf-chip">
-              Khóa: {{ optCohorts.find(c => String(c.id) === filters.cohort_id)?.name }}
-              <button type="button" @click="filters.cohort_id = ''; fetchUsers(1)">×</button>
-            </span>
-            <span v-if="filters.program_id" class="uf-chip">
-              CT: {{ optPrograms.find(p => String(p.id) === filters.program_id)?.name }}
-              <button type="button" @click="filters.program_id = ''; fetchUsers(1)">×</button>
-            </span>
-            <span v-if="filters.administrative_class_id" class="uf-chip">
-              Lớp HC: {{ optAdminClasses.find(c => String(c.id) === filters.administrative_class_id)?.name }}
-              <button type="button" @click="filters.administrative_class_id = ''; fetchUsers(1)">×</button>
-            </span>
-          </div>
+        <div class="toolbar-actions">
+          <Button
+            v-if="selected.length"
+            :label="t('admin.users.bulkDelete', { n: selected.length })"
+            icon="pi pi-trash"
+            severity="danger"
+            outlined
+            size="small"
+            @click="askBulkDelete"
+          />
+          <Button :label="t('admin.users.import')" icon="pi pi-upload" severity="secondary" outlined size="small" @click="openImport" />
+          <Button :label="t('admin.users.export')" icon="pi pi-download" severity="secondary" outlined size="small" :loading="exporting" @click="exportCsv" />
+          <Button :label="t('admin.users.add')" icon="pi pi-user-plus" size="small" @click="openCreate" />
+          <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="loadUsers" />
         </div>
+      </div>
 
-        <div v-if="errorMessage" class="crud-alert is-error">{{ errorMessage }}</div>
-        <div v-if="successMessage" class="crud-alert is-success">{{ successMessage }}</div>
-
-        <div class="crud-meta">
-          <p>{{ totalUsers }} người dùng phù hợp</p>
-          <button v-if="activeFilterCount > 0 || filters.search || filters.role" class="uf-meta-reset" type="button" @click="resetFilters">
-            Xóa tất cả bộ lọc
-          </button>
-        </div>
-
-        <div class="crud-table-wrap">
-          <table class="crud-table">
-            <thead>
-              <tr>
-                <th style="width:36px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th>
-                <th style="width:44px">#</th>
-                <th style="min-width:220px">Người dùng</th>
-                <th style="width:110px">Vai trò</th>
-                <th style="min-width:160px">Lớp HC / Khóa</th>
-                <th style="min-width:110px">MSSV / Mã NV</th>
-                <th style="min-width:120px">Số điện thoại</th>
-                <th style="min-width:110px">Trạng thái</th>
-                <th style="min-width:130px; text-align:right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="loading">
-                <td colspan="9" class="crud-empty"><span class="ds-spin ds-spin--sm" style="margin-right:8px"></span>Đang tải...</td>
-              </tr>
-              <tr v-else-if="users.length === 0">
-                <td colspan="9">
-                  <div class="ds-empty">
-                    <div class="ds-empty-icon"><Users :size="24" /></div>
-                    <strong>Chưa có người dùng</strong>
-                    <p>Thêm người dùng đầu tiên hoặc thay đổi bộ lọc.</p>
-                  </div>
-                </td>
-              </tr>
-              <tr v-for="(item, index) in users" :key="item.id">
-                <td><input type="checkbox" :value="item.id" v-model="selectedIds"></td>
-                <td class="cell-muted">{{ (currentPage - 1) * perPage + index + 1 }}</td>
-                <td>
-                  <div class="user-cell">
-                    <div v-if="item.avatar" class="ds-avatar ds-avatar--md">
-                      <img :src="item.avatar" :alt="item.name" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
-                    </div>
-                    <div v-else class="ds-avatar ds-avatar--md">{{ avatarInitials(item.name) }}</div>
-                    <div class="user-cell-info">
-                      <strong>{{ item.name }}</strong>
-                      <span class="cell-muted" style="font-size:0.78rem">{{ item.email }}</span>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span class="ds-badge" :class="{
-                    'ds-badge--violet': resolveRole(item) === 'admin',
-                    'ds-badge--info': resolveRole(item) === 'instructor',
-                    'ds-badge--active': resolveRole(item) === 'student',
-                    'ds-badge--pending': resolveRole(item) === 'academic_manager',
-                  }">{{ resolveRole(item) }}</span>
-                </td>
-                <td>
-                  <div v-if="item.administrative_class || item.cohort" class="cell-stack">
-                    <span v-if="item.administrative_class" class="cell-strong">{{ item.administrative_class.name }}</span>
-                    <span v-if="item.cohort" class="cell-muted">{{ item.cohort.name }}</span>
-                  </div>
-                  <span v-else class="cell-muted">—</span>
-                </td>
-                <td class="cell-mono">{{ item.student_code || item.staff_code || '—' }}</td>
-                <td class="cell-muted">{{ item.phone || '—' }}</td>
-                <td>
-                  <span :class="studyStatusBadgeClass(item.study_status)">
-                    {{ item.study_status ? (STUDY_STATUS_LABELS[item.study_status] || item.study_status) : '—' }}
-                  </span>
-                </td>
-                <td style="text-align:right">
-                  <div style="display:flex;gap:5px;justify-content:flex-end">
-                    <button class="ds-btn ds-btn--view" type="button" @click="openViewModal(item)">Xem</button>
-                    <button class="ds-btn ds-btn--edit" type="button" @click="openEditModal(item)">Sửa</button>
-                    <button class="ds-btn ds-btn--delete ds-btn--icon" type="button" :disabled="deletingId === item.id" @click="deleteUser(item)">✕</button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <DataTableFooter
-          :current="currentPage"
-          :last="lastPage"
-          :total="totalUsers"
-          :per-page="perPage"
-          @page="fetchUsers"
-          @update:per-page="perPage = $event; fetchUsers(1)"
-        />
-      </section>
-    </div>
-
-    <!-- ── CRUD Modal ── -->
-    <Teleport to="body">
-      <div v-if="modalOpen" class="crud-modal-backdrop" @click.self="closeModal">
-        <div class="crud-modal um-modal">
-
-          <!-- Header -->
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">{{ modalMode === 'create' ? 'Tạo mới' : modalMode === 'edit' ? 'Chỉnh sửa' : 'Chi tiết' }}</p>
-              <h3>{{ modalMode === 'create' ? 'Thêm người dùng' : modalMode === 'edit' ? 'Cập nhật người dùng' : selectedUser?.name }}</h3>
-            </div>
-            <button class="topbar-ghost" type="button" @click="closeModal">✕</button>
-          </div>
-
-          <!-- ── View Mode: Clean Profile ── -->
-          <div v-if="modalMode === 'view'" class="um-view-profile">
-            <div class="um-vp-header">
-              <div v-if="selectedUser?.avatar" class="ds-avatar ds-avatar--xl">
-                <img :src="selectedUser.avatar" :alt="selectedUser.name" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
-              </div>
-              <div v-else class="ds-avatar ds-avatar--xl" style="font-size: 1.5rem;">{{ avatarInitials(selectedUser?.name || '') }}</div>
-              <div class="um-vp-title">
-                <h4>{{ selectedUser?.name }}</h4>
-                <span class="um-vp-email">{{ selectedUser?.email }}</span>
-                <span class="ds-badge" style="margin-top: 8px; width: fit-content;" :class="{
-                  'ds-badge--violet': resolveRole(selectedUser) === 'admin',
-                  'ds-badge--info': resolveRole(selectedUser) === 'instructor',
-                  'ds-badge--active': resolveRole(selectedUser) === 'student',
-                  'ds-badge--pending': resolveRole(selectedUser) === 'academic_manager',
-                }">{{ resolveRole(selectedUser) }}</span>
-              </div>
-            </div>
-            
-            <p v-if="selectedUser?.bio" class="um-vp-bio">{{ selectedUser.bio }}</p>
-
-            <div v-if="resolveRole(selectedUser) === 'student'" class="um-gpa-strip" style="margin-top: 24px;">
-              <div v-if="loadingSummary" class="um-gpa-loading">
-                <span class="ds-spin ds-spin--sm"></span> Đang tải GPA...
-              </div>
-              <template v-else-if="academicSummary">
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">GPA</p>
-                  <strong class="um-gpa-value">{{ academicSummary.overall_gpa?.toFixed(2) ?? '—' }}</strong>
-                </div>
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">Xếp loại</p>
-                  <span class="ds-badge" :class="gpaClassification(academicSummary.overall_gpa).cls">
-                    {{ gpaClassification(academicSummary.overall_gpa).label }}
-                  </span>
-                </div>
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">Tín chỉ</p>
-                  <strong class="um-gpa-value">{{ academicSummary.total_credits }}</strong>
-                </div>
-                <div class="um-gpa-item">
-                  <p class="um-gpa-label">Số môn</p>
-                  <strong class="um-gpa-value">{{ academicSummary.total_courses }}</strong>
-                </div>
-              </template>
-              <div v-else class="um-gpa-empty">Chưa có dữ liệu điểm.</div>
-            </div>
-
-            <div class="um-vp-grid" style="margin-top: 24px;">
-              <div class="um-vp-field">
-                <label>Mã SV/NV</label>
-                <p class="cell-mono">{{ selectedUser?.student_code || selectedUser?.staff_code || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Trạng thái</label>
-                <p>
-                  <span :class="studyStatusBadgeClass(selectedUser?.study_status)">
-                    {{ selectedUser?.study_status ? (STUDY_STATUS_LABELS[selectedUser.study_status] || selectedUser.study_status) : '—' }}
-                  </span>
-                </p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Lớp HC</label>
-                <p>{{ selectedUser?.administrative_class?.name || '—' }}</p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Khóa</label>
-                <p>{{ selectedUser?.cohort?.name || '—' }}</p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Chương trình</label>
-                <p>{{ selectedUser?.program?.name || '—' }}</p>
-              </div>
-              <div class="um-vp-field" v-if="resolveRole(selectedUser) === 'student'">
-                <label>Ngành học</label>
-                <p>{{ selectedUser?.major?.name || '—' }}</p>
-              </div>
-              
-              <div class="um-vp-field">
-                <label>Số điện thoại</label>
-                <p>{{ selectedUser?.phone || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Giới tính</label>
-                <p>{{ selectedUser?.gender === 'male' ? 'Nam' : selectedUser?.gender === 'female' ? 'Nữ' : selectedUser?.gender === 'other' ? 'Khác' : '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Ngày sinh</label>
-                <p>{{ selectedUser?.date_of_birth ? formatDate(selectedUser.date_of_birth) : '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Quốc tịch</label>
-                <p>{{ selectedUser?.nationality || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Số CMND / CCCD</label>
-                <p>{{ selectedUser?.id_card_number || '—' }}</p>
-              </div>
-              <div class="um-vp-field">
-                <label>Quê quán</label>
-                <p>{{ selectedUser?.hometown || '—' }}</p>
-              </div>
-              <div class="um-vp-field" style="grid-column: 1 / -1;">
-                <label>Địa chỉ</label>
-                <p>{{ selectedUser?.permanent_address || '—' }}</p>
-              </div>
-            </div>
-
-            <div v-if="academicSummary && academicSummary.terms.length" class="um-vp-terms" style="margin-top: 24px;">
-              <span class="um-vp-section-title">Bảng điểm theo học kỳ</span>
-              <div class="um-terms-table">
-                <table>
-                  <thead><tr><th>Học kỳ</th><th>Số môn</th><th>Tín chỉ</th><th>GPA</th></tr></thead>
-                  <tbody>
-                    <tr v-for="t in academicSummary.terms" :key="t.term?.id">
-                      <td>{{ t.term?.name || '—' }}</td>
-                      <td>{{ t.course_count }}</td>
-                      <td>{{ t.credit_count }}</td>
-                      <td><strong>{{ t.gpa ?? '—' }}</strong></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- ── Edit/Create Mode: Tabs & Form ── -->
-          <template v-else>
-            <!-- Section tabs -->
-            <div class="um-section-tabs">
-              <button
-                class="um-section-tab"
-                :class="{ 'um-section-tab--on': activeSection === 'account' }"
-                type="button"
-                @click="activeSection = 'account'"
-              >Tài khoản</button>
-              <button
-                class="um-section-tab"
-                :class="{ 'um-section-tab--on': activeSection === 'academic' }"
-                type="button"
-                @click="activeSection = 'academic'"
-              >Học vụ</button>
-              <button
-                class="um-section-tab"
-                :class="{ 'um-section-tab--on': activeSection === 'personal' }"
-                type="button"
-                @click="activeSection = 'personal'"
-              >Cá nhân</button>
-            </div>
-
-            <div v-if="errorMessage" class="crud-alert is-error" style="margin: 0 0 12px">{{ errorMessage }}</div>
-
-            <!-- Tab: Tài khoản -->
-            <div v-show="activeSection === 'account'" class="um-tab-body">
-              <div class="crud-form-grid">
-                <label class="crud-field">
-                  <span>Họ và tên <em>*</em></span>
-                  <input v-model="form.name" type="text" placeholder="Nguyễn Văn A">
-                </label>
-                <label class="crud-field">
-                  <span>Email <em>*</em></span>
-                  <input v-model="form.email" type="email" placeholder="user@ptit.edu.vn">
-                </label>
-                <label class="crud-field">
-                  <span>Vai trò <em>*</em></span>
-                  <select v-model="form.role">
-                    <option value="student">Sinh viên</option>
-                    <option value="instructor">Giảng viên</option>
-                    <option value="admin">Admin</option>
-                    <option value="academic_manager">Quản lý học vụ</option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>{{ modalMode === 'edit' ? 'Mật khẩu mới (bỏ trống nếu không đổi)' : 'Mật khẩu *' }}</span>
-                  <input
-                    v-model="form.password"
-                    type="password"
-                    :placeholder="modalMode === 'edit' ? 'Bỏ trống nếu không đổi' : 'Tối thiểu 6 ký tự'"
-                  >
-                </label>
-                <label class="crud-field crud-field-full">
-                  <span>Giới thiệu / Bio</span>
-                  <textarea v-model="form.bio" rows="2" placeholder="Mô tả ngắn về người dùng..." style="resize:vertical"></textarea>
-                </label>
-                <div class="crud-field crud-field-full">
-                  <span>Ảnh đại diện</span>
-                  <MediaUpload
-                    v-model="form.avatar"
-                    folder="users"
-                    variant="avatar"
-                    label="Ảnh đại diện"
-                    hint="JPG, PNG, WEBP — tối đa 5MB."
-                    :placeholder-initial="form.name ? avatarInitials(form.name) : 'AV'"
-                    @uploaded="onAvatarUploaded"
-                    @error="onAvatarError"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Tab: Học vụ -->
-            <div v-show="activeSection === 'academic'" class="um-tab-body">
-              <div class="crud-form-grid">
-                <label class="crud-field">
-                  <span>Mã sinh viên</span>
-                  <input v-model="form.student_code" type="text" placeholder="B21DCCN123">
-                </label>
-                <label class="crud-field">
-                  <span>Mã nhân viên</span>
-                  <input v-model="form.staff_code" type="text" placeholder="GV001">
-                </label>
-
-                <label class="crud-field">
-                  <span>Lớp hành chính</span>
-                  <select v-model="form.administrative_class_id">
-                    <option value="">— Chọn lớp hành chính —</option>
-                    <option v-for="c in optAdminClasses" :key="c.id" :value="String(c.id)">{{ c.name }} <template v-if="c.code">({{ c.code }})</template></option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Khóa / Niên khóa</span>
-                  <select v-model="form.cohort_id">
-                    <option value="">— Chọn khóa —</option>
-                    <option v-for="c in optCohorts" :key="c.id" :value="String(c.id)">{{ c.name }} <template v-if="c.code">({{ c.code }})</template></option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Chương trình đào tạo</span>
-                  <select v-model="form.program_id">
-                    <option value="">— Chọn chương trình —</option>
-                    <option v-for="p in optPrograms" :key="p.id" :value="String(p.id)">{{ p.name }}</option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Ngành học</span>
-                  <select v-model="form.major_id">
-                    <option value="">— Chọn ngành —</option>
-                    <option v-for="m in optMajors" :key="m.id" :value="String(m.id)">{{ m.name }}</option>
-                  </select>
-                </label>
-
-                <label class="crud-field crud-field-full">
-                  <span>Trạng thái học vụ</span>
-                  <select v-model="form.study_status">
-                    <option value="">— Chưa xác định —</option>
-                    <option value="dang_hoc">Đang học</option>
-                    <option value="bao_luu">Bảo lưu</option>
-                    <option value="tot_nghiep">Tốt nghiệp</option>
-                    <option value="thoi_hoc">Thôi học</option>
-                    <option value="dinh_chi">Đình chỉ</option>
-                    <option value="dang_cong_tac">Đang công tác</option>
-                    <option value="nghi_phep">Nghỉ phép</option>
-                    <option value="nghi_huu">Nghỉ hưu</option>
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <!-- Tab: Cá nhân -->
-            <div v-show="activeSection === 'personal'" class="um-tab-body">
-              <div class="crud-form-grid">
-                <label class="crud-field">
-                  <span>Số điện thoại</span>
-                  <input v-model="form.phone" type="tel" placeholder="0987 654 321">
-                </label>
-                <label class="crud-field">
-                  <span>Giới tính</span>
-                  <select v-model="form.gender">
-                    <option value="">— Chưa xác định —</option>
-                    <option value="male">Nam</option>
-                    <option value="female">Nữ</option>
-                    <option value="other">Khác</option>
-                  </select>
-                </label>
-                <label class="crud-field">
-                  <span>Ngày sinh</span>
-                  <input v-model="form.date_of_birth" type="date">
-                </label>
-                <label class="crud-field">
-                  <span>Quốc tịch</span>
-                  <input v-model="form.nationality" type="text" placeholder="Việt Nam">
-                </label>
-                <label class="crud-field">
-                  <span>Số CMND / CCCD</span>
-                  <input v-model="form.id_card_number" type="text" placeholder="001234567890">
-                </label>
-                <label class="crud-field">
-                  <span>Quê quán</span>
-                  <input v-model="form.hometown" type="text" placeholder="Hà Nội">
-                </label>
-                <label class="crud-field crud-field-full">
-                  <span>Địa chỉ thường trú</span>
-                  <input v-model="form.permanent_address" type="text" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố">
-                </label>
+      <DataTable
+        v-model:selection="selected"
+        :value="rows"
+        data-key="id"
+        :loading="loading"
+        :paginator="true"
+        lazy
+        :rows="perPage"
+        :total-records="total"
+        :rows-per-page-options="[10, 15, 25, 50]"
+        paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+        :current-page-report-template="t('admin.users.pageReport')"
+        selection-mode="multiple"
+        striped-rows
+        sort-mode="single"
+        removable-sort
+        class="users-table"
+        @page="onPage"
+        @sort="onSort"
+      >
+        <Column selection-mode="multiple" header-style="width:3rem" />
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ rowIndex(index) }}</template>
+        </Column>
+        <Column field="name" :header="t('admin.users.colUser')" sortable style="min-width:220px">
+          <template #body="{ data }">
+            <div class="user-cell">
+              <Avatar v-if="data.avatar" :image="data.avatar" shape="circle" />
+              <Avatar v-else :label="(data.name || '?').slice(0, 1).toUpperCase()" shape="circle" />
+              <div>
+                <button type="button" class="name-link" @click="openView(data)">{{ data.name }}</button>
+                <small>{{ data.email }}</small>
               </div>
             </div>
           </template>
+        </Column>
+        <Column :header="t('admin.users.role')" style="min-width:120px">
+          <template #body="{ data }">
+            <span class="pill" :class="roleTone(roleOf(data))">{{ roleLabel(data) }}</span>
+          </template>
+        </Column>
+        <Column field="student_code" :header="t('admin.users.code')" sortable style="min-width:110px">
+          <template #body="{ data }">{{ data.student_code || data.staff_code || '—' }}</template>
+        </Column>
+        <Column :header="t('admin.users.class')" style="min-width:120px">
+          <template #body="{ data }">{{ classOf(data) }}</template>
+        </Column>
+        <Column field="study_status" :header="t('admin.users.studyStatus')" sortable style="min-width:120px">
+          <template #body="{ data }">
+            <span v-if="data.study_status" class="pill" :class="statusTone(data.study_status)">
+              {{ t(`admin.users.status.${data.study_status}`) }}
+            </span>
+            <span v-else>—</span>
+          </template>
+        </Column>
+        <Column field="created_at" :header="t('admin.users.createdAt')" sortable style="min-width:110px">
+          <template #body="{ data }">{{ fmtDate(data.created_at) }}</template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:9.5rem">
+          <template #body="{ data }">
+            <Button icon="pi pi-eye" text rounded severity="secondary" :aria-label="t('admin.users.view')" @click="openView(data)" />
+            <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.users.edit')" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" text rounded severity="danger" :aria-label="t('admin.users.deleteTitle')" @click="askDelete(data)" />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('common.noData') }}</div>
+        </template>
+      </DataTable>
+    </section>
 
-
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="closeModal">Đóng</button>
-            <button
-              v-if="modalMode !== 'view'"
-              class="crud-primary-btn"
-              type="button"
-              :disabled="saving"
-              @click="saveUser"
-            >{{ saving ? 'Đang lưu...' : modalMode === 'create' ? 'Tạo người dùng' : 'Lưu thay đổi' }}</button>
+    <!-- View / Create / Edit modal (center) -->
+    <Dialog
+      v-model:visible="modalOpen"
+      modal
+      :header="modalTitle"
+      :style="{ width: 'min(760px, 96vw)' }"
+      :dismissable-mask="true"
+      class="user-modal"
+    >
+      <div class="modal-grid" :class="{ readonly: isReadonly }">
+        <div class="avatar-block full">
+          <Avatar
+            v-if="form.avatar"
+            :image="form.avatar"
+            shape="circle"
+            size="xlarge"
+            class="avatar-preview"
+          />
+          <Avatar
+            v-else
+            :label="(form.name || '?').slice(0, 1).toUpperCase()"
+            shape="circle"
+            size="xlarge"
+            class="avatar-preview"
+          />
+          <div class="avatar-meta">
+            <strong>{{ t('admin.users.avatar') }}</strong>
+            <span>{{ t('admin.users.avatarHint') }}</span>
+            <div v-if="!isReadonly" class="avatar-actions">
+              <input ref="avatarInput" type="file" accept="image/*" hidden @change="onAvatarPick">
+              <Button
+                :label="t('admin.users.changeAvatar')"
+                icon="pi pi-camera"
+                size="small"
+                severity="secondary"
+                outlined
+                :loading="uploadingAvatar"
+                @click="avatarInput?.click()"
+              />
+              <Button
+                v-if="form.avatar"
+                :label="t('admin.users.removeAvatar')"
+                icon="pi pi-times"
+                size="small"
+                severity="danger"
+                text
+                @click="clearAvatar"
+              />
+            </div>
           </div>
         </div>
-      </div>
-    </Teleport>
 
-    <CrudConfirmModal
-      :open="deleteModalOpen"
-      title="Xóa người dùng"
-      :description="`Bạn có chắc chắn muốn xóa ${selectedUser?.name || 'người dùng này'}? Thao tác này không thể hoàn tác.`"
-      confirm-text="Xóa người dùng"
-      tone="danger"
-      :loading="deletingId === selectedUser?.id"
-      @close="deleteModalOpen = false"
-      @confirm="deleteUser()"
-    />
-  </AdminWorkspaceShell>
+        <label class="field"><span>{{ t('admin.users.name') }}</span><InputText v-model="form.name" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field"><span>{{ t('admin.users.email') }}</span><InputText v-model="form.email" type="email" class="w-full" :disabled="isReadonly" /></label>
+        <label v-if="!isReadonly" class="field">
+          <span>{{ modalMode === 'edit' ? t('admin.users.passwordOptional') : t('admin.users.password') }}</span>
+          <Password v-model="form.password" :feedback="false" toggle-mask class="w-full" input-class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.role') }}</span>
+          <Select v-model="form.role" :options="roleOptions" option-label="label" option-value="value" class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field"><span>{{ t('admin.users.studentCode') }}</span><InputText v-model="form.student_code" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field"><span>{{ t('admin.users.staffCode') }}</span><InputText v-model="form.staff_code" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field"><span>{{ t('admin.users.phone') }}</span><InputText v-model="form.phone" class="w-full" :disabled="isReadonly" /></label>
+        <label class="field">
+          <span>{{ t('admin.users.genderLabel') }}</span>
+          <Select v-model="form.gender" :options="genderOptions" option-label="label" option-value="value" show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.dob') }}</span>
+          <DatePicker v-model="form.date_of_birth" date-format="dd/mm/yy" show-icon class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.studyStatus') }}</span>
+          <Select v-model="form.study_status" :options="studyStatusOptions" option-label="label" option-value="value" show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.cohort') }}</span>
+          <Select v-model="form.cohort_id" :options="cohortOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.class') }}</span>
+          <Select v-model="form.administrative_class_id" :options="classOptions.filter(o => o.value !== 'none')" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.program') }}</span>
+          <Select v-model="form.program_id" :options="programOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.users.major') }}</span>
+          <Select v-model="form.major_id" :options="majorOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.users.unit') }}</span>
+          <Select v-model="form.unit_id" :options="unitOptions" option-label="label" option-value="value" filter show-clear class="w-full" :disabled="isReadonly" />
+        </label>
+        <label class="field full bio-field">
+          <span>{{ t('admin.users.bio') }}</span>
+          <Textarea v-model="form.bio" rows="3" auto-resize class="w-full bio-input" :disabled="isReadonly" />
+        </label>
+      </div>
+      <template #footer>
+        <div class="modal-foot">
+          <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
+          <template v-if="isReadonly">
+            <Button :label="t('admin.users.edit')" icon="pi pi-pencil" @click="modalMode = 'edit'" />
+          </template>
+          <Button v-else :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="saveUser" />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- Import modal -->
+    <Dialog v-model:visible="importOpen" modal :header="t('admin.users.importTitle')" :style="{ width: 'min(760px, 96vw)' }" :dismissable-mask="true">
+      <div class="import-box">
+        <div class="import-step">
+          <div class="step-head">
+            <span class="step-num">1</span>
+            <div>
+              <strong>{{ t('admin.users.stepTemplate') }}</strong>
+              <p>{{ t('admin.users.stepTemplateHint') }}</p>
+            </div>
+          </div>
+          <Button :label="t('admin.users.downloadTemplate')" icon="pi pi-download" severity="secondary" outlined @click="downloadTemplate" />
+        </div>
+
+        <div class="import-step">
+          <div class="step-head">
+            <span class="step-num">2</span>
+            <div>
+              <strong>{{ t('admin.users.stepUpload') }}</strong>
+              <p>{{ t('admin.users.stepUploadHint') }}</p>
+            </div>
+          </div>
+
+          <div
+            class="dropzone"
+            :class="{ dragging: importDragging, hasFile: !!importFile }"
+            @dragenter.prevent="importDragging = true"
+            @dragover.prevent="importDragging = true"
+            @dragleave.prevent="importDragging = false"
+            @drop.prevent="onDrop"
+            @click="fileInput?.click()"
+          >
+            <input ref="fileInput" type="file" accept=".csv,text/csv" hidden @change="onFilePicked">
+            <i class="pi pi-cloud-upload" />
+            <strong>{{ t('admin.users.dropTitle') }}</strong>
+            <span>{{ t('admin.users.dropHint') }}</span>
+          </div>
+
+          <div v-if="importFileMeta" class="file-card">
+            <div class="file-card-main">
+              <i class="pi pi-file" />
+              <div>
+                <strong>{{ importFileMeta.name }}</strong>
+                <small>{{ importFileMeta.sizeLabel }}</small>
+              </div>
+            </div>
+            <Button icon="pi pi-times" text rounded severity="secondary" @click.stop="clearImportFile" />
+            <ProgressBar :value="importProgress" :show-value="true" class="file-progress" />
+          </div>
+        </div>
+
+        <div v-if="importPreview || importing" class="import-step">
+          <div class="step-head">
+            <span class="step-num">3</span>
+            <div>
+              <strong>{{ t('admin.users.stepResult') }}</strong>
+              <p>{{ t('admin.users.stepResultHint') }}</p>
+            </div>
+          </div>
+          <div v-if="importing && !importPreview" class="checking">
+            <ProgressSpinner style="width:28px;height:28px" stroke-width="4" />
+            <span>{{ t('admin.users.checking') }}</span>
+          </div>
+          <div v-if="importPreview" class="preview-meta">
+            <Tag :value="t('admin.users.validCount', { n: importPreview.valid_count || 0 })" severity="success" />
+            <Tag :value="t('admin.users.errorCount', { n: importPreview.error_count || 0 })" severity="danger" />
+          </div>
+          <DataTable v-if="importPreview?.rows?.length" :value="importPreview.rows.slice(0, 40)" size="small" class="preview-table" scrollable scroll-height="240px">
+            <Column field="row" header="#" style="width:3rem" />
+            <Column field="name" :header="t('admin.users.name')" />
+            <Column field="email" :header="t('admin.users.email')" />
+            <Column field="role" :header="t('admin.users.role')" />
+            <Column :header="t('admin.users.errors')">
+              <template #body="{ data }">
+                <span :class="{ bad: data.errors?.length }">{{ data.errors?.length ? data.errors.join(', ') : 'OK' }}</span>
+              </template>
+            </Column>
+          </DataTable>
+        </div>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="importOpen = false" />
+        <Button :label="t('admin.users.confirmImport')" icon="pi pi-check" :disabled="!importToken" :loading="importing" @click="runImportExecute" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <style scoped>
-/* ── View Profile ── */
-.um-view-profile {
-  padding: 0 4px;
+.users-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
-.um-vp-header {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.metric-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.metric {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  min-height: 72px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer;
 }
-.um-vp-title {
-  display: flex;
-  flex-direction: column;
+.metric strong { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+.metric span { color: var(--text-muted); font-size: .78rem; font-weight: 600; }
+.metric.on {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 20%, transparent);
 }
-.um-vp-title h4 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text);
+
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px; overflow: hidden;
 }
-.um-vp-email {
-  color: var(--muted);
-  font-size: 0.9rem;
+
+.filter-bar {
+  margin-bottom: 12px; padding: 12px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface-subtle);
 }
-.um-vp-bio {
-  margin-top: 16px;
-  font-size: 0.9rem;
-  color: var(--text);
-  line-height: 1.5;
-  background: var(--bg, #eff2f0);
-  padding: 12px 16px;
-  border-radius: 12px;
+.filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.filter-title strong { font-size: .92rem; }
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px 12px;
 }
-.um-vp-grid {
+.filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
+
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.w-full { width: 100%; }
+
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar-left strong { font-size: .92rem; white-space: nowrap; }
+.toolbar-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.user-cell { display: flex; align-items: center; gap: 10px; }
+.user-cell small { display: block; color: var(--text-muted); font-size: .78rem; }
+.name-link {
+  border: 0; background: none; padding: 0; color: var(--text);
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.name-link:hover { color: var(--brand); }
+
+.pill {
+  display: inline-flex; align-items: center; max-width: 100%;
+  padding: 3px 9px; border-radius: 999px; font-size: .74rem; font-weight: 700; white-space: nowrap;
+}
+.tone-admin { background: #fee2e2; color: #b91c1c; }
+.tone-instructor { background: #ffedd5; color: #c2410c; }
+.tone-student { background: #dbeafe; color: #1d4ed8; }
+.tone-academic { background: #ede9fe; color: #6d28d9; }
+.tone-advisor { background: #e0e7ff; color: #4338ca; }
+.tone-finance { background: #fef3c7; color: #a16207; }
+.tone-active { background: #dcfce7; color: #15803d; }
+.tone-deferred { background: #fef9c3; color: #a16207; }
+.tone-graduated { background: #e0f2fe; color: #0369a1; }
+.tone-dropped { background: #ffe4e6; color: #be123c; }
+.tone-suspended { background: #fce7f3; color: #be185d; }
+.tone-staff { background: #ccfbf1; color: #0f766e; }
+.tone-leave { background: #fde68a; color: #92400e; }
+.tone-retired { background: #e2e8f0; color: #475569; }
+.tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
+
+.empty { padding: 40px; color: var(--text-muted); text-align: center; }
+
+.modal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px 24px;
-  margin-top: 24px;
-  border-top: 1px solid var(--line, #dde5e1);
-  padding-top: 24px;
+  gap: 12px;
 }
-.um-vp-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.um-vp-field label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.um-vp-field p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: var(--text);
-  font-weight: 500;
-}
-.um-vp-section-title {
-  display: block;
-  font-size: 0.8rem; 
-  font-weight: 600; 
-  color: var(--muted); 
-  text-transform: uppercase; 
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
+.modal-grid .full { grid-column: 1 / -1; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; width: 100%; }
 
-/* ── Table cells ── */
-.user-cell {
+.avatar-block {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-subtle);
 }
-.user-cell-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.cell-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.cell-strong { font-weight: 600; font-size: 0.84rem; color: var(--text); }
-.cell-muted  { font-size: 0.78rem; color: var(--muted); }
-.cell-mono   { font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+.avatar-preview { flex: 0 0 auto; }
+.avatar-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.avatar-meta strong { font-size: .92rem; }
+.avatar-meta > span { color: var(--text-muted); font-size: .78rem; }
+.avatar-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 
-/* ── Modal sizing ── */
-.um-modal {
-  max-width: 720px;
-  width: 100%;
+.bio-field :deep(.p-textarea),
+.bio-input {
+  width: 100% !important;
+  min-height: 84px;
+  resize: vertical;
+  box-shadow: none !important;
 }
-
-/* ── Section tabs ── */
-.um-section-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 24px 16px;
-  border-bottom: 1px solid var(--line, #dde5e1);
-  margin-bottom: 20px;
-}
-.um-section-tab {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: transparent;
-  font-size: 0.84rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 120ms, color 120ms;
-}
-.um-section-tab:hover { background: var(--bg); color: var(--text); }
-.um-section-tab--on {
-  background: var(--green-soft, #e1f5ee);
-  color: var(--green-deep, #085041);
-  border-color: rgba(29,158,117,0.3);
+.bio-field :deep(.p-textarea:enabled:focus) {
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent) !important;
 }
 
-.um-tab-body { padding: 0 4px; }
+.import-box { display: grid; gap: 16px; }
+.import-step {
+  display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--surface-subtle);
+}
+.step-head { display: flex; gap: 12px; align-items: flex-start; }
+.step-num {
+  display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px;
+  border-radius: 999px; background: var(--brand); color: #fff; font-size: .8rem; font-weight: 700;
+}
+.step-head strong { display: block; font-size: .92rem; }
+.step-head p { margin: 2px 0 0; color: var(--text-muted); font-size: .8rem; }
 
-/* ── GPA strip ── */
-.um-gpa-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 20px;
-  background: var(--bg, #eff2f0);
-  border: 1px solid var(--line, #dde5e1);
-  border-radius: 14px;
-  padding: 16px 20px;
+.dropzone {
+  display: grid; place-items: center; gap: 6px; min-height: 140px; padding: 20px;
+  border: 1.5px dashed var(--border-strong); border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  text-align: center; cursor: pointer; transition: .15s ease;
 }
-.um-gpa-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.dropzone:hover, .dropzone.dragging {
+  border-color: var(--brand); background: var(--brand-soft);
 }
-.um-gpa-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin: 0; }
-.um-gpa-value { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
-.um-gpa-loading { grid-column: 1/-1; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.84rem; }
-.um-gpa-empty { grid-column: 1/-1; color: var(--muted); font-size: 0.84rem; }
+.dropzone i { font-size: 1.6rem; color: var(--brand); }
+.dropzone strong { font-size: .95rem; }
+.dropzone span { color: var(--text-muted); font-size: .8rem; }
 
-/* ── Terms mini table ── */
-.um-terms-table {
-  margin-top: 8px;
-  border: 1px solid var(--line, #dde5e1);
-  border-radius: 10px;
-  overflow: hidden;
+.file-card {
+  display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
 }
-.um-terms-table table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.um-terms-table th {
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--muted);
-  background: transparent;
-  border-bottom: 1px solid var(--line);
-}
-.um-terms-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); color: var(--text); }
-.um-terms-table tr:last-child td { border-bottom: none; }
+.file-card-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.file-card-main i { color: var(--brand); }
+.file-card-main strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-card-main small { color: var(--text-muted); font-size: .75rem; }
+.file-progress { grid-column: 1 / -1; height: 8px; }
 
-/* ── Dark mode ── */
-[data-theme="dark"] .um-section-tab--on { background: rgba(29,158,117,0.15); }
-[data-theme="dark"] .um-gpa-strip { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .um-terms-table { border-color: rgba(255,255,255,0.1); }
-[data-theme="dark"] .um-terms-table th, [data-theme="dark"] .um-terms-table td { border-color: rgba(255,255,255,0.07); }
+.checking { display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
+.preview-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.preview-table .bad { color: var(--danger); font-size: .8rem; }
 
-/* ── Filter panel ── */
-.uf-filter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
-  background: var(--surface-strong, #fff);
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 120ms, border-color 120ms, color 120ms;
-}
-.uf-filter-btn:hover { background: var(--bg); color: var(--text); border-color: var(--line-strong); }
-.uf-filter-btn--active { color: var(--green-deep, #085041); border-color: rgba(29,158,117,0.4); background: var(--green-soft, #e1f5ee); }
-.uf-filter-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--green, #1d9e75);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 800;
-}
+:deep(.filter-bar .p-multiselect),
+:deep(.filter-bar .p-select),
+:deep(.filter-bar .p-inputtext),
+:deep(.modal-grid .p-select),
+:deep(.modal-grid .p-password),
+:deep(.modal-grid .p-datepicker) { width: 100%; }
 
-.uf-filter-panel {
-  border-top: 1px solid var(--line, #dde5e1);
-  padding: 16px 24px 12px;
-  background: var(--bg, #eff2f0);
-  margin: 0 -24px;
+@media (max-width: 1100px) {
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric-rail { grid-template-columns: 1fr 1fr; }
 }
-.uf-filter-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr) auto;
-  gap: 10px;
-  align-items: end;
+@media (max-width: 720px) {
+  .filter-grid, .modal-grid, .metric-rail { grid-template-columns: 1fr; }
 }
-.uf-filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.uf-filter-field span {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--muted);
-}
-.uf-filter-field select {
-  height: 34px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--line-strong, rgba(31,49,43,0.16));
-  background: var(--surface-strong, #fff);
-  font-size: 0.82rem;
-  color: var(--text);
-  font-family: inherit;
-  cursor: pointer;
-  appearance: auto;
-}
-.uf-filter-actions {
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 1px;
-}
-.uf-reset-btn {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(239,68,68,0.22);
-  background: rgba(239,68,68,0.07);
-  color: #b91c1c;
-  font-size: 0.78rem;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 120ms;
-}
-.uf-reset-btn:hover { background: rgba(239,68,68,0.14); }
-
-/* Active filter chips */
-.uf-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-.uf-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px 0 12px;
-  border-radius: 999px;
-  background: rgba(29,158,117,0.1);
-  border: 1px solid rgba(29,158,117,0.22);
-  color: var(--green-deep, #085041);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.uf-chip button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--green-deep, #085041);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  opacity: 0.7;
-}
-.uf-chip button:hover { opacity: 1; }
-
-/* Meta bar reset link */
-.crud-meta { display: flex; align-items: center; gap: 12px; }
-.uf-meta-reset {
-  background: none;
-  border: none;
-  font-size: 0.78rem;
-  color: var(--muted);
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-  font-family: inherit;
-}
-.uf-meta-reset:hover { color: #b91c1c; }
-
-/* Responsive */
-@media (max-width: 1000px) {
-  .uf-filter-grid { grid-template-columns: repeat(3, 1fr); }
-  .uf-filter-actions { grid-column: 1 / -1; justify-content: flex-start; }
-}
-@media (max-width: 640px) {
-  .uf-filter-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* Dark mode */
-[data-theme="dark"] .uf-filter-btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
-[data-theme="dark"] .uf-filter-btn--active { background: rgba(29,158,117,0.15); border-color: rgba(29,158,117,0.35); }
-[data-theme="dark"] .uf-filter-panel { background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.08); }
-[data-theme="dark"] .uf-filter-field select { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #e8eeec; }
-[data-theme="dark"] .uf-chip { background: rgba(29,158,117,0.15); border-color: rgba(29,158,117,0.3); }
 </style>

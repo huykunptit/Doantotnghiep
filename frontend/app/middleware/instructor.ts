@@ -1,22 +1,11 @@
-import { useAuthStore } from '~/stores/auth'
+import { dashboardFor } from '~/types/auth'
 
 export default defineNuxtRouteMiddleware(async () => {
   const auth = useAuthStore()
-
-  if (!auth.isReady) {
-    auth.initFromStorage()
-  }
-
-  if (auth.token && !auth.user) {
-    await auth.fetchMe()
-  }
-
-  if (!auth.isLoggedIn || !auth.user) {
-    return navigateTo('/login')
-  }
-
-  const roles = auth.user.roles || []
-  if (!roles.includes('admin') && !roles.includes('instructor')) {
-    return navigateTo('/courses')
+  if (!auth.ready) auth.hydrate()
+  if (auth.token && !auth.user) await auth.fetchMe()
+  if (!auth.isAuthenticated) return navigateTo('/login')
+  if (!auth.roles.some(role => role === 'admin' || role === 'instructor')) {
+    return navigateTo(dashboardFor(auth.user))
   }
 })

@@ -6,5 +6,5 @@ import '../data/repositories/course_repository.dart';
 part 'my_courses_provider.g.dart';
 
 @riverpod
-Future<List<EnrollmentModel>> myEnrollments(Ref ref) =>
+Future<List<EnrollmentModel>> myEnrollments(MyEnrollmentsRef ref) =>
     ref.read(courseRepositoryProvider).getEnrollments();

@@ -1,308 +1,293 @@
-<script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import { useExport } from '~/composables/useExport'
+﻿<script setup lang="ts">
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
 
-const token = useAuthTokenCookie()
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+interface ExamRow {
+  id: number
+  title: string
+  status: string
+  duration?: number | null
+  starts_at?: string | null
+  ends_at?: string | null
+  exam_enrollments_count?: number
+  quiz?: { id: number } | null
+}
 
-const loading = ref(true)
-const error = ref('')
-const exams = ref<any[]>([])
-const search = ref('')
-const selectedExamId = ref<string | null>(null)
-const monitorData = ref<any>(null)
-const monitorLoading = ref(false)
-const monitorError = ref('')
+interface LiveAttempt {
+  id: number
+  status: string
+  score?: number | null
+  violations_count?: number
+  user?: { name?: string, email?: string } | null
+}
 
-async function fetchExams() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await useApi<any>('/exams/standalone?per_page=100', { headers: authHeaders() })
-    exams.value = res.data || res || []
+interface LiveMonitor {
+  exam?: { id: number, title: string, status: string }
+  attempts?: LiveAttempt[]
+  summary?: {
+    total?: number
+    in_progress?: number
+    paused?: number
+    submitted?: number
+    force_stopped?: number
   }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Không thể tải danh sách kỳ thi.'
+}
+
+const { t, locale } = useI18n()
+const toast = useToast()
+const loading = ref(false)
+const monitorLoading = ref(false)
+
+const exams = ref<ExamRow[]>([])
+const monitorOpen = ref(false)
+const monitorExam = ref<ExamRow | null>(null)
+const monitorData = ref<LiveMonitor | null>(null)
+
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+
+function fmtDate(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat(numberLocale.value, {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  }).format(new Date(value))
+}
+
+function statusTone(status: string) {
+  const map: Record<string, string> = {
+    draft: 'tone-draft',
+    scheduled: 'tone-scheduled',
+    active: 'tone-active',
+    closed: 'tone-closed',
+    archived: 'tone-archived',
+    in_progress: 'tone-active',
+    paused: 'tone-pending',
+    submitted: 'tone-closed',
+    force_stopped: 'tone-failed',
+  }
+  return map[status] || 'tone-neutral'
+}
+
+function examStatusLabel(status: string) {
+  const key = `admin.reports.examStatuses.${status}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
+function attemptStatusLabel(status: string) {
+  const key = `admin.reports.examTracking.attemptStatuses.${status}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
+async function load() {
+  loading.value = true
+  try {
+    exams.value = await useApi<ExamRow[]>('/exams/standalone')
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.reports.common.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
   }
   finally {
     loading.value = false
   }
 }
 
-async function selectExam(examId: string) {
-  selectedExamId.value = examId
+async function openMonitor(exam: ExamRow) {
+  if (!exam.quiz) {
+    toast.add({ severity: 'warn', summary: t('admin.reports.examTracking.noQuiz'), life: 2800 })
+    return
+  }
+  monitorExam.value = exam
+  monitorOpen.value = true
   monitorData.value = null
-  monitorError.value = ''
   monitorLoading.value = true
   try {
-    monitorData.value = await useApi<any>(`/exams/${examId}/live-monitor`, { headers: authHeaders() })
+    monitorData.value = await useApi<LiveMonitor>(`/exams/${exam.id}/live-monitor`)
   }
-  catch (e: any) {
-    monitorError.value = e?.data?.message || 'Không thể tải dữ liệu giám sát.'
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.reports.examTracking.monitorError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+    monitorOpen.value = false
   }
   finally {
     monitorLoading.value = false
   }
 }
 
-const filteredExams = computed(() => {
-  if (!search.value.trim()) return exams.value
-  const q = search.value.toLowerCase()
-  return exams.value.filter(e => e.title?.toLowerCase().includes(q))
-})
-
-const selectedExam = computed(() =>
-  exams.value.find(e => String(e.id) === String(selectedExamId.value))
-)
-
-const statusLabel: Record<string, string> = {
-  in_progress: 'Đang thi',
-  paused: 'Tạm dừng',
-  submitted: 'Đã nộp',
-  force_stopped: 'Bị dừng',
-}
-
-const statusBg: Record<string, string> = {
-  in_progress: '#e8f5e9',
-  paused: '#fff8e1',
-  submitted: '#e3f2fd',
-  force_stopped: '#fce4ec',
-}
-
-function formatTime(seconds: number | null) {
-  if (!seconds || seconds <= 0) return '00:00'
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
-
-const { exportToPDF, exportToCSV } = useExport()
-
-function exportPDF() {
-  const headers = ['Tên kỳ thi', 'Trạng thái', 'Thí sinh đăng ký', 'Điểm đạt']
-  const rows = exams.value.slice(0, 200).map(e => [
-    e.title || '—',
-    e.status || '—',
-    e.enrollments_count || 0,
-    e.pass_score || '—',
-  ])
-  exportToPDF('Danh sách kỳ thi', `Tổng ${exams.value.length} kỳ thi`, headers, rows, 'theo-doi-ky-thi')
-}
-
-function exportCSV() {
-  if (!monitorData.value || !monitorData.value.attempts) return
-  const cols = [
-    { key: 'user_name', label: 'Thí sinh', format: (_: any, row: any) => row.user?.name || '—' },
-    { key: 'user_email', label: 'Email', format: (_: any, row: any) => row.user?.email || '—' },
-    { key: 'status', label: 'Trạng thái', format: (val: any) => statusLabel[val] || val },
-    { key: 'remaining_time', label: 'Thời gian còn lại', format: (val: any) => formatTime(val) },
-    { key: 'violations_count', label: 'Số lần vi phạm', format: (val: any) => String(val || 0) }
-  ]
-  exportToCSV(monitorData.value.attempts, cols, `giam_sat_ky_thi_${selectedExamId.value}`)
-}
-
-onMounted(fetchExams)
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Theo dõi kỳ thi"
-    description="Chọn một kỳ thi để xem trạng thái thí sinh theo thời gian thực. Điều hướng sang trang giám sát để thực hiện thao tác."
-    :breadcrumb="['Trang chủ', 'Quản lý thi', 'Theo dõi kỳ thi']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải danh sách kỳ thi...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
-
-    <template v-else>
-      <div class="tracking-layout">
-        <!-- Left: exam list -->
-        <aside class="exam-sidebar">
-          <div class="dashboard-card" style="padding: 0; overflow: hidden;">
-            <div style="padding: 16px; border-bottom: 1px solid var(--line);">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                <div>
-                  <p class="section-kicker">Kỳ thi độc lập</p>
-                  <h3 style="margin: 4px 0 0;">Chọn kỳ thi</h3>
-                </div>
-                <button class="crud-primary-btn" type="button" style="flex-shrink: 0;" @click="exportPDF">
-                  <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 2px;">picture_as_pdf</span>
-                  PDF
-                </button>
-              </div>
-              <input
-                v-model="search"
-                type="text"
-                placeholder="Tìm kiếm..."
-                class="crud-search"
-                style="width: 100%;"
-              >
-            </div>
-            <div style="max-height: 600px; overflow-y: auto;">
-              <div v-if="filteredExams.length === 0" class="crud-empty" style="padding: 2rem;">
-                Không có kỳ thi nào.
-              </div>
-              <button
-                v-for="exam in filteredExams"
-                :key="exam.id"
-                type="button"
-                class="exam-list-item"
-                :class="{ 'is-selected': String(selectedExamId) === String(exam.id) }"
-                @click="selectExam(String(exam.id))"
-              >
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                  <strong style="font-size: 0.875rem; text-align: left;">{{ exam.title }}</strong>
-                  <span
-                    class="crud-badge"
-                    :class="exam.status === 'published' ? 'role-instructor' : ''"
-                    style="flex-shrink: 0;"
-                  >
-                    {{ exam.status === 'published' ? 'Hoạt động' : exam.status }}
-                  </span>
-                </div>
-                <p style="font-size: 0.75rem; color: var(--muted); margin-top: 4px; text-align: left;">
-                  {{ exam.enrollments_count || 0 }} thí sinh đăng ký
-                </p>
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        <!-- Right: monitor panel -->
-        <div class="monitor-panel">
-          <!-- No exam selected -->
-          <div v-if="!selectedExamId" class="dashboard-card crud-empty" style="padding: 4rem; text-align: center;">
-            <span class="material-symbols-outlined" style="font-size: 48px; opacity: 0.2; display: block; margin-bottom: 16px;">radar</span>
-            <p>Chọn một kỳ thi từ danh sách bên trái để xem trạng thái thí sinh.</p>
-          </div>
-
-          <!-- Loading -->
-          <div v-else-if="monitorLoading" class="dashboard-card crud-empty">Đang tải dữ liệu giám sát...</div>
-
-          <!-- Error -->
-          <div v-else-if="monitorError" class="crud-alert is-error">{{ monitorError }}</div>
-
-          <!-- Monitor data -->
-          <template v-else-if="monitorData">
-            <!-- Summary + full monitor link -->
-            <div class="dashboard-card" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-              <div>
-                <p class="section-kicker">Đang xem</p>
-                <h3 style="margin: 4px 0 0;">{{ selectedExam?.title }}</h3>
-              </div>
-              <NuxtLink
-                :to="`/admin/exam-monitor?exam=${selectedExamId}`"
-                class="crud-primary-btn"
-                style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"
-              >
-                <span class="material-symbols-outlined" style="font-size: 18px;">open_in_new</span>
-                Mở trang giám sát đầy đủ
-              </NuxtLink>
-            </div>
-
-            <!-- Stats -->
-            <section style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px;">
-              <div class="dashboard-card" style="padding: 14px; text-align: center;">
-                <div style="font-size: 1.75rem; font-weight: 800;">{{ monitorData.summary?.total || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Tổng</div>
-              </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid var(--green);">
-                <div style="font-size: 1.75rem; font-weight: 800; color: var(--green);">{{ monitorData.summary?.in_progress || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Đang thi</div>
-              </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid #f59e0b;">
-                <div style="font-size: 1.75rem; font-weight: 800; color: #f59e0b;">{{ monitorData.summary?.paused || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Tạm dừng</div>
-              </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid #3b82f6;">
-                <div style="font-size: 1.75rem; font-weight: 800; color: #3b82f6;">{{ monitorData.summary?.submitted || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Đã nộp</div>
-              </div>
-              <div class="dashboard-card" style="padding: 14px; text-align: center; border-left: 3px solid #ef4444;">
-                <div style="font-size: 1.75rem; font-weight: 800; color: #ef4444;">{{ monitorData.summary?.force_stopped || 0 }}</div>
-                <div style="font-size: 0.75rem; color: var(--muted);">Bị dừng</div>
-              </div>
-            </section>
-
-            <!-- Attempts table (read-only) -->
-            <section class="dashboard-card crud-panel">
-              <div class="crud-toolbar">
-                <div>
-                  <h3 style="margin: 0;">Danh sách thí sinh</h3>
-                  <p style="font-size: 0.8rem; color: var(--muted); margin: 4px 0 0;">Chỉ xem · Dùng trang giám sát để thao tác</p>
-                </div>
-                <div class="crud-toolbar-right">
-                  <button class="crud-export-btn" type="button" :disabled="!monitorData.attempts?.length" @click="exportCSV">
-                    <span class="material-symbols-outlined">download</span>
-                    Xuất Excel
-                  </button>
-                </div>
-              </div>
-              <div class="crud-table-wrap">
-                <table class="crud-table">
-                  <thead>
-                    <tr>
-                      <th>Tên thí sinh</th>
-                      <th>Trạng thái bài thi</th>
-                      <th>Thời gian còn lại</th>
-                      <th>Số vi phạm</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-if="!monitorData.attempts?.length">
-                      <td colspan="4" class="crud-empty">Chưa có thí sinh nào.</td>
-                    </tr>
-                    <tr v-for="a in (monitorData.attempts || [])" :key="a.id" :style="{ background: statusBg[a.status] || 'transparent' }">
-                      <td>
-                        <strong>{{ a.user?.name || '—' }}</strong>
-                        <p style="font-size: 0.75rem; color: var(--muted);">{{ a.user?.email }}</p>
-                      </td>
-                      <td><span style="font-weight: 600;">{{ statusLabel[a.status] || a.status }}</span></td>
-                      <td style="font-family: monospace; font-weight: 700;" :style="{ color: (a.remaining_time || 0) < 300 ? '#ef4444' : 'inherit' }">
-                        {{ a.remaining_time !== null ? formatTime(a.remaining_time) : '∞' }}
-                      </td>
-                      <td>
-                        <span :style="{ color: a.violations_count > 0 ? '#ef4444' : 'var(--green)', fontWeight: '700' }">
-                          {{ a.violations_count > 0 ? `⚠ ${a.violations_count}` : '0' }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </template>
-        </div>
+  <div class="page report-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.assessment') }}</span>
+        <h1>{{ t('admin.reports.examTracking.title') }}</h1>
+        <p>{{ t('admin.reports.examTracking.subtitle') }}</p>
       </div>
-    </template>
-  </AdminWorkspaceShell>
+      <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
+    </header>
+
+    <section class="table-panel">
+      <div class="panel-head">
+        <strong>{{ t('admin.reports.examTracking.examList') }}</strong>
+      </div>
+      <DataTable :value="exams" :loading="loading" data-key="id" striped-rows>
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ index + 1 }}</template>
+        </Column>
+        <Column field="title" :header="t('admin.reports.exams.examTitle')" style="min-width:180px" />
+        <Column :header="t('admin.orders.paymentStatus')" style="width:110px">
+          <template #body="{ data }">
+            <span class="pill" :class="statusTone(data.status)">{{ examStatusLabel(data.status) }}</span>
+          </template>
+        </Column>
+        <Column :header="t('admin.reports.exams.enrolled')" style="width:90px">
+          <template #body="{ data }">{{ data.exam_enrollments_count ?? 0 }}</template>
+        </Column>
+        <Column :header="t('admin.reports.exams.schedule')" style="min-width:150px">
+          <template #body="{ data }">
+            <small>{{ fmtDate(data.starts_at) }} → {{ fmtDate(data.ends_at) }}</small>
+          </template>
+        </Column>
+        <Column :header="t('admin.reports.exams.quiz')" style="width:90px">
+          <template #body="{ data }">
+            <Tag v-if="data.quiz" :value="t('admin.reports.exams.hasQuiz')" severity="success" />
+            <Tag v-else :value="t('admin.reports.exams.noQuiz')" severity="warn" />
+          </template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:7rem">
+          <template #body="{ data }">
+            <Button
+              icon="pi pi-desktop"
+              text
+              rounded
+              severity="secondary"
+              :disabled="!data.quiz"
+              :aria-label="t('admin.reports.examTracking.monitor')"
+              @click="openMonitor(data)"
+            />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('common.noData') }}</div>
+        </template>
+      </DataTable>
+    </section>
+
+    <Dialog
+      v-model:visible="monitorOpen"
+      modal
+      :header="t('admin.reports.examTracking.monitorTitle', { title: monitorExam?.title || '' })"
+      :style="{ width: 'min(760px, 96vw)' }"
+      :dismissable-mask="true"
+    >
+      <div v-if="monitorLoading" class="monitor-loading">
+        <ProgressSpinner style="width:32px;height:32px" stroke-width="4" />
+      </div>
+      <template v-else-if="monitorData">
+        <div class="summary-rail">
+          <div class="summary-item">
+            <span>{{ t('admin.reports.examTracking.inProgress') }}</span>
+            <strong>{{ monitorData.summary?.in_progress ?? 0 }}</strong>
+          </div>
+          <div class="summary-item">
+            <span>{{ t('admin.reports.examTracking.paused') }}</span>
+            <strong>{{ monitorData.summary?.paused ?? 0 }}</strong>
+          </div>
+          <div class="summary-item">
+            <span>{{ t('admin.reports.examTracking.submitted') }}</span>
+            <strong>{{ monitorData.summary?.submitted ?? 0 }}</strong>
+          </div>
+          <div class="summary-item">
+            <span>{{ t('admin.reports.examTracking.forceStopped') }}</span>
+            <strong>{{ monitorData.summary?.force_stopped ?? 0 }}</strong>
+          </div>
+        </div>
+        <DataTable :value="monitorData.attempts || []" size="small" striped-rows scrollable scroll-height="320px">
+          <Column :header="t('admin.orders.buyer')">
+            <template #body="{ data }">
+              <div class="cell-stack">
+                <strong>{{ data.user?.name || '—' }}</strong>
+                <small>{{ data.user?.email || '—' }}</small>
+              </div>
+            </template>
+          </Column>
+          <Column :header="t('admin.orders.paymentStatus')">
+            <template #body="{ data }">
+              <span class="pill" :class="statusTone(data.status)">{{ attemptStatusLabel(data.status) }}</span>
+            </template>
+          </Column>
+          <Column field="score" :header="t('admin.reports.examTracking.score')" style="width:5rem">
+            <template #body="{ data }">{{ data.score ?? '—' }}</template>
+          </Column>
+          <Column field="violations_count" :header="t('admin.reports.examTracking.violations')" style="width:5rem" />
+          <template #empty><div class="empty">{{ t('admin.reports.examTracking.noAttempts') }}</div></template>
+        </DataTable>
+      </template>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="monitorOpen = false" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <style scoped>
-.tracking-layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 24px;
-  align-items: start;
+.report-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
-.exam-sidebar { position: sticky; top: 80px; }
-.exam-list-item {
-  display: block;
-  width: 100%;
-  padding: 14px 16px;
-  border: none;
-  background: transparent;
-  border-bottom: 1px solid var(--line);
-  cursor: pointer;
-  transition: background 0.15s;
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
 }
-.exam-list-item:hover { background: rgba(var(--green-rgb), 0.05); }
-.exam-list-item.is-selected { background: rgba(var(--green-rgb), 0.1); border-left: 3px solid var(--green); }
-.exam-list-item:last-child { border-bottom: none; }
-@media (max-width: 900px) {
-  .tracking-layout { grid-template-columns: 1fr; }
-  .exam-sidebar { position: static; }
+.panel-head { margin-bottom: 10px; }
+.panel-head strong { font-size: .92rem; }
+
+.pill {
+  display: inline-flex; padding: 3px 9px; border-radius: 999px;
+  font-size: .72rem; font-weight: 700;
 }
+.tone-draft { background: #e2e8f0; color: #475569; }
+.tone-scheduled { background: #dbeafe; color: #1d4ed8; }
+.tone-active { background: #dcfce7; color: #15803d; }
+.tone-closed { background: #fee2e2; color: #b91c1c; }
+.tone-archived { background: #ede9fe; color: #6d28d9; }
+.tone-pending { background: #fef9c3; color: #a16207; }
+.tone-failed { background: #fee2e2; color: #b91c1c; }
+.tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
+
+.monitor-loading { display: grid; place-items: center; padding: 32px; }
+.summary-rail {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px;
+}
+.summary-item {
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--surface-subtle);
+}
+.summary-item span { display: block; color: var(--text-muted); font-size: .72rem; font-weight: 600; }
+.summary-item strong { font-size: 1.1rem; font-weight: 700; }
+.cell-stack small { display: block; color: var(--text-muted); font-size: .78rem; }
+.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+
+@media (max-width: 720px) { .summary-rail { grid-template-columns: 1fr 1fr; } }
 </style>

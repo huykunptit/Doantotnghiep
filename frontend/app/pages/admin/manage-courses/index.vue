@@ -1,336 +1,400 @@
-<script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import CrudConfirmModal from '~/components/dashboard/CrudConfirmModal.vue'
-import { useExport } from '~/composables/useExport'
-import { useToast } from '~/composables/useToast'
-import RichTextEditor from '~/components/dashboard/RichTextEditor.vue'
+﻿<script setup lang="ts">
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm khóa học...' })
-interface CategoryItem { id: number; name: string; }
-interface AdminCourse { id: number; title: string; description?: string; thumbnail?: string | null; status: string; lessons_count?: number; enrollments_count?: number; instructor?: { name: string } | null; category?: { id: number; name: string } | null }
-interface CourseListResponse { data: AdminCourse[]; current_page: number; last_page: number; total: number }
-
-const user = useAuthUserCookie(); const token = useAuthTokenCookie(); if (!user.value || !token.value) await navigateTo('/login', { replace: true })
-
-const toast = useToast()
-
-const search = ref(''); const status = ref(''); const loading = ref(false); const saving = ref(false); const courses = ref<AdminCourse[]>([])
-const categories = ref<CategoryItem[]>([])
-const currentPage = ref(1); const lastPage = ref(1); const totalCourses = ref(0)
-
-const modalOpen = ref(false); const confirmOpen = ref(false); const selectedCourse = ref<AdminCourse | null>(null)
-const defaultForm = { title: '', description: '', price: 0, category_id: '' }
-const form = reactive({ ...defaultForm })
-
-const statuses = [{ label: 'Tất cả', value: '' }, { label: 'Đã xuất bản', value: 'published' }, { label: 'Chờ duyệt', value: 'pending_review' }, { label: 'Bản nháp', value: 'draft' }, { label: 'Bị từ chối', value: 'rejected' }]
-const selectedIds = ref<number[]>([])
-const activeDropdown = ref<number | null>(null)
-
-const isAllSelected = computed(() => {
-  return courses.value.length > 0 && courses.value.every(c => selectedIds.value.includes(c.id))
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
 })
 
-function toggleSelectAll() {
-  if (isAllSelected.value) {
-    selectedIds.value = []
-  } else {
-    selectedIds.value = courses.value.map(c => c.id)
-  }
+interface CategoryItem { id: number, name: string }
+interface AdminCourse {
+  id: number
+  title: string
+  description?: string | null
+  thumbnail?: string | null
+  status: string
+  price?: number
+  lessons_count?: number
+  enrollments_count?: number
+  instructor?: { name: string } | null
+  category?: { id: number, name: string } | null
+  created_at?: string
+}
+interface Paginator<T> {
+  data: T[]
+  total: number
 }
 
-function toggleDropdown(id: number) {
-  activeDropdown.value = activeDropdown.value === id ? null : id
+const { t } = useI18n()
+const toast = useToast()
+const confirm = useConfirm()
+
+const loading = ref(false)
+const saving = ref(false)
+const rows = ref<AdminCourse[]>([])
+const total = ref(0)
+const page = ref(1)
+const perPage = ref(15)
+const tableSearch = ref('')
+const categories = ref<CategoryItem[]>([])
+
+const filters = reactive({
+  status: null as string | null,
+})
+
+const modalOpen = ref(false)
+const form = reactive({
+  title: '',
+  description: '',
+  price: 0,
+  category_id: null as number | null,
+})
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const statusOptions = computed(() => [
+  { label: t('common.all'), value: null },
+  { label: t('admin.manageCourses.statuses.published'), value: 'published' },
+  { label: t('admin.manageCourses.statuses.pending_review'), value: 'pending_review' },
+  { label: t('admin.manageCourses.statuses.draft'), value: 'draft' },
+  { label: t('admin.manageCourses.statuses.rejected'), value: 'rejected' },
+])
+
+const activeFilterCount = computed(() => (filters.status ? 1 : 0))
+
+function statusTone(status: string) {
+  if (status === 'published') return 'tone-published'
+  if (status === 'pending_review') return 'tone-pending'
+  if (status === 'rejected') return 'tone-rejected'
+  if (status === 'draft') return 'tone-draft'
+  return 'tone-neutral'
 }
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
 
-const statusLabel = (value: string) => ({ pending_review: 'Chờ duyệt', published: 'Đã xuất bản', rejected: 'Bị từ chối', draft: 'Bản nháp' }[value] || value)
-const statusClass = (value: string) => ({ pending_review: 'role-student', published: 'role-instructor', rejected: 'role-admin', draft: 'role-admin' }[value] || 'role-admin')
-
-async function fetchCategories() {
+async function loadCategories() {
   try {
-    categories.value = await useApi<CategoryItem[]>('/admin/categories', { headers: authHeaders() })
-  } catch (e) {
-    console.error('Failed to load categories')
+    const res = await useApi<CategoryItem[] | { data: CategoryItem[] }>('/admin/categories')
+    categories.value = Array.isArray(res) ? res : (res.data || [])
+  }
+  catch {
+    categories.value = []
   }
 }
 
-async function fetchCourses(page = 1) {
+async function load() {
   loading.value = true
   try {
-    const query = new URLSearchParams({ page: String(page), per_page: '12' }); if (search.value.trim()) query.set('search', search.value.trim()); if (status.value) query.set('status', status.value)
-    const response = await useApi<CourseListResponse>(`/admin/courses?${query.toString()}`, { headers: authHeaders() })
-    courses.value = response.data; currentPage.value = response.current_page; lastPage.value = response.last_page; totalCourses.value = response.total
-  } catch (error: any) { toast.error(error?.data?.message || 'Không thể tải danh sách khóa học.') } finally { loading.value = false }
+    const res = await useApi<Paginator<AdminCourse>>('/admin/courses', {
+      query: {
+        page: page.value,
+        per_page: perPage.value,
+        search: tableSearch.value || undefined,
+        status: filters.status || undefined,
+      },
+    })
+    rows.value = res.data || []
+    total.value = res.total || 0
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.manageCourses.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    loading.value = false
+  }
 }
 
-function openCreateModal() {
-  Object.assign(form, defaultForm)
+function onTableSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    page.value = 1
+    load()
+  }, 350)
+}
+
+function applyFilters() {
+  page.value = 1
+  load()
+}
+
+function resetFilters() {
+  filters.status = null
+  page.value = 1
+  load()
+}
+
+function onPage(event: { page: number, rows: number }) {
+  page.value = event.page + 1
+  perPage.value = event.rows
+  load()
+}
+
+function openCreate() {
+  Object.assign(form, { title: '', description: '', price: 0, category_id: null })
   modalOpen.value = true
 }
 
 async function createCourse() {
-  if (!form.title.trim() || form.price < 0) return
+  if (!form.title.trim()) {
+    toast.add({ severity: 'warn', summary: t('admin.manageCourses.titleRequired'), life: 2500 })
+    return
+  }
   saving.value = true
   try {
-    const body = { title: form.title, description: form.description, price: form.price, category_id: form.category_id ? Number(form.category_id) : null }
-    await useApi('/courses', { method: 'POST', headers: authHeaders(), body })
-    toast.success('Đã tạo khóa học thành công.')
+    await useApi('/courses', {
+      method: 'POST',
+      body: {
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        price: Number(form.price) || 0,
+        category_id: form.category_id || null,
+      },
+    })
+    toast.add({ severity: 'success', summary: t('admin.manageCourses.created'), life: 2200 })
     modalOpen.value = false
-    await fetchCourses(1)
-  } catch (error: any) {
-    toast.error(error?.data?.message || 'Không thể tạo khóa học.')
-  } finally {
+    filters.status = 'draft'
+    page.value = 1
+    await load()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.manageCourses.saveError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
     saving.value = false
   }
 }
 
-async function deleteCourse() {
-  if (!selectedCourse.value) return
-  try {
-    await useApi(`/courses/${selectedCourse.value.id}`, { method: 'DELETE', headers: authHeaders() })
-    toast.success('Đã xóa khóa học.')
-    confirmOpen.value = false
-    await fetchCourses(currentPage.value)
-  } catch (error: any) {
-    toast.error(error?.data?.message || 'Không thể xóa khóa học.')
-  }
+function askDelete(course: AdminCourse) {
+  confirm.require({
+    message: t('admin.manageCourses.deleteConfirm', { title: course.title }),
+    header: t('admin.manageCourses.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/courses/${course.id}`, { method: 'DELETE' })
+        toast.add({ severity: 'success', summary: t('admin.manageCourses.deleted'), life: 2200 })
+        await load()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.manageCourses.deleteError'),
+          detail: error?.data?.message,
+          life: 3500,
+        })
+      }
+    },
+  })
 }
 
-const { exportToCSV } = useExport()
-
-function exportData() {
-  const cols = [
-    { key: 'id', label: 'ID Khóa học' },
-    { key: 'title', label: 'Tiêu đề' },
-    { key: 'category', label: 'Danh mục', format: (_: any, row: AdminCourse) => row.category?.name || '--' },
-    { key: 'instructor', label: 'Giảng viên', format: (_: any, row: AdminCourse) => row.instructor?.name || '--' },
-    { key: 'status', label: 'Trạng thái', format: (val: any) => statusLabel(val) },
-    { key: 'lessons_count', label: 'Số bài học', format: (val: any) => String(val || 0) },
-    { key: 'enrollments_count', label: 'Số học viên', format: (val: any) => String(val || 0) }
-  ]
-  exportToCSV(courses.value, cols, 'danh_sach_quan_ly_khoa_hoc')
-}
-
-const visiblePages = computed(() => {
-  const range: number[] = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(lastPage.value, start + maxVisible - 1)
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-  for (let i = start; i <= end; i++) {
-    if (i >= 1) range.push(i)
-  }
-  return range
-})
-
-onMounted(() => {
-  fetchCategories()
-  fetchCourses()
+onMounted(async () => {
+  await Promise.all([loadCategories(), load()])
 })
 </script>
 
 <template>
-  <AdminWorkspaceShell :breadcrumb="['Trang chủ', 'Quản lý khóa học', 'Danh sách khóa học']" description="Trang quản lý nội dung các khóa học đã tạo trong hệ thống. Tại đây Admin có thể thêm mới khóa học, cập nhật thông tin và tiến hành xây dựng nội dung bài giảng." title="Khóa học">
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <form class="crud-toolbar-main" @submit.prevent="fetchCourses(1)">
-          <input v-model="search" class="crud-search" type="text" placeholder="Tìm theo tên hoặc mô tả...">
-          <select v-model="status" class="crud-select">
-            <option v-for="item in statuses" :key="item.value" :value="item.value">{{ item.label }}</option>
-          </select>
-          <button class="crud-secondary-btn" type="submit">Tìm kiếm</button>
-        </form>
-        <div class="crud-toolbar-right">
-          <button class="crud-export-btn" type="button" @click="exportData">
-            <span class="material-symbols-outlined">download</span>
-            Xuất Excel
-          </button>
-          <button class="crud-primary-btn" type="button" @click="openCreateModal">Tạo khóa học</button>
+  <div class="page manage-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.courses') }}</span>
+        <h1>{{ t('admin.manageCourses.title') }}</h1>
+        <p>{{ t('admin.manageCourses.subtitle') }}</p>
+      </div>
+    </header>
+
+    <section class="table-panel">
+      <div class="filter-bar">
+        <div class="filter-title">
+          <strong>{{ t('admin.manageCourses.filters') }}</strong>
+          <Tag v-if="activeFilterCount" :value="String(activeFilterCount)" severity="info" />
+        </div>
+        <div class="filter-grid">
+          <label class="field">
+            <span>{{ t('admin.manageCourses.status') }}</span>
+            <Select
+              v-model="filters.status"
+              :options="statusOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </label>
+        </div>
+        <div class="filter-actions">
+          <Button :label="t('admin.manageCourses.apply')" icon="pi pi-filter" size="small" @click="applyFilters" />
+          <Button :label="t('admin.manageCourses.reset')" severity="secondary" text size="small" @click="resetFilters" />
         </div>
       </div>
-      
-      <div class="crud-table-wrap">
-        <table class="crud-table">
-          <thead><tr><th style="width: 40px"><input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll"></th><th style="width: 60px">STT</th><th>Khóa học</th><th>Giảng viên</th><th>Danh mục</th><th>Trạng thái</th><th>Nội dung</th><th style="text-align: right">Thao tác</th></tr></thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="6" class="crud-empty">Đang tải dữ liệu khóa học...</td></tr>
-            <tr v-else-if="courses.length === 0"><td colspan="6" class="crud-empty">Chưa có khóa học.</td></tr>
-            <tr v-for="(course, idx) in courses" :key="course.id">
-              <td><input type="checkbox" v-model="selectedIds" :value="course.id"></td>
-              <td>{{ (currentPage - 1) * 12 + idx + 1 }}</td>
-              <td>
-                <div class="crud-course">
-                  <div class="crud-course-thumb">
-                    <img v-if="course.thumbnail" :src="course.thumbnail" :alt="course.title">
-                    <span v-else>📘</span>
-                  </div>
-                  <div>
-                    <strong>{{ course.title }}</strong>
-                    <p>{{ course.description || 'Chưa có mô tả ngắn.' }}</p>
-                  </div>
-                </div>
-              </td>
-              <td>{{ course.instructor?.name || '--' }}</td>
-              <td>{{ course.category?.name || '--' }}</td>
-              <td><span class="crud-badge" :class="statusClass(course.status)">{{ statusLabel(course.status) }}</span></td>
-              <td>{{ course.lessons_count || 0 }} bài</td>
-              <td>
-                <div class="crud-actions-dropdown" style="text-align: right">
-                  <button class="action-toggle-btn" type="button" @click.stop="toggleDropdown(course.id)">
-                    <span class="material-symbols-outlined">more_vert</span>
-                  </button>
-                  <div v-if="activeDropdown === course.id" class="dropdown-menu">
-                    <button class="dropdown-item" type="button" @click="navigateTo(`/courses/${course.id}`)">Xem thử</button>
-                    <button class="dropdown-item" type="button" @click="navigateTo(`/admin/manage-courses/${course.id}`)">Xây dựng nội dung</button>
-                    <div class="dropdown-divider"></div>
-                    <button class="dropdown-item is-danger" type="button" @click="selectedCourse = course; confirmOpen = true">Xóa khóa học</button>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="crud-pagination">
-        <p>Hiển thị trang {{ currentPage }} / {{ lastPage }} (Tổng số {{ totalCourses }} khóa học)</p>
-        <div class="crud-pagination-actions">
-          <button class="pagination-num-btn" type="button" :disabled="currentPage <= 1" @click="fetchCourses(currentPage - 1)">
-            Trước
-          </button>
-          <div class="pagination-numbers">
-            <button
-              v-for="p in visiblePages"
-              :key="p"
-              class="pagination-num-btn"
-              :class="{ 'is-active': p === currentPage }"
-              type="button"
-              @click="fetchCourses(p)"
-            >
-              {{ p }}
-            </button>
-          </div>
-          <button class="pagination-num-btn" type="button" :disabled="currentPage >= lastPage" @click="fetchCourses(currentPage + 1)">
-            Sau
-          </button>
+
+      <div class="table-toolbar">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="tableSearch" :placeholder="t('admin.manageCourses.searchPh')" @input="onTableSearch" />
+        </IconField>
+        <div class="toolbar-actions">
+          <strong>{{ t('admin.users.result', { n: total }) }}</strong>
+          <Button :label="t('admin.manageCourses.add')" icon="pi pi-plus" size="small" @click="openCreate" />
+          <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
         </div>
       </div>
+
+      <DataTable
+        :value="rows"
+        data-key="id"
+        :loading="loading"
+        lazy
+        paginator
+        :rows="perPage"
+        :total-records="total"
+        :rows-per-page-options="[10, 15, 25, 50]"
+        @page="onPage"
+      >
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ (page - 1) * perPage + index + 1 }}</template>
+        </Column>
+        <Column :header="t('admin.manageCourses.course')" style="min-width:220px">
+          <template #body="{ data }">
+            <div class="course-cell">
+              <img v-if="data.thumbnail" :src="data.thumbnail" :alt="data.title" class="thumb">
+              <div v-else class="thumb placeholder"><i class="pi pi-book" /></div>
+              <div>
+                <strong>{{ data.title }}</strong>
+                <small>{{ data.category?.name || '—' }}</small>
+              </div>
+            </div>
+          </template>
+        </Column>
+        <Column :header="t('admin.manageCourses.instructor')" style="min-width:140px">
+          <template #body="{ data }">{{ data.instructor?.name || '—' }}</template>
+        </Column>
+        <Column :header="t('admin.manageCourses.lessons')" style="width:100px">
+          <template #body="{ data }">{{ data.lessons_count || 0 }}</template>
+        </Column>
+        <Column :header="t('admin.manageCourses.learners')" style="width:100px">
+          <template #body="{ data }">{{ data.enrollments_count || 0 }}</template>
+        </Column>
+        <Column :header="t('admin.manageCourses.status')" style="width:130px">
+          <template #body="{ data }">
+            <span class="pill" :class="statusTone(data.status)">
+              {{ t(`admin.manageCourses.statuses.${data.status}`, data.status) }}
+            </span>
+          </template>
+        </Column>
+        <Column :header="t('admin.users.actions')" style="width:10rem">
+          <template #body="{ data }">
+            <NuxtLink :to="`/admin/manage-courses/${data.id}`">
+              <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.manageCourses.builder')" />
+            </NuxtLink>
+            <Button icon="pi pi-trash" text rounded severity="danger" @click="askDelete(data)" />
+          </template>
+        </Column>
+        <template #empty>
+          <div class="empty">{{ t('common.noData') }}</div>
+        </template>
+      </DataTable>
     </section>
 
-    <Teleport to="body">
-      <div v-if="modalOpen" class="crud-modal-backdrop" @click.self="modalOpen = false">
-        <div class="crud-modal">
-          <div class="crud-modal-head">
-            <div>
-              <p class="section-kicker">Tạo mới</p>
-              <h3>Tạo khóa học</h3>
-            </div>
-            <button class="topbar-ghost" type="button" @click="modalOpen = false">✕</button>
-          </div>
-          <div class="crud-form-grid">
-            <label class="crud-field crud-field-full"><span>Tên khóa học</span><input v-model="form.title" type="text" placeholder="Nhập tên khóa học"></label>
-            <div class="crud-field crud-field-full"><span>Mô tả</span><RichTextEditor v-model="form.description" placeholder="Mô tả khóa học..." /></div>
-            <label class="crud-field"><span>Giá tiền (VNĐ)</span><input v-model="form.price" type="number" min="0"></label>
-            <label class="crud-field">
-              <span>Danh mục</span>
-              <select v-model="form.category_id" class="crud-select">
-                <option value="">Chọn danh mục</option>
-                <option v-for="cat in categories" :key="cat.id" :value="String(cat.id)">{{ cat.name }}</option>
-              </select>
-            </label>
-          </div>
-          <div class="crud-modal-foot">
-            <button class="crud-secondary-btn" type="button" @click="modalOpen = false">Hủy</button>
-            <button class="crud-primary-btn" type="button" :disabled="saving" @click="createCourse">
-              {{ saving ? 'Đang tạo...' : 'Tạo khóa học' }}
-            </button>
-          </div>
-        </div>
+    <Dialog
+      v-model:visible="modalOpen"
+      modal
+      :header="t('admin.manageCourses.add')"
+      :style="{ width: 'min(560px, 96vw)' }"
+    >
+      <div class="form">
+        <label class="field full">
+          <span>{{ t('admin.manageCourses.courseTitle') }}</span>
+          <InputText v-model="form.title" class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.manageCourses.description') }}</span>
+          <Textarea v-model="form.description" rows="4" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.manageCourses.price') }}</span>
+          <InputNumber v-model="form.price" :min="0" class="w-full" input-class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.manageCourses.category') }}</span>
+          <Select
+            v-model="form.category_id"
+            :options="categories"
+            option-label="name"
+            option-value="id"
+            show-clear
+            filter
+            class="w-full"
+          />
+        </label>
       </div>
-    </Teleport>
-
-    <CrudConfirmModal :open="confirmOpen" title="Xóa khóa học" :description="`Thao tác này sẽ xóa hoàn toàn khóa học ${selectedCourse?.title}. Không thể hoàn tác.`" confirm-text="Xóa khóa học" tone="danger" @close="confirmOpen = false" @confirm="deleteCourse" />
-  </AdminWorkspaceShell>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
+        <Button :label="t('admin.manageCourses.add')" icon="pi pi-check" :loading="saving" @click="createCourse" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <style scoped>
-/* Dropdown Styles */
-.crud-actions-dropdown {
-  position: relative;
-  display: block;
+.manage-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
-.action-toggle-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  transition: background-color 0.2s;
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
 }
-
-.action-toggle-btn:hover {
-  background-color: rgba(17, 17, 17, 0.05);
+.filter-bar { margin-bottom: 12px; }
+.filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.filter-actions { display: flex; gap: 8px; margin-top: 10px; }
+.table-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px; flex-wrap: wrap;
 }
+.toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
-.dropdown-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
-  background: white;
-  border: 1px solid rgba(17, 17, 17, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  min-width: 180px;
-  z-index: 50;
-  padding: 8px 0;
-  display: flex;
-  flex-direction: column;
-  text-align: left;
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; }
+.w-full { width: 100%; }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form .full { grid-column: 1 / -1; }
+
+.course-cell { display: flex; align-items: center; gap: 10px; }
+.thumb { width: 64px; height: 40px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.thumb.placeholder {
+  display: grid; place-items: center; background: var(--surface-hover, #f1f5f9); color: var(--text-muted);
 }
+.course-cell small { display: block; color: var(--text-muted); margin-top: 2px; }
 
-.dropdown-item {
-  background: transparent;
-  border: none;
-  width: 100%;
-  text-align: left;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  color: #1e293b;
-  transition: all 0.2s;
+.pill {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+  font-size: .72rem; font-weight: 700; white-space: nowrap;
 }
+.tone-published { background: #dcfce7; color: #15803d; }
+.tone-pending { background: #fef3c7; color: #b45309; }
+.tone-rejected { background: #fee2e2; color: #b91c1c; }
+.tone-draft { background: #e2e8f0; color: #475569; }
+.tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
 
-.dropdown-item:hover {
-  background-color: rgba(var(--green-rgb), 0.08);
-  color: var(--green);
+.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+
+@media (max-width: 640px) {
+  .form { grid-template-columns: 1fr; }
 }
-
-.dropdown-item.is-danger {
-  color: #dc2626;
-}
-
-.dropdown-item.is-danger:hover {
-  background-color: #fef2f2;
-}
-
-.dropdown-divider {
-  height: 1px;
-  background-color: rgba(17, 17, 17, 0.1);
-  margin: 4px 0;
-}
-
-/* ====== DARK MODE OVERRIDES ====== */
-[data-theme="dark"] .action-dropdown-menu { background: var(--surface-strong); border-color: rgba(255, 255, 255, 0.1); }
-[data-theme="dark"] .dropdown-item { color: var(--text); }
-[data-theme="dark"] .dropdown-item.is-danger { color: #f87171; }
-[data-theme="dark"] .dropdown-item.is-danger:hover { background: rgba(239, 68, 68, 0.1); }
-[data-theme="dark"] .dropdown-divider { background-color: rgba(255, 255, 255, 0.1); }
 </style>

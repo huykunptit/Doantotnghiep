@@ -12,7 +12,7 @@ import '../models/category_model.dart';
 part 'course_repository.g.dart';
 
 @riverpod
-CourseRepository courseRepository(Ref ref) => CourseRepository(
+CourseRepository courseRepository(CourseRepositoryRef ref) => CourseRepository(
       dio: ref.read(apiClientProvider),
       cache: ref.read(localCacheServiceProvider),
     );

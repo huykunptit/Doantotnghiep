@@ -1,267 +1,212 @@
-<script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Download, FileText } from 'lucide-vue-next'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import { useExport } from '~/composables/useExport'
+﻿<script setup lang="ts">
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
 
-const token = useAuthTokenCookie()
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+interface CourseRow {
+  id: number
+  title: string
+  status: string
+  enrollments_count?: number
+  lessons_count?: number
+  instructor?: { name?: string } | null
+}
 
-const loading = ref(true)
-const error = ref('')
-const courses = ref<any[]>([])
-const stats = ref<any>({})
+interface Paginator<T> { data: T[], total: number }
 
-async function fetchData() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [coursesRes, statsRes] = await Promise.all([
-      useApi<any>('/admin/courses?per_page=200', { headers: authHeaders() }),
-      useApi<any>('/admin/stats', { headers: authHeaders() }),
-    ])
-    courses.value = coursesRes.data || []
-    stats.value = statsRes || {}
+interface Stats {
+  total_courses?: number
+  published_courses?: number
+  pending_courses?: number
+  courses_by_status?: Record<string, number>
+  top_courses?: { id: number, title: string, enrollments_count: number }[]
+}
+
+const { t, locale } = useI18n()
+const toast = useToast()
+const loading = ref(false)
+
+const stats = ref<Stats>({})
+const courses = ref<CourseRow[]>([])
+
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+
+function fmtNumber(value = 0) {
+  return value.toLocaleString(numberLocale.value)
+}
+
+function statusTone(status: string) {
+  const map: Record<string, string> = {
+    published: 'tone-published',
+    pending_review: 'tone-pending',
+    draft: 'tone-draft',
+    rejected: 'tone-rejected',
+    archived: 'tone-archived',
   }
-  catch (e: any) {
-    error.value = e?.data?.message || 'Không thể tải dữ liệu.'
+  return map[status] || 'tone-neutral'
+}
+
+function statusLabel(status: string) {
+  const key = `admin.dashboard.status.${status}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
+const kpis = computed(() => [
+  { label: t('admin.reports.courses.totalCourses'), value: fmtNumber(stats.value.total_courses || 0) },
+  { label: t('admin.reports.courses.published'), value: fmtNumber(stats.value.published_courses || 0) },
+  { label: t('admin.reports.courses.pendingReview'), value: fmtNumber(stats.value.pending_courses || 0) },
+])
+
+const statusRows = computed(() => {
+  const mix = stats.value.courses_by_status || {}
+  return Object.entries(mix)
+    .map(([status, count]) => ({ status, count: Number(count) }))
+    .sort((a, b) => b.count - a.count)
+})
+
+async function load() {
+  loading.value = true
+  try {
+    const [statsRes, coursesRes] = await Promise.all([
+      useApi<Stats>('/admin/stats'),
+      useApi<Paginator<CourseRow>>('/admin/courses', { query: { per_page: 100 } }),
+    ])
+    stats.value = statsRes
+    courses.value = (coursesRes.data || []).sort((a, b) => (b.enrollments_count || 0) - (a.enrollments_count || 0))
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.reports.common.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
   }
   finally {
     loading.value = false
   }
 }
 
-const performanceMetrics = computed(() => [
-  {
-    label: 'Tổng khóa học',
-    value: stats.value.courses_count || courses.value.length,
-    icon: 'graduation-cap',
-    color: 'tone-blue',
-  },
-  {
-    label: 'Đã xuất bản',
-    value: courses.value.filter(c => c.status === 'published').length,
-    icon: 'circle-check-big',
-    color: 'tone-green',
-  },
-  {
-    label: 'Tổng đăng ký',
-    value: stats.value.students_count || courses.value.reduce((s, c) => s + (c.enrollments_count || 0), 0),
-    icon: 'users',
-    color: 'tone-amber',
-  },
-])
-
-const statusDistribution = computed(() => {
-  const map: Record<string, number> = {}
-  courses.value.forEach(c => {
-    map[c.status] = (map[c.status] || 0) + 1
-  })
-  return Object.entries(map).map(([status, count]) => ({
-    status,
-    count,
-    label: { published: 'Đã xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Từ chối' }[status] || status,
-  })).sort((a, b) => b.count - a.count)
-})
-
-const categoryDistribution = computed(() => {
-  const map: Record<string, number> = {}
-  courses.value.forEach(c => {
-    const cat = c.category?.name || 'Chưa phân loại'
-    map[cat] = (map[cat] || 0) + 1
-  })
-  const total = courses.value.length || 1
-  return Object.entries(map)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 6)
-    .map(([name, count]) => ({ name, count, percentage: Math.round((count / total) * 100) }))
-})
-
-const topByEnrollment = computed(() =>
-  [...courses.value]
-    .sort((a, b) => (b.enrollments_count || 0) - (a.enrollments_count || 0))
-    .slice(0, 8)
-)
-
-const maxEnrollment = computed(() =>
-  Math.max(...topByEnrollment.value.map(c => c.enrollments_count || 0), 1)
-)
-
-const { exportToPDF, exportToCSV } = useExport()
-
-function exportPDF() {
-  const headers = ['Tên khóa học', 'Danh mục', 'Trạng thái', 'Lượt đăng ký', 'Giảng viên']
-  const rows = courses.value.slice(0, 200).map(c => [
-    c.title || '—',
-    c.category?.name || '—',
-    { published: 'Xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Từ chối' }[c.status] || c.status,
-    c.enrollments_count || 0,
-    c.user?.name || '—',
-  ])
-  exportToPDF('Báo cáo Khóa học', `Tổng ${courses.value.length} khóa học`, headers, rows, 'bao-cao-khoa-hoc')
-}
-
-function exportCSV() {
-  const cols = [
-    { key: 'id', label: 'ID Khóa học' },
-    { key: 'title', label: 'Tên khóa học' },
-    { key: 'category', label: 'Danh mục', format: (_: any, row: any) => row.category?.name || 'Chưa phân loại' },
-    { key: 'status', label: 'Trạng thái', format: (val: any) => ({ published: 'Xuất bản', draft: 'Bản nháp', pending_review: 'Chờ duyệt', rejected: 'Từ chối' }[val] || val) },
-    { key: 'enrollments_count', label: 'Lượt đăng ký', format: (val: any) => String(val || 0) },
-    { key: 'lessons_count', label: 'Bài học', format: (val: any) => String(val || 0) },
-    { key: 'price', label: 'Giá', format: (val: any) => String(val || 0) }
-  ]
-  exportToCSV(courses.value, cols, 'bao-cao-khoa-hoc')
-}
-
-onMounted(fetchData)
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    title="Báo cáo theo khóa học"
-    description="Phân bổ danh mục, trạng thái và hiệu quả đào tạo của toàn bộ hệ thống khóa học."
-    :breadcrumb="['Trang chủ', 'Báo cáo', 'Báo cáo khóa học']"
-  >
-    <div v-if="loading" class="dashboard-card crud-empty">Đang tải dữ liệu...</div>
-    <div v-else-if="error" class="crud-alert is-error">{{ error }}</div>
-
-    <template v-else>
-      <!-- Export toolbar -->
-      <section class="dashboard-card" style="margin-bottom: 24px; padding: 0; border: none; background: transparent; box-shadow: none;">
-        <div class="crud-toolbar">
-          <div class="crud-toolbar-main">
-            <p class="section-kicker" style="margin: 0;">Xuất dữ liệu báo cáo</p>
-          </div>
-          <div class="crud-toolbar-right">
-            <button class="crud-export-btn" type="button" @click="exportCSV">
-              <Download :size="18" :stroke-width="1.75" />
-              Xuất Excel
-            </button>
-            <button class="crud-primary-btn" type="button" @click="exportPDF" style="display: inline-flex; align-items: center; gap: 6px;">
-              <FileText :size="18" :stroke-width="1.75" />
-              Xuất PDF
-            </button>
-          </div>
-        </div>
-      </section>
-      <!-- KPI -->
-      <section class="dashboard-grid" style="margin-bottom: 24px;">
-        <article v-for="metric in performanceMetrics" :key="metric.label" class="dashboard-card mini-card" :class="metric.color">
-          <p class="mini-title">{{ metric.label }}</p>
-          <div class="mini-head">
-            <strong>{{ metric.value }}</strong>
-            <SylvaIcon :name="metric.icon" :size="20" style="opacity: 0.5;" />
-          </div>
-        </article>
-      </section>
-
-      <div class="report-layout">
-        <!-- Left col -->
-        <div style="display: flex; flex-direction: column; gap: 24px;">
-          <!-- Category distribution -->
-          <section class="dashboard-card">
-            <div class="card-head" style="margin-bottom: 24px;">
-              <h3>Phân bổ theo danh mục</h3>
-              <p>Số lượng khóa học theo từng lĩnh vực đào tạo.</p>
-            </div>
-            <div v-if="categoryDistribution.length === 0" class="crud-empty">Chưa có dữ liệu.</div>
-            <div v-else class="category-bars">
-              <div v-for="cat in categoryDistribution" :key="cat.name" class="category-item">
-                <div class="cat-label">
-                  <strong>{{ cat.name }}</strong>
-                  <span>{{ cat.count }} khóa ({{ cat.percentage }}%)</span>
-                </div>
-                <div class="cat-track">
-                  <div class="cat-fill" :style="{ width: `${cat.percentage}%` }" />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Top by enrollment -->
-          <section class="dashboard-card">
-            <div class="card-head" style="margin-bottom: 24px;">
-              <h3>Khóa học nhiều học viên nhất</h3>
-            </div>
-            <div v-if="topByEnrollment.length === 0" class="crud-empty">Chưa có dữ liệu.</div>
-            <div v-else style="display: grid; gap: 14px;">
-              <div v-for="course in topByEnrollment" :key="course.id" style="display: grid; gap: 6px;">
-                <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
-                  <span style="font-weight: 600; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ course.title }}</span>
-                  <span style="color: var(--muted); white-space: nowrap; margin-left: 8px;">{{ course.enrollments_count || 0 }} HV</span>
-                </div>
-                <div style="height: 6px; background: rgba(17,17,17,.05); border-radius: 999px; overflow: hidden;">
-                  <div style="height: 100%; background: var(--green); border-radius: 999px; transition: width 0.8s ease;" :style="{ width: `${((course.enrollments_count || 0) / maxEnrollment) * 100}%` }" />
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <!-- Right col -->
-        <aside class="report-side">
-          <!-- Status breakdown -->
-          <section class="dashboard-card">
-            <div class="card-head" style="margin-bottom: 20px;">
-              <h3>Theo trạng thái</h3>
-            </div>
-            <div style="display: grid; gap: 14px;">
-              <div v-for="s in statusDistribution" :key="s.status" style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.875rem; font-weight: 600;">{{ s.label }}</span>
-                <span
-                  class="crud-badge"
-                  :class="{
-                    'role-instructor': s.status === 'published',
-                    'role-admin': s.status === 'rejected',
-                  }"
-                >
-                  {{ s.count }}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <!-- Free vs paid -->
-          <section class="dashboard-card stat-highlight">
-            <h4>Miễn phí vs Trả phí</h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
-              <div style="text-align: center;">
-                <strong style="font-size: 1.75rem; color: var(--green-deep);">
-                  {{ courses.filter(c => !c.price || c.price === 0).length }}
-                </strong>
-                <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">Miễn phí</p>
-              </div>
-              <div style="text-align: center;">
-                <strong style="font-size: 1.75rem; color: var(--green);">
-                  {{ courses.filter(c => c.price > 0).length }}
-                </strong>
-                <p style="font-size: 0.8rem; color: var(--muted); margin-top: 4px;">Trả phí</p>
-              </div>
-            </div>
-          </section>
-        </aside>
+  <div class="page report-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.reports') }}</span>
+        <h1>{{ t('admin.reports.courses.title') }}</h1>
+        <p>{{ t('admin.reports.courses.subtitle') }}</p>
       </div>
-    </template>
-  </AdminWorkspaceShell>
+      <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
+    </header>
+
+    <section class="kpi-rail">
+      <article v-for="kpi in kpis" :key="kpi.label" class="kpi">
+        <span>{{ kpi.label }}</span>
+        <strong>{{ kpi.value }}</strong>
+      </article>
+    </section>
+
+    <div class="split">
+      <section class="table-panel">
+        <div class="panel-head">
+          <strong>{{ t('admin.reports.courses.topEnrollments') }}</strong>
+        </div>
+        <DataTable :value="stats.top_courses || []" :loading="loading" size="small" striped-rows>
+          <Column :header="t('admin.users.stt')" style="width:3rem">
+            <template #body="{ index }">{{ index + 1 }}</template>
+          </Column>
+          <Column field="title" :header="t('admin.orders.course')" />
+          <Column field="enrollments_count" :header="t('admin.reports.courses.enrollments')" style="width:7rem" />
+          <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+        </DataTable>
+      </section>
+
+      <section class="table-panel">
+        <div class="panel-head">
+          <strong>{{ t('admin.reports.courses.statusMix') }}</strong>
+        </div>
+        <DataTable :value="statusRows" :loading="loading" size="small" striped-rows>
+          <Column :header="t('admin.orders.paymentStatus')">
+            <template #body="{ data }">
+              <span class="pill" :class="statusTone(data.status)">{{ statusLabel(data.status) }}</span>
+            </template>
+          </Column>
+          <Column field="count" :header="t('admin.reports.common.total')" style="width:6rem" />
+          <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+        </DataTable>
+      </section>
+    </div>
+
+    <section class="table-panel">
+      <div class="panel-head">
+        <strong>{{ t('admin.reports.courses.courseList') }}</strong>
+      </div>
+      <DataTable :value="courses" :loading="loading" data-key="id" striped-rows scrollable scroll-height="400px">
+        <Column :header="t('admin.users.stt')" style="width:4rem" frozen>
+          <template #body="{ index }">{{ index + 1 }}</template>
+        </Column>
+        <Column field="title" :header="t('admin.orders.course')" style="min-width:180px" />
+        <Column :header="t('admin.reports.courses.instructor')" style="min-width:120px">
+          <template #body="{ data }">{{ data.instructor?.name || '—' }}</template>
+        </Column>
+        <Column field="lessons_count" :header="t('admin.reports.courses.lessons')" style="width:6rem" />
+        <Column field="enrollments_count" :header="t('admin.reports.courses.enrollments')" style="width:7rem" />
+        <Column :header="t('admin.orders.paymentStatus')" style="width:120px">
+          <template #body="{ data }">
+            <span class="pill" :class="statusTone(data.status)">{{ statusLabel(data.status) }}</span>
+          </template>
+        </Column>
+        <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+      </DataTable>
+    </section>
+  </div>
 </template>
 
 <style scoped>
-.report-layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 24px;
+.report-page { gap: 14px; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
-.report-side { display: flex; flex-direction: column; gap: 24px; }
-.category-bars { display: grid; gap: 20px; }
-.category-item { display: grid; gap: 8px; }
-.cat-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; }
-.cat-label span { color: var(--muted); font-size: 0.8rem; }
-.cat-track { height: 10px; background: rgba(var(--green-rgb),.07); border-radius: 999px; overflow: hidden; }
-.cat-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 1s ease-out; }
-.stat-highlight { background: var(--green-soft); border: 1px dashed var(--green); }
-.stat-highlight h4 { margin: 0; font-size: 0.95rem; }
-@media (max-width: 1100px) { .report-layout { grid-template-columns: 1fr; } }
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+
+.kpi-rail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kpi {
+  display: flex; flex-direction: column; gap: 4px; padding: 14px 16px;
+  border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+.kpi span { color: var(--text-muted); font-size: .76rem; font-weight: 600; }
+.kpi strong { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.table-panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 12px;
+}
+.panel-head { margin-bottom: 10px; }
+.panel-head strong { font-size: .92rem; }
+
+.pill {
+  display: inline-flex; padding: 3px 9px; border-radius: 999px;
+  font-size: .72rem; font-weight: 700;
+}
+.tone-published { background: #dcfce7; color: #15803d; }
+.tone-pending { background: #fef9c3; color: #a16207; }
+.tone-draft { background: #e2e8f0; color: #475569; }
+.tone-rejected { background: #fee2e2; color: #b91c1c; }
+.tone-archived { background: #ede9fe; color: #6d28d9; }
+.tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
+.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+
+@media (max-width: 900px) { .split, .kpi-rail { grid-template-columns: 1fr; } }
 </style>

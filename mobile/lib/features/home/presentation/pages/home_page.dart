@@ -9,6 +9,8 @@ import '../../../courses/data/models/course_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../notifications/providers/notification_providers.dart';
+import '../../../ai/presentation/widgets/recommendations_section.dart';
+import '../../../ai/providers/ai_providers.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -29,6 +31,7 @@ class HomePage extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(studentDashboardProvider);
           ref.invalidate(courseCatalogProvider());
+          ref.invalidate(recommendationsProvider);
         },
         child: CustomScrollView(
           slivers: [
@@ -147,6 +150,9 @@ class HomePage extends ConsumerWidget {
                       return _ContinueLearningSection(enrollments: data.currentEnrollments);
                     },
                   ),
+
+                  // Personalized recommendations
+                  const RecommendationsSection(),
 
                   // Latest courses header
                   Padding(
@@ -686,16 +692,16 @@ class _QuickActionsSection extends StatelessWidget {
         onTap: () => context.push('/certificates'),
       ),
       _QuickActionItem(
-        icon: Icons.auto_awesome_rounded,
-        label: 'AI Advisor',
+        icon: Icons.chat_bubble_outline_rounded,
+        label: 'Trợ lý AI',
         color: Colors.purple,
-        onTap: () => context.push('/career'),
+        onTap: () => context.push('/ai-chat'),
       ),
       _QuickActionItem(
-        icon: Icons.school_rounded,
-        label: 'Lớp học',
-        color: Colors.orange,
-        onTap: () => context.go('/my-courses'),
+        icon: Icons.auto_awesome_rounded,
+        label: 'AI Career',
+        color: AppColors.secondary400,
+        onTap: () => context.push('/career'),
       ),
     ];
 

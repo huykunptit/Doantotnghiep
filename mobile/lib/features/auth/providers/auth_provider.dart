@@ -10,10 +10,16 @@ class AuthNotifier extends _$AuthNotifier {
   @override
   Future<UserModel?> build() async {
     final storage = ref.read(secureStorageProvider);
-    final token = await storage.getToken();
+    // Bound storage/API so splash never hangs forever (esp. web + dead backend).
+    final token = await storage.getToken().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => null,
+    );
     if (token == null) return null;
     try {
-      return await ref.read(authRepositoryProvider).getMe();
+      return await ref.read(authRepositoryProvider).getMe().timeout(
+        const Duration(seconds: 12),
+      );
     } catch (_) {
       await storage.deleteToken();
       return null;

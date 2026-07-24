@@ -1,0 +1,58 @@
+---
+description: Phạm vi đồ án Sylva LMS — học vụ gọn, học liệu đầy đủ, B2C + cá nhân hoá 3 role
+globs: frontend/**/*.{vue,ts},backend/**/*.php,ai-service/**/*.py,mobile/**/*
+alwaysApply: false
+---
+
+# Thesis scope — Sylva LMS
+
+Đề tài: học tập trực tuyến **cá nhân hoá** cho đại học + **B2C bán khóa** (doanh thu GV). Cá nhân hoá cho **SV, GV, Admin**.
+
+## Giữ nguyên (ưu tiên cao)
+
+### Học liệu / xây bài giảng (như thiết kế ban đầu)
+- `Course` → `Section` → `Lesson` + progress/quiz attach
+- Builder nguồn: `frontend_superbackup/.../manage-courses/[id].vue` → port sang `frontend/`
+- Loại bài: `video`, `page`, `file`, `document`, `quiz`, `assignment` + `scorm`/`h5p` nếu đã có trong builder
+- Không cắt cấu trúc curriculum builder xuống “chỉ text”
+
+### B2C + gợi ý khóa
+- Catalog, đơn hàng, PayOS, enrollment sau thanh toán (`order_id`)
+- Gợi ý khóa học cho SV (và spot trên trang bán)
+- Insights doanh thu / gợi ý đẩy khóa cho GV
+
+### Cá nhân hoá 3 phía
+- SV: recommend khóa + gợi ý bài/quiz + chat context
+- GV: doanh thu/ghi danh + gợi ý hành động (+ optional generate quiz)
+- Admin: dashboard KPI + action hints (chờ duyệt, đơn, lưu lượng)
+
+## Học vụ — mức “đủ dùng đại học” (không full SIS)
+
+**Menu In:**
+1. Năm học & Học kỳ (`academic-years` + `terms`)
+2. Danh mục tối giản: `units` / `programs` / `majors` / `cohorts`
+3. CTĐT (`curricula`) — builder gọn
+4. Lớp hành chính
+5. Lớp tín chỉ (`ClassSection`)
+6. Ghi danh (academic **và** B2C `order_id`)
+
+**Out khỏi menu demo:** báo cáo L&D nặng, PLO/CLO/Skill, Institution cây đầy đủ, proctoring.
+
+## Mobile
+- Flutter = client **SV** (gợi ý, mua/học, quiz). Admin/GV ở web.
+
+## Demo bảo vệ (bám theo)
+Admin duyệt khóa → GV builder → SV học CTĐT theo kỳ → **đánh giá kết quả** → gợi ý path/khóa → mua B2C → học → (sau) AI Career/chat.
+
+## Đã triển khai (Phase 1 — 2026-07-24)
+- Domain `CareerPath` + `career_path_courses` + `user_career_paths`
+- PayOS/order hỗ trợ `career_path_id` (XOR `course_id`); webhook enroll all required courses
+- Chứng chỉ path khi hoàn thành required courses
+- Admin UI `/admin/career-paths`, catalog `/paths`, checkout `/checkout/path/[slug]`
+
+## Đã triển khai (Phase 2 — 2026-07-24)
+- LearnerProfile + Recommend courses/paths (có reasons)
+- Curriculum evaluation (hook `career_advisor_context` cho AI sau)
+- Dashboard SV: evaluation + path rec + course rec
+- AI (Advisor/RAG/Ollama) **chưa làm** — để cuối
+- Seed demo: chỉ **1 năm học hiện tại** (xem plan Phase 2b)

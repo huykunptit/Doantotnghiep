@@ -1,77 +1,55 @@
-export interface PublicSiteSettings {
-  theme_color_primary: string | null
-  theme_color_deep: string | null
-  brand_name: string | null
-  brand_mark: string | null
-  brand_logo: string | null
-  site_title: string | null
-  auth_page_image: string | null
-  site_name: string | null
-  site_tagline: string | null
-  site_description: string | null
-  site_logo: string | null
-  site_favicon: string | null
-  contact_email: string | null
-  contact_phone: string | null
-  contact_address: string | null
-  support_hours: string | null
-  social_facebook: string | null
-  social_youtube: string | null
-  social_tiktok: string | null
-  social_linkedin: string | null
-  social_zalo: string | null
-  footer_copyright: string | null
-  legal_company_name: string | null
-  legal_tax_code: string | null
-  terms_url: string | null
-  privacy_url: string | null
-  default_locale: string | null
-  default_currency: string | null
-  timezone: string | null
+export interface SiteSettings {
+  site_name?: string
+  site_description?: string
+  logo?: string | null
+  favicon?: string | null
+  primary_color?: string
+  contact_email?: string
+  contact_phone?: string
+  address?: string
 }
 
-const FALLBACK_NAME = 'Sylva LMS'
-
-export function useSiteSettingsState() {
-  return useState<PublicSiteSettings | null>('site-settings', () => null)
+function darken(hex: string, amount = 18) {
+  const normalized = hex.replace('#', '')
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return hex
+  const channels = [0, 2, 4].map(index => Math.max(0, parseInt(normalized.slice(index, index + 2), 16) - amount))
+  return `#${channels.map(value => value.toString(16).padStart(2, '0')).join('')}`
 }
 
 export function useSiteSettings() {
-  const settings = useSiteSettingsState()
+  const settings = useState<SiteSettings>('site-settings', () => ({}))
+  const loaded = useState('site-settings-loaded', () => false)
 
-  const brandName = computed(() => settings.value?.brand_name?.trim() || settings.value?.site_name?.trim() || FALLBACK_NAME)
-  const brandMark = computed(() => settings.value?.brand_mark?.trim() || brandName.value.slice(0, 1).toUpperCase())
-  const brandLogo = computed(() => settings.value?.brand_logo || settings.value?.site_logo || '/logo.png')
-  const siteTitle = computed(() => settings.value?.site_title?.trim() || brandName.value)
-  const siteName = computed(() => brandName.value)
-  const siteLogo = computed(() => brandLogo.value)
-  const siteFavicon = computed(() => settings.value?.site_favicon || '/logo.png')
-  const siteTagline = computed(() => settings.value?.site_tagline || null)
-  const authPageImage = computed(() => settings.value?.auth_page_image || '/hoc-vien-cong-nghe-buu-chinh-vien-thong.jpg')
-  const themeColorPrimary = computed(() => settings.value?.theme_color_primary || '#0F6E8C')
-  const themeColorDeep = computed(() => settings.value?.theme_color_deep || '#0b5167')
-
-  async function refreshSettings() {
-    try {
-      settings.value = await useApi<PublicSiteSettings>('/site-settings')
-    } catch {
-      // Keep existing values on failure
+  function applyBranding() {
+    if (!import.meta.client) return
+    const primary = settings.value.primary_color
+    if (primary) {
+      document.documentElement.style.setProperty('--brand', primary)
+      document.documentElement.style.setProperty('--brand-hover', darken(primary))
+    }
+    if (settings.value.site_name) document.title = settings.value.site_name
+    if (settings.value.favicon) {
+      let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+      if (!link) {
+        link = document.createElement('link')
+        link.rel = 'icon'
+        document.head.appendChild(link)
+      }
+      link.href = settings.value.favicon
     }
   }
 
-  return {
-    settings,
-    brandName,
-    brandMark,
-    brandLogo,
-    siteTitle,
-    siteName,
-    siteLogo,
-    siteFavicon,
-    siteTagline,
-    authPageImage,
-    themeColorPrimary,
-    themeColorDeep,
-    refreshSettings,
+  async function load() {
+    if (loaded.value) return settings.value
+    try {
+      settings.value = await useApi<SiteSettings>('/site-settings', { token: null })
+      applyBranding()
+    }
+    finally {
+      loaded.value = true
+    }
+    return settings.value
   }
+
+  return { settings, loaded, load, applyBranding }
 }

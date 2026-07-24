@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Services\CareerPathFulfillmentService;
 use App\Services\PayOSService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,12 +16,15 @@ use PayOS\Exceptions\WebhookException;
 
 class PayOSController extends Controller
 {
-    public function __construct(private readonly PayOSService $payOSService) {}
+    public function __construct(
+        private readonly PayOSService $payOSService,
+        private readonly CareerPathFulfillmentService $pathFulfillment,
+    ) {}
 
     public function payosReturn(Request $request): JsonResponse
     {
         $orderCode = (int) $request->integer('orderCode');
-        $order = Order::with('course', 'user')->find($orderCode);
+        $order = Order::with(['course', 'careerPath', 'user'])->find($orderCode);
 
         if (!$order) {
             return response()->json(['message' => 'Order not found'], 404);
@@ -34,7 +38,10 @@ class PayOSController extends Controller
             return response()->json([
                 'message' => $status === 'PAID' ? 'Payment success' : 'Payment not completed',
                 'status' => strtolower($status),
-                'order' => $order->fresh(['course:id,title,thumbnail,price']),
+                'order' => $order->fresh([
+                    'course:id,title,thumbnail,price',
+                    'careerPath:id,title,slug,cover_url,price',
+                ]),
             ]);
         } catch (APIException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -83,7 +90,7 @@ class PayOSController extends Controller
         $payload = isset($verified['data']) && is_array($verified['data']) ? $verified['data'] : $verified;
         $orderCode = (int) ($payload['orderCode'] ?? 0);
 
-        $order = Order::with('course', 'user')->find($orderCode);
+        $order = Order::with(['course', 'careerPath', 'user'])->find($orderCode);
         if (!$order) {
             return response()->json(['message' => 'Order not found'], 404);
         }
@@ -106,16 +113,27 @@ class PayOSController extends Controller
                     'gateway_response' => $payload,
                 ]);
 
-                Enrollment::firstOrCreate([
-                    'user_id' => $order->user_id,
-                    'course_id' => $order->course_id,
-                ], [
-                    'enrolled_at' => now(),
-                ]);
+                if ($order->career_path_id) {
+                    $this->pathFulfillment->fulfillPaidOrder($order->fresh());
+                } elseif ($order->course_id) {
+                    Enrollment::firstOrCreate([
+                        'user_id' => $order->user_id,
+                        'course_id' => $order->course_id,
+                    ], [
+                        'enrolled_at' => now(),
+                        'order_id' => $order->id,
+                        'enrollment_source' => 'marketplace',
+                    ]);
+                }
             });
 
-            Notification::send($order->user_id, 'enrollment', 'Thanh toán thành công', "Bạn đã ghi danh vào khóa học \"{$order->course->title}\".", "/learn/{$order->course_id}");
-            Notification::send($order->course->user_id, 'enrollment', 'Có học viên mới', "Học viên {$order->user->name} đã ghi danh vào khóa học \"{$order->course->title}\".", "/instructor/courses/{$order->course_id}/students");
+            $order->loadMissing(['course', 'careerPath', 'user']);
+
+            if (!$order->career_path_id && $order->course) {
+                Notification::send($order->user_id, 'enrollment', 'Thanh toán thành công', "Bạn đã ghi danh vào khóa học \"{$order->course->title}\".", "/learn/{$order->course_id}");
+                Notification::send($order->course->user_id, 'enrollment', 'Có học viên mới', "Học viên {$order->user->name} đã ghi danh vào khóa học \"{$order->course->title}\".", "/instructor/courses/{$order->course_id}/students");
+            }
+
             return;
         }
 
@@ -127,4 +145,3 @@ class PayOSController extends Controller
         }
     }
 }
-

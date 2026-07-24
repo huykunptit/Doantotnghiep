@@ -189,67 +189,34 @@ class StudentDashboardController extends Controller
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $enrolledIds = Enrollment::where('user_id', $user->id)->pluck('course_id')->all();
+        $result = app(\App\Services\RecommendationService::class)->recommend($user);
 
-        // Pull extension courses, score by program/major match + skill overlap.
-        $skillIdsForUser = collect();
-        if ($user->major_id) {
-            // Use core courses of user's program/major as proxy for "what they've studied".
-            $coreCourses = Course::query()
-                ->where('course_mode', 'core')
-                ->where(function ($q) use ($user) {
-                    $q->where('program_id', $user->program_id)
-                      ->orWhereNull('program_id');
-                })
-                ->with('skills:id')
-                ->get();
-            $skillIdsForUser = $coreCourses->flatMap->skills->pluck('id')->unique();
-        }
-
-        $candidates = Course::query()
-            ->where('course_mode', 'extension')
-            ->where('status', 'published')
-            ->whereNotIn('id', $enrolledIds)
-            ->with(['skills:id,name', 'category:id,name,slug', 'instructor:id,name,avatar'])
-            ->limit(50)
-            ->get();
-
-        $scored = $candidates->map(function (Course $course) use ($skillIdsForUser, $user) {
-            $courseSkillIds = $course->skills->pluck('id');
-            $overlap = $skillIdsForUser->intersect($courseSkillIds)->count();
-            $score = $overlap * 30;
-
-            // Tiny bonus if instructor is in same unit as student's major.
-            if ($user->major_id && $course->major_id && $course->major_id === $user->major_id) {
-                $score += 25;
-            } elseif ($user->program_id && $course->program_id === $user->program_id) {
-                $score += 15;
-            }
-
-            // Cheap recency boost.
-            if ($course->published_at) {
-                $daysOld = max(1, now()->diffInDays($course->published_at));
-                $score += max(0, 30 - min(30, $daysOld));
-            }
-
-            return [
-                'course' => $course,
-                'score' => $score,
-                'matched_skills' => $course->skills->whereIn('id', $skillIdsForUser->all())->pluck('name')->values(),
-            ];
-        })
-        ->sortByDesc('score')
-        ->take(8)
-        ->values();
-
+        // Backward-compatible shape for existing CourseRecommendations.vue
         return response()->json([
-            'recommendations' => $scored,
-            'context' => [
-                'program_id' => $user->program_id,
-                'major_id' => $user->major_id,
-                'skill_pool_size' => $skillIdsForUser->count(),
-            ],
+            'recommendations' => $result['courses'],
+            'paths' => $result['paths'],
+            'context' => $result['context'],
         ]);
+    }
+
+    public function learnerProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
+
+        return response()->json(
+            app(\App\Services\LearnerProfileService::class)->build($user, useCache: false)
+        );
+    }
+
+    public function curriculumEvaluation(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
+
+        return response()->json(
+            app(\App\Services\CurriculumEvaluationService::class)->evaluate($user)
+        );
     }
 
     public function learningPath(Request $request): JsonResponse

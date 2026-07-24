@@ -1,46 +1,35 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '~/stores/auth'
-import { useApi } from '~/composables/useApi'
-import UiAreaChart from '~/components/dashboard/charts/UiAreaChart.vue'
-import UiBarChart from '~/components/dashboard/charts/UiBarChart.vue'
-import UiDonut from '~/components/dashboard/charts/UiDonut.vue'
-import {
-  TrendingUp,
-  TrendingDown,
-  Users,
-  GraduationCap,
-  BookOpen,
-  DollarSign,
-  Calendar,
-  Bell,
-  Activity,
-  Layers,
-  ArrowRight,
-  RefreshCw,
-  CheckCircle,
-  AlertTriangle,
-  ChevronRight,
-  Award,
-  Zap,
-  BookMarked,
-  LayoutDashboard,
-  ShieldCheck,
-  CreditCard,
-  BarChart3,
-  Sliders,
-  Plus
-} from 'lucide-vue-next'
+import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'admin'],
-  adminSearchPlaceholder: 'Tra cứu học viên, lớp học, lịch học, doanh thu...',
 })
 
 interface MonthPoint { month: string; label: string; value: number }
+interface DayPoint { date: string; label: string; value: number }
 interface TopCourse { id: number; title: string; enrollments_count: number }
-interface StatsResponse {
+interface ProgressItem { label: string; value: number }
+interface UpcomingSection {
+  id?: number
+  code?: string
+  name?: string
+  title?: string
+  enrolled_count?: number
+  capacity?: number
+  course?: { title?: string } | null
+  lecturer?: { name?: string } | null
+  term?: { name?: string } | null
+}
+interface DashboardNotification {
+  id?: number
+  title?: string
+  message?: string
+  created_at?: string
+  read_at?: string | null
+}
+
+interface DashboardStats {
   total_users?: number
   total_courses?: number
   total_orders?: number
@@ -51,1493 +40,855 @@ interface StatsResponse {
   revenue_by_month?: MonthPoint[]
   new_users_by_month?: MonthPoint[]
   top_courses?: TopCourse[]
-  engagement?: { avg_quiz_score?: number; total_completions?: number; active_students_this_week?: number }
+  engagement?: {
+    avg_quiz_score?: number
+    total_completions?: number
+    active_students_this_week?: number
+  }
+  pending_courses?: number
+  published_courses?: number
+  paid_orders?: number
+  enrollments_week?: number
+  enrollments_today?: number
+  new_users_week?: number
+  reviews_count?: number
+  open_sections?: number
 }
 
 const auth = useAuthStore()
+const toast = useToast()
+const { t, locale } = useI18n()
 const loading = ref(true)
-const stats = ref<StatsResponse>({})
-const error = ref('')
-const now = ref(new Date())
+const stats = ref<DashboardStats>({})
+const adminClasses = ref(0)
+const creditClasses = ref(0)
+const dailyEnrollments = ref<DayPoint[]>([])
+const classProgress = ref<ProgressItem[]>([])
+const upcomingSections = ref<UpcomingSection[]>([])
+const notifications = ref<DashboardNotification[]>([])
+
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 
 const greeting = computed(() => {
-  const greetingHour = now.value.getHours()
-  return greetingHour < 12 ? 'Chào buổi sáng' : greetingHour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'
+  const hour = new Date().getHours()
+  if (hour < 12) return t('admin.dashboard.greetingMorning')
+  if (hour < 18) return t('admin.dashboard.greetingAfternoon')
+  return t('admin.dashboard.greetingEvening')
 })
+
 const todayLabel = computed(() =>
-  now.value.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  new Intl.DateTimeFormat(numberLocale.value, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date()),
 )
 
-const formatVnd = (n: number) => {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} tỷ`
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} tr`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}k`
-  return n.toLocaleString('vi-VN')
-}
-const formatVndFull = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n || 0)
+const formatVnd = (value = 0) =>
+  new Intl.NumberFormat(numberLocale.value, {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value)
 
-const revenuePoints = computed<MonthPoint[]>(() => stats.value.revenue_by_month ?? [])
-const userPoints = computed<MonthPoint[]>(() => stats.value.new_users_by_month ?? [])
-const monthLabels = computed(() => revenuePoints.value.map((p) => p.label))
-const revenueValues = computed(() => revenuePoints.value.map((p) => p.value))
-const userValues = computed(() => userPoints.value.map((p) => p.value))
+const formatNumber = (value = 0) => value.toLocaleString(numberLocale.value)
 
-const computeDelta = (values: number[]): number | null => {
-  if (values.length < 2) return null
-  const last = values[values.length - 1] ?? 0
-  const prev = values[values.length - 2] ?? 0
-  if (prev === 0) return last > 0 ? 100 : 0
-  return Math.round(((last - prev) / prev) * 100)
-}
-
-const revenueDelta = computed(() => computeDelta(revenueValues.value))
-const userDelta = computed(() => computeDelta(userValues.value))
-
-const courseStatusSegments = computed(() => {
-  const map = stats.value.courses_by_status ?? {}
-  const colorMap: Record<string, { label: string; color: string }> = {
-    published: { label: 'Đã xuất bản', color: '#10B981' },
-    pending_review: { label: 'Chờ duyệt', color: '#F59E0B' },
-    draft: { label: 'Bản nháp', color: '#6B7280' },
-    rejected: { label: 'Từ chối', color: '#EF4444' },
-    archived: { label: 'Lưu trữ', color: '#374151' },
+function chartColors() {
+  const dark = import.meta.client && document.documentElement.classList.contains('dark')
+  return {
+    text: dark ? '#a8b8b4' : '#4a5a57',
+    grid: dark ? 'rgba(168, 184, 180, .12)' : 'rgba(74, 90, 87, .12)',
+    brand: '#0f766e',
+    brandSoft: 'rgba(15, 118, 110, .16)',
+    blue: '#2563eb',
+    amber: '#d97706',
+    violet: '#7c3aed',
+    rose: '#e11d48',
+    slate: '#64748b',
   }
-  return Object.entries(map)
-    .map(([key, value]) => ({
-      label: colorMap[key]?.label || key,
-      value: Number(value),
-      color: colorMap[key]?.color || '#10B981',
-    }))
-    .filter((s) => s.value > 0)
+}
+
+const primaryMetrics = computed(() => [
+  {
+    label: t('admin.dashboard.revenue'),
+    value: formatVnd(stats.value.total_revenue || 0),
+    hint: t('admin.dashboard.paidOrdersHint', { n: formatNumber(stats.value.paid_orders || 0) }),
+    icon: 'pi-wallet',
+    tone: 'brand',
+  },
+  {
+    label: t('admin.dashboard.users'),
+    value: formatNumber(stats.value.total_users || 0),
+    hint: t('admin.dashboard.newUsersHint', { n: formatNumber(stats.value.new_users_week || 0) }),
+    icon: 'pi-users',
+    tone: 'blue',
+  },
+  {
+    label: t('admin.dashboard.courses'),
+    value: formatNumber(stats.value.total_courses || 0),
+    hint: t('admin.dashboard.publishedHint', { n: formatNumber(stats.value.published_courses || 0) }),
+    icon: 'pi-book',
+    tone: 'amber',
+  },
+  {
+    label: t('admin.dashboard.orders'),
+    value: formatNumber(stats.value.total_orders || 0),
+    hint: t('admin.dashboard.paidOrdersHint', { n: formatNumber(stats.value.paid_orders || 0) }),
+    icon: 'pi-shopping-bag',
+    tone: 'violet',
+  },
+])
+
+const pulseMetrics = computed(() => [
+  { label: t('admin.dashboard.enrollToday'), value: formatNumber(stats.value.enrollments_today || 0), icon: 'pi-calendar' },
+  { label: t('admin.dashboard.enrollWeek'), value: formatNumber(stats.value.enrollments_week || 0), icon: 'pi-chart-line' },
+  { label: t('admin.dashboard.activeStudents'), value: formatNumber(stats.value.engagement?.active_students_this_week || 0), icon: 'pi-bolt' },
+  { label: t('admin.dashboard.completions'), value: formatNumber(stats.value.engagement?.total_completions || 0), icon: 'pi-check-circle' },
+  { label: t('admin.dashboard.pendingCourses'), value: formatNumber(stats.value.pending_courses || 0), icon: 'pi-clock' },
+  { label: t('admin.dashboard.openSections'), value: formatNumber(stats.value.open_sections || creditClasses.value), icon: 'pi-building' },
+  { label: t('admin.dashboard.reviews'), value: formatNumber(stats.value.reviews_count || 0), icon: 'pi-star' },
+  { label: t('admin.dashboard.avgQuiz'), value: `${Number(stats.value.engagement?.avg_quiz_score || 0).toFixed(1)}/10`, icon: 'pi-chart-bar' },
+])
+
+const trafficChartData = computed(() => {
+  const colors = chartColors()
+  return {
+    labels: dailyEnrollments.value.map(item => item.label),
+    datasets: [{
+      label: t('admin.dashboard.enrollments'),
+      data: dailyEnrollments.value.map(item => item.value),
+      borderColor: colors.brand,
+      backgroundColor: colors.brandSoft,
+      fill: true,
+      tension: 0.38,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+      pointBackgroundColor: colors.brand,
+    }],
+  }
 })
 
-const totalCoursesFromStatus = computed(() =>
-  courseStatusSegments.value.reduce((sum, s) => sum + s.value, 0),
-)
+const trafficChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { mode: 'index' as const, intersect: false },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const }, maxRotation: 0 } },
+      y: { beginAtZero: true, grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const }, precision: 0 } },
+    },
+  }
+})
 
-const engagement = computed(() => stats.value.engagement ?? {})
+const revenueChartData = computed(() => {
+  const colors = chartColors()
+  const revenue = stats.value.revenue_by_month || []
+  const users = stats.value.new_users_by_month || []
+  const labels = revenue.length ? revenue.map(i => i.label) : users.map(i => i.label)
+  return {
+    labels,
+    datasets: [
+      {
+        label: t('admin.dashboard.revenue'),
+        data: revenue.map(i => i.value),
+        borderColor: colors.brand,
+        backgroundColor: colors.brandSoft,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        yAxisID: 'y',
+      },
+      ...(users.length
+        ? [{
+            label: t('admin.dashboard.newUsers'),
+            data: users.map(i => i.value),
+            borderColor: colors.blue,
+            backgroundColor: 'transparent',
+            borderDash: [5, 4],
+            tension: 0.35,
+            pointRadius: 2,
+            yAxisID: 'y1',
+          }]
+        : []),
+    ],
+  }
+})
 
-// Administrative & Credit Class counts
-const adminClassesCount = ref(0)
-const creditClassesCount = ref(0)
+const revenueChartOptions = computed(() => {
+  const colors = chartColors()
+  const hasUsers = (stats.value.new_users_by_month || []).length > 0
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: {
+      legend: { position: 'bottom' as const, labels: { usePointStyle: true, color: colors.text, boxWidth: 8, font: { size: 11, weight: 600 as const } } },
+      tooltip: {
+        callbacks: {
+          label(ctx: any) {
+            const value = Number(ctx.parsed.y || 0)
+            return ctx.dataset.yAxisID === 'y'
+              ? `${ctx.dataset.label}: ${formatVnd(value)}`
+              : `${ctx.dataset.label}: ${formatNumber(value)}`
+          },
+        },
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const } } },
+      y: {
+        beginAtZero: true,
+        grid: { color: colors.grid },
+        ticks: {
+          color: colors.text,
+          font: { size: 11, weight: 500 as const },
+          callback(value: string | number) {
+            const amount = Number(value)
+            if (amount >= 1_000_000) return `${Math.round(amount / 1_000_000)}tr`
+            if (amount >= 1_000) return `${Math.round(amount / 1_000)}k`
+            return String(value)
+          },
+        },
+      },
+      ...(hasUsers
+        ? { y1: { beginAtZero: true, position: 'right' as const, grid: { drawOnChartArea: false }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const } } } }
+        : {}),
+    },
+  }
+})
 
-// Extra dashboard data (replaces mock)
-const dailyEnrollments = ref<{ date: string; label: string; value: number }[]>([])
-const classProgressData = ref<{ label: string; value: number }[]>([])
-const upcomingSections = ref<any[]>([])
-const recentNotifications = ref<any[]>([])
+const statusChartData = computed(() => {
+  const colors = chartColors()
+  const palette = [colors.brand, colors.amber, colors.slate, colors.rose, '#0f172a']
+  const entries = Object.entries(stats.value.courses_by_status || {})
+    .map(([key, value]) => ({
+      label: t(`admin.dashboard.status.${key}` as any) || key,
+      value: Number(value) || 0,
+    }))
+    .filter(item => item.value > 0)
+  return {
+    labels: entries.map(i => i.label),
+    datasets: [{ data: entries.map(i => i.value), backgroundColor: entries.map((_, i) => palette[i % palette.length]), borderWidth: 0, hoverOffset: 4 }],
+  }
+})
 
-const loadStats = async () => {
+const statusChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '66%',
+    plugins: { legend: { position: 'bottom' as const, labels: { usePointStyle: true, color: colors.text, boxWidth: 8, font: { size: 11, weight: 600 as const } } } },
+  }
+})
+
+const compositionChartData = computed(() => ({
+  labels: [
+    t('admin.dashboard.studentsShort'),
+    t('admin.dashboard.instructorsShort'),
+    t('admin.dashboard.adminClassShort'),
+    t('admin.dashboard.creditClassShort'),
+  ],
+  datasets: [{
+    data: [stats.value.total_students || 0, stats.value.total_instructors || 0, adminClasses.value, creditClasses.value],
+    backgroundColor: ['rgba(37,99,235,.75)', 'rgba(217,119,6,.75)', 'rgba(15,118,110,.75)', 'rgba(124,58,237,.75)'],
+    borderWidth: 0,
+  }],
+}))
+
+const compositionChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' as const, labels: { usePointStyle: true, color: colors.text, boxWidth: 8, font: { size: 11, weight: 600 as const } } } },
+    scales: { r: { beginAtZero: true, ticks: { display: false }, grid: { color: colors.grid }, angleLines: { color: colors.grid }, pointLabels: { color: colors.text, font: { size: 11, weight: 600 as const } } } },
+  }
+})
+
+const progressChartData = computed(() => {
+  const colors = chartColors()
+  return {
+    labels: classProgress.value.map(i => i.label),
+    datasets: [{
+      label: t('admin.dashboard.progressPercent'),
+      data: classProgress.value.map(i => i.value),
+      backgroundColor: colors.brandSoft,
+      borderColor: colors.brand,
+      borderWidth: 1,
+      borderRadius: 6,
+    }],
+  }
+})
+
+const progressChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, max: 100, grid: { color: colors.grid }, ticks: { color: colors.text, font: { size: 11, weight: 500 as const } } },
+      y: { grid: { display: false }, ticks: { color: colors.text, font: { size: 11, weight: 600 as const } } },
+    },
+  }
+})
+
+const engagementChartData = computed(() => {
+  const colors = chartColors()
+  return {
+    labels: [t('admin.dashboard.active'), t('admin.dashboard.completed'), t('admin.dashboard.quiz')],
+    datasets: [{
+      data: [
+        stats.value.engagement?.active_students_this_week || 0,
+        Math.min(stats.value.engagement?.total_completions || 0, 100),
+        stats.value.engagement?.avg_quiz_score || 0,
+      ],
+      backgroundColor: colors.brandSoft,
+      borderColor: colors.brand,
+      pointBackgroundColor: colors.brand,
+      borderWidth: 2,
+    }],
+  }
+})
+
+const engagementChartOptions = computed(() => {
+  const colors = chartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { r: { beginAtZero: true, ticks: { display: false }, grid: { color: colors.grid }, angleLines: { color: colors.grid }, pointLabels: { color: colors.text, font: { size: 11, weight: 600 as const } } } },
+  }
+})
+
+const quickActions = computed(() => [
+  { label: t('admin.dashboard.shortcut.users'), to: '/admin/users', icon: 'pi-users' },
+  { label: t('admin.dashboard.shortcut.adminClasses'), to: '/admin/lnd/classes', icon: 'pi-building' },
+  { label: t('admin.dashboard.shortcut.review'), to: '/admin/courses', icon: 'pi-verified' },
+  { label: t('admin.dashboard.shortcut.orders'), to: '/admin/orders', icon: 'pi-wallet' },
+  { label: t('admin.dashboard.shortcut.examMonitor'), to: '/admin/exam-monitor', icon: 'pi-eye' },
+  { label: t('admin.dashboard.shortcut.settings'), to: '/admin/settings', icon: 'pi-cog' },
+])
+
+const trafficTotal = computed(() => dailyEnrollments.value.reduce((sum, item) => sum + item.value, 0))
+const hasTraffic = computed(() => dailyEnrollments.value.length > 0)
+const hasRevenue = computed(() => Boolean((stats.value.revenue_by_month || []).length || (stats.value.new_users_by_month || []).length))
+const hasStatus = computed(() => Object.values(stats.value.courses_by_status || {}).some(v => Number(v) > 0))
+const hasComposition = computed(() => [stats.value.total_students, stats.value.total_instructors, adminClasses.value, creditClasses.value].some(v => Number(v) > 0))
+const hasProgress = computed(() => classProgress.value.length > 0)
+const hasEngagement = computed(() => Boolean(stats.value.engagement?.active_students_this_week || stats.value.engagement?.total_completions || stats.value.engagement?.avg_quiz_score))
+
+function timeAgo(value?: string) {
+  if (!value) return '—'
+  const minutes = Math.floor((Date.now() - new Date(value).getTime()) / 60000)
+  if (minutes < 1) return t('common.justNow')
+  if (minutes < 60) return t('common.minutesAgo', { n: minutes })
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return t('common.hoursAgo', { n: hours })
+  return t('common.daysAgo', { n: Math.floor(hours / 24) })
+}
+
+async function loadDashboard() {
   loading.value = true
-  error.value = ''
-  now.value = new Date()
   try {
-    const [statsRes, extraRes] = await Promise.all([
-      useApi<StatsResponse>('/admin/stats', {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      }),
-      useApi<any>('/admin/dashboard-extra', {
-        headers: { Authorization: `Bearer ${auth.token}` },
-      }).catch(() => null),
+    const [overview, extra, classes, sections] = await Promise.all([
+      useApi<DashboardStats>('/admin/stats'),
+      useApi<any>('/admin/dashboard-extra').catch(() => null),
+      useApi<{ total?: number }>('/admin/academic/administrative-classes?per_page=1').catch(() => ({})),
+      useApi<{ total?: number }>('/admin/academic/class-sections?per_page=1').catch(() => ({})),
     ])
-
-    stats.value = statsRes
-
-    // Administrative & credit class counts
-    try {
-      const [adminRes, creditRes] = await Promise.all([
-        useApi<{ total?: number }>('/admin/academic/administrative-classes?per_page=1', {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }),
-        useApi<{ total?: number }>('/admin/academic/class-sections?per_page=1', {
-          headers: { Authorization: `Bearer ${auth.token}` },
-        }),
-      ])
-      adminClassesCount.value = adminRes?.total ?? 0
-      creditClassesCount.value = creditRes?.total ?? 0
-    } catch {
-      adminClassesCount.value = 0
-      creditClassesCount.value = 0
-    }
-
-    if (extraRes) {
-      dailyEnrollments.value = extraRes.daily_enrollments ?? []
-      classProgressData.value = extraRes.class_progress ?? []
-      upcomingSections.value = extraRes.upcoming_sections ?? []
-      recentNotifications.value = extraRes.notifications ?? []
-    }
-
-  } catch (e: any) {
-    error.value = e?.data?.message || 'Không thể đồng bộ dữ liệu hệ thống.'
-  } finally {
+    stats.value = overview || {}
+    adminClasses.value = classes.total || 0
+    creditClasses.value = sections.total || 0
+    dailyEnrollments.value = extra?.daily_enrollments || []
+    classProgress.value = extra?.class_progress || []
+    upcomingSections.value = extra?.upcoming_sections || []
+    notifications.value = extra?.notifications || []
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.dashboard.loadError'),
+      detail: error?.data?.message || t('admin.dashboard.tryAgain'),
+      life: 3500,
+    })
+  }
+  finally {
     loading.value = false
   }
 }
 
-onMounted(loadStats)
-
-const quickActions = [
-  { label: 'Thêm lớp hành chính', icon: Plus, to: '/admin/lnd/classes' },
-  { label: 'Danh sách lộ trình', icon: Layers, to: '/admin/lnd/learning-paths' },
-  { label: 'Báo cáo đào tạo', icon: BarChart3, to: '/admin/lnd/reports' },
-  { label: 'Quản trị nhân sự', icon: Users, to: '/admin/users' },
-  { label: 'Theo dõi doanh thu', icon: CreditCard, to: '/admin/orders' },
-  { label: 'Cấu hình hệ thống', icon: Sliders, to: '/admin/settings' },
-]
-
-// Chart data from real API
-const trafficLabels = computed(() => dailyEnrollments.value.map(d => d.label))
-const trafficValues = computed(() => dailyEnrollments.value.map(d => d.value))
-const classProgressLabels = computed(() => classProgressData.value.map(d => d.label))
-const classProgressValues = computed(() => classProgressData.value.map(d => d.value))
-
-function sparklineLine(values: number[], w: number, h: number): string {
-  if (!values.length) return ''
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1
-  const pad = 2
-  return values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w
-    const y = h - pad - ((v - min) / range) * (h - pad * 2)
-    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
-  }).join(' ')
-}
-function sparklinePath(values: number[], w: number, h: number): string {
-  if (!values.length) return ''
-  const line = sparklineLine(values, w, h)
-  return `${line} L ${w} ${h} L 0 ${h} Z`
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Vừa xong'
-  if (mins < 60) return `${mins} phút trước`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours} giờ trước`
-  const days = Math.floor(hours / 24)
-  if (days === 1) return 'Hôm qua'
-  return `${days} ngày trước`
-}
-
-function notifTypeLabel(type: string): string {
-  const map: Record<string, string> = {
-    course_approved: 'Học vụ', course_rejected: 'Học vụ',
-    new_enrollment: 'Ghi danh', system: 'Hệ thống',
-    payment: 'Thanh toán', info: 'Tin tức',
-  }
-  return map[type] ?? 'Thông báo'
-}
-
-function notifTypeClass(type: string): string {
-  if (['payment', 'new_enrollment'].includes(type)) return 'priority-info'
-  if (type === 'system') return 'priority-system'
-  if (['course_approved', 'course_rejected'].includes(type)) return 'priority-academic'
-  return 'priority-urgent'
-}
+onMounted(loadDashboard)
 </script>
 
 <template>
-  <div class="dash-container">
-    
-    <!-- ══ HEADER HUB ══ -->
-    <header class="dash-header">
-      <div class="header-main-info">
-        <h1 class="header-title">Trung Tâm Điều Hành</h1>
-        <p class="header-subtitle">
-          {{ greeting }}, <strong>{{ auth.user?.name || 'Quản trị viên' }}</strong> &bull; {{ todayLabel }}
-        </p>
+  <div class="page dashboard">
+    <header class="page-heading dash-head">
+      <div>
+        <span class="eyebrow">{{ todayLabel }}</span>
+        <h1>{{ greeting }}, {{ auth.user?.name || t('admin.dashboard.adminFallback') }}</h1>
+        <p>{{ t('admin.dashboard.subtitle') }}</p>
       </div>
-      <div class="header-action-meta">
-        <div class="status-badge">
-          <Activity class="icon-pulse" :size="16" />
-          <span>Hệ thống bình thường</span>
-        </div>
-        <button class="action-btn-refresh" :disabled="loading" title="Đồng bộ dữ liệu" @click="loadStats">
-          <RefreshCw :class="{ 'spin-anim': loading }" :size="16" />
-          <span>Đồng bộ</span>
-        </button>
+      <div class="page-actions">
+        <Button :label="t('common.refresh')" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="loadDashboard" />
       </div>
     </header>
 
-    <!-- ══ QUICK RUNWAY ══ -->
-    <div class="action-grid">
-      <NuxtLink
-        v-for="action in quickActions"
-        :key="action.to"
-        :to="action.to"
-        class="action-card"
-      >
-        <div class="action-icon-wrap">
-          <component :is="action.icon" :size="18" />
+    <section class="kpi-row">
+      <article v-for="item in primaryMetrics" :key="item.label" class="kpi" :class="`tone-${item.tone}`">
+        <div>
+          <span>{{ item.label }}</span>
+          <Skeleton v-if="loading" width="6.5rem" height="1.45rem" />
+          <strong v-else>{{ item.value }}</strong>
+          <small>{{ item.hint }}</small>
         </div>
-        <span class="action-label">{{ action.label }}</span>
-        <ChevronRight class="action-arrow" :size="16" />
-      </NuxtLink>
-    </div>
-
-    <!-- ══ ERROR STATUS ══ -->
-    <div v-if="error" class="error-banner">
-      <AlertTriangle :size="20" />
-      <span class="error-msg">{{ error }}</span>
-      <button class="btn-retry" @click="loadStats">Thử lại</button>
-    </div>
-
-    <!-- ══ METRICS WORKSPACE ══ -->
-    <section class="metrics-grid">
-      
-      <!-- CARD 1: REVENUE -->
-      <div class="metric-block is-revenue">
-        <div class="metric-header">
-          <span class="metric-title">Doanh thu tích lũy</span>
-          <span v-if="revenueDelta !== null" class="metric-delta" :class="revenueDelta >= 0 ? 'is-positive' : 'is-negative'">
-            <component :is="revenueDelta >= 0 ? TrendingUp : TrendingDown" :size="12" />
-            {{ Math.abs(revenueDelta) }}% tháng trước
-          </span>
-        </div>
-        
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <h2 v-else class="metric-value">{{ formatVndFull(stats.total_revenue || 0) }}</h2>
-          
-          <div class="metric-sparkline" v-if="!loading && revenueValues.length">
-            <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="glow-rev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="var(--green)" stop-opacity="0.3"/>
-                  <stop offset="100%" stop-color="var(--green)" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <path :d="sparklinePath(revenueValues, 100, 32)" fill="url(#glow-rev)" />
-              <path :d="sparklineLine(revenueValues, 100, 32)" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-footer">
-          <span class="footer-note">Doanh số thực tế ghi nhận qua ví liên kết</span>
-        </div>
-      </div>
-
-      <!-- CARD 2: CLASSES (Lớp Hành chính & Tín chỉ) -->
-      <div class="metric-block is-classes">
-        <div class="metric-header">
-          <span class="metric-title">Tổng số lớp học</span>
-          <span class="metric-delta is-info">
-            <Layers :size="12" /> L&D Active
-          </span>
-        </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <div v-else class="classes-split-row">
-            <div class="class-split-col">
-              <div class="split-num-wrap">
-                <GraduationCap class="text-sky" :size="18" />
-                <span class="split-value">{{ adminClassesCount }}</span>
-              </div>
-              <span class="split-lbl">Lớp hành chính</span>
-            </div>
-            <div class="split-divider"></div>
-            <div class="class-split-col">
-              <div class="split-num-wrap">
-                <BookOpen class="text-indigo" :size="18" />
-                <span class="split-value">{{ creditClassesCount }}</span>
-              </div>
-              <span class="split-lbl">Lớp tín chỉ</span>
-            </div>
-          </div>
-        </div>
-        <div class="metric-footer">
-          <NuxtLink to="/admin/lnd/classes" class="footer-link-action">
-            <span>Quản lý học vụ lớp học</span>
-            <ArrowRight :size="12" />
-          </NuxtLink>
-        </div>
-      </div>
-
-      <!-- CARD 3: STUDY RATE & COMPLETION -->
-      <div class="metric-block is-completion">
-        <div class="metric-header">
-          <span class="metric-title">Tỉ lệ & hiệu số học tập</span>
-          <span class="metric-delta is-success-alt">
-            <Award :size="12" /> Đạt chuẩn đầu ra
-          </span>
-        </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <template v-else>
-            <div class="completion-hero-row">
-              <div class="score-display">
-                <span class="score-value">{{ Math.round((engagement.avg_quiz_score || 0) * 10) / 10 }}</span>
-                <span class="score-max">/10 GPA</span>
-              </div>
-              <div class="progress-ring-mini">
-                <svg width="36" height="36" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="var(--line)" stroke-width="3"/>
-                  <circle cx="18" cy="18" r="16" fill="none" stroke="#8B5CF6" stroke-width="3" 
-                    stroke-dasharray="100" :stroke-dashoffset="100 - (engagement.avg_quiz_score || 0) * 10"
-                    stroke-linecap="round" transform="rotate(-90 18 18)"/>
-                </svg>
-              </div>
-            </div>
-            <div class="metric-indicators">
-              <span class="indicator-tag">
-                <CheckCircle class="text-green" :size="12" />
-                {{ (engagement.total_completions || 0).toLocaleString('vi-VN') }} bài học hoàn thành
-              </span>
-            </div>
-          </template>
-        </div>
-        <div class="metric-footer">
-          <span class="footer-note">Điểm Quiz trung bình toàn hệ thống</span>
-        </div>
-      </div>
-
-      <!-- CARD 4: TRAFFIC / USERS -->
-      <div class="metric-block is-users">
-        <div class="metric-header">
-          <span class="metric-title">Tài khoản & Truy cập</span>
-          <span v-if="userDelta !== null" class="metric-delta is-positive">
-            <Users :size="12" /> +{{ Math.abs(userDelta) }}% tháng này
-          </span>
-        </div>
-        <div class="metric-content">
-          <div class="skeleton-h3" v-if="loading" />
-          <div v-else class="users-total-wrap">
-            <h2 class="metric-value">{{ (stats.total_users || 0).toLocaleString('vi-VN') }}</h2>
-            <div class="live-counter-badge">
-              <span class="ping-dot"></span>
-              <span>{{ (engagement.active_students_this_week || 0).toLocaleString('vi-VN') }} Active</span>
-            </div>
-          </div>
-          
-          <div class="ratio-progress-bar" v-if="!loading">
-            <div 
-              class="bar-fill is-student" 
-              :style="`width: ${((stats.total_students || 0) / (stats.total_users || 1)) * 100}%`"
-              title="Học viên"
-            />
-            <div 
-              class="bar-fill is-instructor" 
-              :style="`width: ${((stats.total_instructors || 0) / (stats.total_users || 1)) * 100}%`"
-              title="Giảng viên"
-            />
-          </div>
-        </div>
-        <div class="metric-footer text-split">
-          <span>{{ (stats.total_students || 0).toLocaleString('vi-VN') }} Học viên</span>
-          <span>{{ (stats.total_instructors || 0).toLocaleString('vi-VN') }} Giảng viên</span>
-        </div>
-      </div>
-
+        <i :class="['pi', item.icon]" />
+      </article>
     </section>
 
-    <!-- ══ ANALYTIC WORKSPACE ══ -->
-    <div class="workspace-layout">
-      
-      <!-- COLUMN 1: ANALYTICS HUB (LEFT) -->
-      <main class="workspace-main">
-        
-        <!-- Graph 1: Ghi danh theo ngày (14 ngày) -->
-        <div class="workspace-card main-chart-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Ghi danh theo ngày</h3>
-              <p class="card-desc">Số lượt ghi danh mới trong 14 ngày gần đây</p>
-            </div>
-            <span class="chart-badge bg-orange-soft text-orange">Enrollments/Day</span>
-          </div>
-          <div class="card-body">
-            <div class="skeleton-chart" v-if="loading" />
-            <div v-else-if="!trafficValues.length" class="chart-empty-state" style="height:260px;">
-              <Activity :size="32" /><span>Chưa có dữ liệu ghi danh</span>
-            </div>
-            <UiAreaChart
-              v-else
-              :series="[{ name: 'Ghi danh', values: trafficValues, color: '#F59E0B' }]"
-              :labels="trafficLabels"
-              :height="260"
-            />
+    <section class="pulse-row">
+      <article v-for="item in pulseMetrics" :key="item.label" class="pulse">
+        <i :class="['pi', item.icon]" />
+        <div>
+          <strong>{{ loading ? '—' : item.value }}</strong>
+          <span>{{ item.label }}</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid-a">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.trafficTitle') }}</h2>
+            <p>{{ t('admin.dashboard.trafficHint', { n: formatNumber(trafficTotal) }) }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="220px" /></div>
+        <ChartsUiChart v-else-if="hasTraffic" type="line" :data="trafficChartData" :options="trafficChartOptions" height="220px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noTraffic') }}</div>
+      </article>
 
-        <!-- Graph 2: Biểu đồ tiến độ hoàn thành theo lớp (Bar Chart) -->
-        <div class="workspace-card main-chart-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Tỉ lệ hoàn thành học tập theo lớp hành chính</h3>
-              <p class="card-desc">Tiến độ tích lũy trung bình (%) của các lớp hành chính tiêu biểu</p>
-            </div>
-            <span class="chart-badge bg-violet-soft text-violet">Tiến độ %</span>
-          </div>
-          <div class="card-body">
-            <div class="skeleton-chart" v-if="loading" />
-            <div v-else-if="!classProgressValues.length" class="chart-empty-state" style="height:220px;">
-              <GraduationCap :size="32" /><span>Chưa có dữ liệu tiến độ</span>
-            </div>
-            <UiBarChart
-              v-else
-              :values="classProgressValues"
-              :labels="classProgressLabels"
-              color="#8B5CF6"
-              :height="220"
-              :format-value="(n) => n + '%'"
-            />
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.statusTitle') }}</h2>
+            <p>{{ t('admin.dashboard.statusHint') }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="220px" /></div>
+        <ChartsUiChart v-else-if="hasStatus" type="doughnut" :data="statusChartData" :options="statusChartOptions" height="220px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noStatus') }}</div>
+      </article>
+    </section>
 
-        <!-- Lớp tín chỉ đang mở -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Lớp tín chỉ đang mở</h3>
-              <p class="card-desc">Các lớp học phần có trạng thái đang mở gần nhất</p>
-            </div>
-            <span class="calendar-indicator">
-              <Calendar :size="14" />
-              <span>Đang mở</span>
-            </span>
-          </div>
-          <div class="card-body is-nopad">
-            <div v-if="loading" class="schedule-list">
-              <div v-for="i in 3" :key="i" style="padding:20px 24px; border-bottom:1px solid var(--line);">
-                <div style="height:14px; background:var(--line); border-radius:4px; width:60%; animation:pulse 1.4s infinite;"></div>
-                <div style="height:11px; background:var(--line); border-radius:4px; width:40%; margin-top:8px; animation:pulse 1.4s infinite;"></div>
-              </div>
-            </div>
-            <div v-else-if="!upcomingSections.length" class="chart-empty-state">
-              <BookOpen :size="32" /><span>Không có lớp tín chỉ đang mở</span>
-            </div>
-            <div v-else class="schedule-list">
-              <div
-                v-for="sec in upcomingSections"
-                :key="sec.id"
-                class="schedule-item-row is-lecture"
-              >
-                <div class="schedule-type-badge">
-                  <span class="type-dot"></span>
-                  <span class="type-text">Lớp tín chỉ</span>
-                </div>
-                <div class="schedule-main-info">
-                  <h4 class="schedule-item-title">{{ sec.course?.title ?? sec.name }}</h4>
-                  <p class="schedule-item-class">{{ sec.code }} · {{ sec.cohort?.name ?? sec.term?.name }}</p>
-                </div>
-                <div class="schedule-meta-cols">
-                  <div class="schedule-meta-cell">
-                    <Users :size="12" />
-                    <span>{{ sec.enrolled_count }}/{{ sec.capacity }}</span>
-                  </div>
-                  <div v-if="sec.lecturer" class="schedule-meta-cell">
-                    <GraduationCap :size="12" />
-                    <span>{{ sec.lecturer.name }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+    <section class="grid-b">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.revenueTitle') }}</h2>
+            <p>{{ t('admin.dashboard.revenueHint') }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="240px" /></div>
+        <ChartsUiChart v-else-if="hasRevenue" type="line" :data="revenueChartData" :options="revenueChartOptions" height="240px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noRevenue') }}</div>
+      </article>
 
-      </main>
-
-      <!-- COLUMN 2: LEADERBOARD & STATUS (RIGHT) -->
-      <aside class="workspace-side">
-        
-        <!-- Announcements (Thông báo mới nhất) -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Thông báo hệ thống</h3>
-              <p class="card-desc">Tin tức học vụ, lịch bảo trì và vận hành mới ban hành</p>
-            </div>
-            <div class="announcement-bell-icon">
-              <Bell :size="18" class="bell-ringing" />
-            </div>
-          </div>
-          <div class="card-body is-nopad">
-            <div class="announcements-timeline">
-              <div v-if="loading">
-                <div v-for="i in 3" :key="i" class="announcement-card-item">
-                  <div style="height:11px; background:var(--line); border-radius:4px; width:30%; animation:pulse 1.4s infinite;"></div>
-                  <div style="height:14px; background:var(--line); border-radius:4px; width:80%; margin-top:6px; animation:pulse 1.4s infinite;"></div>
-                </div>
-              </div>
-              <div v-else-if="!recentNotifications.length" class="chart-empty-state" style="padding:30px 0;">
-                <Bell :size="28" /><span>Chưa có thông báo nào</span>
-              </div>
-              <div
-                v-else
-                v-for="notif in recentNotifications"
-                :key="notif.id"
-                class="announcement-card-item"
-                :class="notifTypeClass(notif.type)"
-              >
-                <div class="announce-header-row">
-                  <span class="announce-tag">{{ notifTypeLabel(notif.type) }}</span>
-                  <span class="announce-time">{{ timeAgo(notif.created_at) }}</span>
-                </div>
-                <h4 class="announce-item-title">{{ notif.title }}</h4>
-                <p class="announce-item-desc">{{ notif.message }}</p>
-              </div>
-            </div>
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.compositionTitle') }}</h2>
+            <p>{{ t('admin.dashboard.compositionHint') }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="240px" /></div>
+        <ChartsUiChart v-else-if="hasComposition" type="polarArea" :data="compositionChartData" :options="compositionChartOptions" height="240px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noComposition') }}</div>
+      </article>
+    </section>
 
-        <!-- Course status breakdown (Donut Chart) -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Cơ cấu bài giảng</h3>
-              <p class="card-desc">Tỉ lệ phân bổ các học phần theo trạng thái kiểm duyệt</p>
-            </div>
-          </div>
-          <div class="card-body is-centered">
-            <div class="skeleton-donut" v-if="loading" />
-            <UiDonut
-              v-else-if="courseStatusSegments.length"
-              :segments="courseStatusSegments"
-              :size="150"
-              :thickness="20"
-              center-label="Khóa học"
-              :center-value="totalCoursesFromStatus"
-            />
-            <div v-else class="chart-empty-state">
-              <BookMarked :size="32" />
-              <span>Không có dữ liệu bài giảng</span>
-            </div>
+    <section class="grid-c">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.progressTitle') }}</h2>
+            <p>{{ t('admin.dashboard.progressHint') }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="210px" /></div>
+        <ChartsUiChart v-else-if="hasProgress" type="bar" :data="progressChartData" :options="progressChartOptions" height="210px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noProgress') }}</div>
+      </article>
 
-        <!-- Leaderboard (Top Khóa học thịnh hành) -->
-        <div class="workspace-card">
-          <div class="card-header">
-            <div class="card-info">
-              <h3 class="card-title">Khóa học thịnh hành</h3>
-              <p class="card-desc">Các học phần trực tuyến có lượt ghi danh cao nhất</p>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="skeleton-leaderboard" v-if="loading">
-              <div class="leaderboard-skeleton-item" v-for="i in 3" :key="i" />
-            </div>
-            <div class="leaderboard-list" v-else-if="stats.top_courses?.length">
-              <div 
-                v-for="(course, idx) in stats.top_courses.slice(0, 5)" 
-                :key="course.id"
-                class="leaderboard-row"
-              >
-                <div class="leaderboard-rank" :class="`is-rank-${idx}`">
-                  {{ idx + 1 }}
-                </div>
-                <div class="leaderboard-details">
-                  <NuxtLink :to="`/admin/manage-courses/${course.id}`" class="leaderboard-name-link">
-                    {{ course.title }}
-                  </NuxtLink>
-                  <div class="leaderboard-visual">
-                    <div 
-                      class="visual-bar" 
-                      :style="`width: ${Math.round((course.enrollments_count / (stats.top_courses[0]?.enrollments_count || 1)) * 100)}%`"
-                    />
-                  </div>
-                </div>
-                <div class="leaderboard-value">
-                  <Users :size="12" />
-                  <span>{{ course.enrollments_count.toLocaleString('vi-VN') }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-else class="chart-empty-state">
-              <Award :size="32" />
-              <span>Chưa có xếp hạng học phần</span>
-            </div>
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.engagementTitle') }}</h2>
+            <p>{{ t('admin.dashboard.engagementHint') }}</p>
           </div>
         </div>
+        <div v-if="loading" class="chart-box"><Skeleton height="210px" /></div>
+        <ChartsUiChart v-else-if="hasEngagement" type="radar" :data="engagementChartData" :options="engagementChartOptions" height="210px" />
+        <div v-else class="empty">{{ t('admin.dashboard.noEngagement') }}</div>
+      </article>
 
-      </aside>
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.shortcutsTitle') }}</h2>
+            <p>{{ t('admin.dashboard.shortcutsHint') }}</p>
+          </div>
+        </div>
+        <div class="shortcut-grid">
+          <NuxtLink v-for="action in quickActions" :key="action.to" :to="action.to" class="shortcut">
+            <i :class="['pi', action.icon]" />
+            <span>{{ action.label }}</span>
+          </NuxtLink>
+        </div>
+      </article>
+    </section>
 
-    </div>
+    <section class="grid-d">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.topCoursesTitle') }}</h2>
+            <p>{{ t('admin.dashboard.topCoursesHint') }}</p>
+          </div>
+          <NuxtLink to="/admin/manage-courses" class="link">{{ t('common.viewAll') }}</NuxtLink>
+        </div>
+        <div class="list">
+          <div v-for="(course, index) in (stats.top_courses || []).slice(0, 5)" :key="course.id" class="list-row">
+            <span class="rank">{{ index + 1 }}</span>
+            <strong>{{ course.title }}</strong>
+            <Tag :value="t('admin.dashboard.learnersTag', { n: course.enrollments_count })" severity="secondary" />
+          </div>
+          <div v-if="!loading && !(stats.top_courses || []).length" class="empty compact">{{ t('common.noData') }}</div>
+        </div>
+      </article>
 
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.openClassesTitle') }}</h2>
+            <p>{{ t('admin.dashboard.openClassesHint') }}</p>
+          </div>
+        </div>
+        <div class="list">
+          <div v-for="section in upcomingSections.slice(0, 5)" :key="section.id || section.code" class="list-row stacked">
+            <div>
+              <strong>{{ section.code || section.name || '—' }}</strong>
+              <small>{{ section.course?.title || t('admin.dashboard.noCourseBound') }} · {{ section.lecturer?.name || t('admin.dashboard.noLecturer') }}</small>
+            </div>
+            <span>{{ section.enrolled_count || 0 }}/{{ section.capacity || '—' }}</span>
+          </div>
+          <div v-if="!loading && !upcomingSections.length" class="empty compact">{{ t('admin.dashboard.noOpenClasses') }}</div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>{{ t('admin.dashboard.notificationsTitle') }}</h2>
+            <p>{{ t('admin.dashboard.notificationsHint') }}</p>
+          </div>
+        </div>
+        <div class="list">
+          <div v-for="item in notifications.slice(0, 5)" :key="item.id || item.title" class="list-row stacked">
+            <div>
+              <strong>{{ item.title || t('admin.dashboard.notificationFallback') }}</strong>
+              <small>{{ item.message || t('admin.dashboard.noContent') }}</small>
+            </div>
+            <span>{{ timeAgo(item.created_at) }}</span>
+          </div>
+          <div v-if="!loading && !notifications.length" class="empty compact">{{ t('admin.dashboard.noNotifications') }}</div>
+        </div>
+      </article>
+    </section>
   </div>
 </template>
 
 <style scoped>
-/* ── General Scrollbars ── */
-.dash-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-height: 100vh;
-  color: var(--text);
-}
-
-/* ── Header Hub ── */
-.dash-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--surface-strong), rgba(var(--surface-strong-rgb), 0.7));
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(8px);
-}
-
-.header-title {
-  margin: 0 0 6px;
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: -0.03em;
-}
-
-.header-subtitle {
-  margin: 0;
-  font-size: 0.88rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.header-action-meta {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 99px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  color: #10B981;
-  font-size: 0.8rem;
+.dashboard { gap: 14px; }
+.dash-head { margin-bottom: 2px; }
+.eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--brand);
+  font-size: .8rem;
   font-weight: 700;
-}
-
-.icon-pulse {
-  animation: pulse-ring 2s infinite ease-in-out;
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.5; }
-}
-
-.action-btn-refresh {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface-strong);
-  color: var(--text);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 200ms ease;
-  box-shadow: var(--shadow-sm);
-}
-
-.action-btn-refresh:hover:not(:disabled) {
-  background: var(--surface);
-  border-color: #10B981;
-  color: #10B981;
-  transform: translateY(-1px);
-}
-
-.spin-anim {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── Runway Quick Actions ── */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-}
-
-.action-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  text-decoration: none;
-  color: var(--text-secondary);
-  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
-}
-
-.action-card:hover {
-  transform: translateY(-3px);
-  border-color: #10B981;
-  box-shadow: var(--shadow);
-  background: linear-gradient(to bottom, var(--surface-strong), rgba(16, 185, 129, 0.02));
-}
-
-.action-card:hover .action-label {
-  color: #10B981;
-}
-
-.action-card:hover .action-arrow {
-  transform: translateX(4px);
-  color: #10B981;
-}
-
-.action-icon-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(16, 185, 129, 0.06);
-  color: #10B981;
-  transition: all 200ms;
-}
-
-.action-card:hover .action-icon-wrap {
-  background: #10B981;
-  color: #ffffff;
-}
-
-.action-label {
-  flex: 1;
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--text);
-  transition: color 200ms;
-}
-
-.action-arrow {
-  color: var(--muted);
-  transition: transform 200ms, color 200ms;
-}
-
-/* ── Error Banner ── */
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 14px;
-  color: #EF4444;
-  font-size: 0.88rem;
-}
-
-.error-msg {
-  flex: 1;
-  font-weight: 600;
-}
-
-.btn-retry {
-  padding: 6px 14px;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  background: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 150ms;
-}
-
-.btn-retry:hover {
-  background: #EF4444;
-  color: #fff;
-}
-
-/* ── Metrics Cards Grid ── */
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-}
-
-.metric-block {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px;
-  min-height: 170px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 250ms, box-shadow 250ms, transform 250ms;
-}
-
-.metric-block:hover {
-  box-shadow: var(--shadow);
-  transform: translateY(-2px);
-}
-
-.metric-block.is-revenue:hover { border-color: rgba(16, 185, 129, 0.3); }
-.metric-block.is-classes:hover { border-color: rgba(14, 165, 233, 0.3); }
-.metric-block.is-completion:hover { border-color: rgba(139, 92, 246, 0.3); }
-.metric-block.is-users:hover { border-color: rgba(245, 158, 11, 0.3); }
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.metric-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
+  letter-spacing: .08em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
-.metric-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 99px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.metric-delta.is-positive { background: rgba(16, 185, 129, 0.08); color: #10B981; }
-.metric-delta.is-negative { background: rgba(239, 68, 68, 0.08); color: #EF4444; }
-.metric-delta.is-info { background: rgba(14, 165, 233, 0.08); color: #0EA5E9; }
-.metric-delta.is-success-alt { background: rgba(139, 92, 246, 0.08); color: #8B5CF6; }
-
-.metric-content {
-  margin: 16px 0;
-  position: relative;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.metric-value {
-  margin: 0;
-  font-size: 2rem;
-  font-weight: 850;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.metric-sparkline {
-  margin-top: 10px;
-  height: 36px;
-}
-
-.metric-footer {
-  font-size: 0.78rem;
-  color: var(--muted);
-  font-weight: 500;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  margin-top: auto;
-}
-
-.footer-note {
-  opacity: 0.8;
-}
-
-.footer-link-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  color: #0EA5E9;
-  font-weight: 700;
-  transition: opacity 150ms;
-}
-
-.footer-link-action:hover {
-  opacity: 0.8;
-}
-
-.text-split {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* ── Class Card Split Layout ── */
-.classes-split-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.class-split-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.split-num-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.split-value {
-  font-size: 1.6rem;
-  font-weight: 850;
-  color: var(--text);
-}
-
-.split-lbl {
-  font-size: 0.74rem;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.split-divider {
-  width: 1px;
-  height: 36px;
-  background: var(--line);
-  flex-shrink: 0;
-}
-
-.text-sky { color: #0EA5E9; }
-.text-indigo { color: #8B5CF6; }
-
-/* ── Completion Score Layout ── */
-.completion-hero-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.score-display {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.score-value {
-  font-size: 2.2rem;
-  font-weight: 900;
-  color: var(--text);
-  letter-spacing: -0.04em;
-}
-
-.score-max {
-  font-size: 0.86rem;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.progress-ring-mini {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.metric-indicators {
-  margin-top: 10px;
-}
-
-.indicator-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  color: var(--text-secondary);
-  font-size: 0.74rem;
-  font-weight: 600;
-}
-
-.text-green { color: #10B981; }
-.text-orange { color: #F59E0B; }
-.text-violet { color: #8B5CF6; }
-
-/* ── Users Card Live Stats ── */
-.users-total-wrap {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.live-counter-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  color: #F59E0B;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.ping-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #F59E0B;
-  animation: live-ping 1.4s infinite ease-in-out;
-}
-
-@keyframes live-ping {
-  0% { transform: scale(0.8); opacity: 0.5; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.8); opacity: 0.5; }
-}
-
-.ratio-progress-bar {
-  display: flex;
-  height: 7px;
-  background: var(--line);
-  border-radius: 99px;
-  overflow: hidden;
-  margin-top: 14px;
-}
-
-.bar-fill {
-  height: 100%;
-  transition: width 0.6s ease;
-}
-
-.bar-fill.is-student { background: #F59E0B; }
-.bar-fill.is-instructor { background: rgba(245, 158, 11, 0.4); }
-
-/* Skeletons */
-.skeleton-h3 {
-  height: 28px;
-  border-radius: 6px;
-  background: var(--line);
-  width: 70%;
-  animation: pulse 1.4s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 0.3; }
-}
-
-/* ── Workspace Layout Grid ── */
-.workspace-layout {
+.kpi-row {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
-}
-
-@media (min-width: 1024px) {
-  .workspace-layout { grid-template-columns: 1fr 360px; }
-}
-
-.workspace-main {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-}
-
-.workspace-side {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.workspace-card {
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: border-color 200ms, box-shadow 200ms;
-}
-
-.workspace-card:hover {
-  border-color: rgba(var(--text-rgb), 0.1);
-}
-
-.main-chart-card:hover {
-  border-color: rgba(139, 92, 246, 0.15);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 24px 24px 16px;
-  border-bottom: 1px solid rgba(var(--line-rgb), 0.3);
-}
-
-.card-title {
-  margin: 0 0 4px;
-  font-size: 1.05rem;
-  font-weight: 850;
-  color: var(--text);
-  letter-spacing: -0.02em;
-}
-
-.card-desc {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.chart-badge {
-  font-size: 0.74rem;
-  font-weight: 800;
-  padding: 4px 12px;
-  border-radius: 99px;
-}
-
-.bg-orange-soft { background: rgba(245, 158, 11, 0.08); }
-.bg-violet-soft { background: rgba(139, 92, 246, 0.08); }
-
-.card-body {
-  padding: 20px 24px 24px;
-}
-
-.card-body.is-nopad {
-  padding: 0;
-}
-
-.card-body.is-centered {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 30px 24px;
-}
-
-/* Skeletons */
-.skeleton-chart { height: 260px; background: var(--surface); border-radius: 12px; animation: pulse 1.4s infinite ease-in-out; }
-.skeleton-donut { width: 150px; height: 150px; border-radius: 50%; background: var(--surface); animation: pulse 1.4s infinite ease-in-out; }
-.skeleton-leaderboard { display: flex; flex-direction: column; gap: 10px; }
-.leaderboard-skeleton-item { height: 52px; border-radius: 10px; background: var(--surface); animation: pulse 1.4s infinite ease-in-out; }
-
-/* Empty state styling */
-.chart-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 50px 24px;
-  color: var(--muted);
-  gap: 12px;
-  font-size: 0.86rem;
-}
-.chart-empty-state i, .chart-empty-state svg {
-  opacity: 0.5;
-  color: var(--muted);
-}
-
-/* ── Upcoming Schedules List ── */
-.calendar-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: #8B5CF6;
-  background: rgba(139, 92, 246, 0.08);
-  padding: 5px 12px;
-  border-radius: 99px;
-}
-
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 0;
-}
-
-.schedule-item-row {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--line);
-  transition: background 150ms;
-}
-
-.schedule-item-row:last-child {
-  border-bottom: none;
-}
-
-.schedule-item-row:hover {
-  background: rgba(var(--text-rgb), 0.01);
-}
-
-@media (min-width: 768px) {
-  .schedule-item-row {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-  }
-}
-
-.schedule-type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.74rem;
-  font-weight: 700;
-  width: fit-content;
-  flex-shrink: 0;
-}
-
-.is-exam .schedule-type-badge { background: rgba(239, 68, 68, 0.08); color: #EF4444; }
-.is-lecture .schedule-type-badge { background: rgba(14, 165, 233, 0.08); color: #0EA5E9; }
-.is-meeting .schedule-type-badge { background: rgba(245, 158, 11, 0.08); color: #F59E0B; }
-
-.type-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-}
-.is-exam .type-dot { background-color: #EF4444; }
-.is-lecture .type-dot { background-color: #0EA5E9; }
-.is-meeting .type-dot { background-color: #F59E0B; }
-
-.schedule-main-info {
-  flex: 1;
-}
-
-.schedule-item-title {
-  margin: 0 0 4px;
-  font-size: 0.9rem;
-  font-weight: 750;
-  color: var(--text);
-}
-
-.schedule-item-class {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.schedule-meta-cols {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
-}
-
-.schedule-meta-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.schedule-meta-cell svg {
-  color: var(--muted);
-}
-
-/* ── Announcements Feed ── */
-.announcement-bell-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(245, 158, 11, 0.08);
-  color: #F59E0B;
-}
-
-.bell-ringing {
-  animation: bell-swing 3s infinite ease-in-out;
-}
-
-@keyframes bell-swing {
-  0%, 100% { transform: rotate(0); }
-  5%, 15%, 25% { transform: rotate(8deg); }
-  10%, 20%, 30% { transform: rotate(-8deg); }
-  35% { transform: rotate(0); }
-}
-
-.announcements-timeline {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 16px 20px;
-  gap: 12px;
-}
-
-.announcement-card-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  transition: transform 200ms, border-color 200ms;
-}
-
-.announcement-card-item:hover {
-  transform: translateX(3px);
-}
-
-.announcement-card-item.priority-urgent { border-left: 3px solid #EF4444; }
-.announcement-card-item.priority-system { border-left: 3px solid #F59E0B; }
-.announcement-card-item.priority-academic { border-left: 3px solid #8B5CF6; }
-.announcement-card-item.priority-info { border-left: 3px solid #10B981; }
-
-.announce-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.announce-tag {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.priority-urgent .announce-tag { color: #EF4444; }
-.priority-system .announce-tag { color: #F59E0B; }
-.priority-academic .announce-tag { color: #8B5CF6; }
-.priority-info .announce-tag { color: #10B981; }
-
-.announce-time {
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.announce-item-title {
-  margin: 0;
-  font-size: 0.84rem;
-  font-weight: 750;
-  color: var(--text);
-  line-height: 1.3;
-}
-
-.announce-item-desc {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  font-weight: 500;
-}
-
-/* ── Leaderboard List ── */
-.leaderboard-list {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
 
-.leaderboard-row {
+.kpi {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 92px;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.kpi > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi span { color: var(--text-muted); font-size: .86rem; font-weight: 650; }
+.kpi strong {
+  overflow: hidden;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -.03em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kpi small { color: var(--text-muted); font-size: .8rem; font-weight: 500; }
+.kpi > i {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  font-size: .9rem;
+}
+.tone-brand > i { background: var(--brand-soft); color: var(--brand); }
+.tone-blue > i { background: #eaf2ff; color: #2563eb; }
+.tone-amber > i { background: #fff6df; color: #d97706; }
+.tone-violet > i { background: #f2edff; color: #7c3aed; }
+:global(.dark) .tone-blue > i,
+:global(.dark) .tone-amber > i,
+:global(.dark) .tone-violet > i { background: var(--surface-hover); }
+
+.pulse-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pulse {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  min-height: 68px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
 }
 
-.leaderboard-row:hover {
-  border-color: #10B981;
-  transform: translateX(4px);
-}
-
-.leaderboard-rank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.pulse > i {
+  display: grid;
+  place-items: center;
   width: 28px;
   height: 28px;
+  flex: 0 0 28px;
   border-radius: 8px;
-  background: var(--line);
-  color: var(--muted);
-  font-weight: 800;
-  font-size: 0.8rem;
-  flex-shrink: 0;
+  background: var(--surface-subtle);
+  color: var(--brand);
+  font-size: .78rem;
 }
 
-.leaderboard-rank.is-rank-0 { background: linear-gradient(135deg, #FBBF24, #D97706); color: #fff; }
-.leaderboard-rank.is-rank-1 { background: linear-gradient(135deg, #94A3B8, #475569); color: #fff; }
-.leaderboard-rank.is-rank-2 { background: linear-gradient(135deg, #CD7F32, #A16207); color: #fff; }
+.pulse > div { display: flex; flex-direction: column; min-width: 0; }
+.pulse strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pulse span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: .76rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.leaderboard-details {
+.grid-a,
+.grid-b,
+.grid-c,
+.grid-d {
+  display: grid;
+  gap: 10px;
+}
+
+.grid-a { grid-template-columns: minmax(0, 1.55fr) minmax(280px, .85fr); }
+.grid-b { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .9fr); }
+.grid-c,
+.grid-d { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.panel {
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.panel-head h2 {
+  margin: 0 0 2px;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.panel-head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .84rem;
+  font-weight: 500;
+}
+
+.link {
+  color: var(--brand);
+  font-size: .88rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chart-box { padding-top: 2px; }
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 650;
+  transition: .15s ease;
+}
+
+.shortcut:hover {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.shortcut i {
+  color: var(--brand);
+  font-size: .8rem;
+}
+
+.list { display: grid; }
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  border-bottom: 1px solid var(--border);
+}
+.list-row:last-child { border-bottom: 0; }
+.list-row.stacked { align-items: flex-start; padding: 8px 0; }
+.list-row.stacked > div {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
-
-.leaderboard-name-link {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 750;
+.list-row strong {
+  overflow: hidden;
   color: var(--text);
-  text-decoration: none;
-  white-space: nowrap;
-  overflow: hidden;
+  font-size: .92rem;
+  font-weight: 650;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
-  transition: color 150ms;
+  white-space: nowrap;
 }
-
-.leaderboard-name-link:hover {
-  color: #10B981;
-}
-
-.leaderboard-visual {
-  height: 5px;
-  background: var(--line);
-  border-radius: 99px;
+.list-row small {
   overflow: hidden;
+  color: var(--text-muted);
+  font-size: .8rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-row > span {
+  color: var(--text-muted);
+  font-size: .8rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.visual-bar {
-  height: 100%;
-  border-radius: 99px;
-  background: #10B981;
-  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.leaderboard-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
+.rank {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 6px;
+  background: var(--surface-subtle);
+  color: var(--text-muted);
+  font-size: .68rem;
   font-weight: 700;
-  color: var(--text-secondary);
 }
 
-.leaderboard-value svg {
-  color: var(--muted);
+.empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  color: var(--text-muted);
+  font-size: .9rem;
+  font-weight: 500;
+}
+.empty.compact { min-height: 110px; }
+
+@media (max-width: 1280px) {
+  .pulse-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid-c, .grid-d { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 980px) {
+  .kpi-row,
+  .grid-a,
+  .grid-b { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 720px) {
+  .kpi-row,
+  .pulse-row,
+  .grid-a,
+  .grid-b,
+  .grid-c,
+  .grid-d,
+  .shortcut-grid { grid-template-columns: 1fr; }
 }
 </style>

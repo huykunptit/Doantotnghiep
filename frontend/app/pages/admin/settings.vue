@@ -1,14 +1,12 @@
-<script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import AdminWorkspaceShell from '~/components/dashboard/AdminWorkspaceShell.vue'
-import MediaUpload from '~/components/common/MediaUpload.vue'
-import { useAuthUserCookie } from '~/composables/useAuthSession'
-import { useToast } from '~/composables/useToast'
+﻿<script setup lang="ts">
+import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'admin', adminSearchPlaceholder: 'Tìm cài đặt...' })
+definePageMeta({
+  layout: 'admin',
+  middleware: ['auth', 'admin'],
+})
 
 interface SiteSettings {
-  // Branding
   theme_color_primary?: string | null
   theme_color_deep?: string | null
   brand_name?: string | null
@@ -25,18 +23,15 @@ interface SiteSettings {
   site_logo_url?: string | null
   site_favicon?: string | null
   site_favicon_url?: string | null
-  // Contact
   contact_email?: string | null
   contact_phone?: string | null
   contact_address?: string | null
   support_hours?: string | null
-  // Social
   social_facebook?: string | null
   social_youtube?: string | null
   social_tiktok?: string | null
   social_linkedin?: string | null
   social_zalo?: string | null
-  // SMTP
   smtp_host?: string | null
   smtp_port?: string | null
   smtp_username?: string | null
@@ -44,74 +39,152 @@ interface SiteSettings {
   smtp_encryption?: string | null
   smtp_from_address?: string | null
   smtp_from_name?: string | null
-  // Legal / Footer
   footer_copyright?: string | null
   legal_company_name?: string | null
   legal_tax_code?: string | null
   terms_url?: string | null
   privacy_url?: string | null
-  // Localization
   default_locale?: string | null
   default_currency?: string | null
   timezone?: string | null
 }
 
-type FormState = Required<Omit<SiteSettings, 'brand_logo_url' | 'auth_page_image_url' | 'site_logo_url' | 'site_favicon_url'>>
-
-const FORM_DEFAULTS: FormState = {
-  theme_color_primary: 'var(--green)', theme_color_deep: 'var(--green-deep)',
-  brand_name: '', brand_mark: '', brand_logo: '', site_title: '', auth_page_image: '',
-  site_name: '', site_tagline: '', site_description: '', site_logo: '', site_favicon: '',
-  contact_email: '', contact_phone: '', contact_address: '', support_hours: '',
-  social_facebook: '', social_youtube: '', social_tiktok: '', social_linkedin: '', social_zalo: '',
-  smtp_host: '', smtp_port: '', smtp_username: '', smtp_password: '', smtp_encryption: 'tls',
-  smtp_from_address: '', smtp_from_name: '',
-  footer_copyright: '', legal_company_name: '', legal_tax_code: '', terms_url: '', privacy_url: '',
-  default_locale: 'vi', default_currency: 'VND', timezone: 'Asia/Ho_Chi_Minh',
+type FormState = {
+  theme_color_primary: string
+  theme_color_deep: string
+  brand_name: string
+  brand_mark: string
+  brand_logo: string
+  site_title: string
+  auth_page_image: string
+  site_name: string
+  site_tagline: string
+  site_description: string
+  site_logo: string
+  site_favicon: string
+  contact_email: string
+  contact_phone: string
+  contact_address: string
+  support_hours: string
+  social_facebook: string
+  social_youtube: string
+  social_tiktok: string
+  social_linkedin: string
+  social_zalo: string
+  smtp_host: string
+  smtp_port: string
+  smtp_username: string
+  smtp_password: string
+  smtp_encryption: string
+  smtp_from_address: string
+  smtp_from_name: string
+  footer_copyright: string
+  legal_company_name: string
+  legal_tax_code: string
+  terms_url: string
+  privacy_url: string
+  default_locale: string
+  default_currency: string
+  timezone: string
 }
 
-const TABS = [
-  { id: 'branding', label: 'Thương hiệu' },
-  { id: 'contact', label: 'Liên hệ' },
-  { id: 'social', label: 'Mạng xã hội' },
-  { id: 'smtp', label: 'SMTP' },
-  { id: 'legal', label: 'Pháp lý & Footer' },
-  { id: 'locale', label: 'Khu vực & Tiền tệ' },
-] as const
-type TabId = (typeof TABS)[number]['id']
+const FORM_DEFAULTS: FormState = {
+  theme_color_primary: '#0F6E8C',
+  theme_color_deep: '#0b5167',
+  brand_name: '',
+  brand_mark: '',
+  brand_logo: '',
+  site_title: '',
+  auth_page_image: '',
+  site_name: '',
+  site_tagline: '',
+  site_description: '',
+  site_logo: '',
+  site_favicon: '',
+  contact_email: '',
+  contact_phone: '',
+  contact_address: '',
+  support_hours: '',
+  social_facebook: '',
+  social_youtube: '',
+  social_tiktok: '',
+  social_linkedin: '',
+  social_zalo: '',
+  smtp_host: '',
+  smtp_port: '',
+  smtp_username: '',
+  smtp_password: '',
+  smtp_encryption: 'tls',
+  smtp_from_address: '',
+  smtp_from_name: '',
+  footer_copyright: '',
+  legal_company_name: '',
+  legal_tax_code: '',
+  terms_url: '',
+  privacy_url: '',
+  default_locale: 'vi',
+  default_currency: 'VND',
+  timezone: 'Asia/Ho_Chi_Minh',
+}
 
-const user = useAuthUserCookie()
-if (!user.value) await navigateTo('/login', { replace: true })
-const token = useAuthTokenCookie()
-const { refreshSettings } = useSiteSettings()
+const { t } = useI18n()
+const toast = useToast()
+const siteSettings = useSiteSettings()
 
-const loading = ref(false)
+const loading = ref(true)
 const saving = ref(false)
-const sendingTest = ref(false)
-const logoPreviewUrl = ref('')
-const authImagePreviewUrl = ref('')
-const faviconPreviewUrl = ref('')
-const activeTab = ref<TabId>('branding')
-const testEmail = ref('')
+const activeTab = ref('branding')
+const logoPreview = ref('')
+const faviconPreview = ref('')
+const authPreview = ref('')
 
 const form = reactive<FormState>({ ...FORM_DEFAULTS })
-const toast = useToast()
 
-const authHeaders = () => ({ Authorization: `Bearer ${token.value}` })
+const tabs = computed(() => [
+  { id: 'branding', label: t('admin.settings.tabs.branding') },
+  { id: 'contact', label: t('admin.settings.tabs.contact') },
+  { id: 'social', label: t('admin.settings.tabs.social') },
+  { id: 'smtp', label: t('admin.settings.tabs.smtp') },
+  { id: 'legal', label: t('admin.settings.tabs.legal') },
+  { id: 'locale', label: t('admin.settings.tabs.locale') },
+])
+
+const encryptionOptions = computed(() => [
+  { label: 'TLS', value: 'tls' },
+  { label: 'SSL', value: 'ssl' },
+  { label: t('admin.settings.encNone'), value: 'none' },
+])
+
+const localeOptions = computed(() => [
+  { label: t('admin.settings.localeVi'), value: 'vi' },
+  { label: t('admin.settings.localeEn'), value: 'en' },
+])
+
+const currencyOptions = [
+  { label: 'VND', value: 'VND' },
+  { label: 'USD', value: 'USD' },
+  { label: 'EUR', value: 'EUR' },
+]
+
+const timezoneOptions = [
+  { label: 'Asia/Ho_Chi_Minh', value: 'Asia/Ho_Chi_Minh' },
+  { label: 'Asia/Bangkok', value: 'Asia/Bangkok' },
+  { label: 'Asia/Singapore', value: 'Asia/Singapore' },
+  { label: 'UTC', value: 'UTC' },
+]
+
 const descriptionLength = computed(() => (form.site_description || '').length)
-const hasSmtpConfigured = computed(() => Boolean(form.smtp_host && form.smtp_port))
 
 function applySettings(data?: SiteSettings | { settings?: SiteSettings }) {
   const payload = data && 'settings' in (data as Record<string, unknown>)
     ? (data as { settings?: SiteSettings }).settings
     : (data as SiteSettings | undefined)
+
   const merged: Partial<FormState> = {}
   if (payload) {
     for (const key of Object.keys(FORM_DEFAULTS) as Array<keyof FormState>) {
       const value = (payload as Record<string, unknown>)[key]
-      if (value !== undefined && value !== null) {
-        merged[key] = String(value) as FormState[typeof key]
-      }
+      if (value !== undefined && value !== null) merged[key] = String(value)
     }
   }
   Object.assign(form, FORM_DEFAULTS, merged)
@@ -120,23 +193,30 @@ function applySettings(data?: SiteSettings | { settings?: SiteSettings }) {
   form.brand_logo = form.brand_logo || form.site_logo
   form.site_logo = form.site_logo || form.brand_logo
   form.site_title = form.site_title || form.brand_name || form.site_name
-  logoPreviewUrl.value = payload?.brand_logo_url || payload?.site_logo_url || ''
-  authImagePreviewUrl.value = payload?.auth_page_image_url || ''
-  faviconPreviewUrl.value = payload?.site_favicon_url || ''
+  logoPreview.value = payload?.brand_logo_url || payload?.site_logo_url || ''
+  faviconPreview.value = payload?.site_favicon_url || ''
+  authPreview.value = payload?.auth_page_image_url || ''
 }
 
-async function fetchSettings() {
+async function load() {
   loading.value = true
   try {
-    applySettings(await useApi<SiteSettings>('/admin/settings', { headers: authHeaders() }))
-  } catch (error: any) {
-    toast.error(error?.data?.message || 'Không thể tải cài đặt.')
-  } finally {
+    applySettings(await useApi<SiteSettings>('/admin/settings'))
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.settings.loadError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
     loading.value = false
   }
 }
 
-async function saveSettings() {
+async function save() {
   saving.value = true
   try {
     const payload: Record<string, string> = {}
@@ -144,447 +224,329 @@ async function saveSettings() {
       const value = form[key] ?? ''
       payload[key] = key === 'site_description' ? String(value).slice(0, 500) : String(value)
     }
-    const normalizedBrandName = payload.brand_name || payload.site_name || ''
-    const normalizedBrandLogo = payload.brand_logo || payload.site_logo || ''
-    payload.brand_name = normalizedBrandName
-    payload.site_name = normalizedBrandName
-    payload.brand_logo = normalizedBrandLogo
-    payload.site_logo = normalizedBrandLogo
-    payload.site_title = payload.site_title || normalizedBrandName
-    const response = await useApi<{ message?: string; settings?: SiteSettings }>('/admin/settings', {
+    const brandName = payload.brand_name || payload.site_name || ''
+    const brandLogo = payload.brand_logo || payload.site_logo || ''
+    payload.brand_name = brandName
+    payload.site_name = brandName
+    payload.brand_logo = brandLogo
+    payload.site_logo = brandLogo
+    payload.site_title = payload.site_title || brandName
+
+    const res = await useApi<{ message?: string, settings?: SiteSettings }>('/admin/settings', {
       method: 'PUT',
-      headers: authHeaders(),
       body: payload,
     })
-    applySettings(response)
-    await refreshSettings()
-    toast.success(response?.message || 'Đã lưu cài đặt hệ thống.')
-  } catch (error: any) {
-    toast.error(error?.data?.message || 'Không thể lưu cài đặt.')
-  } finally {
+    applySettings(res)
+    siteSettings.loaded.value = false
+    await siteSettings.load()
+    toast.add({
+      severity: 'success',
+      summary: res.message || t('admin.settings.saved'),
+      life: 2500,
+    })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.settings.saveError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
     saving.value = false
   }
 }
 
-type UploadedPayload = { url: string; path: string }
-
-async function onLogoUploaded({ path }: UploadedPayload) {
-  form.brand_logo = path
-  form.site_logo = path
-  await saveSettings()
-  toast.success('Đã cập nhật logo website.')
-}
-
-async function onAuthUploaded({ path }: UploadedPayload) {
-  form.auth_page_image = path
-  await saveSettings()
-  toast.success('Đã cập nhật ảnh nền trang xác thực.')
-}
-
-async function onFaviconUploaded({ path }: UploadedPayload) {
-  form.site_favicon = path
-  await saveSettings()
-  toast.success('Đã cập nhật favicon.')
-}
-
-function onUploadError(message: string) {
-  toast.error(message)
-}
-
-watch(logoPreviewUrl, async (val, prev) => {
-  if (prev && !val && (form.brand_logo || form.site_logo)) {
-    form.brand_logo = ''
-    form.site_logo = ''
-    await saveSettings()
-  }
-})
-
-watch(authImagePreviewUrl, async (val, prev) => {
-  if (prev && !val && form.auth_page_image) {
-    form.auth_page_image = ''
-    await saveSettings()
-  }
-})
-
-watch(faviconPreviewUrl, async (val, prev) => {
-  if (prev && !val && form.site_favicon) {
-    form.site_favicon = ''
-    await saveSettings()
-  }
-})
-
-async function sendTestEmail() {
-  if (!testEmail.value) {
-    toast.error('Vui lòng nhập email nhận thử.')
-    return
-  }
-  sendingTest.value = true
-  try {
-    await saveSettings()
-    const response = await useApi<{ message?: string }>('/admin/settings/test-smtp', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: { to: testEmail.value },
-    })
-    toast.success(response?.message || 'Đã gửi email kiểm tra.')
-  } catch (error: any) {
-    toast.error(error?.data?.message || 'Không thể gửi email kiểm tra.')
-  } finally {
-    sendingTest.value = false
-  }
-}
-onMounted(fetchSettings)
+onMounted(load)
 </script>
 
 <template>
-  <AdminWorkspaceShell
-    :breadcrumb="['Trang chủ', 'Quản trị hệ thống', 'Cài đặt']"
-    description="Quản lý thương hiệu, liên hệ, mạng xã hội, SMTP và các thông tin pháp lý của website."
-    title="Cài đặt hệ thống"
-  >
-    <section class="crud-overview-grid">
-      <article class="dashboard-card mini-card tone-green">
-        <p class="mini-title">Website</p>
-        <div class="mini-head">
-          <strong>{{ form.site_name || 'Chưa đặt tên' }}</strong>
-          <span>{{ form.site_tagline || 'Tên hiển thị của hệ thống' }}</span>
-        </div>
-      </article>
-      <article class="dashboard-card mini-card tone-amber">
-        <p class="mini-title">Logo / Favicon</p>
-        <div class="mini-head">
-          <strong>{{ form.site_logo ? 'Đã có logo' : 'Chưa có logo' }}</strong>
-          <span>{{ form.site_favicon ? 'Đã có favicon' : 'Chưa có favicon' }}</span>
-        </div>
-      </article>
-      <article class="dashboard-card mini-card">
-        <p class="mini-title">SMTP</p>
-        <div class="mini-head">
-          <strong>{{ form.smtp_host || '--' }}</strong>
-          <span>{{ form.smtp_from_address || 'Chưa cấu hình email gửi đi' }}</span>
-        </div>
-      </article>
-      <article class="dashboard-card mini-card tone-violet">
-        <p class="mini-title">Liên hệ</p>
-        <div class="mini-head">
-          <strong>{{ form.contact_phone || form.contact_email || '--' }}</strong>
-          <span>{{ form.contact_address || 'Chưa có địa chỉ liên hệ' }}</span>
-        </div>
-      </article>
-    </section>
-
-    <section class="dashboard-card crud-panel">
-      <div class="crud-toolbar">
-        <div>
-          <p class="section-kicker">Cài đặt</p>
-          <h3>{{ TABS.find(tab => tab.id === activeTab)?.label }}</h3>
-        </div>
-        <button class="crud-primary-btn" type="button" :disabled="saving" @click="saveSettings">
-          {{ saving ? 'Đang lưu...' : 'Lưu cài đặt' }}
-        </button>
+  <div class="page settings-page">
+    <header class="workspace-head">
+      <div>
+        <span class="eyebrow">{{ t('admin.menu.system') }}</span>
+        <h1>{{ t('admin.settings.title') }}</h1>
+        <p>{{ t('admin.settings.subtitle') }}</p>
       </div>
+      <div class="page-actions">
+        <Button
+          :label="t('common.refresh')"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          :loading="loading"
+          @click="load"
+        />
+        <Button
+          :label="t('common.save')"
+          icon="pi pi-check"
+          :loading="saving"
+          :disabled="loading"
+          @click="save"
+        />
+      </div>
+    </header>
 
-      <nav class="settings-tabs" role="tablist">
+    <div v-if="loading" class="loading-box">
+      <ProgressSpinner style="width:36px;height:36px" stroke-width="4" />
+      <span>{{ t('common.loading') }}</span>
+    </div>
+
+    <section v-else class="panel">
+      <div class="tab-rail">
         <button
-          v-for="tab in TABS"
+          v-for="tab in tabs"
           :key="tab.id"
-          role="tab"
           type="button"
-          :class="['settings-tab', { 'is-active': activeTab === tab.id }]"
-          :aria-selected="activeTab === tab.id"
+          class="tab"
+          :class="{ on: activeTab === tab.id }"
           @click="activeTab = tab.id"
         >
           {{ tab.label }}
         </button>
-      </nav>
+      </div>
 
-      <div v-if="loading" class="crud-empty">Đang tải cài đặt...</div>
-
-      <div v-else>
-        <!-- Branding -->
-        <div v-show="activeTab === 'branding'" class="crud-form-grid">
-          <label class="crud-field">
-            <span>Màu chủ đạo (Primary Color)</span>
-            <input v-model="form.theme_color_primary" type="color" class="color-picker-input">
-          </label>
-          <label class="crud-field">
-            <span>Màu chủ đạo đậm (Deep Color)</span>
-            <input v-model="form.theme_color_deep" type="color" class="color-picker-input">
-          </label>
-          <label class="crud-field">
-            <span>Brand name</span>
-            <input v-model="form.brand_name" type="text" placeholder="PTIT LMS">
-          </label>
-          <label class="crud-field">
-            <span>Brand mark</span>
-            <input v-model="form.brand_mark" type="text" maxlength="32" placeholder="PTIT">
-          </label>
-          <label class="crud-field">
-            <span>Site title</span>
-            <input v-model="form.site_title" type="text" placeholder="PTIT LMS">
-          </label>
-          <label class="crud-field">
-            <span>Slogan</span>
-            <input v-model="form.site_tagline" type="text" placeholder="Học mọi lúc, mọi nơi">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Mô tả website</span>
-            <textarea v-model="form.site_description" class="crud-textarea" rows="4" maxlength="500" placeholder="Nền tảng học trực tuyến..."></textarea>
-            <small class="settings-help">{{ descriptionLength }}/500 ký tự</small>
-          </label>
-
-          <div class="crud-field crud-field-full">
-            <span>Brand logo</span>
-            <MediaUpload
-              v-model="logoPreviewUrl"
-              folder="settings"
-              variant="square"
-              accept="image/*"
-              label="Tải brand logo"
-              hint="PNG/SVG, nền trong suốt, tối thiểu 128×128 — tự động tải lên."
-              :placeholder-initial="form.brand_mark || 'LG'"
-              @uploaded="onLogoUploaded"
-              @error="onUploadError"
-            />
-          </div>
-
-          <div class="crud-field crud-field-full">
-            <span>Ảnh trang xác thực</span>
-            <MediaUpload
-              v-model="authImagePreviewUrl"
-              folder="settings"
-              variant="banner"
-              accept="image/*"
-              label="Ảnh trang đăng nhập/đăng ký"
-              hint="Ảnh lớn dùng cho khối minh hoạ bên trái — tối đa 5MB."
-              placeholder-initial="AUTH"
-              @uploaded="onAuthUploaded"
-              @error="onUploadError"
-            />
-          </div>
-
-          <div class="crud-field crud-field-full">
-            <span>Favicon</span>
-            <MediaUpload
-              v-model="faviconPreviewUrl"
-              folder="settings"
-              variant="square"
-              accept="image/png,image/x-icon,image/svg+xml,image/*"
-              label="Tải favicon"
-              hint="ICO/PNG/SVG, kích thước 32×32 hoặc 64×64."
-              placeholder-initial="FV"
-              @uploaded="onFaviconUploaded"
-              @error="onUploadError"
-            />
-          </div>
-        </div>
-
-        <!-- Contact -->
-        <div v-show="activeTab === 'contact'" class="crud-form-grid">
-          <label class="crud-field">
-            <span>Email liên hệ</span>
-            <input v-model="form.contact_email" type="email" placeholder="contact@example.com">
-          </label>
-          <label class="crud-field">
-            <span>Hotline / Số điện thoại</span>
-            <input v-model="form.contact_phone" type="text" placeholder="0123 456 789">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Địa chỉ</span>
-            <input v-model="form.contact_address" type="text" placeholder="Số 1, Đường ABC, Quận XYZ, TP.HCM">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Giờ hỗ trợ</span>
-            <input v-model="form.support_hours" type="text" placeholder="Thứ 2 - Thứ 7, 8:00 - 17:30">
-          </label>
-        </div>
-
-        <!-- Social -->
-        <div v-show="activeTab === 'social'" class="crud-form-grid">
-          <label class="crud-field crud-field-full">
-            <span>Facebook</span>
-            <input v-model="form.social_facebook" type="url" placeholder="https://facebook.com/your-page">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>YouTube</span>
-            <input v-model="form.social_youtube" type="url" placeholder="https://youtube.com/@your-channel">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>TikTok</span>
-            <input v-model="form.social_tiktok" type="url" placeholder="https://tiktok.com/@your-account">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>LinkedIn</span>
-            <input v-model="form.social_linkedin" type="url" placeholder="https://linkedin.com/company/your-company">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Zalo</span>
-            <input v-model="form.social_zalo" type="url" placeholder="https://zalo.me/...">
-          </label>
-        </div>
-
-        <!-- SMTP -->
-        <div v-show="activeTab === 'smtp'" class="crud-form-grid">
-          <label class="crud-field"><span>SMTP host</span><input v-model="form.smtp_host" type="text" placeholder="smtp.gmail.com"></label>
-          <label class="crud-field"><span>SMTP port</span><input v-model="form.smtp_port" type="text" placeholder="587"></label>
-          <label class="crud-field"><span>SMTP username</span><input v-model="form.smtp_username" type="text" placeholder="noreply@example.com"></label>
-          <label class="crud-field"><span>SMTP password</span><input v-model="form.smtp_password" type="password" placeholder="••••••••" autocomplete="new-password"></label>
-          <label class="crud-field">
-            <span>Mã hóa</span>
-            <select v-model="form.smtp_encryption">
-              <option value="tls">TLS</option>
-              <option value="ssl">SSL</option>
-              <option value="none">None</option>
-            </select>
-          </label>
-          <label class="crud-field"><span>Email gửi đi</span><input v-model="form.smtp_from_address" type="email" placeholder="noreply@example.com"></label>
-          <label class="crud-field"><span>Tên người gửi</span><input v-model="form.smtp_from_name" type="text" placeholder="Sylva LMS"></label>
-
-          <div class="crud-field crud-field-full settings-test-block">
-            <span>Gửi email kiểm tra</span>
-            <div class="settings-test-row">
-              <input v-model="testEmail" type="email" placeholder="Email nhận thử (vd: ban@example.com)">
-              <button class="crud-secondary-btn" type="button" :disabled="sendingTest || !hasSmtpConfigured" @click="sendTestEmail">
-                {{ sendingTest ? 'Đang gửi...' : 'Gửi thử' }}
-              </button>
-            </div>
-            <small class="settings-help">Hệ thống sẽ lưu cấu hình rồi gửi một email kiểm tra tới địa chỉ ở trên.</small>
-          </div>
-        </div>
-
-        <!-- Legal / Footer -->
-        <div v-show="activeTab === 'legal'" class="crud-form-grid">
-          <label class="crud-field crud-field-full">
-            <span>Dòng bản quyền (footer)</span>
-            <input v-model="form.footer_copyright" type="text" placeholder="© 2026 Sylva LMS. All rights reserved.">
-          </label>
-          <label class="crud-field">
-            <span>Tên doanh nghiệp</span>
-            <input v-model="form.legal_company_name" type="text" placeholder="Công ty TNHH ABC">
-          </label>
-          <label class="crud-field">
-            <span>Mã số thuế</span>
-            <input v-model="form.legal_tax_code" type="text" placeholder="0312345678">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>URL Điều khoản sử dụng</span>
-            <input v-model="form.terms_url" type="url" placeholder="https://example.com/terms">
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>URL Chính sách bảo mật</span>
-            <input v-model="form.privacy_url" type="url" placeholder="https://example.com/privacy">
-          </label>
-        </div>
-
-        <!-- Locale -->
-        <div v-show="activeTab === 'locale'" class="crud-form-grid">
-          <label class="crud-field">
-            <span>Ngôn ngữ mặc định</span>
-            <select v-model="form.default_locale">
-              <option value="vi">Tiếng Việt</option>
-              <option value="en">English</option>
-            </select>
-          </label>
-          <label class="crud-field">
-            <span>Tiền tệ mặc định</span>
-            <select v-model="form.default_currency">
-              <option value="VND">VND - Đồng Việt Nam</option>
-              <option value="USD">USD - US Dollar</option>
-              <option value="EUR">EUR - Euro</option>
-              <option value="JPY">JPY - Yên Nhật</option>
-            </select>
-          </label>
-          <label class="crud-field crud-field-full">
-            <span>Múi giờ</span>
-            <select v-model="form.timezone">
-              <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (UTC+7)</option>
-              <option value="Asia/Bangkok">Asia/Bangkok (UTC+7)</option>
-              <option value="Asia/Singapore">Asia/Singapore (UTC+8)</option>
-              <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </label>
+      <div v-show="activeTab === 'branding'" class="form-grid">
+        <label class="field">
+          <span>{{ t('admin.settings.siteName') }}</span>
+          <InputText v-model="form.site_name" class="w-full" @update:model-value="(v: string) => form.brand_name = v" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.siteTitle') }}</span>
+          <InputText v-model="form.site_title" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.brandMark') }}</span>
+          <InputText v-model="form.brand_mark" class="w-full" maxlength="8" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.tagline') }}</span>
+          <InputText v-model="form.site_tagline" class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.settings.description') }} ({{ descriptionLength }}/500)</span>
+          <Textarea v-model="form.site_description" rows="3" auto-resize class="w-full" maxlength="500" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.primaryColor') }}</span>
+          <InputText v-model="form.theme_color_primary" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.deepColor') }}</span>
+          <InputText v-model="form.theme_color_deep" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.logoPath') }}</span>
+          <InputText v-model="form.site_logo" class="w-full" @update:model-value="(v: string) => form.brand_logo = v" />
+          <small>{{ t('admin.settings.mediaPathHint') }}</small>
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.faviconPath') }}</span>
+          <InputText v-model="form.site_favicon" class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.settings.authImagePath') }}</span>
+          <InputText v-model="form.auth_page_image" class="w-full" />
+        </label>
+        <div v-if="logoPreview || faviconPreview || authPreview" class="previews full">
+          <img v-if="logoPreview" :src="logoPreview" :alt="t('admin.settings.logoPath')" class="preview-logo">
+          <img v-if="faviconPreview" :src="faviconPreview" alt="favicon" class="preview-fav">
+          <img v-if="authPreview" :src="authPreview" :alt="t('admin.settings.authImagePath')" class="preview-auth">
         </div>
       </div>
+
+      <div v-show="activeTab === 'contact'" class="form-grid">
+        <label class="field">
+          <span>{{ t('admin.settings.contactEmail') }}</span>
+          <InputText v-model="form.contact_email" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.contactPhone') }}</span>
+          <InputText v-model="form.contact_phone" class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.settings.contactAddress') }}</span>
+          <Textarea v-model="form.contact_address" rows="2" auto-resize class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.supportHours') }}</span>
+          <InputText v-model="form.support_hours" class="w-full" />
+        </label>
+      </div>
+
+      <div v-show="activeTab === 'social'" class="form-grid">
+        <label class="field">
+          <span>Facebook</span>
+          <InputText v-model="form.social_facebook" class="w-full" />
+        </label>
+        <label class="field">
+          <span>YouTube</span>
+          <InputText v-model="form.social_youtube" class="w-full" />
+        </label>
+        <label class="field">
+          <span>TikTok</span>
+          <InputText v-model="form.social_tiktok" class="w-full" />
+        </label>
+        <label class="field">
+          <span>LinkedIn</span>
+          <InputText v-model="form.social_linkedin" class="w-full" />
+        </label>
+        <label class="field">
+          <span>Zalo</span>
+          <InputText v-model="form.social_zalo" class="w-full" />
+        </label>
+      </div>
+
+      <div v-show="activeTab === 'smtp'" class="form-grid">
+        <p class="smtp-note full">{{ t('admin.settings.smtpNote') }}</p>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpHost') }}</span>
+          <InputText v-model="form.smtp_host" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpPort') }}</span>
+          <InputText v-model="form.smtp_port" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpUsername') }}</span>
+          <InputText v-model="form.smtp_username" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpPassword') }}</span>
+          <Password v-model="form.smtp_password" :feedback="false" toggle-mask class="w-full" input-class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpEncryption') }}</span>
+          <Select
+            v-model="form.smtp_encryption"
+            :options="encryptionOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpFromAddress') }}</span>
+          <InputText v-model="form.smtp_from_address" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.smtpFromName') }}</span>
+          <InputText v-model="form.smtp_from_name" class="w-full" />
+        </label>
+      </div>
+
+      <div v-show="activeTab === 'legal'" class="form-grid">
+        <label class="field">
+          <span>{{ t('admin.settings.footerCopyright') }}</span>
+          <InputText v-model="form.footer_copyright" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.legalCompany') }}</span>
+          <InputText v-model="form.legal_company_name" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.legalTax') }}</span>
+          <InputText v-model="form.legal_tax_code" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.termsUrl') }}</span>
+          <InputText v-model="form.terms_url" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.privacyUrl') }}</span>
+          <InputText v-model="form.privacy_url" class="w-full" />
+        </label>
+      </div>
+
+      <div v-show="activeTab === 'locale'" class="form-grid">
+        <label class="field">
+          <span>{{ t('admin.settings.defaultLocale') }}</span>
+          <Select
+            v-model="form.default_locale"
+            :options="localeOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.defaultCurrency') }}</span>
+          <Select
+            v-model="form.default_currency"
+            :options="currencyOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.settings.timezone') }}</span>
+          <Select
+            v-model="form.timezone"
+            :options="timezoneOptions"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+          />
+        </label>
+      </div>
     </section>
-  </AdminWorkspaceShell>
+  </div>
 </template>
 
 <style scoped>
-.settings-help {
-  display: block;
-  margin-top: 6px;
-  color: var(--color-outline, #64748b);
-  font-size: 12px;
+.settings-page { gap: 14px; }
+.workspace-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
-.settings-upload-wrap { display: grid; gap: 12px; }
-.upload-dropzone {
-  position: relative;
-  display: grid;
-  gap: 6px;
-  padding: 16px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  background: #f8fafc;
+.eyebrow {
+  display: block; margin-bottom: 4px; color: var(--brand);
+  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
 }
-.upload-dropzone-compact { min-width: 320px; }
-.upload-dropzone-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.upload-dropzone-icon { font-size: 24px; }
+.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
+.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-.settings-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 4px;
-  margin: 8px 0 16px;
-  background: #f1f5f9;
-  border-radius: 12px;
-}
-.settings-tab {
-  flex: 1 1 auto;
-  min-width: 120px;
-  padding: 8px 14px;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  font-weight: 500;
-  font-size: 13px;
-  color: #475569;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.settings-tab:hover { color: #0f172a; }
-.settings-tab.is-active {
-  background: #fff;
-  color: #0f172a;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+.loading-box {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 240px; color: var(--text-muted);
 }
 
-.settings-test-block { gap: 8px; }
-.settings-test-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.settings-test-row input {
-  flex: 1 1 240px;
-  min-width: 240px;
+.panel {
+  border: 1px solid var(--border); border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px); padding: 16px;
 }
 
-.color-picker-input {
-  padding: 0;
-  border: none;
-  width: 100%;
-  height: 48px;
-  border-radius: 8px;
-  cursor: pointer;
-  background-color: transparent;
+.tab-rail { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.tab {
+  border: 1px solid transparent; border-radius: 999px; padding: 8px 14px;
+  background: transparent; color: var(--text-muted); font: inherit; font-size: .84rem;
+  font-weight: 700; cursor: pointer;
 }
-.color-picker-input::-webkit-color-swatch-wrapper {
-  padding: 0;
+.tab:hover { background: var(--surface-hover); color: var(--text); }
+.tab.on {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--border));
+  background: var(--brand-soft); color: var(--brand);
 }
-.color-picker-input::-webkit-color-swatch {
-  border: 1px solid var(--line);
-  border-radius: 8px;
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
+.field small { color: var(--text-muted); font-size: .74rem; }
+.field.full, .full { grid-column: 1 / -1; }
+.w-full { width: 100%; }
+.smtp-note {
+  margin: 0; padding: 10px 12px; border-radius: 10px;
+  background: var(--surface-subtle); color: var(--text-muted); font-size: .84rem; font-weight: 500;
+}
+.previews { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.preview-logo { max-height: 48px; max-width: 180px; object-fit: contain; }
+.preview-fav { width: 32px; height: 32px; object-fit: contain; }
+.preview-auth { max-height: 80px; max-width: 160px; border-radius: 8px; object-fit: cover; }
+
+@media (max-width: 720px) {
+  .form-grid { grid-template-columns: 1fr; }
 }
 </style>

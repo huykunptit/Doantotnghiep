@@ -8,7 +8,7 @@ import '../models/career_model.dart';
 part 'career_repository.g.dart';
 
 @riverpod
-CareerRepository careerRepository(Ref ref) =>
+CareerRepository careerRepository(CareerRepositoryRef ref) =>
     CareerRepository(dio: ref.read(apiClientProvider));
 
 class CareerRepository {
