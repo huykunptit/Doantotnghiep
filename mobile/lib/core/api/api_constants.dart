@@ -20,4 +20,18 @@ class ApiConstants {
   static const careerPathsPath = '/career-paths';
   static const ordersPath = '/orders';
   static const myCertificatesPath = '/my-certificates';
+
+  // Student portal (BA 2026)
+  static const meTranscriptPath = '/me/transcript';
+  static const meTimetablePath = '/me/timetable';
+  static const meTuitionPath = '/me/tuition';
+  static const meCurriculumEvaluationPath = '/me/curriculum-evaluation';
+  static const meRecommendationsExtensionsPath = '/me/recommendations/extensions';
+
+  // AI Career
+  static const careerAdvisorPath = '/career/advisor';
+  static const careerUploadCvPath = '/career/upload-cv';
+  static const careerCvFormPath = '/career/cv-form';
+  static const careerEvaluatePath = '/career/evaluate';
+  static const careerRecommendPath = '/career/recommend';
 }

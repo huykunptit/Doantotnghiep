@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Exam enrollment management ──────────────────────────────────────
     Route::post('/exams/{exam}/enroll', [ExamController::class, 'enrollUsers']);
+    Route::post('/exams/{exam}/enroll-class', [ExamController::class, 'enrollByAdminClass']);
     Route::delete('/exams/{exam}/unenroll/{targetUser}', [ExamController::class, 'unenrollUser']);
     Route::get('/exams/{exam}/enrolled-users', [ExamController::class, 'enrolledUsers']);
 

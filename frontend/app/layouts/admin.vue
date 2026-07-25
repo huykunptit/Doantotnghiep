@@ -74,7 +74,7 @@ onMounted(() => {
             :aria-label="t('common.theme')"
             @click="toggle"
           />
-          <Button icon="pi pi-bell" severity="secondary" text rounded :aria-label="t('common.notifications')" />
+          <StudentNotificationBell view-all-to="/admin/notifications" />
           <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
           <Avatar v-else :label="userInitials" shape="circle" />
         </div>

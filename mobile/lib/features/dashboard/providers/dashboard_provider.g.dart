@@ -42,6 +42,62 @@ final studentTranscriptProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef StudentTranscriptRef = AutoDisposeFutureProviderRef<TranscriptModel>;
+String _$studentTimetableHash() => r'c34beef51f815aed896a346b7fab589afced5265';
+
+/// See also [studentTimetable].
+@ProviderFor(studentTimetable)
+final studentTimetableProvider =
+    AutoDisposeFutureProvider<TimetableModel>.internal(
+      studentTimetable,
+      name: r'studentTimetableProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$studentTimetableHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StudentTimetableRef = AutoDisposeFutureProviderRef<TimetableModel>;
+String _$studentTuitionHash() => r'3ed91aca8a0c3545a7edc7a90c51be83ead9aea3';
+
+/// See also [studentTuition].
+@ProviderFor(studentTuition)
+final studentTuitionProvider =
+    AutoDisposeFutureProvider<TuitionListModel>.internal(
+      studentTuition,
+      name: r'studentTuitionProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$studentTuitionHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StudentTuitionRef = AutoDisposeFutureProviderRef<TuitionListModel>;
+String _$studentCurriculumEvaluationHash() =>
+    r'b298a3598d4a80e95e5fa41d8c8165c93484e65c';
+
+/// See also [studentCurriculumEvaluation].
+@ProviderFor(studentCurriculumEvaluation)
+final studentCurriculumEvaluationProvider =
+    AutoDisposeFutureProvider<Map<String, dynamic>>.internal(
+      studentCurriculumEvaluation,
+      name: r'studentCurriculumEvaluationProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$studentCurriculumEvaluationHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef StudentCurriculumEvaluationRef =
+    AutoDisposeFutureProviderRef<Map<String, dynamic>>;
 String _$studentLearningPathHash() =>
     r'6f2623477d0be3b1e28bbcc79c275efdd6c6cdc3';
 

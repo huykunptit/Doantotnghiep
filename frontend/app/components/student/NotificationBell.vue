@@ -1,4 +1,10 @@
 <script setup lang="ts">
+const props = withDefaults(defineProps<{
+  viewAllTo?: string
+}>(), {
+  viewAllTo: '/student/notifications',
+})
+
 interface NotifItem {
   id: number
   type?: string
@@ -80,10 +86,10 @@ async function markAll() {
 
 onMounted(loadUnread)
 
-// light poll while shell is open
+// Near-realtime poll (no WebSocket/Pusher in stack yet)
 let timer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
-  timer = setInterval(loadUnread, 60000)
+  timer = setInterval(loadUnread, 15000)
 })
 onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
@@ -123,7 +129,7 @@ onBeforeUnmount(() => {
           </li>
         </ul>
         <footer>
-          <Button :label="t('student.notif.viewAll')" text size="small" @click="navigateTo('/student/notifications'); panel?.hide()" />
+          <Button :label="t('student.notif.viewAll')" text size="small" @click="navigateTo(props.viewAllTo); panel?.hide()" />
         </footer>
       </div>
     </Popover>

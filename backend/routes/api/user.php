@@ -16,6 +16,7 @@ use App\Http\Controllers\UserManagement\InstructorDashboardController;
 use App\Http\Controllers\UserManagement\LessonProgressController;
 use App\Http\Controllers\UserManagement\StudentDashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\PointsController;
 
@@ -43,6 +44,10 @@ Route::prefix('auth')->group(function () {
 
 // Public site settings (no auth)
 Route::get('/site-settings', [AdminController::class, 'publicSiteSettings']);
+
+// Public news
+Route::get('/news', [NewsController::class, 'publicIndex']);
+Route::get('/news/{slug}', [NewsController::class, 'publicShow']);
 
 // Public certificate verification
 Route::get('/certificates/verify/{credentialId}', [CertificateController::class, 'showByCredential']);
@@ -99,6 +104,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me/dashboard', [StudentDashboardController::class, 'dashboard']);
     Route::get('/me/learning-path', [StudentDashboardController::class, 'learningPath']);
     Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    Route::get('/me/timetable', [StudentDashboardController::class, 'timetable']);
+    Route::get('/me/tuition', [\App\Http\Controllers\UserManagement\TuitionController::class, 'index']);
+    Route::post('/me/tuition/{tuition}/pay', [\App\Http\Controllers\UserManagement\TuitionController::class, 'pay']);
     Route::get('/me/learner-profile', [StudentDashboardController::class, 'learnerProfile']);
     Route::get('/me/curriculum-evaluation', [StudentDashboardController::class, 'curriculumEvaluation']);
     Route::get('/me/exams', [StudentDashboardController::class, 'exams']);
@@ -155,6 +163,17 @@ Route::middleware('auth:sanctum')->group(function () {
         // Site Settings
         Route::get('/settings', [AdminController::class, 'siteSettings']);
         Route::put('/settings', [AdminController::class, 'updateSiteSettings']);
+
+        // Notifications broadcast + SMTP test
+        Route::post('/notifications/broadcast', [NotificationController::class, 'broadcast']);
+        Route::post('/notifications/test-email', [NotificationController::class, 'testEmail']);
+
+        // News / Tin tức CMS
+        Route::get('/news', [NewsController::class, 'adminIndex']);
+        Route::post('/news', [NewsController::class, 'adminStore']);
+        Route::get('/news/{newsPost}', [NewsController::class, 'adminShow']);
+        Route::put('/news/{newsPost}', [NewsController::class, 'adminUpdate']);
+        Route::delete('/news/{newsPost}', [NewsController::class, 'adminDestroy']);
 
         // Academic Enrollments & Class Sections
         Route::get('/academic/enrollments', [EnrollmentManagementController::class, 'index']);

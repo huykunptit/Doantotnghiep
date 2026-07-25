@@ -15,80 +15,172 @@ class MyCoursesPage extends ConsumerWidget {
     final enrollmentsAsync = ref.watch(myEnrollmentsProvider);
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Khoá học của tôi'),
-        centerTitle: false,
-      ),
-      body: enrollmentsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                AppSpacing.h12,
-                Text(e.toString(), textAlign: TextAlign.center),
-                AppSpacing.h16,
-                FilledButton.icon(
-                  onPressed: () => ref.invalidate(myEnrollmentsProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Thử lại'),
-                ),
-              ],
-            ),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Khoá học của tôi'),
+          centerTitle: false,
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'CTĐT / Học vụ'),
+              Tab(text: 'Marketplace'),
+            ],
           ),
         ),
-        data: (enrollments) {
-          if (enrollments.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 80, height: 80,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.school_outlined, size: 40, color: AppColors.primary400),
-                    ),
-                    AppSpacing.h20,
-                    Text('Chưa có khoá học nào',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    AppSpacing.h8,
-                    Text('Khám phá khoá học và bắt đầu hành trình học tập của bạn.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant, height: 1.5),
-                        textAlign: TextAlign.center),
-                    AppSpacing.h24,
-                    FilledButton.icon(
-                      onPressed: () => context.go('/catalog'),
-                      icon: const Icon(Icons.explore_outlined, size: 18),
-                      label: const Text('Khám phá khoá học'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary400,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ],
-                ),
+        body: enrollmentsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  AppSpacing.h12,
+                  Text(e.toString(), textAlign: TextAlign.center),
+                  AppSpacing.h16,
+                  FilledButton.icon(
+                    onPressed: () => ref.invalidate(myEnrollmentsProvider),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Thử lại'),
+                  ),
+                ],
               ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: enrollments.length,
-              itemBuilder: (context, index) => _EnrollmentCard(enrollment: enrollments[index]),
             ),
-          );
-        },
+          ),
+          data: (enrollments) {
+            if (enrollments.isEmpty) {
+              return _EmptyState(
+                theme: theme,
+                onExplore: () => context.go('/catalog'),
+              );
+            }
+
+            final academic = enrollments
+                .where((e) => e.enrollmentSource == 'academic')
+                .toList();
+            final marketplace = enrollments
+                .where((e) => e.enrollmentSource != 'academic')
+                .toList();
+
+            return TabBarView(
+              children: [
+                _EnrollmentList(
+                  enrollments: academic,
+                  emptyLabel: 'Chưa có khóa thuộc CTĐT / lớp hành chính.',
+                  onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
+                ),
+                _EnrollmentList(
+                  enrollments: marketplace,
+                  emptyLabel: 'Chưa có khóa mua trên Marketplace.',
+                  onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
+                  showExplore: true,
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.theme, required this.onExplore});
+  final ThemeData theme;
+  final VoidCallback onExplore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: AppColors.primary50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.school_outlined, size: 40, color: AppColors.primary400),
+            ),
+            AppSpacing.h20,
+            Text(
+              'Chưa có khoá học nào',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            AppSpacing.h8,
+            Text(
+              'Khám phá khoá học và bắt đầu hành trình học tập của bạn.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            AppSpacing.h24,
+            FilledButton.icon(
+              onPressed: onExplore,
+              icon: const Icon(Icons.explore_outlined, size: 18),
+              label: const Text('Khám phá khoá học'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary400,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EnrollmentList extends StatelessWidget {
+  const _EnrollmentList({
+    required this.enrollments,
+    required this.emptyLabel,
+    required this.onRefresh,
+    this.showExplore = false,
+  });
+
+  final List<EnrollmentModel> enrollments;
+  final String emptyLabel;
+  final Future<void> Function() onRefresh;
+  final bool showExplore;
+
+  @override
+  Widget build(BuildContext context) {
+    if (enrollments.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emptyLabel, textAlign: TextAlign.center),
+              if (showExplore) ...[
+                AppSpacing.h16,
+                FilledButton(
+                  onPressed: () => context.go('/catalog'),
+                  child: const Text('Xem Marketplace'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        itemCount: enrollments.length,
+        itemBuilder: (context, index) => _EnrollmentCard(enrollment: enrollments[index]),
       ),
     );
   }
@@ -104,6 +196,7 @@ class _EnrollmentCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final progress = enrollment.progress / 100;
+    final isAcademic = enrollment.enrollmentSource == 'academic';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -111,10 +204,15 @@ class _EnrollmentCard extends StatelessWidget {
         color: isDark ? AppColors.darkSurface : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
-        boxShadow: isDark ? [] : [
-          BoxShadow(color: AppColors.neutral800.withValues(alpha: 0.05),
-              blurRadius: 10, offset: const Offset(0, 2)),
-        ],
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: AppColors.neutral800.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -124,11 +222,11 @@ class _EnrollmentCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
-                  width: 88, height: 72,
+                  width: 88,
+                  height: 72,
                   child: course.thumbnail != null
                       ? CachedNetworkImage(
                           imageUrl: course.thumbnail!,
@@ -143,28 +241,59 @@ class _EnrollmentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(course.title,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700, height: 1.3),
-                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(
+                      course.title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     AppSpacing.h8,
                     Row(
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isAcademic ? AppColors.primary50 : Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            isAcademic ? 'CTĐT' : 'Marketplace',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: isAcademic ? AppColors.primary400 : Colors.orange.shade800,
+                            ),
+                          ),
+                        ),
+                        AppSpacing.w8,
                         Icon(
                           course.courseMode == 'online'
-                              ? Icons.wifi_rounded : Icons.location_on_outlined,
-                          size: 13, color: AppColors.primary400,
+                              ? Icons.wifi_rounded
+                              : Icons.location_on_outlined,
+                          size: 13,
+                          color: AppColors.primary400,
                         ),
                         AppSpacing.w4,
                         Text(
                           course.courseMode == 'online' ? 'Online' : 'Offline',
-                          style: TextStyle(fontSize: 11, color: AppColors.primary400, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.primary400,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         if (course.creditValue != null) ...[
                           AppSpacing.w8,
-                          Text('• ${course.creditValue} TC',
-                              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11,
-                                  color: theme.colorScheme.onSurfaceVariant)),
+                          Text(
+                            '• ${course.creditValue} TC',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -178,17 +307,21 @@ class _EnrollmentCard extends StatelessWidget {
                               value: progress,
                               backgroundColor: AppColors.neutral100,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                  progress >= 1.0 ? AppColors.success : AppColors.primary400),
+                                progress >= 1.0 ? AppColors.success : AppColors.primary400,
+                              ),
                               minHeight: 5,
                             ),
                           ),
                         ),
                         AppSpacing.w8,
-                        Text('${enrollment.progress.toStringAsFixed(0)}%',
-                            style: TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.w700,
-                              color: progress >= 1.0 ? AppColors.success : AppColors.primary400,
-                            )),
+                        Text(
+                          '${enrollment.progress.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: progress >= 1.0 ? AppColors.success : AppColors.primary400,
+                          ),
+                        ),
                       ],
                     ),
                   ],

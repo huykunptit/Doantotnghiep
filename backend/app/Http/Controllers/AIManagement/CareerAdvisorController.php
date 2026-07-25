@@ -106,6 +106,250 @@ class CareerAdvisorController extends Controller
     }
 
     /**
+     * Tạo / cập nhật CV bằng form (kiểu TopCV) khi SV chưa có file upload.
+     */
+    public function saveForm(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'headline' => ['nullable', 'string', 'max:255'],
+            'summary' => ['nullable', 'string', 'max:5000'],
+            'education' => ['nullable', 'array'],
+            'education.*.school' => ['nullable', 'string', 'max:255'],
+            'education.*.degree' => ['nullable', 'string', 'max:255'],
+            'education.*.year' => ['nullable', 'string', 'max:50'],
+            'experience' => ['nullable', 'array'],
+            'experience.*.company' => ['nullable', 'string', 'max:255'],
+            'experience.*.role' => ['nullable', 'string', 'max:255'],
+            'experience.*.description' => ['nullable', 'string', 'max:2000'],
+            'skills' => ['nullable', 'array'],
+            'skills.*' => ['string', 'max:100'],
+            'projects' => ['nullable', 'array'],
+            'projects.*.name' => ['nullable', 'string', 'max:255'],
+            'projects.*.description' => ['nullable', 'string', 'max:2000'],
+            'target_role' => ['nullable', 'string', 'max:255'],
+            'expected_salary' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $skills = collect($validated['skills'] ?? [])
+            ->map(fn ($s) => trim((string) $s))
+            ->filter()
+            ->values()
+            ->all();
+
+        $parsedParts = [
+            'Họ tên: ' . $validated['full_name'],
+            'Vị trí: ' . ($validated['headline'] ?? ''),
+            'Tóm tắt: ' . ($validated['summary'] ?? ''),
+            'Kỹ năng: ' . implode(', ', $skills),
+        ];
+
+        foreach ($validated['education'] ?? [] as $edu) {
+            $parsedParts[] = sprintf(
+                'Học vấn: %s — %s (%s)',
+                $edu['school'] ?? '',
+                $edu['degree'] ?? '',
+                $edu['year'] ?? ''
+            );
+        }
+        foreach ($validated['experience'] ?? [] as $exp) {
+            $parsedParts[] = sprintf(
+                'Kinh nghiệm: %s tại %s. %s',
+                $exp['role'] ?? '',
+                $exp['company'] ?? '',
+                $exp['description'] ?? ''
+            );
+        }
+        foreach ($validated['projects'] ?? [] as $proj) {
+            $parsedParts[] = sprintf(
+                'Dự án: %s. %s',
+                $proj['name'] ?? '',
+                $proj['description'] ?? ''
+            );
+        }
+
+        $profile = [
+            'full_name' => $validated['full_name'],
+            'email' => $validated['email'] ?? $user->email,
+            'phone' => $validated['phone'] ?? null,
+            'headline' => $validated['headline'] ?? null,
+            'summary' => $validated['summary'] ?? null,
+            'education' => $validated['education'] ?? [],
+            'experience' => $validated['experience'] ?? [],
+            'projects' => $validated['projects'] ?? [],
+            'skills' => $skills,
+        ];
+
+        $cv = UserCV::query()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'source' => 'form',
+                'file_name' => 'cv-form.json',
+            ],
+            [
+                'file_path' => null,
+                'parsed_text' => implode("\n", array_filter($parsedParts)),
+                'skills' => $skills,
+                'profile_json' => $profile,
+                'target_role' => $validated['target_role'] ?? null,
+                'expected_salary' => $validated['expected_salary'] ?? null,
+            ]
+        );
+
+        $evaluation = $this->evaluateCvLocally($cv);
+        $cv->update(['evaluation_json' => $evaluation]);
+
+        return response()->json([
+            'message' => 'Đã lưu CV từ form.',
+            'cv' => $cv->fresh(),
+            'evaluation' => $evaluation,
+        ], 201);
+    }
+
+    /**
+     * Đánh giá CV: đúng chưa / thiếu gì + cảnh báo + gợi ý cải thiện.
+     */
+    public function evaluate(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        $cv = $user->latestCv;
+
+        if (!$cv) {
+            return response()->json(['message' => 'Chưa có CV để đánh giá. Hãy upload hoặc tạo form CV.'], 400);
+        }
+
+        $validated = $request->validate([
+            'target_role' => ['nullable', 'string', 'max:255'],
+            'expected_salary' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        if (!empty($validated)) {
+            $cv->update([
+                'target_role' => $validated['target_role'] ?? $cv->target_role,
+                'expected_salary' => $validated['expected_salary'] ?? $cv->expected_salary,
+            ]);
+            $cv->refresh();
+        }
+
+        $evaluation = $this->evaluateCvLocally($cv);
+        $cv->update(['evaluation_json' => $evaluation]);
+
+        $courses = [];
+        if ($cv->target_role) {
+            $data = $this->getRecommendationPayload($cv, $cv->target_role);
+            $courseIds = $this->resolveSuggestedCourses($data);
+            $courses = Course::query()
+                ->with('instructor:id,name', 'category:id,name')
+                ->whereIn('id', $courseIds)
+                ->where('status', 'published')
+                ->get(['id', 'title', 'slug', 'price', 'thumbnail', 'level', 'user_id', 'category_id']);
+        }
+
+        return response()->json([
+            'cv' => $cv->fresh(),
+            'evaluation' => $evaluation,
+            'suggested_courses' => $courses,
+        ]);
+    }
+
+    private function evaluateCvLocally(UserCV $cv): array
+    {
+        $text = mb_strtolower(trim((string) ($cv->parsed_text ?? '')));
+        $skills = collect($cv->skills ?? [])->filter()->values();
+        $profile = $cv->profile_json ?? [];
+
+        $checks = [];
+        $warnings = [];
+        $fixes = [];
+
+        $hasContact = Str::contains($text, ['@', 'email', 'phone', 'sđt', 'điện thoại'])
+            || filled($profile['email'] ?? null)
+            || filled($profile['phone'] ?? null);
+        $checks[] = [
+            'key' => 'contact',
+            'ok' => $hasContact,
+            'label' => $hasContact ? 'Có thông tin liên hệ' : 'Thiếu email/SĐT',
+        ];
+        if (!$hasContact) {
+            $fixes[] = 'Thêm email và số điện thoại rõ ràng ở đầu CV.';
+            $warnings[] = 'Nhà tuyển dụng khó liên hệ nếu thiếu thông tin liên lạc.';
+        }
+
+        $hasSummary = filled($profile['summary'] ?? null) || mb_strlen($text) > 200;
+        $checks[] = [
+            'key' => 'summary',
+            'ok' => $hasSummary,
+            'label' => $hasSummary ? 'Có phần giới thiệu' : 'Thiếu phần tóm tắt',
+        ];
+        if (!$hasSummary) {
+            $fixes[] = 'Viết 3–5 câu giới thiệu định hướng nghề nghiệp và điểm mạnh.';
+        }
+
+        $hasSkills = $skills->count() >= 3;
+        $checks[] = [
+            'key' => 'skills',
+            'ok' => $hasSkills,
+            'label' => $hasSkills ? 'Đã liệt kê kỹ năng' : 'Kỹ năng còn mỏng',
+        ];
+        if (!$hasSkills) {
+            $fixes[] = 'Bổ sung ít nhất 5 kỹ năng liên quan vị trí mục tiêu.';
+            $warnings[] = 'Danh sách kỹ năng quá ít sẽ làm giảm điểm matching.';
+        }
+
+        $hasProjects = Str::contains($text, ['project', 'dự án', 'portfolio'])
+            || !empty($profile['projects']);
+        $checks[] = [
+            'key' => 'projects',
+            'ok' => $hasProjects,
+            'label' => $hasProjects ? 'Có dự án/portfolio' : 'Chưa có dự án',
+        ];
+        if (!$hasProjects) {
+            $fixes[] = 'Thêm 2–3 dự án (đồ án, cá nhân, thực tập) với công nghệ và kết quả.';
+            $warnings[] = 'Thiếu dự án khiến CV khó chứng minh năng lực thực chiến.';
+        }
+
+        $hasEducation = Str::contains($text, ['học', 'university', 'đại học', 'ptit', 'education'])
+            || !empty($profile['education']);
+        $checks[] = [
+            'key' => 'education',
+            'ok' => $hasEducation,
+            'label' => $hasEducation ? 'Có học vấn' : 'Thiếu học vấn',
+        ];
+        if (!$hasEducation) {
+            $fixes[] = 'Ghi rõ trường, ngành và năm học.';
+        }
+
+        $okCount = collect($checks)->where('ok', true)->count();
+        $score = (int) round(($okCount / max(count($checks), 1)) * 100);
+
+        $salaryNote = null;
+        if ($cv->expected_salary) {
+            $salaryNote = $cv->expected_salary >= 20_000_000
+                ? 'Mức lương mong muốn khá cao — hãy đảm bảo CV có dự án mạnh và kỹ năng khớp JD.'
+                : 'Mức lương mong muốn hợp lý cho giai đoạn sinh viên/fresher nếu CV có dự án minh chứng.';
+        }
+
+        return [
+            'score' => $score,
+            'checks' => $checks,
+            'warnings' => $warnings,
+            'fixes' => $fixes,
+            'target_role' => $cv->target_role,
+            'expected_salary' => $cv->expected_salary,
+            'salary_note' => $salaryNote,
+            'summary' => $score >= 80
+                ? 'CV khá đầy đủ. Tiếp tục tinh chỉnh theo vị trí mục tiêu và bổ sung số liệu dự án.'
+                : 'CV còn thiếu một số phần quan trọng. Hãy sửa theo danh sách gợi ý trước khi ứng tuyển.',
+        ];
+    }
+
+    /**
      * Get recommendations based on desired job title.
      */
     public function recommend(Request $request): JsonResponse
@@ -120,7 +364,15 @@ class CareerAdvisorController extends Controller
 
         $request->validate([
             'job_title' => 'required|string|max:255',
+            'expected_salary' => 'nullable|integer|min:0',
         ]);
+
+        if ($request->filled('expected_salary') || $request->filled('job_title')) {
+            $cv->update([
+                'target_role' => $request->job_title,
+                'expected_salary' => $request->input('expected_salary'),
+            ]);
+        }
 
         $data = $this->getRecommendationPayload($cv, $request->job_title);
 

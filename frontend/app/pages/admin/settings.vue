@@ -400,6 +400,11 @@ onMounted(load)
 
       <div v-show="activeTab === 'smtp'" class="form-grid">
         <p class="smtp-note full">{{ t('admin.settings.smtpNote') }}</p>
+        <div class="full page-actions" style="margin-bottom: 4px">
+          <NuxtLink to="/admin/notifications">
+            <Button :label="t('admin.notifications.testEmail')" severity="secondary" outlined size="small" />
+          </NuxtLink>
+        </div>
         <label class="field">
           <span>{{ t('admin.settings.smtpHost') }}</span>
           <InputText v-model="form.smtp_host" class="w-full" />

@@ -7,7 +7,7 @@ part of 'career_providers.dart';
 // **************************************************************************
 
 String _$careerAdvisorNotifierHash() =>
-    r'94bc3120d8d1bf659bd2eb7d7838a800a9ac614c';
+    r'e5684e99b2072376a8d65af5aae43dea2049c393';
 
 /// See also [CareerAdvisorNotifier].
 @ProviderFor(CareerAdvisorNotifier)

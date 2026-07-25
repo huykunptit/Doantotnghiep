@@ -135,17 +135,16 @@ class OrgAcademicSeeder extends Seeder
             ['name' => 'Chất lượng cao', 'is_active' => true]
         );
 
-        // 3 chương trình + 9 chuyên ngành (khớp chuong_trinh_hoc.json)
-        // Lưu ý: program code DTVT là alias của KTDTVT trong JSON
+        // BA 2026: gom còn 3 CHUYÊN NGÀNH chính (= 3 nhóm nghề nghiệp).
+        // Mỗi chương trình = 1 chuyên ngành = 1 CTĐT (bỏ tầng 9 major cũ).
+        // major code = program code để giữ tương thích FK users.major_id.
         $programDefs = [
             'cntt' => [
                 'code' => 'CNTT',
                 'name' => 'Công nghệ thông tin',
                 'unit' => $units['cntt1'],
                 'majors' => [
-                    'MMT' => 'Mạng máy tính và truyền thông dữ liệu',
-                    'HTTT' => 'Hệ thống thông tin',
-                    'CNPM' => 'Công nghệ phần mềm',
+                    'CNTT' => 'Công nghệ thông tin',
                 ],
             ],
             'qtkd' => [
@@ -153,9 +152,7 @@ class OrgAcademicSeeder extends Seeder
                 'name' => 'Quản trị kinh doanh',
                 'unit' => $units['qtkd1'],
                 'majors' => [
-                    'QTDN' => 'Quản trị doanh nghiệp',
-                    'KDQT' => 'Kinh doanh quốc tế',
-                    'KDS' => 'Kinh doanh số',
+                    'QTKD' => 'Quản trị kinh doanh',
                 ],
             ],
             'dtvt' => [
@@ -163,9 +160,7 @@ class OrgAcademicSeeder extends Seeder
                 'name' => 'Kỹ thuật Điện tử Viễn thông',
                 'unit' => $units['vt1'],
                 'majors' => [
-                    'MDI' => 'Mạng và dịch vụ Internet',
-                    'TTVTDD' => 'Thông tin vô tuyến và di động',
-                    'IOT' => 'Hệ thống IoT',
+                    'DTVT' => 'Kỹ thuật Điện tử Viễn thông',
                 ],
             ],
         ];
@@ -289,11 +284,11 @@ class OrgAcademicSeeder extends Seeder
             'qtkd' => 'QTKD',
             'dtvt' => 'DTVT',
         ];
-        // Curriculum đại diện cho từng program (major đầu tiên của mỗi ngành)
+        // Mỗi chuyên ngành có đúng 1 CTĐT (curriculum code = CTDT-{programCode})
         $progDefaultCurriculumKey = [
-            'cntt' => 'MMT',
-            'qtkd' => 'QTDN',
-            'dtvt' => 'MDI',
+            'cntt' => 'CNTT',
+            'qtkd' => 'QTKD',
+            'dtvt' => 'DTVT',
         ];
 
         $result = [];

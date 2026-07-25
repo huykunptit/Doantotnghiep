@@ -40,11 +40,13 @@ class DatabaseSeeder extends Seeder
             QuestionBankSeeder::class,
             TrainingProgramSeeder::class,
             AcademicSeeder::class,
+            AcademicExtrasSeeder::class,
             MarketplaceSeeder::class,
             CareerSeeder::class,
             NotificationSeeder::class,
             CertificateTemplateSeeder::class,
             CareerPathSeeder::class,
+            NewsSeeder::class,
         ]);
     }
 }
