@@ -69,16 +69,21 @@ class TrainingProgramSeeder extends Seeder
                 continue;
             }
 
-            foreach (($progEntry['chuyen_nganh'] ?? []) as $chuyenNganh) {
-                $majorJsonId = $chuyenNganh['id'] ?? '';
-                $majorCode = self::MAJOR_CODE_FIX[$majorJsonId] ?? $majorJsonId;
+            // BA 2026: mỗi chương trình chỉ còn 1 chuyên ngành = 1 CTĐT.
+            $program = \App\Models\Program::query()->where('code', $progCode)->first();
+            $curriculum = $program
+                ? Curriculum::query()->where('program_id', $program->id)->orderBy('id')->first()
+                : Curriculum::query()->where('code', 'CTDT-' . $progCode)->first();
+            if (!$curriculum) {
+                $this->command?->warn("TrainingProgramSeeder: không tìm thấy curriculum cho chương trình {$progCode}, bỏ qua.");
+                $stats['curricula_missing']++;
+                continue;
+            }
 
-                $curriculum = Curriculum::query()->where('code', 'CTDT-' . $majorCode)->first();
-                if (!$curriculum) {
-                    $this->command?->warn("TrainingProgramSeeder: không tìm thấy curriculum CTDT-{$majorCode}, bỏ qua chuyên ngành '{$chuyenNganh['ten']}'.");
-                    $stats['curricula_missing']++;
-                    continue;
-                }
+            // Lấy chuyên ngành đầu tiên trong JSON làm CTĐT đại diện cho cả chương trình
+            $chuyenNganh = ($progEntry['chuyen_nganh'] ?? [])[0] ?? null;
+            if ($chuyenNganh) {
+                $majorCode = $progCode;
 
                 foreach (($chuyenNganh['hoc_ky'] ?? []) as $termEntry) {
                     $termNumber = (int) ($termEntry['hoc_ky'] ?? 0);

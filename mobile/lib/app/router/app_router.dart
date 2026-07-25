@@ -20,6 +20,8 @@ import '../../features/profile/presentation/profile_page.dart';
 import '../shell/main_shell.dart';
 import '../../features/quiz/presentation/screens/exam_workspace_screen.dart';
 import '../../features/dashboard/presentation/screens/transcript_screen.dart';
+import '../../features/dashboard/presentation/screens/timetable_screen.dart';
+import '../../features/dashboard/presentation/screens/tuition_screen.dart';
 import '../../features/dashboard/presentation/screens/learning_path_screen.dart';
 import '../../features/dashboard/presentation/screens/attendance_screen.dart';
 import '../../features/certificates/presentation/screens/certificates_screen.dart';
@@ -38,6 +40,7 @@ import '../../features/points/presentation/screens/points_screen.dart';
 import '../../features/points/presentation/screens/voucher_shop_screen.dart';
 import '../../features/points/presentation/screens/my_vouchers_screen.dart';
 import '../../features/ai/presentation/screens/ai_chat_screen.dart';
+import '../../features/ai/presentation/screens/study_advisor_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -185,6 +188,18 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: '/transcript',
         builder: (context, state) => const TranscriptScreen(),
+      ),
+      GoRoute(
+        path: '/timetable',
+        builder: (context, state) => const TimetableScreen(),
+      ),
+      GoRoute(
+        path: '/tuition',
+        builder: (context, state) => const TuitionScreen(),
+      ),
+      GoRoute(
+        path: '/study-advisor',
+        builder: (context, state) => const StudyAdvisorScreen(),
       ),
       GoRoute(
         path: '/learning-path',

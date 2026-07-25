@@ -31,6 +31,12 @@ export const instructorMenu: InstructorMenuItem[] = [
     icon: 'pi pi-users',
     to: '/instructor/students',
   },
+  {
+    key: 'exams',
+    labelKey: 'instructor.menu.exams',
+    icon: 'pi pi-file-edit',
+    to: '/instructor/exams',
+  },
 ]
 
 type TranslateFn = (key: string) => string

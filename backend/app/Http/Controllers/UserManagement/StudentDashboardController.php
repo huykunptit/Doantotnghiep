@@ -19,80 +19,135 @@ use Illuminate\Support\Collection;
  */
 class StudentDashboardController extends Controller
 {
+    /**
+     * BẢNG ĐIỂM — chỉ tổng hợp KẾT QUẢ THI trên LMS (không dùng gradebook trọng số).
+     * Mỗi dòng = 1 kỳ thi (Exam) mà SV được ghi danh + điểm bài làm tốt nhất.
+     */
     public function transcript(Request $request): JsonResponse
     {
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $enrollments = Enrollment::query()
+        $examEnrollments = \App\Models\ExamEnrollment::query()
             ->where('user_id', $user->id)
             ->with([
-                'course:id,title,course_mode,credit_value,is_credit_bearing',
-                'term:id,name,code,start_date,end_date,academic_year_id',
-                'classSection:id,code,lecturer_id',
-                'classSection.lecturer:id,name',
-                'gradeEntries.component:id,name,weight,max_score',
+                'exam:id,title,type,pass_score,starts_at,ends_at,course_id',
+                'exam.course:id,title,credit_value',
+                'exam.quiz:id,exam_id',
             ])
-            ->orderBy('term_id')
-            ->orderBy('id')
             ->get();
 
-        $byTerm = $enrollments->groupBy(fn ($e) => $e->term_id ?? 0);
+        $results = [];
+        $scores = [];
+        $passedCount = 0;
 
-        $allCoursesForGpa = [];
+        foreach ($examEnrollments as $enrollment) {
+            $exam = $enrollment->exam;
+            if (!$exam) continue;
 
-        $terms = $byTerm->map(function (Collection $items, $termId) use (&$allCoursesForGpa) {
-            $term = $items->first()->term;
-            $courses = $items->map(function (Enrollment $enrollment) {
-                $finalScore = $enrollment->final_score;
-                $gradeInfo  = $finalScore !== null
-                    ? GpaCalculator::gradeInfo((float) $finalScore)
-                    : ['letter' => null, 'gpa4' => null];
-
-                return [
-                    'enrollment_id'    => $enrollment->id,
-                    'course'           => $enrollment->course,
-                    'class_section'    => $enrollment->classSection,
-                    'enrollment_source' => $enrollment->enrollment_source,
-                    'final_score'      => $finalScore,
-                    'letter_grade'     => $gradeInfo['letter'],
-                    'gpa4'             => $gradeInfo['gpa4'],
-                    'credit_value'     => (int) ($enrollment->course->credit_value ?? 0),
-                    'entries'          => $enrollment->gradeEntries->map(fn ($entry) => [
-                        'component' => $entry->component?->name,
-                        'weight'    => $entry->component?->weight,
-                        'max_score' => $entry->component?->max_score,
-                        'score'     => $entry->score,
-                    ])->values(),
-                ];
-            })->values();
-
-            foreach ($courses as $c) {
-                $allCoursesForGpa[] = [
-                    'final_score'  => $c['final_score'],
-                    'credit_value' => $c['credit_value'],
-                ];
+            $quiz = $exam->quiz;
+            $bestAttempt = null;
+            if ($quiz) {
+                $bestAttempt = \App\Models\QuizAttempt::query()
+                    ->where('user_id', $user->id)
+                    ->where('quiz_id', $quiz->id)
+                    ->whereIn('status', ['submitted', 'force_stopped'])
+                    ->orderByDesc('score')
+                    ->first();
             }
 
-            $termGpa = GpaCalculator::cumulativeGpa($courses->map(fn ($c) => [
-                'final_score'  => $c['final_score'],
-                'credit_value' => $c['credit_value'],
-            ])->all());
+            $score = $bestAttempt?->score !== null ? (float) $bestAttempt->score : null;
+            $passed = $bestAttempt ? (bool) $bestAttempt->passed : null;
 
-            return [
-                'term'    => $term,
-                'courses' => $courses,
-                'term_gpa' => $termGpa,
-                'credits' => $items->sum(fn ($e) => (int) ($e->course->credit_value ?? 0)),
+            if ($score !== null) {
+                $scores[] = $score;
+                if ($passed) $passedCount++;
+            }
+
+            $results[] = [
+                'exam_id'      => $exam->id,
+                'exam_title'   => $exam->title,
+                'exam_type'    => $exam->type,
+                'course'       => $exam->course,
+                'credit_value' => (int) ($exam->course->credit_value ?? 0),
+                'pass_score'   => $exam->pass_score,
+                'score'        => $score,
+                'passed'       => $passed,
+                'taken_at'     => $bestAttempt?->completed_at?->toIso8601String(),
+                'exam_date'    => $exam->starts_at?->toIso8601String(),
             ];
-        })->values();
+        }
 
-        $overallGpa = GpaCalculator::cumulativeGpa($allCoursesForGpa);
+        // Sắp xếp theo ngày thi
+        usort($results, fn ($a, $b) => strcmp((string) $a['exam_date'], (string) $b['exam_date']));
+
+        $average = count($scores) > 0 ? round(array_sum($scores) / count($scores), 2) : null;
 
         return response()->json([
             'student'     => $user->only(['id', 'name', 'email', 'student_code', 'cohort_id', 'major_id', 'program_id']),
-            'terms'       => $terms,
-            'overall_gpa' => $overallGpa,
+            'results'     => $results,
+            'summary'     => [
+                'total_exams'   => count($results),
+                'taken'         => count($scores),
+                'passed'        => $passedCount,
+                'average_score' => $average,
+            ],
+        ]);
+    }
+
+    /**
+     * THỜI KHÓA BIỂU — theo lớp hành chính của SV (cả lớp cùng lịch) + lịch thi sắp tới.
+     */
+    public function timetable(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
+
+        $currentTerm = Term::where('is_current', true)->latest('id')->first()
+            ?? Term::latest('id')->first();
+
+        $schedules = collect();
+        if ($user->administrative_class_id) {
+            $query = \App\Models\ClassSchedule::query()
+                ->where('administrative_class_id', $user->administrative_class_id)
+                ->with(['course:id,title', 'lecturer:id,name']);
+
+            if ($currentTerm) {
+                $query->where(function ($w) use ($currentTerm) {
+                    $w->where('term_id', $currentTerm->id)->orWhereNull('term_id');
+                });
+            }
+
+            $schedules = $query->orderBy('weekday')->orderBy('start_time')->get()->map(fn ($s) => [
+                'id'         => $s->id,
+                'weekday'    => $s->weekday,
+                'start_time' => substr((string) $s->start_time, 0, 5),
+                'end_time'   => substr((string) $s->end_time, 0, 5),
+                'room'       => $s->room,
+                'course'     => $s->course,
+                'lecturer'   => $s->lecturer,
+            ])->values();
+        }
+
+        $exams = \App\Models\ExamEnrollment::query()
+            ->where('user_id', $user->id)
+            ->with('exam:id,title,starts_at,ends_at,duration')
+            ->get()
+            ->map(fn ($e) => $e->exam)
+            ->filter()
+            ->map(fn ($ex) => [
+                'id'        => $ex->id,
+                'title'     => $ex->title,
+                'starts_at' => $ex->starts_at?->toIso8601String(),
+                'ends_at'   => $ex->ends_at?->toIso8601String(),
+                'duration'  => $ex->duration,
+            ])
+            ->values();
+
+        return response()->json([
+            'current_term' => $currentTerm,
+            'schedules'    => $schedules,
+            'exams'        => $exams,
         ]);
     }
 

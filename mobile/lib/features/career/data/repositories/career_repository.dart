@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_constants.dart';
 import '../../../../core/error/app_exception.dart';
 import '../models/career_model.dart';
 
@@ -18,7 +18,7 @@ class CareerRepository {
 
   Future<CareerAdvisorStatusModel> getAdvisorStatus() async {
     try {
-      final response = await dio.get<Map<String, dynamic>>('/career/advisor');
+      final response = await dio.get<Map<String, dynamic>>(ApiConstants.careerAdvisorPath);
       return CareerAdvisorStatusModel.fromJson(response.data!);
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
@@ -32,25 +32,62 @@ class CareerRepository {
       });
 
       await dio.post<Map<String, dynamic>>(
-        '/career/upload-cv',
+        ApiConstants.careerUploadCvPath,
         data: formData,
       );
 
-      // Return refreshed advisor status to update everything in the UI at once.
       return await getAdvisorStatus();
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
   }
 
-  Future<CareerRecommendationModel> getRecommendation(String jobTitle) async {
+  Future<CareerEvaluateResult> saveCvForm(Map<String, dynamic> payload) async {
     try {
       final response = await dio.post<Map<String, dynamic>>(
-        '/career/recommend',
-        data: {'job_title': jobTitle},
+        ApiConstants.careerCvFormPath,
+        data: payload,
+      );
+      return CareerEvaluateResult.fromJson(response.data ?? {});
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<CareerEvaluateResult> evaluate({
+    String? targetRole,
+    int? expectedSalary,
+  }) async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        ApiConstants.careerEvaluatePath,
+        data: {
+          if (targetRole != null && targetRole.isNotEmpty) 'target_role': targetRole,
+          if (expectedSalary != null) 'expected_salary': expectedSalary,
+        },
+      );
+      return CareerEvaluateResult.fromJson(response.data ?? {});
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<CareerRecommendationModel> getRecommendation(
+    String jobTitle, {
+    int? expectedSalary,
+  }) async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        ApiConstants.careerRecommendPath,
+        data: {
+          'job_title': jobTitle,
+          if (expectedSalary != null) 'expected_salary': expectedSalary,
+        },
       );
       final data = response.data!;
-      return CareerRecommendationModel.fromJson(data['recommendation'] as Map<String, dynamic>);
+      return CareerRecommendationModel.fromJson(
+        data['recommendation'] as Map<String, dynamic>,
+      );
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }

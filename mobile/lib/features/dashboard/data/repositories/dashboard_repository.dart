@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -7,6 +6,7 @@ import '../models/dashboard_model.dart';
 import '../models/transcript_model.dart';
 import '../models/learning_path_model.dart';
 import '../models/attendance_model.dart';
+import '../models/portal_models.dart';
 
 part 'dashboard_repository.g.dart';
 
@@ -32,6 +32,41 @@ class DashboardRepository {
     try {
       final response = await dio.get<Map<String, dynamic>>('/me/transcript');
       return TranscriptModel.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<TimetableModel> getTimetable() async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>('/me/timetable');
+      return TimetableModel.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<TuitionListModel> getTuition() async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>('/me/tuition');
+      return TuitionListModel.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<void> payTuition(int tuitionId) async {
+    try {
+      await dio.post('/me/tuition/$tuitionId/pay');
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getCurriculumEvaluation() async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>('/me/curriculum-evaluation');
+      return response.data ?? {};
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }

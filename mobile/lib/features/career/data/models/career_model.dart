@@ -6,6 +6,10 @@ class UserCvModel {
   final String? parsedText;
   final List<String> skills;
   final String createdAt;
+  final String? source;
+  final String? targetRole;
+  final int? expectedSalary;
+  final CareerEvaluationModel? evaluation;
 
   UserCvModel({
     required this.id,
@@ -15,6 +19,10 @@ class UserCvModel {
     this.parsedText,
     required this.skills,
     required this.createdAt,
+    this.source,
+    this.targetRole,
+    this.expectedSalary,
+    this.evaluation,
   });
 
   factory UserCvModel.fromJson(Map<String, dynamic> json) {
@@ -26,9 +34,99 @@ class UserCvModel {
       parsedText: json['parsed_text']?.toString(),
       skills: (json['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: json['created_at']?.toString() ?? '',
+      source: json['source']?.toString(),
+      targetRole: json['target_role']?.toString(),
+      expectedSalary: (json['expected_salary'] as num?)?.toInt(),
+      evaluation: json['evaluation_json'] is Map<String, dynamic>
+          ? CareerEvaluationModel.fromJson(json['evaluation_json'] as Map<String, dynamic>)
+          : null,
     );
   }
 }
+
+class CareerEvaluationCheck {
+  final String key;
+  final bool ok;
+  final String label;
+
+  CareerEvaluationCheck({
+    required this.key,
+    required this.ok,
+    required this.label,
+  });
+
+  factory CareerEvaluationCheck.fromJson(Map<String, dynamic> json) {
+    return CareerEvaluationCheck(
+      key: json['key']?.toString() ?? '',
+      ok: json['ok'] == true,
+      label: json['label']?.toString() ?? '',
+    );
+  }
+}
+
+class CareerEvaluationModel {
+  final int score;
+  final List<CareerEvaluationCheck> checks;
+  final List<String> warnings;
+  final List<String> fixes;
+  final String? targetRole;
+  final int? expectedSalary;
+  final String? salaryNote;
+  final String summary;
+
+  CareerEvaluationModel({
+    required this.score,
+    required this.checks,
+    required this.warnings,
+    required this.fixes,
+    this.targetRole,
+    this.expectedSalary,
+    this.salaryNote,
+    required this.summary,
+  });
+
+  factory CareerEvaluationModel.fromJson(Map<String, dynamic> json) {
+    return CareerEvaluationModel(
+      score: (json['score'] as num?)?.toInt() ?? 0,
+      checks: (json['checks'] as List<dynamic>?)
+              ?.map((e) => CareerEvaluationCheck.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      warnings: (json['warnings'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      fixes: (json['fixes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      targetRole: json['target_role']?.toString(),
+      expectedSalary: (json['expected_salary'] as num?)?.toInt(),
+      salaryNote: json['salary_note']?.toString(),
+      summary: json['summary']?.toString() ?? '',
+    );
+  }
+}
+
+class CareerEvaluateResult {
+  final UserCvModel? cv;
+  final CareerEvaluationModel evaluation;
+  final List<CareerRecommendationCourseModel> suggestedCourses;
+
+  CareerEvaluateResult({
+    this.cv,
+    required this.evaluation,
+    required this.suggestedCourses,
+  });
+
+  factory CareerEvaluateResult.fromJson(Map<String, dynamic> json) {
+    return CareerEvaluateResult(
+      cv: json['cv'] != null ? UserCvModel.fromJson(json['cv'] as Map<String, dynamic>) : null,
+      evaluation: CareerEvaluationModel.fromJson(
+        json['evaluation'] as Map<String, dynamic>? ?? {},
+      ),
+      suggestedCourses: (json['suggested_courses'] as List<dynamic>?)
+              ?.map((e) => CareerRecommendationCourseModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
 
 class ExpertAnalysisModel {
   final String overview;

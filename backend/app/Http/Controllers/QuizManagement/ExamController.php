@@ -256,6 +256,42 @@ class ExamController extends Controller
         return response()->json($enrollments);
     }
 
+    /**
+     * BA 2026: ghi danh cả lớp hành chính vào kỳ thi (thi cuối kỳ).
+     */
+    public function enrollByAdminClass(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+
+        $validated = $request->validate([
+            'administrative_class_id' => ['required', 'integer', 'exists:administrative_classes,id'],
+        ]);
+
+        $studentIds = User::query()
+            ->where('administrative_class_id', $validated['administrative_class_id'])
+            ->where(function ($q) {
+                $q->where('user_type', 'student')
+                    ->orWhereHas('roles', fn ($r) => $r->where('name', 'student'));
+            })
+            ->pluck('id');
+
+        $enrolled = 0;
+        foreach ($studentIds as $userId) {
+            ExamEnrollment::firstOrCreate(
+                ['exam_id' => $exam->id, 'user_id' => $userId],
+                ['enrolled_by' => $user->id, 'enrolled_at' => now()]
+            );
+            $enrolled++;
+        }
+
+        return response()->json([
+            'message'  => "Đã ghi danh {$enrolled} sinh viên từ lớp hành chính.",
+            'enrolled' => $enrolled,
+            'total'    => $exam->examEnrollments()->count(),
+        ]);
+    }
+
     private function authorizeOwner(Request $request, Course $course): void
     {
         $user = $request->user();

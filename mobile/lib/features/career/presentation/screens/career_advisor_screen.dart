@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -16,15 +17,64 @@ class CareerAdvisorScreen extends ConsumerStatefulWidget {
   ConsumerState<CareerAdvisorScreen> createState() => _CareerAdvisorScreenState();
 }
 
-class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
+class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   final _jobTitleController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final _salaryController = TextEditingController(text: '8000000');
+  final _recommendFormKey = GlobalKey<FormState>();
+
+  final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _headlineController = TextEditingController();
+  final _summaryController = TextEditingController();
+  final _skillsController = TextEditingController();
+  final _targetRoleController = TextEditingController();
+  final _formSalaryController = TextEditingController(text: '8000000');
+  final _cvFormKey = GlobalKey<FormState>();
+
   CareerRecommendationModel? _selectedRecommendation;
+  CareerEvaluationModel? _evaluation;
+  List<CareerRecommendationCourseModel> _evalCourses = [];
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _jobTitleController.dispose();
+    _salaryController.dispose();
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _headlineController.dispose();
+    _summaryController.dispose();
+    _skillsController.dispose();
+    _targetRoleController.dispose();
+    _formSalaryController.dispose();
     super.dispose();
+  }
+
+  void _hydrateFormFromCv(UserCvModel? cv) {
+    if (cv == null) return;
+    if (_targetRoleController.text.isEmpty && (cv.targetRole?.isNotEmpty ?? false)) {
+      _targetRoleController.text = cv.targetRole!;
+      _jobTitleController.text = cv.targetRole!;
+    }
+    if (cv.expectedSalary != null) {
+      _formSalaryController.text = '${cv.expectedSalary}';
+      _salaryController.text = '${cv.expectedSalary}';
+    }
+    if (_skillsController.text.isEmpty && cv.skills.isNotEmpty) {
+      _skillsController.text = cv.skills.join(', ');
+    }
+    _evaluation ??= cv.evaluation;
   }
 
   Future<void> _pickAndUploadCV() async {
@@ -33,109 +83,154 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx'],
       );
+      if (result == null || result.files.single.path == null) return;
 
-      if (result != null && result.files.single.path != null) {
-        final path = result.files.single.path!;
-        final name = result.files.single.name;
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Row(
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  ),
-                  AppSpacing.w12,
-                  Text('Đang tải lên và phân tích CV...'),
-                ],
-              ),
-              duration: Duration(minutes: 1),
-            ),
-          );
-        }
-
-        await ref.read(careerAdvisorNotifierProvider.notifier).uploadCV(path, name);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tải lên CV thành công!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      }
+      setState(() => _busy = true);
+      _showBusy('Đang tải lên và phân tích CV...');
+      await ref
+          .read(careerAdvisorNotifierProvider.notifier)
+          .uploadCV(result.files.single.path!, result.files.single.name);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tải lên CV thành công!'), backgroundColor: Colors.green),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi tải lên CV: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi tải lên CV: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _saveCvForm() async {
+    if (!_cvFormKey.currentState!.validate()) return;
+    setState(() => _busy = true);
+    _showBusy('Đang lưu form CV...');
+    try {
+      final skills = _skillsController.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      final salary = int.tryParse(_formSalaryController.text.trim());
+      final result = await ref.read(careerAdvisorNotifierProvider.notifier).saveCvForm({
+        'full_name': _fullNameController.text.trim(),
+        'email': _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        'phone': _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        'headline': _headlineController.text.trim().isEmpty ? null : _headlineController.text.trim(),
+        'summary': _summaryController.text.trim().isEmpty ? null : _summaryController.text.trim(),
+        'skills': skills,
+        'target_role':
+            _targetRoleController.text.trim().isEmpty ? null : _targetRoleController.text.trim(),
+        'expected_salary': salary,
+      });
+      setState(() {
+        _evaluation = result.evaluation;
+        _evalCourses = result.suggestedCourses;
+        if ((_targetRoleController.text).isNotEmpty) {
+          _jobTitleController.text = _targetRoleController.text.trim();
+        }
+        if (salary != null) _salaryController.text = '$salary';
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã lưu CV từ form'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi lưu form: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _evaluateCv() async {
+    setState(() => _busy = true);
+    _showBusy('AI đang đánh giá CV...');
+    try {
+      final salary = int.tryParse(_salaryController.text.trim()) ??
+          int.tryParse(_formSalaryController.text.trim());
+      final role = _jobTitleController.text.trim().isNotEmpty
+          ? _jobTitleController.text.trim()
+          : _targetRoleController.text.trim();
+      final result = await ref.read(careerAdvisorNotifierProvider.notifier).evaluate(
+            targetRole: role.isEmpty ? null : role,
+            expectedSalary: salary,
+          );
+      setState(() {
+        _evaluation = result.evaluation;
+        _evalCourses = result.suggestedCourses;
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã đánh giá CV'), backgroundColor: Colors.green),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi đánh giá: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _getRecommendation() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final jobTitle = _jobTitleController.text.trim();
-
+    if (!_recommendFormKey.currentState!.validate()) return;
+    setState(() => _busy = true);
+    _showBusy('AI đang xây dựng lộ trình gợi ý...');
     try {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                ),
-                AppSpacing.w12,
-                Text('AI đang xây dựng lộ trình gợi ý...'),
-              ],
-            ),
-            duration: Duration(minutes: 1),
-          ),
-        );
-      }
-
+      final salary = int.tryParse(_salaryController.text.trim());
       final recommendation = await ref
           .read(careerAdvisorNotifierProvider.notifier)
-          .requestRecommendation(jobTitle);
-
-      setState(() {
-        _selectedRecommendation = recommendation;
-        _jobTitleController.clear();
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã hoàn thành phân tích lộ trình!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+          .requestRecommendation(
+            _jobTitleController.text.trim(),
+            expectedSalary: salary,
+          );
+      setState(() => _selectedRecommendation = recommendation);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã hoàn thành phân tích lộ trình!'), backgroundColor: Colors.green),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi tạo lộ trình: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi tạo lộ trình: $e'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showBusy(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            AppSpacing.w12,
+            Expanded(child: Text(message)),
+          ],
+        ),
+        duration: const Duration(minutes: 1),
+      ),
+    );
   }
 
   @override
@@ -145,44 +240,36 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tư vấn nghề nghiệp AI'),
+        title: const Text('AI Career'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.invalidate(careerAdvisorNotifierProvider);
-              setState(() {
-                _selectedRecommendation = null;
-              });
-            },
+            onPressed: _busy
+                ? null
+                : () {
+                    ref.invalidate(careerAdvisorNotifierProvider);
+                    setState(() {
+                      _selectedRecommendation = null;
+                      _evaluation = null;
+                      _evalCourses = [];
+                    });
+                  },
           ),
         ],
       ),
       body: statusAsync.when(
-        loading: () => const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              AppSpacing.h16,
-              Text('Đang kết nối dữ liệu nghề nghiệp...'),
-            ],
-          ),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                AppSpacing.h12,
                 Text('Lỗi: $err', textAlign: TextAlign.center),
                 AppSpacing.h16,
-                FilledButton.icon(
+                FilledButton(
                   onPressed: () => ref.invalidate(careerAdvisorNotifierProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Thử lại'),
+                  child: const Text('Thử lại'),
                 ),
               ],
             ),
@@ -191,33 +278,78 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
         data: (status) {
           final currentCv = status.cv;
           final recommendations = status.recommendations;
-
-          // Set default recommendation to the latest if not selected yet
+          _hydrateFormFromCv(currentCv);
           if (_selectedRecommendation == null && recommendations.isNotEmpty) {
             _selectedRecommendation = recommendations.first;
           }
 
-          return SingleChildScrollView(
+          return ListView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildIntroHeader(theme),
-                AppSpacing.h20,
-                _buildCvSection(context, currentCv),
-                if (currentCv != null) ...[
-                  AppSpacing.h20,
-                  _buildRequestSection(theme),
-                  if (recommendations.isNotEmpty) ...[
-                    AppSpacing.h24,
-                    _buildHistorySelector(theme, recommendations),
-                    AppSpacing.h16,
-                    if (_selectedRecommendation != null)
-                      _buildRecommendationDetail(theme, _selectedRecommendation!),
-                  ],
+            children: [
+              _buildIntroHeader(theme),
+              AppSpacing.h16,
+              TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: 'Upload CV'),
+                  Tab(text: 'Form CV'),
                 ],
+              ),
+              AppSpacing.h12,
+              AnimatedBuilder(
+                animation: _tabController,
+                builder: (context, _) {
+                  if (_tabController.index == 0) {
+                    return _buildCvUploadSection(context, currentCv);
+                  }
+                  return _buildCvFormSection(theme);
+                },
+              ),
+              if (currentCv != null || _evaluation != null) ...[
+                AppSpacing.h20,
+                _buildTargetSection(theme),
+                AppSpacing.h12,
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _busy ? null : _evaluateCv,
+                        icon: const Icon(Icons.fact_check_outlined),
+                        label: const Text('Đánh giá CV'),
+                      ),
+                    ),
+                    AppSpacing.w8,
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _busy ? null : _getRecommendation,
+                        icon: const Icon(Icons.insights),
+                        label: const Text('Gợi ý khóa'),
+                      ),
+                    ),
+                  ],
+                ),
               ],
-            ),
+              if (_evaluation != null) ...[
+                AppSpacing.h20,
+                _buildEvaluationCard(theme, _evaluation!),
+              ],
+              if (_evalCourses.isNotEmpty) ...[
+                AppSpacing.h16,
+                Text(
+                  'Khóa học từ đánh giá',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                AppSpacing.h8,
+                ..._evalCourses.map((c) => _buildCourseRecommendationItem(context, theme, c)),
+              ],
+              if (currentCv != null && recommendations.isNotEmpty) ...[
+                AppSpacing.h24,
+                _buildHistorySelector(theme, recommendations),
+                AppSpacing.h16,
+                if (_selectedRecommendation != null)
+                  _buildRecommendationDetail(theme, _selectedRecommendation!),
+              ],
+            ],
           );
         },
       ),
@@ -240,11 +372,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
               color: AppColors.primary400,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.psychology_outlined,
-              color: Colors.white,
-              size: 28,
-            ),
+            child: const Icon(Icons.work_outline, color: Colors.white, size: 28),
           ),
           AppSpacing.w16,
           Expanded(
@@ -252,7 +380,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Trợ lý nghề nghiệp AI 🧠',
+                  'AI Career',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary800,
@@ -260,7 +388,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
                 ),
                 AppSpacing.h4,
                 Text(
-                  'Tải lên CV của bạn, điền mục tiêu nghề nghiệp, và để AI phân tích lộ trình học tập, tìm kiếm lỗ hổng kỹ năng, gợi ý khóa học phù hợp.',
+                  'Upload hoặc điền form CV → đánh giá → chọn vị trí & mức lương → nhận khóa học gợi ý.',
                   style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
                 ),
               ],
@@ -271,46 +399,30 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
     );
   }
 
-  Widget _buildCvSection(BuildContext context, UserCvModel? cv) {
+  Widget _buildCvUploadSection(BuildContext context, UserCvModel? cv) {
     final theme = Theme.of(context);
-
-    if (cv == null) {
+    if (cv == null || cv.source == 'form') {
       return InkWell(
-        onTap: _pickAndUploadCV,
+        onTap: _busy ? null : _pickAndUploadCV,
         borderRadius: AppRadius.rLg,
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             borderRadius: AppRadius.rLg,
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
-              style: BorderStyle.solid,
-            ),
+            border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
           ),
           child: Column(
             children: [
-              Icon(
-                Icons.cloud_upload_outlined,
-                size: 48,
-                color: theme.colorScheme.primary,
-              ),
-              AppSpacing.h16,
-              Text(
-                'Tải lên CV học viên',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              AppSpacing.h4,
-              Text(
-                'Hỗ trợ file PDF, DOC, DOCX tối đa 5MB',
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-              AppSpacing.h20,
+              Icon(Icons.cloud_upload_outlined, size: 48, color: theme.colorScheme.primary),
+              AppSpacing.h12,
+              Text('Tải lên CV (PDF/DOC/DOCX)', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              AppSpacing.h12,
               FilledButton.icon(
-                onPressed: _pickAndUploadCV,
+                onPressed: _busy ? null : _pickAndUploadCV,
                 icon: const Icon(Icons.file_open_outlined),
-                label: const Text('Chọn file từ thiết bị'),
+                label: const Text('Chọn file'),
               ),
             ],
           ),
@@ -319,6 +431,129 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
     }
 
     return Card(
+      child: ListTile(
+        leading: const Icon(Icons.description, color: AppColors.primary400),
+        title: Text(cv.fileName, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text('Đã tải lên ${cv.createdAt.split('T').first}'),
+        trailing: IconButton(
+          icon: const Icon(Icons.upload_file_outlined),
+          onPressed: _busy ? null : _pickAndUploadCV,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCvFormSection(ThemeData theme) {
+    return Form(
+      key: _cvFormKey,
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _fullNameController,
+            decoration: const InputDecoration(labelText: 'Họ tên *', border: OutlineInputBorder()),
+            validator: (v) => (v == null || v.trim().isEmpty) ? 'Bắt buộc' : null,
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _emailController,
+            decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _phoneController,
+            decoration: const InputDecoration(labelText: 'SĐT', border: OutlineInputBorder()),
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _headlineController,
+            decoration: const InputDecoration(labelText: 'Headline / Vị trí', border: OutlineInputBorder()),
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _summaryController,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: 'Tóm tắt', border: OutlineInputBorder()),
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _skillsController,
+            decoration: const InputDecoration(
+              labelText: 'Kỹ năng (cách nhau bởi dấu phẩy)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _targetRoleController,
+            decoration: const InputDecoration(labelText: 'Vị trí mục tiêu', border: OutlineInputBorder()),
+          ),
+          AppSpacing.h12,
+          TextFormField(
+            controller: _formSalaryController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: const InputDecoration(
+              labelText: 'Mức lương mong muốn (VND)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          AppSpacing.h16,
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _busy ? null : _saveCvForm,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Lưu form & đánh giá'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTargetSection(ThemeData theme) {
+    return Form(
+      key: _recommendFormKey,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Vị trí & mức lương mục tiêu', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              AppSpacing.h12,
+              TextFormField(
+                controller: _jobTitleController,
+                decoration: const InputDecoration(
+                  labelText: 'Ví dụ: Backend Developer',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Nhập vị trí mục tiêu';
+                  }
+                  return null;
+                },
+              ),
+              AppSpacing.h12,
+              TextFormField(
+                controller: _salaryController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: 'Mức lương mong muốn (VND)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEvaluationCard(ThemeData theme, CareerEvaluationModel evaluation) {
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -326,104 +561,45 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.description, color: AppColors.primary400, size: 28),
+                Text('${evaluation.score}%', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.primary600)),
                 AppSpacing.w12,
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        cv.fileName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Đã tải lên vào ${cv.createdAt.split('T').first}',
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                      ),
-                    ],
+                  child: Text(
+                    evaluation.summary,
+                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.upload_file_outlined),
-                  tooltip: 'Tải CV mới',
-                  onPressed: _pickAndUploadCV,
                 ),
               ],
             ),
-            if (cv.skills.isNotEmpty) ...[
+            if (evaluation.salaryNote != null) ...[
+              AppSpacing.h8,
+              Text(evaluation.salaryNote!, style: theme.textTheme.bodySmall),
+            ],
+            if (evaluation.checks.isNotEmpty) ...[
               AppSpacing.h12,
-              const Divider(),
-              AppSpacing.h8,
-              Text(
-                'Kỹ năng nhận diện từ CV:',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ...evaluation.checks.map(
+                (c) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    c.ok ? Icons.check_circle : Icons.cancel_outlined,
+                    color: c.ok ? Colors.green : Colors.orange,
+                  ),
+                  title: Text(c.label),
+                ),
               ),
+            ],
+            if (evaluation.fixes.isNotEmpty) ...[
               AppSpacing.h8,
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: cv.skills.map((skill) {
-                  return Chip(
-                    label: Text(skill, style: const TextStyle(fontSize: 11)),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: AppColors.primary50,
-                    side: const BorderSide(color: AppColors.primary100),
-                  );
-                }).toList(),
-              ),
+              Text('Cần cải thiện', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              ...evaluation.fixes.map((f) => Text('• $f')),
+            ],
+            if (evaluation.warnings.isNotEmpty) ...[
+              AppSpacing.h8,
+              Text('Cảnh báo', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              ...evaluation.warnings.map((w) => Text('• $w')),
             ],
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRequestSection(ThemeData theme) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nhận tư vấn vị trí mong muốn 🎯',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              AppSpacing.h12,
-              TextFormField(
-                controller: _jobTitleController,
-                decoration: const InputDecoration(
-                  labelText: 'Ví dụ: Backend Developer, Data Analyst, UI/UX Designer...',
-                  hintText: 'Nhập vị trí tuyển dụng mục tiêu',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Vui lòng nhập vị trí bạn mong muốn tư vấn';
-                  }
-                  return null;
-                },
-              ),
-              AppSpacing.h16,
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _getRecommendation,
-                  icon: const Icon(Icons.insights),
-                  label: const Text('Phân tích & tư vấn nghề nghiệp'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -433,27 +609,20 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Kết quả phân tích',
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        Text('Kết quả phân tích', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         if (recommendations.length > 1)
           DropdownButton<CareerRecommendationModel>(
             value: _selectedRecommendation,
             underline: const SizedBox.shrink(),
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-            icon: Icon(Icons.arrow_drop_down, color: theme.colorScheme.primary),
             onChanged: (recommendation) {
               if (recommendation != null) {
-                setState(() {
-                  _selectedRecommendation = recommendation;
-                });
+                setState(() => _selectedRecommendation = recommendation);
               }
             },
             items: recommendations.map((item) {
-              return DropdownMenuItem<CareerRecommendationModel>(
+              return DropdownMenuItem(
                 value: item,
-                child: Text('Lần ${recommendations.indexOf(item) + 1} (${item.createdAt.split('T').first})'),
+                child: Text('Lần ${recommendations.indexOf(item) + 1}'),
               );
             }).toList(),
           ),
@@ -473,303 +642,40 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Match Score Card
         Card(
           color: scoreColor.withValues(alpha: 0.08),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.rLg,
-            side: BorderSide(color: scoreColor.withValues(alpha: 0.3)),
-          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 64,
-                      height: 64,
-                      child: CircularProgressIndicator(
-                        value: score / 100,
-                        strokeWidth: 6,
-                        color: scoreColor,
-                        backgroundColor: scoreColor.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    Text(
-                      '$score%',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: scoreColor,
-                      ),
-                    ),
-                  ],
-                ),
-                AppSpacing.w20,
+                Text('$score%', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: scoreColor)),
+                AppSpacing.w16,
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Độ tương thích hồ sơ',
-                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      AppSpacing.h4,
-                      Text(
-                        rec.expertAnalysis.overview.isNotEmpty 
-                            ? rec.expertAnalysis.overview 
-                            : rec.aiSummary,
-                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-                      ),
-                    ],
+                  child: Text(
+                    rec.expertAnalysis.overview.isNotEmpty ? rec.expertAnalysis.overview : rec.aiSummary,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        AppSpacing.h16,
-
-        // Skill Gaps Section
         if (rec.skillGaps.isNotEmpty) ...[
-          Text(
-            'Lỗ hổng kỹ năng cần bổ sung ⚠️',
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          AppSpacing.h8,
+          AppSpacing.h12,
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: rec.skillGaps.map((gap) {
-              return Chip(
-                label: Text(gap, style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold)),
-                backgroundColor: Colors.red.shade50,
-                side: BorderSide(color: Colors.red.shade200),
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-              );
-            }).toList(),
+            children: rec.skillGaps
+                .map((gap) => Chip(label: Text(gap), backgroundColor: Colors.red.shade50))
+                .toList(),
           ),
-          AppSpacing.h20,
         ],
-
-        // Strengths and Weaknesses
-        _buildStrengthsWeaknesses(theme, rec.expertAnalysis),
-        AppSpacing.h20,
-
-        // CV Improvements & Additions
-        _buildCvImprovementsCard(theme, rec.expertAnalysis),
-        AppSpacing.h20,
-
-        // Learning Priorities
-        _buildLearningPrioritiesCard(theme, rec.expertAnalysis),
-        AppSpacing.h20,
-
-        // Recommended Courses
         if (rec.suggestedCoursesData.isNotEmpty) ...[
-          Text(
-            'Khóa học được đề xuất riêng cho bạn 📚',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          AppSpacing.h12,
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: rec.suggestedCoursesData.length,
-            itemBuilder: (context, index) {
-              final course = rec.suggestedCoursesData[index];
-              return _buildCourseRecommendationItem(context, theme, course);
-            },
-          ),
+          AppSpacing.h16,
+          Text('Khóa học đề xuất', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+          AppSpacing.h8,
+          ...rec.suggestedCoursesData.map((c) => _buildCourseRecommendationItem(context, theme, c)),
         ],
       ],
-    );
-  }
-
-  Widget _buildStrengthsWeaknesses(ThemeData theme, ExpertAnalysisModel analysis) {
-    return Column(
-      children: [
-        if (analysis.strengths.isNotEmpty)
-          _buildAnalysisBlock(
-            theme: theme,
-            title: 'Điểm mạnh hồ sơ',
-            items: analysis.strengths,
-            icon: Icons.check_circle,
-            color: Colors.green,
-          ),
-        if (analysis.weaknesses.isNotEmpty) ...[
-          AppSpacing.h12,
-          _buildAnalysisBlock(
-            theme: theme,
-            title: 'Điểm cần cải thiện',
-            items: analysis.weaknesses,
-            icon: Icons.info_outline,
-            color: Colors.orange.shade800,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildAnalysisBlock({
-    required ThemeData theme,
-    required String title,
-    required List<String> items,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.04),
-        borderRadius: AppRadius.rLg,
-        border: Border.all(color: color.withValues(alpha: 0.15)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              AppSpacing.w8,
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: color),
-              ),
-            ],
-          ),
-          AppSpacing.h12,
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5),
-                      child: Container(
-                        width: 5,
-                        height: 5,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                      ),
-                    ),
-                    AppSpacing.w12,
-                    Expanded(
-                      child: Text(
-                        item,
-                        style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCvImprovementsCard(ThemeData theme, ExpertAnalysisModel analysis) {
-    final list = [...analysis.cvImprovements, ...analysis.cvAdditions];
-    if (list.isEmpty) return const SizedBox.shrink();
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.rLg,
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.edit_note, color: Colors.blue, size: 24),
-                AppSpacing.w8,
-                Text(
-                  'Hướng dẫn tối ưu hóa CV',
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            AppSpacing.h12,
-            ...list.map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.check_box_outlined, color: Colors.blue, size: 18),
-                      AppSpacing.w12,
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLearningPrioritiesCard(ThemeData theme, ExpertAnalysisModel analysis) {
-    if (analysis.learningPriorities.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-        borderRadius: AppRadius.rLg,
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.explore_outlined, color: AppColors.primary600, size: 22),
-              AppSpacing.w8,
-              Text(
-                'Lộ trình ưu tiên học tập',
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary800),
-              ),
-            ],
-          ),
-          AppSpacing.h12,
-          ...analysis.learningPriorities.map((item) {
-            final index = analysis.learningPriorities.indexOf(item) + 1;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 9,
-                    backgroundColor: AppColors.primary400,
-                    child: Text(
-                      '$index',
-                      style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  AppSpacing.w12,
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
     );
   }
 
@@ -780,103 +686,12 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen> {
   ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
+      child: ListTile(
         onTap: () => context.push('/courses/${course.id}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Course Thumbnail Placeholder/Image
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: AppRadius.rMd,
-                    ),
-                    alignment: Alignment.center,
-                    child: course.thumbnail != null
-                        ? ClipRRect(
-                            borderRadius: AppRadius.rMd,
-                            child: Image.network(
-                              course.thumbnail!,
-                              fit: BoxFit.cover,
-                              width: 72,
-                              height: 72,
-                              errorBuilder: (_, _, _) =>
-                                  const Icon(Icons.school, size: 28, color: Colors.grey),
-                            ),
-                          )
-                        : const Icon(Icons.school, size: 28, color: Colors.grey),
-                  ),
-                  AppSpacing.w12,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          course.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        AppSpacing.h4,
-                        Row(
-                          children: [
-                            Icon(Icons.star, color: Colors.amber.shade700, size: 14),
-                            AppSpacing.w4,
-                            Text(
-                              course.avgRating.toStringAsFixed(1),
-                              style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            AppSpacing.w12,
-                            Text(
-                              course.price > 0 ? '${course.price}đ' : 'Miễn phí',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (course.recommendationReason != null && course.recommendationReason!.isNotEmpty) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                color: AppColors.primary50.withValues(alpha: 0.3),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.auto_awesome, color: AppColors.primary400, size: 14),
-                    AppSpacing.w8,
-                    Expanded(
-                      child: Text(
-                        course.recommendationReason!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.primary800,
-                          fontStyle: FontStyle.italic,
-                          fontSize: 11,
-                          height: 1.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
+        leading: const Icon(Icons.school_outlined),
+        title: Text(course.title, maxLines: 2, overflow: TextOverflow.ellipsis),
+        subtitle: Text(course.recommendationReason ?? (course.price > 0 ? '${course.price}đ' : 'Miễn phí')),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
   }

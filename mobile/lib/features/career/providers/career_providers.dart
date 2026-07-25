@@ -22,16 +22,40 @@ class CareerAdvisorNotifier extends _$CareerAdvisorNotifier {
     }
   }
 
-  Future<CareerRecommendationModel> requestRecommendation(String jobTitle) async {
+  Future<CareerEvaluateResult> saveCvForm(Map<String, dynamic> payload) async {
+    final result = await ref.read(careerRepositoryProvider).saveCvForm(payload);
+    final updatedStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
+    state = AsyncValue.data(updatedStatus);
+    return result;
+  }
+
+  Future<CareerEvaluateResult> evaluate({
+    String? targetRole,
+    int? expectedSalary,
+  }) async {
+    final result = await ref.read(careerRepositoryProvider).evaluate(
+          targetRole: targetRole,
+          expectedSalary: expectedSalary,
+        );
+    final updatedStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
+    state = AsyncValue.data(updatedStatus);
+    return result;
+  }
+
+  Future<CareerRecommendationModel> requestRecommendation(
+    String jobTitle, {
+    int? expectedSalary,
+  }) async {
     state = const AsyncValue.loading();
     try {
-      final recommendation = await ref.read(careerRepositoryProvider).getRecommendation(jobTitle);
-      // Reload status to get the updated list of recommendations
+      final recommendation = await ref.read(careerRepositoryProvider).getRecommendation(
+            jobTitle,
+            expectedSalary: expectedSalary,
+          );
       final updatedStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
       state = AsyncValue.data(updatedStatus);
       return recommendation;
     } catch (e, stack) {
-      // Re-fetch current status so we don't leave the UI in error/loading state
       try {
         final currentStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
         state = AsyncValue.data(currentStatus);

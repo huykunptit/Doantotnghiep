@@ -38,6 +38,11 @@ Thiết kế theo contract `sylva-admin-crud.mdc`. UI + API + fix trong cùng v�
 
 - exam-monitor, payouts, points, email-templates, reports/errors, lnd/reports
 
+## Communications (done)
+
+- Gửi thông báo admin + SMTP test + chuông poll 15s
+- Tin tức CMS admin + portal `/news`
+
 ## Builder scope
 
 **In:** video, page, file, quiz — sections/lessons reorder, publish, video upload  

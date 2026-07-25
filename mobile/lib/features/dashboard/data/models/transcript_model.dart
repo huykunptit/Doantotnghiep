@@ -1,103 +1,88 @@
-class GradeEntryModel {
-  final String? component;
-  final double? weight;
-  final double? maxScore;
+class TranscriptExamResult {
+  final int examId;
+  final String examTitle;
+  final String? examType;
+  final String? courseTitle;
+  final int creditValue;
+  final int? passScore;
   final double? score;
+  final bool? passed;
+  final String? takenAt;
+  final String? examDate;
 
-  GradeEntryModel({this.component, this.weight, this.maxScore, this.score});
+  TranscriptExamResult({
+    required this.examId,
+    required this.examTitle,
+    this.examType,
+    this.courseTitle,
+    this.creditValue = 0,
+    this.passScore,
+    this.score,
+    this.passed,
+    this.takenAt,
+    this.examDate,
+  });
 
-  factory GradeEntryModel.fromJson(Map<String, dynamic> json) {
-    return GradeEntryModel(
-      component: json['component']?.toString(),
-      weight: (json['weight'] as num?)?.toDouble(),
-      maxScore: (json['max_score'] as num?)?.toDouble(),
+  factory TranscriptExamResult.fromJson(Map<String, dynamic> json) {
+    final course = json['course'] as Map<String, dynamic>?;
+    return TranscriptExamResult(
+      examId: json['exam_id'] as int? ?? 0,
+      examTitle: json['exam_title']?.toString() ?? '',
+      examType: json['exam_type']?.toString(),
+      courseTitle: course?['title']?.toString(),
+      creditValue: json['credit_value'] as int? ?? 0,
+      passScore: json['pass_score'] as int?,
       score: (json['score'] as num?)?.toDouble(),
+      passed: json['passed'] as bool?,
+      takenAt: json['taken_at']?.toString(),
+      examDate: json['exam_date']?.toString(),
     );
   }
 }
 
-class TranscriptCourseModel {
-  final int enrollmentId;
-  final String title;
-  final int? creditValue;
-  final String? courseMode;
-  final double? finalScore;
-  final List<GradeEntryModel> entries;
+class TranscriptSummary {
+  final int totalExams;
+  final int taken;
+  final int passed;
+  final double? averageScore;
 
-  TranscriptCourseModel({
-    required this.enrollmentId,
-    required this.title,
-    this.creditValue,
-    this.courseMode,
-    this.finalScore,
-    this.entries = const [],
+  TranscriptSummary({
+    required this.totalExams,
+    required this.taken,
+    required this.passed,
+    this.averageScore,
   });
 
-  factory TranscriptCourseModel.fromJson(Map<String, dynamic> json) {
-    final course = json['course'] as Map<String, dynamic>? ?? {};
-    return TranscriptCourseModel(
-      enrollmentId: json['enrollment_id'] as int? ?? 0,
-      title: course['title']?.toString() ?? '',
-      creditValue: course['credit_value'] as int?,
-      courseMode: course['course_mode']?.toString(),
-      finalScore: (json['final_score'] as num?)?.toDouble(),
-      entries: (json['entries'] as List<dynamic>?)
-              ?.map((e) => GradeEntryModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
+  factory TranscriptSummary.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return TranscriptSummary(totalExams: 0, taken: 0, passed: 0);
+    }
+    return TranscriptSummary(
+      totalExams: json['total_exams'] as int? ?? 0,
+      taken: json['taken'] as int? ?? 0,
+      passed: json['passed'] as int? ?? 0,
+      averageScore: (json['average_score'] as num?)?.toDouble(),
     );
   }
 }
 
-class TranscriptTermModel {
-  final int id;
-  final String name;
-  final String code;
-  final double? gpa;
-  final int credits;
-  final List<TranscriptCourseModel> courses;
-
-  TranscriptTermModel({
-    required this.id,
-    required this.name,
-    required this.code,
-    this.gpa,
-    required this.credits,
-    required this.courses,
-  });
-
-  factory TranscriptTermModel.fromJson(Map<String, dynamic> json) {
-    final term = json['term'] as Map<String, dynamic>? ?? {};
-    return TranscriptTermModel(
-      id: term['id'] as int? ?? 0,
-      name: term['name']?.toString() ?? '',
-      code: term['code']?.toString() ?? '',
-      gpa: (json['gpa'] as num?)?.toDouble(),
-      credits: json['credits'] as int? ?? 0,
-      courses: (json['courses'] as List<dynamic>?)
-              ?.map((e) => TranscriptCourseModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-    );
-  }
-}
-
+/// BA 2026: bảng điểm chỉ gồm kết quả thi trên LMS.
 class TranscriptModel {
-  final List<TranscriptTermModel> terms;
-  final double? overallGpa;
+  final List<TranscriptExamResult> results;
+  final TranscriptSummary summary;
 
   TranscriptModel({
-    required this.terms,
-    this.overallGpa,
+    required this.results,
+    required this.summary,
   });
 
   factory TranscriptModel.fromJson(Map<String, dynamic> json) {
     return TranscriptModel(
-      terms: (json['terms'] as List<dynamic>?)
-              ?.map((e) => TranscriptTermModel.fromJson(e as Map<String, dynamic>))
+      results: (json['results'] as List<dynamic>?)
+              ?.map((e) => TranscriptExamResult.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      overallGpa: (json['overall_gpa'] as num?)?.toDouble(),
+      summary: TranscriptSummary.fromJson(json['summary'] as Map<String, dynamic>?),
     );
   }
 }

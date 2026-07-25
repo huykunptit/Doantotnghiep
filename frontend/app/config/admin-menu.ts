@@ -37,7 +37,6 @@ export const adminMenu: AdminMenuItem[] = [
       { labelKey: 'admin.menu.academicCatalog', to: '/admin/academic' },
       { labelKey: 'admin.menu.learningPaths', to: '/admin/lnd/learning-paths' },
       { labelKey: 'admin.menu.adminClasses', to: '/admin/lnd/classes' },
-      { labelKey: 'admin.menu.courseSections', to: '/admin/lnd/course-sections' },
       { labelKey: 'admin.menu.classPathEnrollment', to: '/admin/lnd/class-path-enrollment' },
     ],
   },
@@ -89,6 +88,8 @@ export const adminMenu: AdminMenuItem[] = [
     labelKey: 'admin.menu.system',
     icon: 'pi pi-cog',
     children: [
+      { labelKey: 'admin.menu.notifications', to: '/admin/notifications' },
+      { labelKey: 'admin.menu.news', to: '/admin/news' },
       { labelKey: 'admin.menu.ai', to: '/admin/ai' },
       { labelKey: 'admin.menu.chat', to: '/admin/chat' },
       { labelKey: 'admin.menu.settings', to: '/admin/settings' },

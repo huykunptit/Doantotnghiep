@@ -13,12 +13,20 @@ class UserCV extends Model
         'user_id',
         'file_path',
         'file_name',
+        'source',
         'parsed_text',
         'skills',
+        'profile_json',
+        'target_role',
+        'expected_salary',
+        'evaluation_json',
     ];
 
     protected $casts = [
         'skills' => 'json',
+        'profile_json' => 'array',
+        'evaluation_json' => 'array',
+        'expected_salary' => 'integer',
     ];
 
     public function user(): BelongsTo
