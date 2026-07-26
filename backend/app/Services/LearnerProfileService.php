@@ -14,15 +14,22 @@ class LearnerProfileService
 {
     /** Map major name/code keywords → career target roles for recommendations. */
     public const MAJOR_ROLE_HINTS = [
-        'cntt' => ['fullstack_python', 'backend_laravel', 'frontend_vue', 'devops'],
-        'công nghệ thông tin' => ['fullstack_python', 'backend_laravel', 'frontend_vue', 'devops'],
-        'ktpm' => ['fullstack_python', 'backend_laravel', 'frontend_vue'],
-        'phần mềm' => ['fullstack_python', 'backend_laravel', 'frontend_vue'],
-        'qtkd' => ['business_analyst', 'digital_marketing', 'product_owner'],
-        'quản trị' => ['business_analyst', 'digital_marketing', 'product_owner'],
-        'dtvt' => ['iot_embedded', 'network_engineer', 'devops'],
-        'điện tử' => ['iot_embedded', 'network_engineer'],
-        'viễn thông' => ['network_engineer', 'devops'],
+        'cntt' => ['fullstack_python', 'backend_laravel', 'frontend_vue', 'mobile_flutter', 'devops', 'data_analyst', 'qa_tester', 'cybersecurity'],
+        'công nghệ thông tin' => ['fullstack_python', 'backend_laravel', 'frontend_vue', 'mobile_flutter', 'devops', 'data_analyst', 'qa_tester', 'cybersecurity'],
+        'ktpm' => ['fullstack_python', 'backend_laravel', 'frontend_vue', 'mobile_flutter', 'qa_tester', 'devops'],
+        'phần mềm' => ['fullstack_python', 'backend_laravel', 'frontend_vue', 'mobile_flutter', 'qa_tester', 'devops'],
+        'qtkd' => ['business_analyst', 'digital_marketing', 'product_owner', 'project_manager'],
+        'quản trị' => ['business_analyst', 'digital_marketing', 'product_owner', 'project_manager'],
+        'kinh doanh' => ['business_analyst', 'digital_marketing', 'product_owner', 'project_manager'],
+        'marketing' => ['digital_marketing', 'business_analyst', 'ui_ux_designer'],
+        'thiết kế' => ['ui_ux_designer', 'graphic_designer', 'frontend_vue'],
+        'đồ họa' => ['graphic_designer', 'ui_ux_designer'],
+        'dtvt' => ['iot_embedded', 'network_engineer', 'devops', 'cybersecurity'],
+        'điện tử' => ['iot_embedded', 'network_engineer', 'cybersecurity'],
+        'viễn thông' => ['network_engineer', 'devops', 'cybersecurity'],
+        'ngoại ngữ' => ['english_it', 'japanese_it'],
+        'anh' => ['english_it'],
+        'nhật' => ['japanese_it'],
     ];
 
     public function build(User $user, bool $useCache = true): array
