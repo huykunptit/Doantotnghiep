@@ -239,6 +239,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
     final theme = Theme.of(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('AI Career'),
         actions: [
@@ -284,7 +285,13 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
           }
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.of(context).viewInsets.bottom,
+            ),
             children: [
               _buildIntroHeader(theme),
               AppSpacing.h16,

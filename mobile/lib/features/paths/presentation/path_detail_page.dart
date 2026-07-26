@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/path_detail_provider.dart';
 import '../data/models/career_path_model.dart';
 import '../data/repositories/path_repository.dart';
+import '../../courses/providers/my_courses_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 
@@ -85,6 +86,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
           ),
         );
         ref.invalidate(pathDetailProvider(widget.slug));
+        ref.invalidate(myEnrollmentsProvider);
       } else if (res['payment_url'] != null) {
         final success = await context.push<bool>(
           '/checkout-webview',
@@ -100,6 +102,16 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
             ),
           );
           ref.invalidate(pathDetailProvider(widget.slug));
+          ref.invalidate(myEnrollmentsProvider);
+        } else if (success == false && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Thanh toán chưa hoàn tất hoặc đã bị hủy.'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
         }
       }
     } catch (e) {

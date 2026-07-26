@@ -47,6 +47,10 @@ class CurriculumEvaluationService
             ];
         }
 
+        // Lưu ý: vòng lặp bên dưới duyệt theo curriculumCourses (danh sách môn của CTĐT),
+        // không duyệt theo enrollments, nên GPA/tiến độ ở đây LUÔN chỉ tính trên các môn
+        // thuộc CTĐT — bất kể enrollment_source — tức đã tự động loại các khóa marketplace
+        // không nằm trong chương trình đào tạo.
         $enrollments = Enrollment::where('user_id', $user->id)->get()->keyBy('course_id');
         $profile = $this->profiles->build($user);
 

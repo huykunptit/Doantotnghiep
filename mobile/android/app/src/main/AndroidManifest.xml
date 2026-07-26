@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for all networking (API calls, video/YouTube playback, PayOS
+         checkout webview). The Flutter template only adds this to the debug
+         manifest by default, which silently breaks release/profile builds. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="flutter_application_1"
         android:name="${applicationName}"

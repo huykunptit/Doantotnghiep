@@ -83,14 +83,31 @@ class StudentDashboardController extends Controller
 
         $average = count($scores) > 0 ? round(array_sum($scores) / count($scores), 2) : null;
 
+        // Bảng điểm ở trên chỉ tổng hợp kết quả thi (average_score), chưa phải GPA thật sự.
+        // Bổ sung GPA tích lũy theo tín chỉ, chỉ tính trên các ghi danh học vụ (CTĐT) —
+        // loại bỏ enrollment_source = 'marketplace' và các khóa không tính tín chỉ.
+        $academicGpaCourses = Enrollment::where('user_id', $user->id)
+            ->where('enrollment_source', '!=', 'marketplace')
+            ->with('course:id,credit_value,is_credit_bearing')
+            ->get()
+            ->filter(fn ($e) => (bool) $e->course?->is_credit_bearing)
+            ->map(fn ($e) => [
+                'final_score'  => $e->final_score,
+                'credit_value' => (int) ($e->course->credit_value ?? 0),
+            ])
+            ->all();
+
+        $creditWeightedGpa = GpaCalculator::cumulativeGpa($academicGpaCourses);
+
         return response()->json([
             'student'     => $user->only(['id', 'name', 'email', 'student_code', 'cohort_id', 'major_id', 'program_id']),
             'results'     => $results,
             'summary'     => [
-                'total_exams'   => count($results),
-                'taken'         => count($scores),
-                'passed'        => $passedCount,
-                'average_score' => $average,
+                'total_exams'        => count($results),
+                'taken'              => count($scores),
+                'passed'             => $passedCount,
+                'average_score'      => $average,
+                'credit_weighted_gpa' => $creditWeightedGpa,
             ],
         ]);
     }
@@ -466,8 +483,17 @@ class StudentDashboardController extends Controller
             'device_info' => 'nullable|string',
         ]);
 
-        $session = \App\Models\OfflineSession::where('qr_token', $request->qr_token)
-            ->with('lesson.section.course', 'classSection')
+        $rawToken = trim((string) $request->qr_token);
+        // Accept either raw token or QR JSON payload {"type":"sylva_attendance","token":"..."}
+        if (str_starts_with($rawToken, '{')) {
+            $decoded = json_decode($rawToken, true);
+            if (is_array($decoded) && !empty($decoded['token'])) {
+                $rawToken = (string) $decoded['token'];
+            }
+        }
+
+        $session = \App\Models\OfflineSession::where('qr_token', $rawToken)
+            ->with(['lesson.section.course', 'classSection.course'])
             ->first();
 
         if (!$session) {
@@ -482,19 +508,21 @@ class StudentDashboardController extends Controller
             return response()->json(['message' => 'Phiên điểm danh chưa được mở.'], 422);
         }
 
-        // Validate distance ≤ 10m
-        if ($session->latitude && $session->longitude) {
+        // Validate distance within configured geofence (default 15m)
+        $radius = $session->checkInRadiusMeters();
+        if ($session->latitude !== null && $session->longitude !== null) {
             $distance = \App\Helpers\GpaCalculator::distanceMeters(
                 (float) $request->latitude,
                 (float) $request->longitude,
-                $session->latitude,
-                $session->longitude
+                (float) $session->latitude,
+                (float) $session->longitude
             );
 
-            if ($distance > 10) {
+            if ($distance > $radius) {
                 return response()->json([
-                    'message'          => "Bạn đang cách vị trí lớp học {$distance}m. Cần ở trong phạm vi 10m.",
+                    'message'          => "Bạn đang cách vị trí lớp học ".round($distance, 1)."m. Cần ở trong phạm vi {$radius}m.",
                     'distance_meters'  => round($distance, 1),
+                    'allowed_radius_meters' => $radius,
                 ], 422);
             }
         } else {
@@ -535,6 +563,10 @@ class StudentDashboardController extends Controller
             ]
         );
 
+        $courseTitle = $session->classSection?->course?->title
+            ?? $session->lesson?->section?->course?->title
+            ?? null;
+
         return response()->json([
             'message'    => 'Điểm danh thành công!',
             'attendance' => [
@@ -547,6 +579,8 @@ class StudentDashboardController extends Controller
                     'title'    => $session->title,
                     'location' => $session->location,
                     'start_at' => $session->start_at->toIso8601String(),
+                    'lesson_title' => $session->title,
+                    'course_title' => $courseTitle,
                 ],
             ],
         ]);

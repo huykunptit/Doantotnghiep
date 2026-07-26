@@ -89,6 +89,7 @@ const sectionForm = reactive({ id: null as number | null, title: '' })
 
 const pickerOpen = ref(false)
 const pickerSectionId = ref<number | null>(null)
+const lessonDialogOpen = ref(false)
 
 const lessonForm = reactive({
   id: null as number | null,
@@ -319,6 +320,7 @@ function onMainTab(key: string | number) {
 function selectLesson(sectionId: number, lessonId: number) {
   mainTab.value = 'curriculum'
   selection.value = { kind: 'lesson', sectionId, lessonId }
+  lessonDialogOpen.value = true
   openLessonEditor(sectionId, lessonId)
 }
 
@@ -432,6 +434,7 @@ function chooseContentType(type: string) {
     sectionId: pickerSectionId.value!,
     lessonId: -1,
   }
+  lessonDialogOpen.value = true
   if (type === 'quiz') {
     loadQuestionOptions()
   }
@@ -1004,10 +1007,6 @@ const isNewLessonDraft = computed(() =>
   selection.value.kind === 'lesson' && (!lessonForm.id || lessonForm.id < 0),
 )
 
-const showLessonEditor = computed(() =>
-  selection.value.kind === 'lesson',
-)
-
 onMounted(async () => {
   await Promise.all([loadCategories(), loadCourse(), loadCurriculum()])
 })
@@ -1196,8 +1195,7 @@ onMounted(async () => {
     </div>
 
     <div v-if="mainTab === 'curriculum'">
-<div class="builder-layout">
-      <aside class="tree-panel surface">
+      <section class="tree-panel surface curriculum-panel">
         <div class="tree-head">
           <strong>{{ t('admin.builder.curriculum') }}</strong>
           <Button
@@ -1264,230 +1262,223 @@ onMounted(async () => {
             </div>
           </div>
         </div>
-      </aside>
-
-      <section class="editor-panel surface">
-        <template v-if="!showLessonEditor">
-          <div class="curriculum-idle">
-            <i class="pi pi-book" />
-            <p>{{ t('admin.builder.curriculumIdle') }}</p>
-          </div>
-        </template>
-
-        <template v-else>
-          <div class="editor-head">
-            <div>
-              <span class="eyebrow">{{ typeLabel(lessonForm.type) }}</span>
-              <h2>{{ isNewLessonDraft ? t('admin.builder.newLesson') : t('admin.builder.editLesson') }}</h2>
-            </div>
-            <Button :label="t('common.save')" icon="pi pi-save" :loading="savingLesson || videoUploading" @click="saveLesson" />
-          </div>
-
-          <div class="form-grid">
-            <label class="field">
-              <span>{{ t('admin.builder.fields.lessonTitle') }}</span>
-              <InputText v-model="lessonForm.title" class="w-full" />
-            </label>
-
-            <div class="form-row">
-              <label class="field">
-                <span>{{ t('admin.builder.fields.duration') }}</span>
-                <InputNumber v-model="lessonForm.duration" :min="0" class="w-full" />
-              </label>
-              <label class="field check-field">
-                <span>{{ t('admin.builder.fields.preview') }}</span>
-                <div class="check-row">
-                  <Checkbox v-model="lessonForm.is_preview" :binary="true" input-id="preview" />
-                  <label for="preview">{{ t('admin.builder.fields.previewHint') }}</label>
-                </div>
-              </label>
-            </div>
-
-            <label class="field">
-              <span>
-                {{ lessonForm.type === 'page'
-                  ? t('admin.builder.fields.pageContent')
-                  : t('admin.builder.fields.description') }}
-              </span>
-              <CommonRichTextEditor v-model="lessonForm.description" height="300px" />
-            </label>
-
-            <template v-if="lessonForm.type === 'video'">
-              <div class="source-tabs">
-                <button type="button" :class="{ on: videoSourceMode === 'embed' }" @click="videoSourceMode = 'embed'">
-                  {{ t('admin.builder.videoEmbed') }}
-                </button>
-                <button type="button" :class="{ on: videoSourceMode === 'upload' }" @click="videoSourceMode = 'upload'">
-                  {{ t('admin.builder.videoUpload') }}
-                </button>
-              </div>
-              <label v-if="videoSourceMode === 'embed'" class="field">
-                <span>{{ t('admin.builder.fields.videoUrl') }}</span>
-                <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
-              </label>
-              <label v-else class="field">
-                <span>{{ t('admin.builder.fields.videoFile') }}</span>
-                <CommonFileDropzone
-                  v-model="videoFile"
-                  :label="t('admin.builder.fields.videoFile')"
-                  hint="MP4, WEBM, MOV — kéo thả hoặc chọn tệp"
-                  accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.mkv,.m4v,.avi"
-                  :max-size-mb="500"
-                  :uploading="videoUploading"
-                  :progress="videoUploadProgress"
-                  :existing-url="lessonForm.video_url"
-                  icon="pi pi-video"
-                />
-                <small v-if="videoUploadError" class="error">{{ videoUploadError }}</small>
-              </label>
-            </template>
-
-            <template v-if="lessonForm.type === 'file' || lessonForm.type === 'document' || lessonForm.type === 'audio'">
-              <label class="field">
-                <span>{{ lessonForm.type === 'audio' ? t('admin.builder.fields.audioUrl') : t('admin.builder.fields.fileUrl') }}</span>
-                <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
-              </label>
-              <label class="field">
-                <span>{{ lessonForm.type === 'audio' ? t('admin.builder.fields.audioUpload') : t('admin.builder.fields.fileUpload') }}</span>
-                <CommonFileDropzone
-                  v-model="resourceFile"
-                  :label="lessonForm.type === 'audio' ? t('admin.builder.fields.audioUpload') : t('admin.builder.fields.fileUpload')"
-                  :hint="lessonForm.type === 'audio' ? 'MP3, WAV, M4A… — kéo thả hoặc chọn tệp' : 'PDF, DOC, ZIP… — kéo thả hoặc chọn tệp'"
-                  :accept="lessonForm.type === 'audio' ? 'audio/*,.mp3,.wav,.m4a,.ogg,.aac' : undefined"
-                  :max-size-mb="100"
-                  :existing-url="lessonForm.video_url"
-                  :icon="lessonForm.type === 'audio' ? 'pi pi-volume-up' : 'pi pi-file'"
-                />
-              </label>
-            </template>
-
-            <template v-if="lessonForm.type === 'assignment'">
-              <label class="field">
-                <span>{{ t('admin.builder.fields.assignmentInstructions') }}</span>
-                <CommonRichTextEditor v-model="assignmentConfig.instructions" height="240px" />
-              </label>
-              <div class="form-row">
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.assignmentExt') }}</span>
-                  <InputText v-model="assignmentConfig.allowed_extensions" class="w-full" />
-                </label>
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.assignmentMaxMb') }}</span>
-                  <InputNumber v-model="assignmentConfig.max_file_size" :min="1024" :step="1024" class="w-full" />
-                </label>
-              </div>
-              <label class="field">
-                <span>{{ t('admin.builder.fields.assignmentDue') }}</span>
-                <InputText v-model="assignmentConfig.due_at" type="datetime-local" class="w-full" />
-              </label>
-            </template>
-
-            <template v-if="lessonForm.type === 'quiz'">
-              <div class="quiz-box">
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.quizTitle') }}</span>
-                  <InputText v-model="quizConfig.title" class="w-full" />
-                </label>
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.quizDescription') }}</span>
-                  <CommonRichTextEditor v-model="quizConfig.description" height="160px" />
-                </label>
-                <div class="form-row">
-                  <label class="field">
-                    <span>{{ t('admin.builder.fields.timeLimit') }}</span>
-                    <InputNumber v-model="quizConfig.time_limit" :min="1" class="w-full" />
-                  </label>
-                  <label class="field">
-                    <span>{{ t('admin.builder.fields.passScore') }}</span>
-                    <InputNumber v-model="quizConfig.pass_score" :min="0" :max="100" class="w-full" />
-                  </label>
-                </div>
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.quizQuestions') }}</span>
-                  <MultiSelect
-                    v-model="selectedQuestionIds"
-                    :options="questionOptions"
-                    option-label="label"
-                    option-value="value"
-                    display="chip"
-                    filter
-                    class="w-full"
-                    :placeholder="t('admin.builder.fields.quizQuestions')"
-                    @update:model-value="onQuizQuestionsChange"
-                  />
-                </label>
-                <NuxtLink to="/admin/question-bank" class="question-bank-link">
-                  <Button
-                    :label="t('admin.menu.questionBank')"
-                    icon="pi pi-external-link"
-                    severity="secondary"
-                    text
-                    size="small"
-                  />
-                </NuxtLink>
-                <p class="hint">{{ t('admin.builder.quizHint') }}</p>
-              </div>
-            </template>
-
-            <template v-if="['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)">
-              <label class="field">
-                <span>{{ t('admin.builder.fields.joinUrl') }}</span>
-                <InputText v-model="liveConfig.join_url" class="w-full" placeholder="https://..." />
-              </label>
-              <div class="form-row">
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.meetingId') }}</span>
-                  <InputText v-model="liveConfig.meeting_id" class="w-full" />
-                </label>
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.meetingPassword') }}</span>
-                  <InputText v-model="liveConfig.meeting_password" class="w-full" />
-                </label>
-              </div>
-              <div class="form-row">
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.startAt') }}</span>
-                  <InputText v-model="liveConfig.start_at" type="datetime-local" class="w-full" />
-                </label>
-                <label class="field">
-                  <span>{{ t('admin.builder.fields.liveDuration') }}</span>
-                  <InputNumber v-model="liveConfig.duration" :min="15" :step="15" class="w-full" />
-                </label>
-              </div>
-            </template>
-
-            <template v-if="lessonForm.type === 'h5p'">
-              <label class="field">
-                <span>{{ t('admin.builder.fields.h5pUrl') }}</span>
-                <Textarea v-model="scormConfig.entry_url" rows="3" class="w-full" auto-resize placeholder="https://h5p.org/h5p/embed/..." />
-                <small class="hint">{{ t('admin.builder.fields.h5pHint') }}</small>
-              </label>
-            </template>
-
-            <template v-if="lessonForm.type === 'scorm'">
-              <label class="field">
-                <span>{{ t('admin.builder.fields.scormZip') }}</span>
-                <CommonFileDropzone
-                  v-model="scormFile"
-                  :label="t('admin.builder.fields.scormZip')"
-                  hint="ZIP SCORM 1.2 / 2004 — kéo thả hoặc chọn tệp"
-                  accept=".zip,application/zip"
-                  :max-size-mb="200"
-                  :existing-url="scormConfig.entry_url"
-                  icon="pi pi-box"
-                />
-              </label>
-              <label class="field">
-                <span>{{ t('admin.builder.fields.fileUrl') }}</span>
-                <InputText v-model="scormConfig.entry_url" class="w-full" placeholder="https://... (tuỳ chọn nếu đã upload ZIP)" />
-              </label>
-            </template>
-          </div>
-        </template>
       </section>
     </div>
-    </div>
 
+    <Dialog
+      v-model:visible="lessonDialogOpen"
+      modal
+      maximizable
+      :header="`${typeLabel(lessonForm.type)} — ${isNewLessonDraft ? t('admin.builder.newLesson') : t('admin.builder.editLesson')}`"
+      :style="{ width: 'min(900px, 96vw)' }"
+      class="lesson-dialog"
+    >
+      <div class="form-grid">
+        <label class="field">
+          <span>{{ t('admin.builder.fields.lessonTitle') }}</span>
+          <InputText v-model="lessonForm.title" class="w-full" />
+        </label>
+
+        <div class="form-row">
+          <label class="field">
+            <span>{{ t('admin.builder.fields.duration') }}</span>
+            <InputNumber v-model="lessonForm.duration" :min="0" class="w-full" />
+          </label>
+          <label class="field check-field">
+            <span>{{ t('admin.builder.fields.preview') }}</span>
+            <div class="check-row">
+              <Checkbox v-model="lessonForm.is_preview" :binary="true" input-id="preview" />
+              <label for="preview">{{ t('admin.builder.fields.previewHint') }}</label>
+            </div>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>
+            {{ lessonForm.type === 'page'
+              ? t('admin.builder.fields.pageContent')
+              : t('admin.builder.fields.description') }}
+          </span>
+          <CommonRichTextEditor v-model="lessonForm.description" height="300px" />
+        </label>
+
+        <template v-if="lessonForm.type === 'video'">
+          <div class="source-tabs">
+            <button type="button" :class="{ on: videoSourceMode === 'embed' }" @click="videoSourceMode = 'embed'">
+              {{ t('admin.builder.videoEmbed') }}
+            </button>
+            <button type="button" :class="{ on: videoSourceMode === 'upload' }" @click="videoSourceMode = 'upload'">
+              {{ t('admin.builder.videoUpload') }}
+            </button>
+          </div>
+          <label v-if="videoSourceMode === 'embed'" class="field">
+            <span>{{ t('admin.builder.fields.videoUrl') }}</span>
+            <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
+          </label>
+          <label v-else class="field">
+            <span>{{ t('admin.builder.fields.videoFile') }}</span>
+            <CommonFileDropzone
+              v-model="videoFile"
+              :label="t('admin.builder.fields.videoFile')"
+              hint="MP4, WEBM, MOV — kéo thả hoặc chọn tệp"
+              accept="video/mp4,video/webm,video/quicktime,.mp4,.mov,.webm,.mkv,.m4v,.avi"
+              :max-size-mb="500"
+              :uploading="videoUploading"
+              :progress="videoUploadProgress"
+              :existing-url="lessonForm.video_url"
+              icon="pi pi-video"
+            />
+            <small v-if="videoUploadError" class="error">{{ videoUploadError }}</small>
+          </label>
+        </template>
+
+        <template v-if="lessonForm.type === 'file' || lessonForm.type === 'document' || lessonForm.type === 'audio'">
+          <label class="field">
+            <span>{{ lessonForm.type === 'audio' ? t('admin.builder.fields.audioUrl') : t('admin.builder.fields.fileUrl') }}</span>
+            <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
+          </label>
+          <label class="field">
+            <span>{{ lessonForm.type === 'audio' ? t('admin.builder.fields.audioUpload') : t('admin.builder.fields.fileUpload') }}</span>
+            <CommonFileDropzone
+              v-model="resourceFile"
+              :label="lessonForm.type === 'audio' ? t('admin.builder.fields.audioUpload') : t('admin.builder.fields.fileUpload')"
+              :hint="lessonForm.type === 'audio' ? 'MP3, WAV, M4A… — kéo thả hoặc chọn tệp' : 'PDF, DOC, ZIP… — kéo thả hoặc chọn tệp'"
+              :accept="lessonForm.type === 'audio' ? 'audio/*,.mp3,.wav,.m4a,.ogg,.aac' : undefined"
+              :max-size-mb="100"
+              :existing-url="lessonForm.video_url"
+              :icon="lessonForm.type === 'audio' ? 'pi pi-volume-up' : 'pi pi-file'"
+            />
+          </label>
+        </template>
+
+        <template v-if="lessonForm.type === 'assignment'">
+          <label class="field">
+            <span>{{ t('admin.builder.fields.assignmentInstructions') }}</span>
+            <CommonRichTextEditor v-model="assignmentConfig.instructions" height="240px" />
+          </label>
+          <div class="form-row">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.assignmentExt') }}</span>
+              <InputText v-model="assignmentConfig.allowed_extensions" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.assignmentMaxMb') }}</span>
+              <InputNumber v-model="assignmentConfig.max_file_size" :min="1024" :step="1024" class="w-full" />
+            </label>
+          </div>
+          <label class="field">
+            <span>{{ t('admin.builder.fields.assignmentDue') }}</span>
+            <InputText v-model="assignmentConfig.due_at" type="datetime-local" class="w-full" />
+          </label>
+        </template>
+
+        <template v-if="lessonForm.type === 'quiz'">
+          <div class="quiz-box">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.quizTitle') }}</span>
+              <InputText v-model="quizConfig.title" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.quizDescription') }}</span>
+              <CommonRichTextEditor v-model="quizConfig.description" height="160px" />
+            </label>
+            <div class="form-row">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.timeLimit') }}</span>
+                <InputNumber v-model="quizConfig.time_limit" :min="1" class="w-full" />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.passScore') }}</span>
+                <InputNumber v-model="quizConfig.pass_score" :min="0" :max="100" class="w-full" />
+              </label>
+            </div>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.quizQuestions') }}</span>
+              <MultiSelect
+                v-model="selectedQuestionIds"
+                :options="questionOptions"
+                option-label="label"
+                option-value="value"
+                display="chip"
+                filter
+                class="w-full"
+                :placeholder="t('admin.builder.fields.quizQuestions')"
+                @update:model-value="onQuizQuestionsChange"
+              />
+            </label>
+            <NuxtLink to="/admin/question-bank" class="question-bank-link">
+              <Button
+                :label="t('admin.menu.questionBank')"
+                icon="pi pi-external-link"
+                severity="secondary"
+                text
+                size="small"
+              />
+            </NuxtLink>
+            <p class="hint">{{ t('admin.builder.quizHint') }}</p>
+          </div>
+        </template>
+
+        <template v-if="['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)">
+          <label class="field">
+            <span>{{ t('admin.builder.fields.joinUrl') }}</span>
+            <InputText v-model="liveConfig.join_url" class="w-full" placeholder="https://..." />
+          </label>
+          <div class="form-row">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.meetingId') }}</span>
+              <InputText v-model="liveConfig.meeting_id" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.meetingPassword') }}</span>
+              <InputText v-model="liveConfig.meeting_password" class="w-full" />
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.startAt') }}</span>
+              <InputText v-model="liveConfig.start_at" type="datetime-local" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.liveDuration') }}</span>
+              <InputNumber v-model="liveConfig.duration" :min="15" :step="15" class="w-full" />
+            </label>
+          </div>
+        </template>
+
+        <template v-if="lessonForm.type === 'h5p'">
+          <label class="field">
+            <span>{{ t('admin.builder.fields.h5pUrl') }}</span>
+            <Textarea v-model="scormConfig.entry_url" rows="3" class="w-full" auto-resize placeholder="https://h5p.org/h5p/embed/..." />
+            <small class="hint">{{ t('admin.builder.fields.h5pHint') }}</small>
+          </label>
+        </template>
+
+        <template v-if="lessonForm.type === 'scorm'">
+          <label class="field">
+            <span>{{ t('admin.builder.fields.scormZip') }}</span>
+            <CommonFileDropzone
+              v-model="scormFile"
+              :label="t('admin.builder.fields.scormZip')"
+              hint="ZIP SCORM 1.2 / 2004 — kéo thả hoặc chọn tệp"
+              accept=".zip,application/zip"
+              :max-size-mb="200"
+              :existing-url="scormConfig.entry_url"
+              icon="pi pi-box"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.builder.fields.fileUrl') }}</span>
+            <InputText v-model="scormConfig.entry_url" class="w-full" placeholder="https://... (tuỳ chọn nếu đã upload ZIP)" />
+          </label>
+        </template>
+      </div>
+
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="lessonDialogOpen = false" />
+        <Button :label="t('common.save')" icon="pi pi-save" :loading="savingLesson || videoUploading" @click="saveLesson" />
+      </template>
+    </Dialog>
 
     <Dialog
       v-model:visible="sectionDialogOpen"
@@ -1578,22 +1569,13 @@ onMounted(async () => {
 }
 .builder-tabnav__item i { font-size: 1rem; }
 
-.builder-layout {
-  display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 12px;
-  align-items: start; min-height: 0; flex: 1;
-}
-.tree-panel, .editor-panel, .info-panel {
+.tree-panel, .info-panel {
   border: 1px solid var(--border); border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
   min-height: 520px;
 }
+.curriculum-panel { min-height: 0; }
 .info-panel { padding-bottom: 16px; }
-.curriculum-idle {
-  display: grid; place-items: center; gap: 10px; min-height: 420px;
-  color: var(--text-muted); text-align: center; padding: 24px;
-}
-.curriculum-idle i { font-size: 1.8rem; opacity: .7; }
-.curriculum-idle p { margin: 0; max-width: 320px; line-height: 1.45; }
 .tree-head, .editor-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 12px 14px; border-bottom: 1px solid var(--border);
@@ -1635,7 +1617,7 @@ onMounted(async () => {
 .lesson-meta span { font-size: .72rem; color: var(--text-muted); }
 .lesson-row > i { color: var(--brand); font-size: .95rem; }
 
-.editor-panel { padding-bottom: 16px; }
+.lesson-dialog .form-grid { padding: 0; }
 .meta-tabs {
   display: flex; gap: 4px; padding: 0 14px; border-bottom: 1px solid var(--border);
 }
@@ -1697,8 +1679,7 @@ onMounted(async () => {
 .type-card span { color: var(--text-muted); font-size: .78rem; line-height: 1.35; }
 
 @media (max-width: 960px) {
-  .builder-layout { grid-template-columns: 1fr; }
-  .tree-panel, .editor-panel { min-height: 0; }
+  .tree-panel { min-height: 0; }
   .tree-list { max-height: 360px; }
   .type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
