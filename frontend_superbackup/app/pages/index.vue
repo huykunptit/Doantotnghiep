@@ -43,7 +43,7 @@ const { data: categoriesData } = await useFetch<Category[]>(`${apiBase}/courses/
 
 const featuredCourses = computed(() => coursesData.value?.data ?? [])
 const categories = computed(() => (categoriesData.value ?? []).slice(0, 8))
-const brand = computed(() => siteName.value || 'Sylva LMS')
+const brand = computed(() => siteName.value || 'Eript LMS')
 
 const stats = computed(() => {
   const totalCourses = featuredCourses.value.length
@@ -66,23 +66,23 @@ const formatPrice = (price?: number) => {
   }).format(price)
 }
 
-const SITE_URL = 'https://sylva.edu.vn'
-const SITE_NAME = 'Sylva LMS'
+const SITE_URL = 'https://eript.edu.vn'
+const SITE_NAME = 'Eript LMS'
 const SITE_DESCRIPTION =
-  'Sylva LMS — Nền tảng học tập trực tuyến thích nghi thế hệ mới, được thiết kế tinh tế, hỗ trợ thi giám sát tự động và tích hợp trợ lý AI theo ngữ cảnh.'
+  'Eript LMS — Nền tảng học tập trực tuyến thích nghi thế hệ mới, được thiết kế tinh tế, hỗ trợ thi giám sát tự động và tích hợp trợ lý AI theo ngữ cảnh.'
 
 useSeoMeta({
-  title: 'Sylva LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
+  title: 'Eript LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
   description: SITE_DESCRIPTION,
   ogType: 'website',
-  ogTitle: 'Sylva LMS — Nền tảng học tập thích nghi',
+  ogTitle: 'Eript LMS — Nền tảng học tập thích nghi',
   ogDescription: SITE_DESCRIPTION,
   ogUrl: SITE_URL,
   ogSiteName: SITE_NAME,
   ogLocale: 'vi_VN',
   ogImage: `${SITE_URL}/og-cover.png`,
   twitterCard: 'summary_large_image',
-  twitterTitle: 'Sylva LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
+  twitterTitle: 'Eript LMS — Hệ thống học tập trực tuyến thích nghi & bền vững',
   twitterDescription: SITE_DESCRIPTION,
   twitterImage: `${SITE_URL}/og-cover.png`,
   robots: 'index,follow,max-image-preview:large',
@@ -250,7 +250,7 @@ onMounted(() => {
         <p class="section-kicker">Năng lực nền tảng</p>
         <h2 id="pillars-title">Một hệ thống, trọn trải nghiệm học tập</h2>
         <p class="section-sub">
-          Sylva tập trung vào tiến trình thực của người học thay vì danh sách khoá học rời rạc.
+          Eript tập trung vào tiến trình thực của người học thay vì danh sách khoá học rời rạc.
         </p>
       </header>
 
@@ -391,7 +391,7 @@ onMounted(() => {
       <div class="map-grid">
         <div class="map-copy">
           <p class="section-kicker">Liên hệ</p>
-          <h2 id="map-title">Văn phòng vận hành Sylva</h2>
+          <h2 id="map-title">Văn phòng vận hành Eript</h2>
           <p>
             Tra cứu vị trí hỗ trợ kỹ thuật và vận hành hệ thống trên bản đồ.
             Đội ngũ sẵn sàng hỗ trợ khi bạn cần.
@@ -410,7 +410,7 @@ onMounted(() => {
           <iframe
             class="map-frame"
             :src="googleMapEmbedUrl"
-            title="Bản đồ Sylva LMS trên Google Maps"
+            title="Bản đồ Eript LMS trên Google Maps"
             loading="lazy"
             referrerpolicy="no-referrer-when-downgrade"
             allowfullscreen

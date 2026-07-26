@@ -60,11 +60,11 @@ export default defineNuxtConfig({
     pageTransition: { name: 'page-flip', mode: 'out-in' },
     layoutTransition: { name: 'layout-fade', mode: 'out-in' },
     head: {
-      title: 'Sylva LMS',
+      title: 'Eript LMS',
       meta: [
         {
           name: 'description',
-          content: 'Sylva LMS — Nền tảng học tập trực tuyến thế hệ mới, thích nghi và nuôi dưỡng tri thức lâu dài theo triết lý Dương Liễu Mộc.',
+          content: 'Eript LMS — Nền tảng học tập trực tuyến thế hệ mới, thích nghi và nuôi dưỡng tri thức lâu dài theo triết lý Dương Liễu Mộc.',
         },
       ],
       link: [

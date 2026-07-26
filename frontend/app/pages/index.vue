@@ -22,7 +22,7 @@ interface Category {
 }
 
 const { settings } = useSiteSettings()
-const brand = computed(() => settings.value.site_name || 'Sylva LMS')
+const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const tagline = computed(() => settings.value.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.')
 
 const { data: coursesData } = await useAsyncData('home-courses', () =>
@@ -145,7 +145,7 @@ useSeoMeta({
           <div class="course-body">
             <small>{{ course.category?.name || 'Khóa học' }}</small>
             <strong>{{ course.title }}</strong>
-            <p>{{ course.instructor?.name || 'Giảng viên Sylva' }}</p>
+            <p>{{ course.instructor?.name || 'Giảng viên Eript' }}</p>
             <div class="course-meta">
               <span><i class="pi pi-star-fill" /> {{ formatRating(course.reviews_avg_rating) }}</span>
               <span>{{ formatPrice(course.price) }}</span>

@@ -305,12 +305,12 @@ onMounted(fetchSettings)
               <label class="field"><span>SMTP password</span><InputText v-model="form.smtp_password" type="password" autocomplete="new-password" fluid /></label>
               <label class="field"><span>Mã hóa</span><Select v-model="form.smtp_encryption" :options="encryptionOptions" option-label="label" option-value="value" fluid /></label>
               <label class="field"><span>Email gửi đi</span><InputText v-model="form.smtp_from_address" type="email" placeholder="noreply@example.com" fluid /></label>
-              <label class="field full"><span>Tên người gửi</span><InputText v-model="form.smtp_from_name" placeholder="Sylva LMS" fluid /></label>
+              <label class="field full"><span>Tên người gửi</span><InputText v-model="form.smtp_from_name" placeholder="Eript LMS" fluid /></label>
               <div class="test-email full"><label class="field"><span>Gửi email kiểm tra</span><InputText v-model="testEmail" type="email" placeholder="Email nhận thử" fluid /></label><Button label="Gửi thử" icon="pi pi-send" severity="secondary" outlined :loading="sendingTest" :disabled="!hasSmtpConfigured" @click="sendTestEmail" /><small>Hệ thống sẽ lưu cấu hình trước khi gửi email kiểm tra.</small></div>
             </div></TabPanel>
 
             <TabPanel value="legal"><div class="form-grid">
-              <label class="field full"><span>Dòng bản quyền (footer)</span><InputText v-model="form.footer_copyright" placeholder="© 2026 Sylva LMS. All rights reserved." fluid /></label>
+              <label class="field full"><span>Dòng bản quyền (footer)</span><InputText v-model="form.footer_copyright" placeholder="© 2026 Eript LMS. All rights reserved." fluid /></label>
               <label class="field"><span>Tên doanh nghiệp</span><InputText v-model="form.legal_company_name" placeholder="Công ty TNHH ABC" fluid /></label>
               <label class="field"><span>Mã số thuế</span><InputText v-model="form.legal_tax_code" placeholder="0312345678" fluid /></label>
               <label class="field full"><span>URL Điều khoản sử dụng</span><InputText v-model="form.terms_url" type="url" placeholder="https://example.com/terms" fluid /></label>

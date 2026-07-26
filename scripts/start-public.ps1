@@ -1,4 +1,4 @@
-# Start LMS stack + Cloudflare Tunnel (https://sylva-lms.io.vn)
+# Start LMS stack + Cloudflare Tunnel (https://eript-lms.io.vn)
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path -Parent $PSScriptRoot)
 
@@ -20,7 +20,7 @@ if (-not $token) {
 CHUA CO CLOUDFLARE_TUNNEL_TOKEN trong .env
 
 1) Cloudflare Zero Trust → Networks → Tunnels → Create
-2) Public Hostname: sylva-lms.io.vn  →  http://nginx:80
+2) Public Hostname: eript-lms.io.vn  →  http://nginx:80
 3) Copy token Docker → dán vào file .env:
      CLOUDFLARE_TUNNEL_TOKEN=eyJ...
 4) Chi tiết: docs/cloudflare-tunnel.md
@@ -34,5 +34,5 @@ docker compose --profile public up -d
 
 Write-Host ""
 Write-Host "Local:   http://localhost" -ForegroundColor Green
-Write-Host "Public:  https://sylva-lms.io.vn" -ForegroundColor Green
+Write-Host "Public:  https://eript-lms.io.vn" -ForegroundColor Green
 Write-Host "Logs:    docker logs -f lms_cloudflared" -ForegroundColor DarkGray

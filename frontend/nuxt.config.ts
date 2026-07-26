@@ -15,7 +15,7 @@ export default defineNuxtConfig({
     strategy: 'no_prefix',
     detectBrowserLanguage: {
       useCookie: true,
-      cookieKey: 'sylva_locale',
+      cookieKey: 'eript_locale',
       fallbackLocale: 'vi',
       redirectOn: 'root',
     },
@@ -60,9 +60,9 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Sylva LMS',
+      title: 'Eript LMS',
       meta: [
-        { name: 'description', content: 'Nền tảng quản trị và học tập Sylva LMS' },
+        { name: 'description', content: 'Nền tảng quản trị và học tập Eript LMS' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       ],
       link: [

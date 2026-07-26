@@ -20,7 +20,7 @@ def format_course_line(course: CourseContext) -> str:
     parts = [
         f"- {course.title}",
         f"chuyên mục {course.category or 'không rõ'}",
-        f"giảng viên {course.instructor or 'Sylva LMS'}",
+        f"giảng viên {course.instructor or 'Eript LMS'}",
         f"học phí {format_price(course.price)}",
         f"{course.lessons_count or 0} bài học",
     ]

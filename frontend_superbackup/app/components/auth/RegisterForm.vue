@@ -97,7 +97,7 @@ async function handleGoogleLogin() {
           class="rf-input"
           type="email"
           name="email"
-          placeholder="hocvien@sylva.edu.vn"
+          placeholder="hocvien@eript.edu.vn"
           autocomplete="email"
           required
         >

@@ -1,5 +1,5 @@
 ---
-description: Sylva admin UI patterns — list/filter/CRUD/import/export, test APIs while designing
+description: Eript admin UI patterns — list/filter/CRUD/import/export, test APIs while designing
 globs: frontend/app/pages/admin/**/*.{vue,ts}
 alwaysApply: false
 ---

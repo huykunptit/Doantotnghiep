@@ -199,7 +199,7 @@ async def _call_openrouter(
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}",
                 "HTTP-Referer": "http://localhost",
-                "X-Title": "Sylva LMS",
+                "X-Title": "Eript LMS",
             },
             timeout=settings.OPENROUTER_TIMEOUT,
         )

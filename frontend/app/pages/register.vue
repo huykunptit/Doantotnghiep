@@ -45,7 +45,7 @@ async function submit() {
     <section class="auth-story">
       <span class="story-label">Bắt đầu hành trình</span>
       <h1>Tạo tài khoản và mở khóa lộ trình học tập của bạn.</h1>
-      <p>Một tài khoản để truy cập khóa học, bài kiểm tra, tiến độ và chứng chỉ trên Sylva LMS.</p>
+      <p>Một tài khoản để truy cập khóa học, bài kiểm tra, tiến độ và chứng chỉ trên Eript LMS.</p>
     </section>
 
     <Card class="auth-card">

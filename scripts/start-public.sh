@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start LMS stack + Cloudflare Tunnel (https://sylva-lms.io.vn)
+# Start LMS stack + Cloudflare Tunnel (https://eript-lms.io.vn)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -20,7 +20,7 @@ if [[ -z "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]]; then
 CLOUDFLARE_TUNNEL_TOKEN is empty in .env
 
 1) Cloudflare Zero Trust → Networks → Tunnels → Create
-2) Public Hostname: sylva-lms.io.vn → http://nginx:80
+2) Public Hostname: eript-lms.io.vn → http://nginx:80
 3) Paste Docker token into .env
 4) See docs/cloudflare-tunnel.md
 EOF
@@ -32,5 +32,5 @@ docker compose --profile public up -d
 
 echo
 echo "Local:  http://localhost"
-echo "Public: https://sylva-lms.io.vn"
+echo "Public: https://eript-lms.io.vn"
 echo "Logs:   docker logs -f lms_cloudflared"

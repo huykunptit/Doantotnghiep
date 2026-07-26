@@ -6,7 +6,7 @@ const { t } = useI18n()
 <template>
   <div class="auth-shell">
     <header class="auth-header">
-      <NuxtLink to="/" class="auth-brand"><span><i class="pi pi-sparkles" /></span><strong>Sylva LMS</strong></NuxtLink>
+      <NuxtLink to="/" class="auth-brand"><span><i class="pi pi-sparkles" /></span><strong>Eript LMS</strong></NuxtLink>
       <div class="auth-actions">
         <LocaleSwitcher />
         <Button :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'" severity="secondary" text rounded :aria-label="t('common.theme')" @click="toggle" />

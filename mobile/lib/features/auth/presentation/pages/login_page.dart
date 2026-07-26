@@ -113,7 +113,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                         AppSpacing.h4,
                         Text(
-                          'Nhập thông tin tài khoản Sylva của bạn',
+                          'Nhập thông tin tài khoản Eript của bạn',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

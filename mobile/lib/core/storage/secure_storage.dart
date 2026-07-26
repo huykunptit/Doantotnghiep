@@ -12,8 +12,8 @@ class SecureStorageService {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     // Web uses localStorage; without webOptions some browsers can stall reads.
     webOptions: WebOptions(
-      dbName: 'sylva_lms_secure',
-      publicKey: 'sylva_lms_public',
+      dbName: 'eript_lms_secure',
+      publicKey: 'eript_lms_public',
     ),
   );
   static const _tokenKey = 'access_token';

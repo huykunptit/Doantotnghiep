@@ -1,6 +1,6 @@
-# Sylva LMS 🎓
+# Eript LMS 🎓
 
-Sylva LMS là nền tảng quản lý học tập (Learning Management System) trực tuyến toàn diện với trải nghiệm mua khóa học và thanh toán tích hợp. Hệ thống được thiết kế với giao diện hiện đại (chuẩn Editorial) và kiến trúc mạnh mẽ, cung cấp trải nghiệm học tập và giảng dạy tối ưu, kết hợp cùng hệ thống thi trắc nghiệm, giám sát thi chuyên nghiệp và dịch vụ AI mở rộng.
+Eript LMS là nền tảng quản lý học tập (Learning Management System) trực tuyến toàn diện với trải nghiệm mua khóa học và thanh toán tích hợp. Hệ thống được thiết kế với giao diện hiện đại (chuẩn Editorial) và kiến trúc mạnh mẽ, cung cấp trải nghiệm học tập và giảng dạy tối ưu, kết hợp cùng hệ thống thi trắc nghiệm, giám sát thi chuyên nghiệp và dịch vụ AI mở rộng.
 
 > **Lưu ý**: Đây là dự án Đồ án tốt nghiệp (Học viện Công nghệ Bưu chính Viễn thông - PTIT).
 
@@ -94,11 +94,11 @@ sudo docker compose up -d
 
 > File `.env` của backend được tự động tạo từ `.env.example` khi container khởi động.
 
-### Public ra domain Cloudflare (`sylva-lms.io.vn`)
+### Public ra domain Cloudflare (`eript-lms.io.vn`)
 
 Đã gắn **Cloudflare Tunnel** (profile `public`). Không cần mở port router.
 
-1. Tạo tunnel trên Cloudflare Zero Trust → Public Hostname `sylva-lms.io.vn` → `http://nginx:80`
+1. Tạo tunnel trên Cloudflare Zero Trust → Public Hostname `eript-lms.io.vn` → `http://nginx:80`
 2. Dán token vào file `.env` gốc: `CLOUDFLARE_TUNNEL_TOKEN=...`
 3. Chạy:
    ```powershell
@@ -106,7 +106,7 @@ sudo docker compose up -d
    ```
    hoặc `docker compose --profile public up -d`
 
-Chi tiết: `docs/cloudflare-tunnel.md` → site tại **https://sylva-lms.io.vn**
+Chi tiết: `docs/cloudflare-tunnel.md` → site tại **https://eript-lms.io.vn**
 
 ### Bước 3: Truy cập ứng dụng
 
@@ -152,7 +152,7 @@ flutter run
 
 | Service | Container | Cổng host | Truy cập | Ghi chú |
 |---|---|---|---|---|
-| **Nginx** (Entry point) | `lms_nginx` | `80` | http://localhost · https://sylva-lms.io.vn (tunnel) | Proxy toàn bộ traffic |
+| **Nginx** (Entry point) | `lms_nginx` | `80` | http://localhost · https://eript-lms.io.vn (tunnel) | Proxy toàn bộ traffic |
 | **Cloudflare Tunnel** | `lms_cloudflared` | — | profile `public` | Public domain qua CF |
 | **Frontend** (Nuxt) | `lms_frontend` | _(internal)_ | http://localhost/ | Qua nginx |
 | **Backend** (Laravel) | `lms_backend` | _(internal)_ | http://localhost/api | Qua nginx |

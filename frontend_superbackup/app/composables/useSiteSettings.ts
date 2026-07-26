@@ -30,7 +30,7 @@ export interface PublicSiteSettings {
   timezone: string | null
 }
 
-const FALLBACK_NAME = 'Sylva LMS'
+const FALLBACK_NAME = 'Eript LMS'
 const FALLBACK_PRIMARY = '#0ea5e9'
 const FALLBACK_SECONDARY = '#0369a1'
 

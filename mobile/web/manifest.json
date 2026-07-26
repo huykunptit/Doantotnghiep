@@ -1,11 +1,11 @@
 {
-    "name": "Sylva LMS",
-    "short_name": "Sylva",
+    "name": "Eript LMS",
+    "short_name": "Eript",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#050805",
     "theme_color": "#2F7A4F",
-    "description": "Sylva LMS — học tập thích nghi, vững tri thức.",
+    "description": "Eript LMS — học tập thích nghi, vững tri thức.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sylva LMS — Kịch bản test E2E (tick + ghi chú)</title>
+  <title>Eript LMS — Kịch bản test E2E (tick + ghi chú)</title>
   <style>
     :root {
       --bg: #f4f6f8;
@@ -255,7 +255,7 @@
     </div>
 
     <header class="hero">
-      <h1>Sylva LMS — Kịch bản test E2E theo phân hệ & liên đới</h1>
+      <h1>Eript LMS — Kịch bản test E2E theo phân hệ & liên đới</h1>
       <p class="sub">
         Tick từng bước · chọn Pass / Fail / Skip · ghi chú ngay dưới mỗi case.
         Tiến độ tự lưu trên trình duyệt (localStorage). Khi xong, bấm <strong>Xuất JSON</strong> và gửi lại file để tạo báo cáo test.
@@ -341,7 +341,7 @@
     <div id="modules"></div>
 
     <footer class="page-foot">
-      Sylva LMS · Kịch bản test E2E · Xuất JSON sau khi test xong để chuyển thành báo cáo nghiệm thu.
+      Eript LMS · Kịch bản test E2E · Xuất JSON sau khi test xong để chuyển thành báo cáo nghiệm thu.
     </footer>
   </div>
 
@@ -703,7 +703,7 @@ const MODULES = [
   },
 ];
 
-const STORAGE_KEY = "sylva-e2e-test-v1";
+const STORAGE_KEY = "eript-e2e-test-v1";
 
 function roleBadges(roles = []) {
   const map = {
@@ -858,7 +858,7 @@ function collectState() {
     };
   });
   return {
-    schema: "sylva-e2e-test/v1",
+    schema: "eript-e2e-test/v1",
     exportedAt: new Date().toISOString(),
     meta,
     sectionNotes,
@@ -971,7 +971,7 @@ function exportJson() {
   const who = (state.meta.tester || "tester").replace(/\s+/g, "_");
   const day = state.meta.date || new Date().toISOString().slice(0, 10);
   a.href = URL.createObjectURL(blob);
-  a.download = `sylva-e2e-test-${day}-${who}.json`;
+  a.download = `eript-e2e-test-${day}-${who}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
 }

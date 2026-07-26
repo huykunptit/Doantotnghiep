@@ -10,7 +10,7 @@ const { settings } = useSiteSettings()
 const { t } = useI18n()
 const loggingOut = ref(false)
 
-const brand = computed(() => settings.value.site_name || 'Sylva LMS')
+const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const userName = computed(() => auth.user?.name || t('instructor.roleLabel'))
 const userInitials = computed(() =>
   userName.value

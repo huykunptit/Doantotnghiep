@@ -326,7 +326,7 @@ onMounted(() => {
                       transform: field.text_align === 'center' ? 'translateX(-50%)' : field.text_align === 'right' ? 'translateX(-100%)' : 'none',
                     }"
                   >
-                    {{ { student_name: 'Nguyễn Văn Mẫu', course_title: previewTemplate.name, issued_date: '20 tháng 06 năm 2026', credential_id: 'SYLVA-SAMPLE-000001' }[field.key] ?? field.label }}
+                    {{ { student_name: 'Nguyễn Văn Mẫu', course_title: previewTemplate.name, issued_date: '20 tháng 06 năm 2026', credential_id: 'ERIPT-SAMPLE-000001' }[field.key] ?? field.label }}
                   </div>
                 </template>
                 <div v-else class="cert-preview-overlay">
@@ -335,7 +335,7 @@ onMounted(() => {
                     <p class="prev-cert-name">Nguyễn Văn Mẫu</p>
                     <p class="prev-cert-course">{{ previewTemplate.name }}</p>
                     <p class="prev-cert-date">Hà Nội, ngày 20 tháng 06 năm 2026</p>
-                    <code class="prev-cert-cred">SYLVA-SAMPLE-000001</code>
+                    <code class="prev-cert-cred">ERIPT-SAMPLE-000001</code>
                   </div>
                 </div>
               </div>
