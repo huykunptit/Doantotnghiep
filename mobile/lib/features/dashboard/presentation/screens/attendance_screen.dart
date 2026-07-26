@@ -1,5 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../../providers/dashboard_provider.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -16,65 +22,127 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final _codeController = TextEditingController();
-  bool _isSubmitting = false;
+  final _tokenController = TextEditingController();
+  final MobileScannerController _scannerController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.normal,
+    facing: CameraFacing.back,
+    formats: const [BarcodeFormat.qrCode],
+  );
 
-  // Scanning animation
-  late AnimationController _scanController;
-  late Animation<double> _scanAnimation;
+  bool _isSubmitting = false;
+  bool _scanLocked = false;
+  String? _statusHint;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    
-    _scanController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-    
-    _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_scanController);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _codeController.dispose();
-    _scanController.dispose();
+    _tokenController.dispose();
+    _scannerController.dispose();
     super.dispose();
   }
 
-  Future<void> _submitCheckIn(String codeStr) async {
-    final sessionId = int.tryParse(codeStr.trim());
-    if (sessionId == null) {
-      _showErrorSnackBar('Mã phiên học phải là một số nguyên.');
-      return;
+  String? _extractToken(String raw) {
+    final text = raw.trim();
+    if (text.isEmpty) return null;
+    if (text.startsWith('{')) {
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is Map && decoded['token'] != null) {
+          return decoded['token'].toString();
+        }
+      } catch (_) {
+        /* fall through */
+      }
+    }
+    return text;
+  }
+
+  Future<Position> _resolvePosition() async {
+    final permission = await Permission.locationWhenInUse.request();
+    if (!permission.isGranted) {
+      throw Exception('Cần quyền vị trí để điểm danh trong bán kính 15m.');
     }
 
-    setState(() => _isSubmitting = true);
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    if (!enabled) {
+      throw Exception('Hãy bật GPS/Location trên thiết bị.');
+    }
+
+    var geoPermission = await Geolocator.checkPermission();
+    if (geoPermission == LocationPermission.denied) {
+      geoPermission = await Geolocator.requestPermission();
+    }
+    if (geoPermission == LocationPermission.denied ||
+        geoPermission == LocationPermission.deniedForever) {
+      throw Exception('Không có quyền truy cập vị trí.');
+    }
+
+    return Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 20),
+      ),
+    );
+  }
+
+  Future<void> _submitCheckIn(String rawQr) async {
+    final token = _extractToken(rawQr);
+    if (token == null || token.isEmpty) {
+      _showErrorSnackBar('Mã QR không hợp lệ.');
+      return;
+    }
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _statusHint = 'Đang lấy vị trí GPS…';
+    });
 
     try {
-      final res = await ref.read(dashboardRepositoryProvider).checkIn(
-            sessionId,
-            deviceInfo: 'Thiết bị di động Học viên',
-          );
-      
+      final position = await _resolvePosition();
       if (!mounted) return;
-      
-      // Refresh history list
+      setState(() => _statusHint = 'Đang gửi điểm danh…');
+
+      final res = await ref.read(dashboardRepositoryProvider).checkIn(
+            qrToken: token,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            deviceInfo: 'Sylva LMS Mobile',
+          );
+
+      if (!mounted) return;
       ref.invalidate(studentAttendanceHistoryProvider);
-      
-      // Clear manual text field
-      _codeController.clear();
-      
-      // Show success dialog
+      _tokenController.clear();
       _showSuccessDialog(res.message, res.attendance);
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar(e.toString());
+      _showErrorSnackBar(e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _statusHint = null;
+          _scanLocked = false;
+        });
+      }
     }
+  }
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_isSubmitting || _scanLocked) return;
+    final raw = capture.barcodes
+        .map((b) => b.rawValue)
+        .whereType<String>()
+        .firstWhere((v) => v.trim().isNotEmpty, orElse: () => '');
+    if (raw.isEmpty) return;
+    _scanLocked = true;
+    _submitCheckIn(raw);
   }
 
   void _showErrorSnackBar(String message) {
@@ -91,7 +159,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
   void _showSuccessDialog(String message, dynamic attendance) {
     final session = attendance.offlineSession;
     final theme = Theme.of(context);
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -135,12 +203,30 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                 children: [
                   _dialogDetailRow('Khóa học:', session?.courseTitle ?? '—', theme),
                   AppSpacing.h8,
-                  _dialogDetailRow('Bài học:', session?.lessonTitle ?? '—', theme),
+                  _dialogDetailRow(
+                    'Phiên học:',
+                    session?.lessonTitle ?? session?.title ?? '—',
+                    theme,
+                  ),
                   AppSpacing.h8,
                   _dialogDetailRow('Địa điểm:', session?.location ?? '—', theme),
                   AppSpacing.h8,
-                  _dialogDetailRow('Trạng thái:', attendance.status == 'present' ? 'Có mặt' : 'Đi muộn', theme,
-                      statusColor: attendance.status == 'present' ? AppColors.success : AppColors.warning),
+                  _dialogDetailRow(
+                    'Trạng thái:',
+                    attendance.status == 'present' ? 'Có mặt' : 'Đi muộn',
+                    theme,
+                    statusColor: attendance.status == 'present'
+                        ? AppColors.success
+                        : AppColors.warning,
+                  ),
+                  if (attendance.distanceMeters != null) ...[
+                    AppSpacing.h8,
+                    _dialogDetailRow(
+                      'Khoảng cách:',
+                      '${attendance.distanceMeters}m',
+                      theme,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -167,7 +253,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 80,
+          width: 90,
           child: Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -214,211 +300,123 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
 
   Widget _buildScannerTab() {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Quét mã QR tại lớp học',
+            'Quét mã QR tại lớp học / workshop',
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             textAlign: TextAlign.center,
           ),
           AppSpacing.h4,
           Text(
-            'Hướng camera vào mã QR được cung cấp trên màn hình lớp học',
+            'Cần camera + GPS. Chỉ điểm danh được khi bạn đứng trong bán kính 15m quanh vị trí phiên học.',
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
-          AppSpacing.h24,
-
-          // Scanner Simulated Box
-          Center(
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.primary400, width: 2),
-                boxShadow: isDark
-                    ? []
-                    : [
-                        BoxShadow(
-                          color: AppColors.neutral800.withValues(alpha: 0.08),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Stack(
-                  children: [
-                    // Mock background camera pattern
-                    Center(
-                      child: Opacity(
-                        opacity: 0.1,
-                        child: Icon(Icons.qr_code_scanner_rounded, size: 160, color: theme.colorScheme.onSurface),
-                      ),
-                    ),
-                    // Laser scanning animator line
-                    AnimatedBuilder(
-                      animation: _scanAnimation,
-                      builder: (context, child) {
-                        return Positioned(
-                          top: _scanAnimation.value * 250,
-                          left: 10,
-                          right: 10,
-                          child: Container(
-                            height: 3,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary400,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary400.withValues(alpha: 0.8),
-                                  blurRadius: 8,
-                                  spreadRadius: 2,
-                                ),
-                              ],
+          AppSpacing.h20,
+          AspectRatio(
+            aspectRatio: 1,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  MobileScanner(
+                    controller: _scannerController,
+                    onDetect: _onDetect,
+                  ),
+                  IgnorePointer(
+                    child: CustomPaint(painter: _CornerPainter()),
+                  ),
+                  if (_isSubmitting)
+                    ColoredBox(
+                      color: Colors.black45,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(color: Colors.white),
+                            AppSpacing.h12,
+                            Text(
+                              _statusHint ?? 'Đang xử lý…',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
-                          ),
-                        );
-                      },
+                          ],
+                        ),
+                      ),
                     ),
-                    // Corner borders overlay
-                    _buildScannerCorners(),
-                  ],
-                ),
+                ],
               ),
             ),
           ),
-          
-          AppSpacing.h24,
-
-          // Quick testing list (for dev validation without QR camera)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.primary50.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary100),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.bug_report_outlined, color: AppColors.primary600, size: 18),
-                    AppSpacing.w8,
-                    Text(
-                      'Môi trường phát triển / Mô phỏng',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary800,
-                      ),
-                    ),
-                  ],
+          AppSpacing.h16,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isSubmitting ? null : () => _scannerController.toggleTorch(),
+                  icon: const Icon(Icons.flash_on_rounded, size: 18),
+                  label: const Text('Đèn flash'),
                 ),
-                AppSpacing.h12,
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: _isSubmitting ? null : () => _submitCheckIn('1'),
-                        icon: const Icon(Icons.qr_code_rounded, size: 16),
-                        label: const Text('Quét QR Kì 1 (Session #1)'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primary600,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
-                    AppSpacing.w8,
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isSubmitting ? null : () => _submitCheckIn('2'),
-                        icon: const Icon(Icons.qr_code_rounded, size: 16),
-                        label: const Text('Quét QR Kì 2 (Session #2)'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary600,
-                          side: const BorderSide(color: AppColors.primary400),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
-                  ],
+              ),
+              AppSpacing.w8,
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isSubmitting ? null : () => _scannerController.switchCamera(),
+                  icon: const Icon(Icons.cameraswitch_rounded, size: 18),
+                  label: const Text('Đổi camera'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-
           AppSpacing.h24,
           const Row(
             children: [
               Expanded(child: Divider()),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Hoặc nhập mã số điểm danh', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                child: Text('Hoặc dán mã QR / token', style: TextStyle(fontSize: 11, color: Colors.grey)),
               ),
               Expanded(child: Divider()),
             ],
           ),
-          AppSpacing.h20,
-
-          // Manual inputs
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _codeController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'Nhập mã phiên học (Ví dụ: 1)',
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
+          AppSpacing.h16,
+          TextFormField(
+            controller: _tokenController,
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: 'Dán nội dung QR hoặc token điểm danh',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          AppSpacing.h12,
+          SizedBox(
+            height: 48,
+            child: FilledButton(
+              onPressed: _isSubmitting
+                  ? null
+                  : () {
+                      if (_tokenController.text.trim().isEmpty) return;
+                      _submitCheckIn(_tokenController.text);
+                    },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary400,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              AppSpacing.w12,
-              SizedBox(
-                height: 48,
-                child: FilledButton(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () {
-                          if (_codeController.text.trim().isEmpty) return;
-                          _submitCheckIn(_codeController.text);
-                        },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary400,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Xác nhận'),
-                ),
-              ),
-            ],
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Xác nhận điểm danh'),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildScannerCorners() {
-    return Positioned.fill(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: CustomPaint(
-          painter: _CornerPainter(),
-        ),
       ),
     );
   }
@@ -469,7 +467,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
               final item = list[index];
               final session = item.offlineSession;
               final isPresent = item.status == 'present';
-              
+
               DateTime? checkInDate;
               if (item.checkedInAt != null) {
                 checkInDate = DateTime.tryParse(item.checkedInAt!);
@@ -482,15 +480,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                   color: isDark ? AppColors.darkSurface : Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
-                  boxShadow: isDark
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: AppColors.neutral800.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,7 +502,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            session?.courseTitle ?? '—',
+                            session?.courseTitle ?? session?.title ?? '—',
                             style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           AppSpacing.h4,
@@ -526,29 +515,24 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
                             children: [
                               Icon(Icons.location_on_outlined, size: 12, color: theme.colorScheme.onSurfaceVariant),
                               AppSpacing.w4,
-                              Text(
-                                session?.location ?? '—',
-                                style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                              Expanded(
+                                child: Text(
+                                  session?.location ?? '—',
+                                  style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                                ),
                               ),
                             ],
                           ),
                           if (checkInDate != null) ...[
                             AppSpacing.h4,
-                            Row(
-                              children: [
-                                Icon(Icons.access_time_rounded, size: 12, color: theme.colorScheme.onSurfaceVariant),
-                                AppSpacing.w4,
-                                Text(
-                                  'Điểm danh lúc: ${checkInDate.hour}:${checkInDate.minute.toString().padLeft(2, '0')} ngày ${checkInDate.day}/${checkInDate.month}/${checkInDate.year}',
-                                  style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                                ),
-                              ],
+                            Text(
+                              'Điểm danh lúc: ${checkInDate.hour}:${checkInDate.minute.toString().padLeft(2, '0')} ngày ${checkInDate.day}/${checkInDate.month}/${checkInDate.year}',
+                              style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
                             ),
                           ],
                         ],
                       ),
                     ),
-                    AppSpacing.w8,
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -583,41 +567,39 @@ class _CornerPainter extends CustomPainter {
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke;
 
-    const length = 20.0;
+    const inset = 28.0;
+    const length = 28.0;
+    final left = inset;
+    final top = inset;
+    final right = size.width - inset;
+    final bottom = size.height - inset;
 
-    // Top Left
     canvas.drawPath(
       Path()
-        ..moveTo(0, length)
-        ..lineTo(0, 0)
-        ..lineTo(length, 0),
+        ..moveTo(left, top + length)
+        ..lineTo(left, top)
+        ..lineTo(left + length, top),
       paint,
     );
-
-    // Top Right
     canvas.drawPath(
       Path()
-        ..moveTo(size.width - length, 0)
-        ..lineTo(size.width, 0)
-        ..lineTo(size.width, length),
+        ..moveTo(right - length, top)
+        ..lineTo(right, top)
+        ..lineTo(right, top + length),
       paint,
     );
-
-    // Bottom Left
     canvas.drawPath(
       Path()
-        ..moveTo(0, size.height - length)
-        ..lineTo(0, size.height)
-        ..lineTo(length, size.height),
+        ..moveTo(left, bottom - length)
+        ..lineTo(left, bottom)
+        ..lineTo(left + length, bottom),
       paint,
     );
-
-    // Bottom Right
     canvas.drawPath(
       Path()
-        ..moveTo(size.width - length, size.height)
-        ..lineTo(size.width, size.height)
-        ..lineTo(size.width, size.height - length),
+        ..moveTo(right - length, bottom)
+        ..lineTo(right, bottom)
+        ..lineTo(right, bottom - length),
       paint,
     );
   }

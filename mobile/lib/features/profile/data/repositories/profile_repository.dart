@@ -26,6 +26,18 @@ class ProfileRepository {
     }
   }
 
+  /// Raw learner-profile payload (program/major/cohort/administrative class),
+  /// used for the student ID card. Kept as a plain map since only a few
+  /// fields are needed and the shape mirrors the web admin API.
+  Future<Map<String, dynamic>> getLearnerProfile() async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>(ApiConstants.meLearnerProfilePath);
+      return response.data ?? {};
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
   Future<UserModel> updateProfile({required String name, String? phone}) async {
     try {
       final response = await dio.put<Map<String, dynamic>>(

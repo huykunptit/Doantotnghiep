@@ -16,6 +16,7 @@ class OfflineSession extends Model
         'class_section_id',
         'title',
         'location',
+        'room',
         'start_at',
         'duration',
         'max_participants',

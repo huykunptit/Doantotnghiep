@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
+import type { QsRandomRule } from '~/components/quiz/QuestionSelector.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -14,13 +15,6 @@ interface BankItem {
   course_id?: number
   course?: { id: number, title: string } | null
 }
-interface QuestionItem {
-  id: number
-  content: string
-  type: string
-  difficulty?: number
-  default_score?: number
-}
 
 const { t } = useI18n()
 const toast = useToast()
@@ -29,11 +23,10 @@ const route = useRoute()
 const initType = route.query.type === 'course_final' ? 'course_final' : 'standalone'
 const saving = ref(false)
 const loadingBanks = ref(false)
-const loadingQuestions = ref(false)
 const courses = ref<CourseItem[]>([])
 const banks = ref<BankItem[]>([])
-const questions = ref<QuestionItem[]>([])
-const selectedQuestions = ref<QuestionItem[]>([])
+const questionIds = ref<number[]>([])
+const randomRules = ref<QsRandomRule[]>([])
 
 const form = reactive({
   type: initType as 'standalone' | 'course_final',
@@ -44,7 +37,6 @@ const form = reactive({
   duration: 60,
   pass_score: 70,
   max_attempts: 1,
-  bank_id: null as number | null,
 })
 
 const typeOptions = computed(() => [
@@ -58,13 +50,6 @@ const statusOptions = computed(() => [
   { label: t('admin.reports.examStatuses.active'), value: 'active' },
   { label: t('admin.reports.examStatuses.closed'), value: 'closed' },
 ])
-
-const filteredBanks = computed(() => {
-  if (form.type === 'course_final' && form.course_id) {
-    return banks.value.filter(b => (b.course_id || b.course?.id) === form.course_id)
-  }
-  return banks.value
-})
 
 async function loadCourses() {
   try {
@@ -95,43 +80,13 @@ async function loadBanks() {
   }
 }
 
-async function loadQuestions() {
-  selectedQuestions.value = []
-  questions.value = []
-  if (!form.bank_id) return
-
-  const bank = banks.value.find(b => b.id === form.bank_id)
-  const courseId = bank?.course_id || bank?.course?.id
-  if (!courseId) return
-
-  loadingQuestions.value = true
-  try {
-    const res = await useApi<{
-      questions?: QuestionItem[]
-      groups?: Array<{ questions?: QuestionItem[] }>
-    }>(`/courses/${courseId}/question-banks/${form.bank_id}`)
-
-    const fromBank = res.questions || []
-    const fromGroups = (res.groups || []).flatMap(g => g.questions || [])
-    const map = new Map<number, QuestionItem>()
-    for (const q of [...fromBank, ...fromGroups]) map.set(q.id, q)
-    questions.value = [...map.values()]
-  }
-  catch (error: any) {
-    toast.add({
-      severity: 'error',
-      summary: t('admin.quiz.questionsError'),
-      detail: error?.data?.message,
-      life: 3500,
-    })
-  }
-  finally {
-    loadingQuestions.value = false
-  }
-}
-
-function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+function sanitizedRandomRules() {
+  return randomRules.value.map(r => ({
+    bank_id: r.bank_id,
+    group_id: r.group_id || undefined,
+    difficulty: r.difficulty || undefined,
+    count: r.count,
+  }))
 }
 
 async function save() {
@@ -141,6 +96,10 @@ async function save() {
   }
   if (form.type === 'course_final' && !form.course_id) {
     toast.add({ severity: 'warn', summary: t('admin.quiz.courseRequired'), life: 2500 })
+    return
+  }
+  if (!questionIds.value.length && !randomRules.value.length) {
+    toast.add({ severity: 'warn', summary: t('admin.quiz.questionsRequired'), life: 2800 })
     return
   }
 
@@ -157,10 +116,6 @@ async function save() {
     }
 
     let exam: { id: number, course_id?: number | null }
-    if (!selectedQuestions.value.length) {
-      toast.add({ severity: 'warn', summary: t('admin.quiz.questionsRequired'), life: 2800 })
-      return
-    }
     if (form.type === 'standalone') {
       exam = await useApi('/exams/standalone', { method: 'POST', body })
     }
@@ -168,23 +123,22 @@ async function save() {
       exam = await useApi(`/courses/${form.course_id}/exams`, { method: 'POST', body })
     }
 
-    if (selectedQuestions.value.length) {
-      const quizBody = {
-        title: form.title.trim(),
-        description: form.description || null,
-        time_limit: form.duration,
-        pass_score: form.pass_score,
-        question_ids: selectedQuestions.value.map(q => q.id),
-      }
-      if (form.type === 'standalone') {
-        await useApi(`/exams/${exam.id}/quiz`, { method: 'POST', body: quizBody })
-      }
-      else {
-        await useApi(`/courses/${form.course_id}/exams/${exam.id}/quiz`, {
-          method: 'POST',
-          body: quizBody,
-        })
-      }
+    const quizBody = {
+      title: form.title.trim(),
+      description: form.description || null,
+      time_limit: form.duration,
+      pass_score: form.pass_score,
+      question_ids: questionIds.value,
+      settings: randomRules.value.length ? { random_rules: sanitizedRandomRules() } : null,
+    }
+    if (form.type === 'standalone') {
+      await useApi(`/exams/${exam.id}/quiz`, { method: 'POST', body: quizBody })
+    }
+    else {
+      await useApi(`/courses/${form.course_id}/exams/${exam.id}/quiz`, {
+        method: 'POST',
+        body: quizBody,
+      })
     }
 
     toast.add({ severity: 'success', summary: t('admin.quiz.created'), life: 2500 })
@@ -203,9 +157,9 @@ async function save() {
   }
 }
 
-watch(() => form.bank_id, loadQuestions)
 watch(() => form.type, () => {
-  form.bank_id = null
+  questionIds.value = []
+  randomRules.value = []
   if (form.type === 'standalone') form.course_id = null
 })
 
@@ -287,52 +241,13 @@ onMounted(async () => {
 
     <section class="panel">
       <h2>{{ t('admin.quiz.attachQuestions') }}</h2>
-      <div class="form-grid">
-        <label class="field full">
-          <span>{{ t('admin.quiz.questionBank') }}</span>
-          <Select
-            v-model="form.bank_id"
-            :options="filteredBanks"
-            option-label="name"
-            option-value="id"
-            filter
-            show-clear
-            :loading="loadingBanks"
-            :placeholder="t('admin.quiz.selectBank')"
-            class="w-full"
-          >
-            <template #option="{ option }">
-              <div class="bank-opt">
-                <strong>{{ option.name }}</strong>
-                <small>{{ option.course?.title || '' }} · {{ option.questions_count || 0 }}</small>
-              </div>
-            </template>
-          </Select>
-        </label>
-      </div>
-
-      <DataTable
-        v-model:selection="selectedQuestions"
-        :value="questions"
-        data-key="id"
-        :loading="loadingQuestions"
-        selection-mode="multiple"
-        paginator
-        :rows="10"
-        striped-rows
-        class="q-table"
-      >
-        <Column selection-mode="multiple" header-style="width:3rem" />
-        <Column :header="t('admin.quiz.question')" style="min-width:280px">
-          <template #body="{ data }">{{ stripHtml(data.content) }}</template>
-        </Column>
-        <Column field="type" :header="t('admin.quiz.qType')" style="min-width:120px" />
-        <Column field="difficulty" :header="t('admin.quiz.difficulty')" style="min-width:90px" />
-        <template #empty>
-          <div class="empty">{{ form.bank_id ? t('common.noData') : t('admin.quiz.selectBankFirst') }}</div>
-        </template>
-      </DataTable>
-      <p class="hint">{{ t('admin.quiz.selectedCount', { n: selectedQuestions.length }) }}</p>
+      <QuizQuestionSelector
+        v-model:question-ids="questionIds"
+        v-model:random-rules="randomRules"
+        :banks="banks"
+        :course-id="form.type === 'course_final' ? form.course_id : null"
+        :loading-banks="loadingBanks"
+      />
     </section>
   </div>
 </template>
@@ -361,10 +276,6 @@ onMounted(async () => {
 .field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
 .field.full { grid-column: 1 / -1; }
 .w-full { width: 100%; }
-.bank-opt { display: grid; gap: 2px; }
-.bank-opt small { color: var(--text-muted); font-size: .74rem; }
-.empty { padding: 28px; color: var(--text-muted); text-align: center; }
-.hint { margin: 10px 0 0; color: var(--text-muted); font-size: .84rem; font-weight: 600; }
 
 @media (max-width: 720px) {
   .form-grid { grid-template-columns: 1fr; }

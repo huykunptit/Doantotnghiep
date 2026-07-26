@@ -9,6 +9,24 @@ from fastapi import APIRouter, HTTPException
 from models.schemas import ChatRequest, AIResponse
 from services import chat_service
 from utils.providers import require_api_key, require_provider
+
+router = APIRouter(tags=["Chat"])
+
+
+@router.post("/chat", response_model=AIResponse)
+async def chat(payload: ChatRequest) -> AIResponse:
+    """
+    Gửi tin nhắn cho chatbot AI.
+
+    Hỗ trợ:
+    - providers: chatgpt, gemini, openrouter, claude, ollama
+    - Context: khóa học, danh mục, khóa đang xem
+    - History: lịch sử hội thoại (gửi kèm từ client)
+    """
+    provider = require_provider(payload.provider)
+    require_api_key(provider, payload.api_key)
+
+    reply, tokens = await chat_service.chat(payload, role=payload.role)
     if not reply:
         raise HTTPException(
             status_code=502,

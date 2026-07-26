@@ -13,7 +13,7 @@ export interface AdminUploadResponse {
 export function useAdminUpload() {
   async function uploadImage(
     file: File,
-    folder: 'users' | 'settings' | 'courses',
+    folder: 'users' | 'settings' | 'courses' | 'faces',
     oldPath?: string | null,
   ) {
     const formData = new FormData()

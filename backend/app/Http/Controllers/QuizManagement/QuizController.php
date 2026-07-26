@@ -92,6 +92,42 @@ class QuizController extends Controller
     }
 
     /**
+     * Lightweight, side-effect-free check used by the client before starting
+     * an exam: tells the UI whether a face-verification gate is required
+     * *without* creating an attempt / starting the timer (unlike startExamQuiz).
+     */
+    public function examPreCheck(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        if ($exam->isCourseExam()) {
+            $isEnrolled = Enrollment::where('user_id', $user->id)
+                ->where('course_id', $exam->course_id)->exists();
+            abort_unless($isEnrolled || \App\Support\Authorize::isAdmin($user), 403, 'Bạn chưa đăng ký khóa học này.');
+        } else {
+            $isEnrolled = ExamEnrollment::where('exam_id', $exam->id)
+                ->where('user_id', $user->id)->exists();
+            abort_unless($isEnrolled || \App\Support\Authorize::isAdmin($user), 403, 'Bạn chưa được gán vào kỳ thi này.');
+        }
+
+        $quiz = $exam->quiz;
+        $hasActiveAttempt = $quiz && QuizAttempt::where('user_id', $user->id)
+            ->where('quiz_id', $quiz->id)
+            ->whereIn('status', ['in_progress', 'paused'])
+            ->exists();
+
+        return response()->json([
+            'exam' => $exam->only(['id', 'title', 'duration', 'proctoring_enabled']),
+            'is_open' => $exam->isOpen() || \App\Support\Authorize::isAdmin($user),
+            'has_face_url' => !empty($user->face_url),
+            // Only gate on face check for a *fresh* start — resuming an
+            // already in-progress attempt shouldn't re-block the student.
+            'requires_face_check' => (bool) $exam->proctoring_enabled && !$hasActiveAttempt,
+        ]);
+    }
+
+    /**
      * Start/show an exam quiz for a student.
      */
     public function startExamQuiz(Request $request, Exam $exam): JsonResponse

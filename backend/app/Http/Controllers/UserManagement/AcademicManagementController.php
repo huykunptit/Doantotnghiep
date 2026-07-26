@@ -5,6 +5,7 @@ namespace App\Http\Controllers\UserManagement;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\AdministrativeClass;
+use App\Models\ClassSchedule;
 use App\Models\Cohort;
 use App\Models\CourseLearningOutcome;
 use App\Models\Curriculum;
@@ -36,6 +37,7 @@ class AcademicManagementController extends Controller
         'curriculum-courses' => CurriculumCourse::class,
         'cohorts' => Cohort::class,
         'administrative-classes' => AdministrativeClass::class,
+        'class-schedules' => ClassSchedule::class,
         'plos' => ProgramLearningOutcome::class,
         'clos' => CourseLearningOutcome::class,
         'skills' => Skill::class,
@@ -86,6 +88,12 @@ class AcademicManagementController extends Controller
             'cohorts' => $query->with(['program:id,code,name', 'major:id,code,name']),
             'majors' => $query->with(['program:id,code,name']),
             'programs' => $query->with(['unit:id,code,name', 'programType:id,code,name']),
+            'class-schedules' => $query->with([
+                'administrativeClass:id,code,name',
+                'course:id,title',
+                'term:id,name,code',
+                'lecturer:id,name,email',
+            ]),
             default => $query,
         };
     }
@@ -119,6 +127,14 @@ class AcademicManagementController extends Controller
             }
             if ($q = $request->string('q')->toString()) {
                 $query->where(fn ($w) => $w->where('code', 'like', "%{$q}%")->orWhere('name', 'like', "%{$q}%"));
+            }
+        }
+        if ($resource === 'class-schedules') {
+            if ($cid = $request->integer('administrative_class_id')) {
+                $query->where('administrative_class_id', $cid);
+            }
+            if ($tid = $request->integer('term_id')) {
+                $query->where('term_id', $tid);
             }
         }
         return $query;
@@ -352,6 +368,16 @@ class AcademicManagementController extends Controller
                 'user_id' => [$required, 'exists:users,id'],
                 'enrolled_by' => ['nullable', 'exists:users,id'],
                 'enrolled_at' => ['nullable', 'date'],
+            ],
+            'class-schedules' => [
+                'administrative_class_id' => [$required, 'exists:administrative_classes,id'],
+                'course_id' => ['nullable', 'exists:courses,id'],
+                'term_id' => ['nullable', 'exists:terms,id'],
+                'lecturer_id' => ['nullable', 'exists:users,id'],
+                'weekday' => [$required, 'integer', 'min:1', 'max:7'],
+                'start_time' => [$required, 'date_format:H:i'],
+                'end_time' => [$required, 'date_format:H:i', 'after:start_time'],
+                'room' => ['nullable', 'string', 'max:100'],
             ],
             'plos' => [
                 'program_id' => [$required, 'exists:programs,id'],

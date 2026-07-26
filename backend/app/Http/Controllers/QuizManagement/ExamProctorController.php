@@ -275,6 +275,103 @@ class ExamProctorController extends Controller
         ]);
     }
 
+    // ── Face verification (Student, before/during exam) ─────────────────
+
+    /**
+     * Verify the student's captured face against their enrolled profile photo
+     * before letting them start (or resume) a proctored exam.
+     *
+     * MVP note: real biometric matching requires an ML face-recognition model
+     * (not available in this deployment). This endpoint validates that (1) the
+     * student has a registered face photo on file and (2) the client actually
+     * captured a real image (non-empty, valid JPEG/PNG within a sane size),
+     * then returns a stub match score. Wire a real `face_recognition` /
+     * embedding-similarity call here (e.g. via ai-service) when available —
+     * see TODO below.
+     */
+    public function verifyFace(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $validated = $request->validate([
+            'image' => ['required', 'string'],
+        ]);
+
+        // If the student already has an in-progress attempt for this exam,
+        // failures here are real proctoring violations worth logging.
+        $quiz = $exam->quiz;
+        $attempt = $quiz
+            ? QuizAttempt::where('user_id', $user->id)
+                ->where('quiz_id', $quiz->id)
+                ->whereIn('status', ['in_progress', 'paused'])
+                ->latest()
+                ->first()
+            : null;
+
+        if (empty($user->face_url)) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Chưa có ảnh khuôn mặt trên hồ sơ. Vui lòng liên hệ quản trị viên/giảng viên để cập nhật ảnh trước khi thi.',
+            ], 422);
+        }
+
+        if (!$this->isValidCapturedImage($validated['image'])) {
+            if ($attempt) {
+                ExamViolation::create([
+                    'attempt_id' => $attempt->id,
+                    'user_id'    => $user->id,
+                    'type'       => 'no_face',
+                    'severity'   => 'warning',
+                    'metadata'   => ['reason' => 'invalid_or_empty_capture'],
+                ]);
+            }
+
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Không nhận diện được khuôn mặt trong ảnh chụp. Vui lòng thử lại với đủ ánh sáng.',
+            ], 422);
+        }
+
+        // TODO(AI): replace this stub with a real similarity check, e.g.
+        // POST the two images (user->face_url + captured) to an ai-service
+        // endpoint wrapping `face_recognition`/DeepFace and threshold the score.
+        return response()->json([
+            'ok'      => true,
+            'score'   => 1.0,
+            'message' => 'Xác thực khuôn mặt thành công.',
+        ]);
+    }
+
+    /**
+     * Basic sanity check on a base64-encoded captured frame: must decode to a
+     * non-trivial JPEG/PNG binary of reasonable size. This does not verify the
+     * *identity* in the photo (that needs an ML model) — only that a real
+     * camera frame was captured.
+     */
+    private function isValidCapturedImage(string $rawImage): bool
+    {
+        $data = $rawImage;
+        if (preg_match('/^data:image\/(jpe?g|png);base64,(.+)$/i', $data, $matches)) {
+            $data = $matches[2];
+        }
+
+        $binary = base64_decode($data, true);
+        if ($binary === false) {
+            return false;
+        }
+
+        $size = strlen($binary);
+        if ($size < 1000 || $size > 8 * 1024 * 1024) {
+            return false;
+        }
+
+        $isJpeg = substr($binary, 0, 2) === "\xFF\xD8";
+        $isPng  = substr($binary, 0, 8) === "\x89PNG\r\n\x1a\n";
+
+        return $isJpeg || $isPng;
+    }
+
     // ── Live Monitor (Admin/Instructor) ─────────────────────────────────
 
     /**

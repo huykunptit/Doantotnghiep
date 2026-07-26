@@ -41,15 +41,28 @@ class AIChatController extends Controller
             $role = 'instructor';
         }
 
+        $provider = $aiSettings->provider ?: 'chatgpt';
+        $apiKey = $aiSettings->api_key;
+        if (!$apiKey) {
+            $apiKey = match ($provider) {
+                'gemini' => config('services.ai_service.gemini_api_key'),
+                'openrouter' => config('services.ai_service.openrouter_api_key'),
+                'ollama' => 'local',
+                default => config('services.ai_service.openai_api_key'),
+            };
+        }
+        $model = $aiSettings->model
+            ?: ($provider === 'gemini' ? config('services.ai_service.gemini_model') : null);
+
         try {
-            $timeout = $aiSettings->provider === 'ollama' ? 180 : 60;
+            $timeout = $provider === 'ollama' ? 180 : 60;
             $response = Http::timeout($timeout)->post($aiServiceUrl, [
                 'message' => $request->message,
                 'user_id' => $user->id,
                 'course_id' => $request->course_id,
-                'provider' => $aiSettings->provider,
-                'model' => $aiSettings->model,
-                'api_key' => $aiSettings->api_key ?: ($aiSettings->provider === 'ollama' ? 'local' : null),
+                'provider' => $provider,
+                'model' => $model,
+                'api_key' => $apiKey,
                 'role' => $role,
                 'history' => $request->input('history', []),
                 'context' => $this->buildChatContext($request),
@@ -62,13 +75,16 @@ class AIChatController extends Controller
                 : 0;
 
             AiRequestLog::create([
-                'user_id' => $user->id,                'endpoint' => '/chat',
-                'provider' => $aiSettings->provider,
-                'model' => $aiSettings->model,
+                'user_id' => $user->id,
+                'endpoint' => '/chat',
+                'provider' => $provider,
+                'model' => $model,
                 'tokens_used' => $tokensUsed,
                 'response_time_ms' => $elapsed,
                 'status' => $response->successful() ? 'success' : 'error',
-                'error_message' => $response->successful() ? null : 'HTTP ' . $response->status(),
+                'error_message' => $response->successful()
+                    ? null
+                    : ('HTTP ' . $response->status() . ' ' . ($responseData['detail'] ?? $response->body())),
             ]);
 
             if ($tokensUsed > 0) {
@@ -80,16 +96,18 @@ class AIChatController extends Controller
             }
 
             return response()->json([
-                'reply' => 'Tôi đang gặp khó khăn trong việc kết nối với máy chủ AI. Bạn hãy thử lại sau nhé!'
+                'reply' => 'Tôi đang gặp khó khăn trong việc kết nối với máy chủ AI. Bạn hãy thử lại sau nhé!',
+                'detail' => is_array($responseData) ? ($responseData['detail'] ?? null) : null,
             ], 503);
 
         } catch (\Exception $e) {
             $elapsed = (int) ((microtime(true) - $startTime) * 1000);
 
             AiRequestLog::create([
-                'user_id' => $user->id,                'endpoint' => '/chat',
-                'provider' => $aiSettings->provider,
-                'model' => $aiSettings->model,
+                'user_id' => $user->id,
+                'endpoint' => '/chat',
+                'provider' => $provider,
+                'model' => $model,
                 'tokens_used' => 0,
                 'response_time_ms' => $elapsed,
                 'status' => 'error',

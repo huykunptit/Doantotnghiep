@@ -17,6 +17,7 @@ import '../../features/courses/presentation/course_detail_page.dart';
 import '../../features/paths/presentation/paths_catalog_page.dart';
 import '../../features/paths/presentation/path_detail_page.dart';
 import '../../features/profile/presentation/profile_page.dart';
+import '../../features/profile/presentation/student_id_card_page.dart';
 import '../shell/main_shell.dart';
 import '../../features/quiz/presentation/screens/exam_workspace_screen.dart';
 import '../../features/dashboard/presentation/screens/transcript_screen.dart';
@@ -184,6 +185,10 @@ GoRouter appRouter(AppRouterRef ref) {
           final slug = state.pathParameters['slug'] ?? '';
           return PathDetailPage(slug: slug);
         },
+      ),
+      GoRoute(
+        path: '/id-card',
+        builder: (context, state) => const StudentIdCardPage(),
       ),
       GoRoute(
         path: '/transcript',

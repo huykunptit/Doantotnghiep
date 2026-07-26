@@ -29,6 +29,7 @@ class OfflineSessionController extends Controller
         $data = $request->validate([
             'title'            => 'required|string|max:255',
             'location'         => 'required|string|max:255',
+            'room'             => 'nullable|string|max:100',
             'start_at'         => 'required|date',
             'duration'         => 'required|integer|min:1',
             'max_participants' => 'nullable|integer|min:1',
@@ -53,6 +54,7 @@ class OfflineSessionController extends Controller
         $data = $request->validate([
             'title'            => 'sometimes|string|max:255',
             'location'         => 'sometimes|string|max:255',
+            'room'             => 'nullable|string|max:100',
             'start_at'         => 'sometimes|date',
             'duration'         => 'sometimes|integer|min:1',
             'max_participants' => 'nullable|integer|min:1',

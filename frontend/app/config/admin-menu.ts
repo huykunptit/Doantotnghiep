@@ -37,7 +37,9 @@ export const adminMenu: AdminMenuItem[] = [
       { labelKey: 'admin.menu.academicCatalog', to: '/admin/academic' },
       { labelKey: 'admin.menu.learningPaths', to: '/admin/lnd/learning-paths' },
       { labelKey: 'admin.menu.adminClasses', to: '/admin/lnd/classes' },
+      { labelKey: 'admin.menu.classSchedules', to: '/admin/academic/schedules' },
       { labelKey: 'admin.menu.classPathEnrollment', to: '/admin/lnd/class-path-enrollment' },
+      { labelKey: 'admin.menu.attendance', to: '/admin/lnd/attendance' },
     ],
   },
   {

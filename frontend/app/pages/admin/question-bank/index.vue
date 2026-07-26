@@ -19,6 +19,14 @@ interface BankItem {
   difficulty_distribution?: Record<string, number>
 }
 
+const { difficultyLabel } = useQuestionDifficulty()
+
+function difficultyTooltip(bank: BankItem) {
+  const dist = bank.difficulty_distribution || {}
+  const parts = Object.entries(dist).map(([level, count]) => `${difficultyLabel(Number(level))}: ${count}`)
+  return parts.length ? parts.join(' · ') : ''
+}
+
 const { t } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
@@ -251,7 +259,12 @@ onMounted(async () => {
         </Column>
         <Column field="questions_count" :header="t('admin.questionBank.questions')" sortable style="min-width:100px">
           <template #body="{ data }">
-            <span class="pill tone-info">{{ data.questions_count || 0 }}</span>
+            <span class="pill tone-info" :title="difficultyTooltip(data)">{{ data.questions_count || 0 }}</span>
+          </template>
+        </Column>
+        <Column field="groups_count" :header="t('admin.questionBank.groups.column')" sortable style="min-width:100px">
+          <template #body="{ data }">
+            <span class="pill tone-warn">{{ data.groups_count || 0 }}</span>
           </template>
         </Column>
         <Column :header="t('admin.questionBank.description')" style="min-width:200px">
@@ -351,6 +364,7 @@ onMounted(async () => {
   font-size: .74rem; font-weight: 700;
 }
 .tone-info { background: #e0f2fe; color: #0369a1; }
+.tone-warn { background: #fef9c3; color: #a16207; }
 .empty { padding: 40px; color: var(--text-muted); text-align: center; }
 .modal-grid { display: grid; gap: 12px; }
 </style>

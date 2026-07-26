@@ -18,13 +18,22 @@ interface QuestionItem {
   difficulty?: number
   default_score?: number
   explanation?: string | null
+  question_group_id?: number | null
   answers?: Array<{ id?: number, content: string, is_correct: boolean }>
+}
+interface GroupItem {
+  id: number
+  name: string
+  description?: string | null
+  sort_order?: number
+  questions_count?: number
 }
 
 const { t } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
 const route = useRoute()
+const { options: difficultyOptions, difficultyLabel } = useQuestionDifficulty()
 
 const bankId = computed(() => Number(route.params.id))
 const courseId = ref<number | null>(Number(route.query.courseId) || null)
@@ -33,11 +42,21 @@ const loading = ref(true)
 const saving = ref(false)
 const bankName = ref('')
 const questions = ref<QuestionItem[]>([])
+const groups = ref<GroupItem[]>([])
 const tableSearch = ref('')
+const groupFilter = ref<number | null>(null)
 
 const modalOpen = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const editing = ref<QuestionItem | null>(null)
+
+const groupModalOpen = ref(false)
+const groupSaving = ref(false)
+const editingGroup = ref<GroupItem | null>(null)
+const groupForm = reactive({
+  name: '',
+  description: '',
+})
 
 const form = reactive({
   content: '',
@@ -45,6 +64,7 @@ const form = reactive({
   difficulty: 1,
   default_score: 1,
   explanation: '',
+  question_group_id: null as number | null,
   answers: [
     { content: '', is_correct: true },
     { content: '', is_correct: false },
@@ -58,13 +78,20 @@ const typeOptions = computed(() => [
   { label: t('admin.questionBank.types.short_answer'), value: 'short_answer' },
 ])
 
+const groupOptions = computed(() => groups.value.map(g => ({ label: g.name, value: g.id })))
+
+function groupName(groupId?: number | null) {
+  if (!groupId) return t('admin.questionBank.groups.ungrouped')
+  return groups.value.find(g => g.id === groupId)?.name || '—'
+}
+
 const filtered = computed(() => {
   const q = tableSearch.value.trim().toLowerCase()
-  if (!q) return questions.value
-  return questions.value.filter(item =>
-    stripHtml(item.content).toLowerCase().includes(q)
-    || item.type.toLowerCase().includes(q),
-  )
+  return questions.value.filter((item) => {
+    if (groupFilter.value && item.question_group_id !== groupFilter.value) return false
+    if (!q) return true
+    return stripHtml(item.content).toLowerCase().includes(q) || item.type.toLowerCase().includes(q)
+  })
 })
 
 function stripHtml(html: string) {
@@ -87,6 +114,7 @@ function resetForm() {
   form.difficulty = 1
   form.default_score = 1
   form.explanation = ''
+  form.question_group_id = groupFilter.value
   form.answers = [
     { content: '', is_correct: true },
     { content: '', is_correct: false },
@@ -139,12 +167,20 @@ async function load() {
     const res = await useApi<{
       name?: string
       questions?: QuestionItem[]
-      groups?: Array<{ questions?: QuestionItem[] }>
+      groups?: Array<GroupItem & { questions?: QuestionItem[] }>
     }>(`/courses/${resolvedCourseId}/question-banks/${bankId.value}`)
 
     bankName.value = res.name || `#${bankId.value}`
+    const resGroups = res.groups || []
+    groups.value = resGroups.map(g => ({
+      id: g.id,
+      name: g.name,
+      description: g.description,
+      sort_order: g.sort_order,
+      questions_count: g.questions?.length || 0,
+    }))
     const fromBank = res.questions || []
-    const fromGroups = (res.groups || []).flatMap(g => g.questions || [])
+    const fromGroups = resGroups.flatMap(g => g.questions || [])
     const map = new Map<number, QuestionItem>()
     for (const q of [...fromBank, ...fromGroups]) map.set(q.id, q)
     questions.value = [...map.values()]
@@ -177,6 +213,7 @@ function openEdit(question: QuestionItem) {
   form.difficulty = question.difficulty || 1
   form.default_score = Number(question.default_score || 1)
   form.explanation = question.explanation || ''
+  form.question_group_id = question.question_group_id || null
   form.answers = (question.answers || []).map(a => ({
     content: a.content,
     is_correct: !!a.is_correct,
@@ -227,6 +264,7 @@ async function saveQuestion() {
       difficulty: form.difficulty,
       default_score: form.default_score,
       explanation: form.explanation || null,
+      question_group_id: form.question_group_id || null,
       answers,
     }
 
@@ -286,6 +324,81 @@ function askDelete(question: QuestionItem) {
   })
 }
 
+function openCreateGroup() {
+  editingGroup.value = null
+  groupForm.name = ''
+  groupForm.description = ''
+  groupModalOpen.value = true
+}
+
+function openEditGroup(group: GroupItem) {
+  editingGroup.value = group
+  groupForm.name = group.name
+  groupForm.description = group.description || ''
+  groupModalOpen.value = true
+}
+
+async function saveGroup() {
+  if (!groupForm.name.trim()) {
+    toast.add({ severity: 'warn', summary: t('admin.questionBank.groups.nameRequired'), life: 2500 })
+    return
+  }
+  groupSaving.value = true
+  try {
+    const body = {
+      question_bank_id: bankId.value,
+      name: groupForm.name.trim(),
+      description: groupForm.description || null,
+    }
+    if (editingGroup.value) {
+      await useApi(`/courses/${courseId.value}/question-groups/${editingGroup.value.id}`, { method: 'PUT', body })
+      toast.add({ severity: 'success', summary: t('admin.questionBank.groups.updated'), life: 2500 })
+    }
+    else {
+      await useApi(`/courses/${courseId.value}/question-groups`, { method: 'POST', body })
+      toast.add({ severity: 'success', summary: t('admin.questionBank.groups.created'), life: 2500 })
+    }
+    groupModalOpen.value = false
+    await load()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.questionBank.groups.saveError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    groupSaving.value = false
+  }
+}
+
+function askDeleteGroup(group: GroupItem) {
+  confirm.require({
+    message: t('admin.questionBank.groups.deleteConfirm', { name: group.name }),
+    header: t('admin.questionBank.groups.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      try {
+        await useApi(`/courses/${courseId.value}/question-groups/${group.id}`, { method: 'DELETE' })
+        if (groupFilter.value === group.id) groupFilter.value = null
+        toast.add({ severity: 'success', summary: t('admin.questionBank.groups.deleted'), life: 2500 })
+        await load()
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.questionBank.groups.deleteError'),
+          detail: error?.data?.message,
+          life: 3500,
+        })
+      }
+    },
+  })
+}
+
 onMounted(load)
 </script>
 
@@ -302,6 +415,40 @@ onMounted(load)
         <Button :label="t('admin.questionBank.addQuestion')" icon="pi pi-plus" @click="openCreate" />
       </div>
     </header>
+
+    <section class="table-panel groups-panel">
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <i class="pi pi-sitemap" />
+          <strong>{{ t('admin.questionBank.groups.title') }}</strong>
+          <span class="muted">({{ groups.length }})</span>
+        </div>
+        <Button :label="t('admin.questionBank.groups.add')" icon="pi pi-plus" size="small" severity="secondary" outlined @click="openCreateGroup" />
+      </div>
+      <div v-if="groups.length" class="group-chips">
+        <button
+          type="button"
+          class="chip"
+          :class="{ on: groupFilter === null }"
+          @click="groupFilter = null"
+        >
+          {{ t('admin.questionBank.groups.all') }}
+        </button>
+        <div v-for="group in groups" :key="group.id" class="chip-wrap">
+          <button
+            type="button"
+            class="chip"
+            :class="{ on: groupFilter === group.id }"
+            @click="groupFilter = groupFilter === group.id ? null : group.id"
+          >
+            {{ group.name }} <small>({{ group.questions_count || 0 }})</small>
+          </button>
+          <Button icon="pi pi-pencil" text rounded size="small" @click="openEditGroup(group)" />
+          <Button icon="pi pi-trash" text rounded size="small" severity="danger" @click="askDeleteGroup(group)" />
+        </div>
+      </div>
+      <div v-else class="empty small">{{ t('admin.questionBank.groups.empty') }}</div>
+    </section>
 
     <section class="table-panel">
       <div class="table-toolbar">
@@ -334,7 +481,12 @@ onMounted(load)
             <span class="pill tone-info">{{ typeLabel(data.type) }}</span>
           </template>
         </Column>
-        <Column field="difficulty" :header="t('admin.questionBank.difficulty')" style="min-width:90px" />
+        <Column :header="t('admin.questionBank.groups.column')" style="min-width:130px">
+          <template #body="{ data }">{{ groupName(data.question_group_id) }}</template>
+        </Column>
+        <Column :header="t('admin.questionBank.difficulty')" style="min-width:120px">
+          <template #body="{ data }">{{ difficultyLabel(data.difficulty) }}</template>
+        </Column>
         <Column field="default_score" :header="t('admin.questionBank.score')" style="min-width:80px" />
         <Column :header="t('admin.users.actions')" style="width:8rem">
           <template #body="{ data }">
@@ -371,11 +523,23 @@ onMounted(load)
         </label>
         <label class="field">
           <span>{{ t('admin.questionBank.difficulty') }}</span>
-          <InputNumber v-model="form.difficulty" :min="1" :max="5" class="w-full" />
+          <Select v-model="form.difficulty" :options="difficultyOptions" option-label="label" option-value="value" class="w-full" />
         </label>
         <label class="field">
           <span>{{ t('admin.questionBank.score') }}</span>
           <InputNumber v-model="form.default_score" :min="0" :max-fraction-digits="2" class="w-full" />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.questionBank.groups.column') }}</span>
+          <Select
+            v-model="form.question_group_id"
+            :options="groupOptions"
+            option-label="label"
+            option-value="value"
+            show-clear
+            :placeholder="t('admin.questionBank.groups.ungrouped')"
+            class="w-full"
+          />
         </label>
         <label class="field full">
           <span>{{ t('admin.questionBank.explanation') }}</span>
@@ -418,6 +582,28 @@ onMounted(load)
         <Button :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="saveQuestion" />
       </template>
     </Dialog>
+
+    <Dialog
+      v-model:visible="groupModalOpen"
+      modal
+      :header="editingGroup ? t('admin.questionBank.groups.edit') : t('admin.questionBank.groups.add')"
+      :style="{ width: 'min(480px, 96vw)' }"
+    >
+      <div class="modal-grid">
+        <label class="field full">
+          <span>{{ t('admin.questionBank.groups.name') }} *</span>
+          <InputText v-model="groupForm.name" class="w-full" />
+        </label>
+        <label class="field full">
+          <span>{{ t('admin.questionBank.groups.description') }}</span>
+          <Textarea v-model="groupForm.description" rows="3" class="w-full" />
+        </label>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="groupModalOpen = false" />
+        <Button :label="t('common.save')" icon="pi pi-check" :loading="groupSaving" @click="saveGroup" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -444,6 +630,19 @@ onMounted(load)
   gap: 12px; margin-bottom: 10px; flex-wrap: wrap;
 }
 .toolbar-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.muted { color: var(--text-muted); font-size: .82rem; font-weight: 600; }
+
+.groups-panel { margin-bottom: 4px; }
+.group-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-wrap { display: flex; align-items: center; gap: 2px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  min-height: 32px; padding: 0 14px; border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-subtle); color: var(--text-muted); font: inherit; font-size: .84rem; font-weight: 650; cursor: pointer;
+}
+.chip small { opacity: .75; }
+.chip.on { background: var(--brand-soft); border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); color: var(--brand); }
+.empty.small { padding: 10px 4px; font-size: .86rem; }
 
 .pill {
   display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;

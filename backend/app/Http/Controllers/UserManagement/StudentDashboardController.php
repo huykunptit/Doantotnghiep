@@ -608,10 +608,11 @@ class StudentDashboardController extends Controller
                 'device_info' => $att->device_info,
                 'offline_session' => $session ? [
                     'id' => $session->id,
+                    'title' => $session->title,
                     'location' => $session->location,
                     'start_at' => $session->start_at ? $session->start_at->toIso8601String() : null,
                     'duration' => $session->duration,
-                    'lesson_title' => $lesson?->title,
+                    'lesson_title' => $lesson?->title ?? $session->title,
                     'course_title' => $course?->title,
                 ] : null
             ];

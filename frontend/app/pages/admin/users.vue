@@ -14,6 +14,7 @@ interface AdminUser {
   name: string
   email: string
   avatar?: string | null
+  face_url?: string | null
   phone?: string | null
   student_code?: string | null
   staff_code?: string | null
@@ -105,10 +106,13 @@ const form = reactive({
   unit_id: null as number | null,
   bio: '',
   avatar: '' as string | null,
+  face_url: '' as string | null,
 })
 
 const uploadingAvatar = ref(false)
 const avatarInput = ref<HTMLInputElement | null>(null)
+const uploadingFace = ref(false)
+const faceInput = ref<HTMLInputElement | null>(null)
 
 const importOpen = ref(false)
 const importFile = ref<File | null>(null)
@@ -117,6 +121,12 @@ const importToken = ref<string | null>(null)
 const importProgress = ref(0)
 const importDragging = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+
+const faceImportOpen = ref(false)
+const faceImportFiles = ref<File[]>([])
+const faceImporting = ref(false)
+const faceImportResult = ref<{ updated: any[], skipped: any[] } | null>(null)
+const faceFileInput = ref<HTMLInputElement | null>(null)
 
 const roleOptions = computed(() => [
   { label: t('admin.users.roles.student'), value: 'student' },
@@ -344,6 +354,7 @@ function resetForm() {
     student_code: '', staff_code: '', gender: null, date_of_birth: null,
     study_status: 'dang_hoc', cohort_id: null, administrative_class_id: null,
     program_id: null, major_id: null, unit_id: null, bio: '', avatar: '',
+    face_url: '',
   })
 }
 
@@ -366,6 +377,7 @@ function fillForm(user: AdminUser) {
     unit_id: user.unit_id || user.unit?.id || null,
     bio: user.bio || '',
     avatar: user.avatar || '',
+    face_url: user.face_url || '',
   })
 }
 
@@ -409,6 +421,7 @@ function payloadFromForm() {
     unit_id: form.unit_id,
     bio: form.bio || null,
     avatar: form.avatar || null,
+    face_url: form.face_url || null,
   }
 }
 
@@ -445,6 +458,41 @@ async function onAvatarPick(event: Event) {
 
 function clearAvatar() {
   form.avatar = ''
+}
+
+async function onFacePick(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    toast.add({ severity: 'warn', summary: t('admin.users.avatarImageOnly'), life: 2500 })
+    return
+  }
+  uploadingFace.value = true
+  try {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('folder', 'faces')
+    const res = await useApi<{ url?: string, path?: string }>('/admin/upload', { method: 'POST', body: fd })
+    form.face_url = res.url || res.path || ''
+    toast.add({ severity: 'success', summary: t('admin.users.faceUpdated'), life: 2000 })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.faceError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    uploadingFace.value = false
+    input.value = ''
+  }
+}
+
+function clearFace() {
+  form.face_url = ''
 }
 
 async function saveUser() {
@@ -652,6 +700,46 @@ async function runImportExecute() {
   }
 }
 
+function openFaceImport() {
+  faceImportOpen.value = true
+  faceImportFiles.value = []
+  faceImportResult.value = null
+  if (faceFileInput.value) faceFileInput.value.value = ''
+}
+
+function onFaceFilesPicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  faceImportFiles.value = Array.from(input.files || [])
+  faceImportResult.value = null
+}
+
+async function runFaceImport() {
+  if (!faceImportFiles.value.length) return
+  faceImporting.value = true
+  try {
+    const fd = new FormData()
+    faceImportFiles.value.forEach(file => fd.append('files[]', file))
+    const res = await useApi<{ message: string, updated: any[], skipped: any[] }>('/admin/users/import-faces', {
+      method: 'POST',
+      body: fd,
+    })
+    faceImportResult.value = { updated: res.updated || [], skipped: res.skipped || [] }
+    toast.add({ severity: 'success', summary: res.message, life: 3500 })
+    if (res.updated?.length) await loadUsers()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.users.faceImportError'),
+      detail: error?.data?.message,
+      life: 4000,
+    })
+  }
+  finally {
+    faceImporting.value = false
+  }
+}
+
 function setRoleChip(role: string | null) {
   roleChip.value = role
   page.value = 1
@@ -801,6 +889,7 @@ onMounted(async () => {
             @click="askBulkDelete"
           />
           <Button :label="t('admin.users.import')" icon="pi pi-upload" severity="secondary" outlined size="small" @click="openImport" />
+          <Button :label="t('admin.users.importFaces')" icon="pi pi-id-card" severity="secondary" outlined size="small" @click="openFaceImport" />
           <Button :label="t('admin.users.export')" icon="pi pi-download" severity="secondary" outlined size="small" :loading="exporting" @click="exportCsv" />
           <Button :label="t('admin.users.add')" icon="pi pi-user-plus" size="small" @click="openCreate" />
           <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="loadUsers" />
@@ -925,6 +1014,42 @@ onMounted(async () => {
                 severity="danger"
                 text
                 @click="clearAvatar"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="avatar-block full">
+          <Avatar
+            v-if="form.face_url"
+            :image="form.face_url"
+            shape="circle"
+            size="xlarge"
+            class="avatar-preview"
+          />
+          <Avatar v-else icon="pi pi-id-card" shape="circle" size="xlarge" class="avatar-preview" />
+          <div class="avatar-meta">
+            <strong>{{ t('admin.users.faceLabel') }}</strong>
+            <span>{{ t('admin.users.faceHint') }}</span>
+            <div v-if="!isReadonly" class="avatar-actions">
+              <input ref="faceInput" type="file" accept="image/*" hidden @change="onFacePick">
+              <Button
+                :label="t('admin.users.changeFace')"
+                icon="pi pi-camera"
+                size="small"
+                severity="secondary"
+                outlined
+                :loading="uploadingFace"
+                @click="faceInput?.click()"
+              />
+              <Button
+                v-if="form.face_url"
+                :label="t('admin.users.removeFace')"
+                icon="pi pi-times"
+                size="small"
+                severity="danger"
+                text
+                @click="clearFace"
               />
             </div>
           </div>
@@ -1074,6 +1199,64 @@ onMounted(async () => {
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text @click="importOpen = false" />
         <Button :label="t('admin.users.confirmImport')" icon="pi pi-check" :disabled="!importToken" :loading="importing" @click="runImportExecute" />
+      </template>
+    </Dialog>
+
+    <!-- Face photo bulk import modal -->
+    <Dialog v-model:visible="faceImportOpen" modal :header="t('admin.users.importFacesTitle')" :style="{ width: 'min(680px, 96vw)' }" :dismissable-mask="true">
+      <div class="import-box">
+        <div class="import-step">
+          <div class="step-head">
+            <span class="step-num">1</span>
+            <div>
+              <strong>{{ t('admin.users.faceImportStepName') }}</strong>
+              <p>{{ t('admin.users.faceImportStepNameHint') }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="import-step">
+          <div class="step-head">
+            <span class="step-num">2</span>
+            <div>
+              <strong>{{ t('admin.users.faceImportStepPick') }}</strong>
+              <p>{{ t('admin.users.faceImportStepPickHint') }}</p>
+            </div>
+          </div>
+          <div class="dropzone" @click="faceFileInput?.click()">
+            <input ref="faceFileInput" type="file" accept="image/*" multiple hidden @change="onFaceFilesPicked">
+            <i class="pi pi-images" />
+            <strong>{{ t('admin.users.faceImportPickTitle') }}</strong>
+            <span v-if="faceImportFiles.length">{{ t('admin.users.faceImportSelected', { n: faceImportFiles.length }) }}</span>
+            <span v-else>{{ t('admin.users.faceImportDropHint') }}</span>
+          </div>
+        </div>
+
+        <div v-if="faceImportResult" class="import-step">
+          <div class="step-head">
+            <span class="step-num">3</span>
+            <div>
+              <strong>{{ t('admin.users.stepResult') }}</strong>
+            </div>
+          </div>
+          <div class="preview-meta">
+            <Tag :value="t('admin.users.faceImportUpdated', { n: faceImportResult.updated.length })" severity="success" />
+            <Tag v-if="faceImportResult.skipped.length" :value="t('admin.users.faceImportSkipped', { n: faceImportResult.skipped.length })" severity="warn" />
+          </div>
+          <ul v-if="faceImportResult.skipped.length" class="skip-list">
+            <li v-for="(s, i) in faceImportResult.skipped" :key="i">{{ s.filename }} — {{ s.reason }}</li>
+          </ul>
+        </div>
+      </div>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="faceImportOpen = false" />
+        <Button
+          :label="t('admin.users.faceImportConfirm')"
+          icon="pi pi-check"
+          :disabled="!faceImportFiles.length"
+          :loading="faceImporting"
+          @click="runFaceImport"
+        />
       </template>
     </Dialog>
   </div>
@@ -1239,6 +1422,7 @@ onMounted(async () => {
 .checking { display: flex; align-items: center; gap: 10px; color: var(--text-muted); }
 .preview-meta { display: flex; gap: 8px; flex-wrap: wrap; }
 .preview-table .bad { color: var(--danger); font-size: .8rem; }
+.skip-list { margin: 8px 0 0; padding-left: 18px; color: var(--text-muted); font-size: .82rem; display: grid; gap: 3px; max-height: 160px; overflow: auto; }
 
 :deep(.filter-bar .p-multiselect),
 :deep(.filter-bar .p-select),

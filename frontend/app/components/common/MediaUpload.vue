@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type Folder = 'users' | 'settings' | 'courses'
+type Folder = 'users' | 'settings' | 'courses' | 'faces'
 type Variant = 'avatar' | 'thumbnail' | 'banner' | 'square'
 
 const props = withDefaults(
