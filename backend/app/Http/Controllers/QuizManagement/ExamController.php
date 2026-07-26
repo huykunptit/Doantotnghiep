@@ -70,6 +70,7 @@ class ExamController extends Controller
             'max_attempts'       => ['nullable', 'integer', 'min:1', 'max:99'],
             'shuffle_questions'  => ['nullable', 'boolean'],
             'shuffle_answers'    => ['nullable', 'boolean'],
+            'variant_count'      => ['nullable', 'integer', 'min:1', 'max:26'],
             'review_options'     => ['nullable', 'array'],
             'starts_at'          => ['nullable', 'date'],
             'ends_at'            => ['nullable', 'date'],
@@ -132,6 +133,7 @@ class ExamController extends Controller
             'max_attempts'       => ['nullable', 'integer', 'min:1', 'max:99'],
             'shuffle_questions'  => ['nullable', 'boolean'],
             'shuffle_answers'    => ['nullable', 'boolean'],
+            'variant_count'      => ['nullable', 'integer', 'min:1', 'max:26'],
             'review_options'     => ['nullable', 'array'],
             'starts_at'          => ['nullable', 'date'],
             'ends_at'            => ['nullable', 'date'],
@@ -161,6 +163,7 @@ class ExamController extends Controller
             'max_attempts'       => ['nullable', 'integer', 'min:1', 'max:99'],
             'shuffle_questions'  => ['nullable', 'boolean'],
             'shuffle_answers'    => ['nullable', 'boolean'],
+            'variant_count'      => ['nullable', 'integer', 'min:1', 'max:26'],
             'review_options'     => ['nullable', 'array'],
             'starts_at'          => ['nullable', 'date'],
             'ends_at'            => ['nullable', 'date'],
@@ -302,5 +305,104 @@ class ExamController extends Controller
             && (\App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id),
             403
         );
+    }
+
+    // ── Print exam / variant codes (mã đề) ───────────────────────────────
+
+    /**
+     * Generate a printable, deterministically-shuffled question set for a given
+     * exam variant code (A, B, C, ...). Same exam + same code always yields the
+     * same question/answer order (seeded shuffle), so re-printing a lost paper
+     * reproduces the exact same variant.
+     */
+    public function printExam(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && \App\Support\Authorize::allows($user, 'manage_exams'), 403);
+
+        if (!\App\Support\Authorize::isAdmin($user)) {
+            $course = $exam->course;
+            $isOwner = ($course && (int) $course->user_id === (int) $user->id)
+                || (int) $exam->created_by === (int) $user->id;
+            abort_unless($isOwner, 403);
+        }
+
+        $validated = $request->validate([
+            'code' => ['nullable', 'string', 'regex:/^[A-Za-z]{1,3}$/'],
+        ]);
+        $code = strtoupper($validated['code'] ?? 'A');
+
+        $quiz = $exam->quiz;
+        if (!$quiz) {
+            return response()->json(['message' => 'Exam chưa có đề thi.'], 404);
+        }
+
+        $questions = $quiz->questions()->with('answers')->orderBy('quiz_question.order')->get();
+        if ($questions->isEmpty()) {
+            $questions = $quiz->resolveQuestions()->load('answers');
+        }
+
+        // Seed derived from exam id + code so the same code always reproduces
+        // the same order (needed if a paper needs to be reprinted).
+        $seed = crc32($exam->id . '|' . $code);
+
+        if ($exam->shuffle_questions) {
+            $questions = collect($this->seededShuffle($questions->all(), $seed));
+        }
+
+        $questions = $questions->values()->map(function ($question, $index) use ($exam, $seed) {
+            $answers = $question->answers;
+            if ($exam->shuffle_answers) {
+                $answers = collect($this->seededShuffle($answers->all(), $seed + $question->id));
+            }
+
+            return [
+                'number'  => $index + 1,
+                'id'      => $question->id,
+                'content' => $question->content,
+                'type'    => $question->type,
+                'answers' => $answers->values()->map(fn ($a, $i) => [
+                    'label'      => chr(65 + $i),
+                    'content'    => $a->content,
+                    'is_correct' => (bool) $a->is_correct,
+                ])->all(),
+            ];
+        });
+
+        return response()->json([
+            'exam' => $exam->only(['id', 'title', 'duration', 'pass_score', 'variant_count']),
+            'code' => $code,
+            'available_codes' => $this->variantCodes($exam->variant_count ?? 1),
+            'questions' => $questions,
+            'generated_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    /** @return list<string> */
+    private function variantCodes(int $count): array
+    {
+        $count = max(1, min(26, $count));
+
+        return array_map(fn ($i) => chr(65 + $i), range(0, $count - 1));
+    }
+
+    /**
+     * Deterministic Fisher-Yates shuffle seeded with a fixed integer, so the
+     * result only depends on the seed (not on request order / PHP version RNG
+     * warm-up state).
+     *
+     * @param array<int, mixed> $items
+     * @return array<int, mixed>
+     */
+    private function seededShuffle(array $items, int $seed): array
+    {
+        mt_srand($seed);
+        for ($i = count($items) - 1; $i > 0; $i--) {
+            $j = mt_rand(0, $i);
+            [$items[$i], $items[$j]] = [$items[$j], $items[$i]];
+        }
+        mt_srand(); // reseed randomly so we don't leak determinism into unrelated code
+
+        return $items;
     }
 }

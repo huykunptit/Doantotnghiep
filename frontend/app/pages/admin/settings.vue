@@ -259,6 +259,22 @@ async function save() {
 }
 
 onMounted(load)
+
+function onLogoUploaded(payload: { url: string, path: string }) {
+  form.site_logo = payload.path
+  form.brand_logo = payload.path
+  logoPreview.value = payload.url
+}
+
+function onFaviconUploaded(payload: { url: string, path: string }) {
+  form.site_favicon = payload.path
+  faviconPreview.value = payload.url
+}
+
+function onAuthUploaded(payload: { url: string, path: string }) {
+  form.auth_page_image = payload.path
+  authPreview.value = payload.url
+}
 </script>
 
 <template>
@@ -336,23 +352,41 @@ onMounted(load)
           <span>{{ t('admin.settings.deepColor') }}</span>
           <InputText v-model="form.theme_color_deep" class="w-full" />
         </label>
-        <label class="field">
-          <span>{{ t('admin.settings.logoPath') }}</span>
-          <InputText v-model="form.site_logo" class="w-full" @update:model-value="(v: string) => form.brand_logo = v" />
-          <small>{{ t('admin.settings.mediaPathHint') }}</small>
-        </label>
-        <label class="field">
-          <span>{{ t('admin.settings.faviconPath') }}</span>
-          <InputText v-model="form.site_favicon" class="w-full" />
-        </label>
-        <label class="field full">
-          <span>{{ t('admin.settings.authImagePath') }}</span>
-          <InputText v-model="form.auth_page_image" class="w-full" />
-        </label>
-        <div v-if="logoPreview || faviconPreview || authPreview" class="previews full">
-          <img v-if="logoPreview" :src="logoPreview" :alt="t('admin.settings.logoPath')" class="preview-logo">
-          <img v-if="faviconPreview" :src="faviconPreview" alt="favicon" class="preview-fav">
-          <img v-if="authPreview" :src="authPreview" :alt="t('admin.settings.authImagePath')" class="preview-auth">
+        <div class="field">
+          <CommonMediaUpload
+            v-model="logoPreview"
+            folder="settings"
+            variant="square"
+            :label="t('admin.settings.logoPath')"
+            hint="PNG, SVG, JPG — logo site"
+            placeholder-initial="LOGO"
+            @uploaded="onLogoUploaded"
+            @update:model-value="(v) => { if (!v) { form.site_logo = ''; form.brand_logo = '' } }"
+          />
+        </div>
+        <div class="field">
+          <CommonMediaUpload
+            v-model="faviconPreview"
+            folder="settings"
+            variant="square"
+            :label="t('admin.settings.faviconPath')"
+            hint="ICO / PNG — favicon"
+            placeholder-initial="ICO"
+            @uploaded="onFaviconUploaded"
+            @update:model-value="(v) => { if (!v) form.site_favicon = '' }"
+          />
+        </div>
+        <div class="field full">
+          <CommonMediaUpload
+            v-model="authPreview"
+            folder="settings"
+            variant="banner"
+            :label="t('admin.settings.authImagePath')"
+            hint="Ảnh nền trang đăng nhập / đăng ký"
+            placeholder-initial="AUTH"
+            @uploaded="onAuthUploaded"
+            @update:model-value="(v) => { if (!v) form.auth_page_image = '' }"
+          />
         </div>
       </div>
 

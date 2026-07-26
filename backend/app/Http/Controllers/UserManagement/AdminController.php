@@ -45,13 +45,14 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'file' => ['required', 'file', 'image', 'max:5120'],
-            'folder' => ['nullable', 'string', 'in:users,settings,courses'],
+            'folder' => ['nullable', 'string', 'in:users,settings,courses,faces'],
             'old_path' => ['nullable', 'string', 'max:2048'],
         ]);
 
         $folder = match ($validated['folder'] ?? 'users') {
             'settings' => 'admin/settings',
             'courses' => 'admin/courses',
+            'faces' => 'admin/faces',
             default => 'admin/users',
         };
 
@@ -483,6 +484,64 @@ class AdminController extends Controller
         ]);
     }
 
+    /**
+     * Bulk-assign face photos to students: each uploaded file's name (without
+     * extension) must match a `student_code` — e.g. "SV001.jpg" → student SV001.
+     * MVP alternative to a full CSV/zip mapper; admin just multi-selects files
+     * that were named after the student codes.
+     */
+    public function importFaces(Request $request, MediaService $mediaService): JsonResponse
+    {
+        if ($forbidden = $this->ensureAdmin($request)) {
+            return $forbidden;
+        }
+
+        $validated = $request->validate([
+            'files' => ['required', 'array', 'min:1'],
+            'files.*' => ['file', 'image', 'max:5120'],
+        ]);
+
+        $updated = [];
+        $skipped = [];
+
+        foreach ($validated['files'] as $file) {
+            $code = trim(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+
+            if ($code === '') {
+                $skipped[] = ['filename' => $file->getClientOriginalName(), 'reason' => 'Tên file rỗng'];
+                continue;
+            }
+
+            $user = User::where('student_code', $code)->orWhere('staff_code', $code)->first();
+            if (!$user) {
+                $skipped[] = ['filename' => $file->getClientOriginalName(), 'reason' => "Không tìm thấy mã {$code}"];
+                continue;
+            }
+
+            $uploaded = $mediaService->upload($file, 'admin/faces');
+
+            if (!empty($user->face_url) && $mediaService->exists($user->face_url)) {
+                $mediaService->delete($user->face_url);
+            }
+
+            $user->face_url = $uploaded['path'];
+            $user->save();
+
+            $updated[] = [
+                'user_id' => $user->id,
+                'student_code' => $code,
+                'name' => $user->name,
+                'face_url' => $mediaService->getUrl($uploaded['path']),
+            ];
+        }
+
+        return response()->json([
+            'message' => 'Đã cập nhật ảnh khuôn mặt cho ' . count($updated) . ' sinh viên/nhân viên.',
+            'updated' => $updated,
+            'skipped' => $skipped,
+        ]);
+    }
+
     private function filteredUsersQuery(Request $request)
     {
         $query = User::with([
@@ -656,6 +715,7 @@ class AdminController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
             'avatar' => ['nullable', 'string', 'max:2048'],
+            'face_url' => ['nullable', 'string', 'max:2048'],
             'role' => ['required', 'string', 'in:admin,instructor,student,academic_manager'],
             'bio' => ['nullable', 'string', 'max:1000'],
             'institution_id' => ['nullable', 'exists:institutions,id'],
@@ -750,6 +810,7 @@ class AdminController extends Controller
             'email' => ['sometimes', 'required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:6'],
             'avatar' => ['nullable', 'string', 'max:2048'],
+            'face_url' => ['nullable', 'string', 'max:2048'],
             'bio' => ['nullable', 'string', 'max:1000'],
             'role' => ['sometimes', 'required', 'string', 'in:admin,instructor,student,academic_manager'],
             'institution_id' => ['nullable', 'exists:institutions,id'],

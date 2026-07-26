@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../providers/learning_providers.dart';
 import '../../data/models/lesson_detail_model.dart';
 import '../../../courses/providers/course_detail_provider.dart';
@@ -12,6 +13,7 @@ import '../../../courses/data/models/course_model.dart';
 import '../../data/repositories/learning_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/loading_overlay.dart';
 import '../../../ai/presentation/widgets/learn_tip_card.dart';
 
 class LessonPlayerScreen extends ConsumerStatefulWidget {
@@ -34,9 +36,14 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
   late TabController _tabController;
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
+  YoutubePlayerController? _youtubeController;
   Timer? _progressTimer;
   int _lastWatchedSeconds = 0;
   bool _isPlayerInitialized = false;
+  bool _isYoutubeVideo = false;
+  bool _isVideoLoading = false;
+  bool _videoHasError = false;
+  String? _videoErrorMessage;
 
   @override
   void initState() {
@@ -50,6 +57,10 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
     if (oldWidget.lessonId != widget.lessonId) {
       _disposePlayer();
       _isPlayerInitialized = false;
+      _isYoutubeVideo = false;
+      _isVideoLoading = false;
+      _videoHasError = false;
+      _videoErrorMessage = null;
     }
   }
 
@@ -65,11 +76,26 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
     _saveProgressOnQuit();
     _chewieController?.dispose();
     _videoPlayerController?.dispose();
+    _youtubeController?.close();
     _chewieController = null;
     _videoPlayerController = null;
+    _youtubeController = null;
   }
 
   Future<void> _saveProgressOnQuit() async {
+    if (_isYoutubeVideo) {
+      if (_lastWatchedSeconds > 0) {
+        try {
+          await ref.read(learningRepositoryProvider).updateLessonProgress(
+                widget.courseId,
+                widget.lessonId,
+                watchedSeconds: _lastWatchedSeconds,
+              );
+        } catch (_) {}
+      }
+      return;
+    }
+
     if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
       final pos = _videoPlayerController!.value.position.inSeconds;
       if (pos > 0 && pos != _lastWatchedSeconds) {
@@ -88,11 +114,36 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
     if (_isPlayerInitialized) return;
     _isPlayerInitialized = true;
     _lastWatchedSeconds = startSeconds;
+    _isVideoLoading = true;
+    _videoHasError = false;
+    _videoErrorMessage = null;
 
+    final youtubeId = YoutubePlayerController.convertUrlToId(videoUrl);
+    if (youtubeId != null) {
+      _isYoutubeVideo = true;
+      _initializeYoutubePlayer(youtubeId, startSeconds);
+    } else {
+      _isYoutubeVideo = false;
+      _initializeMp4Player(videoUrl, startSeconds);
+    }
+  }
+
+  /// Resets player state so the next [build] re-triggers [_initializePlayer].
+  void _retryVideoInit() {
+    _disposePlayer();
+    setState(() {
+      _isPlayerInitialized = false;
+      _isVideoLoading = false;
+      _videoHasError = false;
+      _videoErrorMessage = null;
+    });
+  }
+
+  void _initializeMp4Player(String videoUrl, int startSeconds) {
     _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
     _videoPlayerController!.initialize().then((_) {
       if (!mounted) return;
-      
+
       // Seek to last watched position
       if (startSeconds > 0) {
         _videoPlayerController!.seekTo(Duration(seconds: startSeconds));
@@ -112,13 +163,79 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
         ),
       );
 
-      setState(() {});
+      setState(() => _isVideoLoading = false);
 
       // Setup progress tracking timer (every 10 seconds)
       _progressTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
         _trackProgress();
       });
+    }).catchError((Object e) {
+      if (!mounted) return;
+      setState(() {
+        _videoHasError = true;
+        _videoErrorMessage = 'Không thể tải video. Vui lòng kiểm tra kết nối mạng.';
+        _isVideoLoading = false;
+      });
     });
+  }
+
+  void _initializeYoutubePlayer(String videoId, int startSeconds) {
+    try {
+      _youtubeController = YoutubePlayerController.fromVideoId(
+        videoId: videoId,
+        autoPlay: false,
+        startSeconds: startSeconds.toDouble(),
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+          strictRelatedVideos: true,
+        ),
+      );
+
+      _youtubeController!.stream.listen(
+        (value) {
+          if (!mounted) return;
+          if (_isVideoLoading &&
+              (value.playerState == PlayerState.playing ||
+                  value.playerState == PlayerState.paused ||
+                  value.playerState == PlayerState.cued)) {
+            setState(() => _isVideoLoading = false);
+          }
+          if (value.hasError && !_videoHasError) {
+            setState(() {
+              _videoHasError = true;
+              _videoErrorMessage = 'Không thể phát video YouTube này (mã lỗi: ${value.error}).';
+              _isVideoLoading = false;
+            });
+          }
+        },
+        onError: (Object e) {
+          if (!mounted) return;
+          setState(() {
+            _videoHasError = true;
+            _videoErrorMessage = 'Không thể tải video YouTube: $e';
+            _isVideoLoading = false;
+          });
+        },
+      );
+
+      // Fallback: clear the loading overlay after a few seconds even if the
+      // player never emits an intermediate state (e.g. autoplay blocked).
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted && _isVideoLoading) setState(() => _isVideoLoading = false);
+      });
+
+      _progressTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+        _trackYoutubeProgress();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _videoHasError = true;
+        _videoErrorMessage = 'Không thể khởi tạo video YouTube: $e';
+        _isVideoLoading = false;
+      });
+    }
   }
 
   Future<void> _trackProgress() async {
@@ -141,8 +258,32 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
     }
   }
 
+  Future<void> _trackYoutubeProgress() async {
+    final controller = _youtubeController;
+    if (controller == null) return;
+    try {
+      final state = await controller.playerState;
+      if (state != PlayerState.playing) return;
+
+      final currentPos = (await controller.currentTime).round();
+      final duration = (await controller.duration).round();
+      final completed = duration > 0 ? (currentPos >= duration * 0.9) : false;
+
+      _lastWatchedSeconds = currentPos;
+      await ref.read(learningRepositoryProvider).updateLessonProgress(
+            widget.courseId,
+            widget.lessonId,
+            watchedSeconds: currentPos,
+            completed: completed,
+          );
+      ref.invalidate(courseDetailProvider(widget.courseId));
+    } catch (_) {}
+  }
+
   void _seekTo(int seconds) {
-    if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+    if (_isYoutubeVideo && _youtubeController != null) {
+      _youtubeController!.seekTo(seconds: seconds.toDouble(), allowSeekAhead: true);
+    } else if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
       _videoPlayerController!.seekTo(Duration(seconds: seconds));
     }
   }
@@ -274,10 +415,69 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
   }
 
   Widget _buildPlayerArea(LessonDetailModel lesson) {
-    if (lesson.type == 'video' && _chewieController != null) {
+    final hasVideoUrl = lesson.type == 'video' && lesson.videoUrl != null && lesson.videoUrl!.isNotEmpty;
+
+    if (hasVideoUrl) {
+      if (_videoHasError) {
+        return AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            color: Colors.black87,
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 40, color: Colors.redAccent),
+                  AppSpacing.h8,
+                  Text(
+                    _videoErrorMessage ?? 'Không thể phát video.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  AppSpacing.h12,
+                  OutlinedButton.icon(
+                    onPressed: _retryVideoInit,
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    label: const Text('Thử lại', style: TextStyle(color: Colors.white)),
+                    style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white54)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      if (_isYoutubeVideo && _youtubeController != null) {
+        return AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Colors.black),
+              YoutubePlayer(controller: _youtubeController!),
+              if (_isVideoLoading) const LoadingOverlay(),
+            ],
+          ),
+        );
+      }
+
+      if (!_isYoutubeVideo && _chewieController != null) {
+        return AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Chewie(controller: _chewieController!),
+        );
+      }
+
+      // Still initializing the player.
       return AspectRatio(
         aspectRatio: 16 / 9,
-        child: Chewie(controller: _chewieController!),
+        child: Container(
+          color: Colors.black87,
+          child: const LoadingOverlay(),
+        ),
       );
     }
 

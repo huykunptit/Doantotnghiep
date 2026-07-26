@@ -27,7 +27,7 @@ class QuestionBankController extends Controller
         abort_unless($user && \App\Support\Authorize::allows($user, 'manage_exams'), 403);
 
         $query = QuestionBank::with('course:id,title')
-            ->withCount('questions');
+            ->withCount(['questions', 'groups']);
 
         if (!\App\Support\Authorize::isAdmin($user)) {
             $query->whereHas('course', fn ($q) => $q->where('user_id', $user->id));

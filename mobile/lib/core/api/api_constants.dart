@@ -26,6 +26,7 @@ class ApiConstants {
   static const meTimetablePath = '/me/timetable';
   static const meTuitionPath = '/me/tuition';
   static const meCurriculumEvaluationPath = '/me/curriculum-evaluation';
+  static const meLearnerProfilePath = '/me/learner-profile';
   static const meRecommendationsExtensionsPath = '/me/recommendations/extensions';
 
   // AI Career

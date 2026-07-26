@@ -52,6 +52,10 @@ return [
 
     'ai_service' => [
         'url' => env('AI_SERVICE_URL', 'http://ai-service:8001'),
+        'openai_api_key' => env('OPENAI_API_KEY'),
+        'gemini_api_key' => env('GEMINI_API_KEY'),
+        'gemini_model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
+        'openrouter_api_key' => env('OPENROUTER_API_KEY'),
     ],
 
 ];

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/course_detail_provider.dart';
+import '../providers/my_courses_provider.dart';
 import '../data/models/course_model.dart';
 import '../data/repositories/course_repository.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -80,6 +81,7 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
           ),
         );
         ref.invalidate(courseDetailProvider(widget.course.id));
+        ref.invalidate(myEnrollmentsProvider);
       } else if (res['payment_url'] != null) {
         final success = await context.push<bool>('/checkout-webview', extra: res['payment_url']);
         if (success == true && mounted) {
@@ -92,6 +94,16 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
             ),
           );
           ref.invalidate(courseDetailProvider(widget.course.id));
+          ref.invalidate(myEnrollmentsProvider);
+        } else if (success == false && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Thanh toán chưa hoàn tất hoặc đã bị hủy.'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
         }
       }
     } catch (e) {

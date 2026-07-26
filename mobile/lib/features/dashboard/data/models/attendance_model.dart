@@ -3,6 +3,7 @@ class AttendanceSessionModel {
   final String location;
   final String? startAt;
   final int? duration;
+  final String? title;
   final String? lessonTitle;
   final String? courseTitle;
 
@@ -11,6 +12,7 @@ class AttendanceSessionModel {
     required this.location,
     this.startAt,
     this.duration,
+    this.title,
     this.lessonTitle,
     this.courseTitle,
   });
@@ -21,7 +23,8 @@ class AttendanceSessionModel {
       location: json['location']?.toString() ?? '',
       startAt: json['start_at']?.toString(),
       duration: json['duration'] as int?,
-      lessonTitle: json['lesson_title']?.toString(),
+      title: json['title']?.toString(),
+      lessonTitle: json['lesson_title']?.toString() ?? json['title']?.toString(),
       courseTitle: json['course_title']?.toString(),
     );
   }
@@ -32,6 +35,7 @@ class AttendanceHistoryItemModel {
   final String status;
   final String? checkedInAt;
   final String? deviceInfo;
+  final double? distanceMeters;
   final AttendanceSessionModel? offlineSession;
 
   AttendanceHistoryItemModel({
@@ -39,6 +43,7 @@ class AttendanceHistoryItemModel {
     required this.status,
     this.checkedInAt,
     this.deviceInfo,
+    this.distanceMeters,
     this.offlineSession,
   });
 
@@ -49,6 +54,7 @@ class AttendanceHistoryItemModel {
       status: json['status']?.toString() ?? 'present',
       checkedInAt: json['checked_in_at']?.toString(),
       deviceInfo: json['device_info']?.toString(),
+      distanceMeters: (json['distance_meters'] as num?)?.toDouble(),
       offlineSession: sessionData != null ? AttendanceSessionModel.fromJson(sessionData) : null,
     );
   }

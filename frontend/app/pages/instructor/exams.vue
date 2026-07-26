@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
+import type { QsRandomRule } from '~/components/quiz/QuestionSelector.vue'
 
 definePageMeta({ layout: 'instructor', middleware: ['auth', 'instructor', 'permission'], permission: 'manage_exams' })
 
@@ -12,8 +13,12 @@ interface ExamRow {
   starts_at?: string | null
   ends_at?: string | null
   exam_enrollments_count?: number
+  variant_count?: number
   quiz?: { id: number } | null
 }
+
+interface PrintAnswer { label: string, content: string, is_correct: boolean }
+interface PrintQuestion { number: number, id: number, content: string, type: string, answers: PrintAnswer[] }
 
 interface AdminClass {
   id: number
@@ -27,13 +32,6 @@ interface BankItem {
   questions_count?: number
   course_id?: number
   course?: { id: number, title: string } | null
-}
-
-interface QuestionItem {
-  id: number
-  content: string
-  type: string
-  difficulty?: number
 }
 
 const { t } = useI18n()
@@ -52,9 +50,9 @@ const enrollDialog = computed({
 })
 
 const banks = ref<BankItem[]>([])
-const questions = ref<QuestionItem[]>([])
-const selectedQuestions = ref<QuestionItem[]>([])
-const loadingQuestions = ref(false)
+const loadingBanks = ref(false)
+const questionIds = ref<number[]>([])
+const randomRules = ref<QsRandomRule[]>([])
 
 const form = reactive({
   title: '',
@@ -66,8 +64,21 @@ const form = reactive({
   starts_at: null as Date | null,
   ends_at: null as Date | null,
   administrative_class_id: null as number | null,
-  bank_id: null as number | null,
   proctoring_enabled: true,
+  variant_count: 1,
+})
+
+const printExamId = ref<number | null>(null)
+const printCode = ref('A')
+const printing = ref(false)
+const printDialog = computed({
+  get: () => printExamId.value !== null,
+  set: (v: boolean) => { if (!v) printExamId.value = null },
+})
+const printCodeOptions = computed(() => {
+  const exam = exams.value.find(e => e.id === printExamId.value)
+  const n = Math.max(1, Math.min(26, exam?.variant_count || 1))
+  return Array.from({ length: n }, (_, i) => String.fromCharCode(65 + i))
 })
 
 const statusOptions = computed(() => [
@@ -80,10 +91,6 @@ const statusOptions = computed(() => [
 function fmt(value?: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
-}
-
-function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function toIso(d: Date | null) {
@@ -114,6 +121,7 @@ async function loadClasses() {
 }
 
 async function loadBanks() {
+  loadingBanks.value = true
   try {
     const res = await useApi<{ banks: BankItem[] }>('/admin/question-banks')
     banks.value = res.banks || []
@@ -121,33 +129,18 @@ async function loadBanks() {
   catch {
     banks.value = []
   }
+  finally {
+    loadingBanks.value = false
+  }
 }
 
-async function loadQuestions() {
-  selectedQuestions.value = []
-  questions.value = []
-  if (!form.bank_id) return
-  const bank = banks.value.find(b => b.id === form.bank_id)
-  const courseId = bank?.course_id || bank?.course?.id
-  if (!courseId) return
-  loadingQuestions.value = true
-  try {
-    const res = await useApi<{
-      questions?: QuestionItem[]
-      groups?: Array<{ questions?: QuestionItem[] }>
-    }>(`/courses/${courseId}/question-banks/${form.bank_id}`)
-    const fromBank = res.questions || []
-    const fromGroups = (res.groups || []).flatMap(g => g.questions || [])
-    const map = new Map<number, QuestionItem>()
-    for (const q of [...fromBank, ...fromGroups]) map.set(q.id, q)
-    questions.value = [...map.values()]
-  }
-  catch (e: any) {
-    toast.add({ severity: 'error', summary: t('instructor.exams.questionsError'), detail: e?.data?.message, life: 3500 })
-  }
-  finally {
-    loadingQuestions.value = false
-  }
+function sanitizedRandomRules() {
+  return randomRules.value.map(r => ({
+    bank_id: r.bank_id,
+    group_id: r.group_id || undefined,
+    difficulty: r.difficulty || undefined,
+    count: r.count,
+  }))
 }
 
 async function createExam() {
@@ -155,7 +148,7 @@ async function createExam() {
     toast.add({ severity: 'warn', summary: t('instructor.exams.titleRequired'), life: 2500 })
     return
   }
-  if (!selectedQuestions.value.length) {
+  if (!questionIds.value.length && !randomRules.value.length) {
     toast.add({ severity: 'warn', summary: t('instructor.exams.questionsRequired'), life: 2800 })
     return
   }
@@ -173,6 +166,7 @@ async function createExam() {
         starts_at: toIso(form.starts_at),
         ends_at: toIso(form.ends_at),
         proctoring_enabled: form.proctoring_enabled,
+        variant_count: form.variant_count || 1,
         type: 'standalone',
       },
     })
@@ -184,7 +178,8 @@ async function createExam() {
         description: form.description || null,
         time_limit: form.duration,
         pass_score: form.pass_score,
-        question_ids: selectedQuestions.value.map(q => q.id),
+        question_ids: questionIds.value,
+        settings: randomRules.value.length ? { random_rules: sanitizedRandomRules() } : null,
       },
     })
 
@@ -218,10 +213,95 @@ function resetForm() {
   form.starts_at = null
   form.ends_at = null
   form.administrative_class_id = null
-  form.bank_id = null
   form.proctoring_enabled = true
-  selectedQuestions.value = []
-  questions.value = []
+  form.variant_count = 1
+  questionIds.value = []
+  randomRules.value = []
+}
+
+function openPrint(exam: ExamRow) {
+  printExamId.value = exam.id
+  printCode.value = 'A'
+}
+
+function stripHtml(html: string) {
+  return (html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function openPrintWindow(data: { exam: { title: string, duration?: number, pass_score?: number }, code: string, questions: PrintQuestion[] }) {
+  const win = window.open('', '_blank')
+  if (!win) {
+    toast.add({ severity: 'warn', summary: t('instructor.exams.popupBlocked'), life: 3500 })
+    return
+  }
+
+  const rows = data.questions.map(q => `
+    <div class="q">
+      <p class="q-title"><strong>${t('instructor.exams.printQuestionLabel', { n: q.number })}</strong> ${stripHtml(q.content)}</p>
+      <div class="answers">
+        ${(q.answers || []).map(a => `<div class="a">${a.label}. ${stripHtml(a.content)}</div>`).join('')}
+      </div>
+    </div>
+  `).join('')
+
+  const answerKey = data.questions
+    .map((q) => {
+      const correct = (q.answers || []).find(a => a.is_correct)
+      return `${q.number}.${correct ? correct.label : '-'}`
+    })
+    .join('&nbsp;&nbsp;')
+
+  win.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${data.exam.title} - ${t('instructor.exams.printCodeLabel')} ${data.code}</title>
+<style>
+  body { font-family: 'Times New Roman', Georgia, serif; padding: 32px 40px; color: #111; }
+  h1 { text-align: center; font-size: 20px; margin: 0 0 6px; }
+  .meta { text-align: center; margin: 0 0 4px; font-size: 14px; }
+  .code-badge { position: fixed; top: 22px; right: 32px; border: 2px solid #111; border-radius: 6px; padding: 6px 16px; font-weight: bold; font-size: 15px; }
+  hr { margin: 16px 0; border: none; border-top: 1px solid #333; }
+  .q { margin: 14px 0; page-break-inside: avoid; font-size: 14px; }
+  .q-title { margin: 0 0 6px; }
+  .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; padding-left: 18px; }
+  .answer-key { margin-top: 40px; border-top: 1px dashed #999; padding-top: 12px; font-size: 13px; }
+  @media print { .code-badge { position: absolute; } }
+</style>
+</head>
+<body>
+  <div class="code-badge">${t('instructor.exams.printCodeLabel')}: ${data.code}</div>
+  <h1>${data.exam.title}</h1>
+  <p class="meta">${t('instructor.exams.duration')}: ${data.exam.duration || '—'} ${t('instructor.exams.minutes')} &nbsp;|&nbsp; ${t('instructor.exams.passScore')}: ${data.exam.pass_score ?? '—'}</p>
+  <hr>
+  ${rows}
+  <div class="answer-key"><strong>${t('instructor.exams.answerKey')} (${data.code}):</strong> ${answerKey}</div>
+</body>
+</html>`)
+  win.document.close()
+  win.focus()
+  setTimeout(() => win.print(), 400)
+}
+
+async function generatePrint() {
+  if (!printExamId.value) return
+  printing.value = true
+  try {
+    const res = await useApi<{
+      exam: { title: string, duration?: number, pass_score?: number }
+      code: string
+      questions: PrintQuestion[]
+    }>(`/exams/${printExamId.value}/print`, { query: { code: printCode.value } })
+
+    openPrintWindow(res)
+    printExamId.value = null
+  }
+  catch (e: any) {
+    toast.add({ severity: 'error', summary: t('instructor.exams.printError'), detail: e?.data?.message, life: 4000 })
+  }
+  finally {
+    printing.value = false
+  }
 }
 
 async function enrollClass() {
@@ -244,8 +324,6 @@ async function enrollClass() {
     enrolling.value = false
   }
 }
-
-watch(() => form.bank_id, loadQuestions)
 
 onMounted(async () => {
   await Promise.all([loadExams(), loadClasses(), loadBanks()])
@@ -281,13 +359,24 @@ onMounted(async () => {
       <Column field="status" :header="t('instructor.exams.status')" />
       <Column :header="t('instructor.exams.actions')">
         <template #body="{ data }">
-          <Button
-            :label="t('instructor.exams.enrollClass')"
-            size="small"
-            severity="secondary"
-            outlined
-            @click="enrollExamId = data.id"
-          />
+          <div class="row-actions">
+            <Button
+              :label="t('instructor.exams.enrollClass')"
+              size="small"
+              severity="secondary"
+              outlined
+              @click="enrollExamId = data.id"
+            />
+            <Button
+              :label="t('instructor.exams.printExam')"
+              icon="pi pi-print"
+              size="small"
+              severity="secondary"
+              outlined
+              :disabled="!data.quiz"
+              @click="openPrint(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -319,6 +408,10 @@ onMounted(async () => {
           <InputNumber v-model="form.max_attempts" :min="1" :max="99" class="w-full" />
         </label>
         <label class="field">
+          <span>{{ t('instructor.exams.variantCount') }}</span>
+          <InputNumber v-model="form.variant_count" :min="1" :max="26" class="w-full" />
+        </label>
+        <label class="field">
           <span>{{ t('instructor.exams.startsAt') }}</span>
           <DatePicker v-model="form.starts_at" show-time hour-format="24" class="w-full" />
         </label>
@@ -343,44 +436,18 @@ onMounted(async () => {
             </template>
           </Select>
         </label>
-        <label class="field full">
-          <span>{{ t('instructor.exams.questionBank') }}</span>
-          <Select
-            v-model="form.bank_id"
-            :options="banks"
-            option-label="name"
-            option-value="id"
-            filter
-            show-clear
-            class="w-full"
-          />
-        </label>
         <label class="field check">
           <Checkbox v-model="form.proctoring_enabled" :binary="true" input-id="proc" />
           <label for="proc">{{ t('instructor.exams.proctoring') }}</label>
         </label>
       </div>
 
-      <DataTable
-        v-model:selection="selectedQuestions"
-        :value="questions"
-        data-key="id"
-        :loading="loadingQuestions"
-        selection-mode="multiple"
-        paginator
-        :rows="8"
-        class="q-table"
-      >
-        <Column selection-mode="multiple" header-style="width:3rem" />
-        <Column :header="t('instructor.exams.question')">
-          <template #body="{ data }">{{ stripHtml(data.content) }}</template>
-        </Column>
-        <Column field="type" :header="t('instructor.exams.qType')" />
-        <template #empty>
-          <div class="empty">{{ form.bank_id ? t('common.noData') : t('instructor.exams.selectBankFirst') }}</div>
-        </template>
-      </DataTable>
-      <p class="hint">{{ t('instructor.exams.selectedCount', { n: selectedQuestions.length }) }}</p>
+      <QuizQuestionSelector
+        v-model:question-ids="questionIds"
+        v-model:random-rules="randomRules"
+        :banks="banks"
+        :loading-banks="loadingBanks"
+      />
 
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text @click="showCreate = false" />
@@ -405,6 +472,18 @@ onMounted(async () => {
         <Button :label="t('instructor.exams.enroll')" icon="pi pi-users" :loading="enrolling" @click="enrollClass" />
       </template>
     </Dialog>
+
+    <Dialog v-model:visible="printDialog" modal :header="t('instructor.exams.printExam')" style="width:min(420px,95vw)">
+      <label class="field">
+        <span>{{ t('instructor.exams.printCodeLabel') }}</span>
+        <Select v-model="printCode" :options="printCodeOptions" class="w-full" />
+      </label>
+      <p class="hint">{{ t('instructor.exams.printHint') }}</p>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="printExamId = null" />
+        <Button :label="t('instructor.exams.printGenerate')" icon="pi pi-print" :loading="printing" @click="generatePrint" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -421,6 +500,7 @@ onMounted(async () => {
 .field.full { grid-column: 1 / -1; }
 .field.check { flex-direction: row; align-items: center; gap: 8px; grid-column: 1 / -1; }
 .w-full { width: 100%; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .hint { margin: 8px 0 0; color: var(--text-muted); font-size: .84rem; font-weight: 600; }
 @media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } }
 </style>

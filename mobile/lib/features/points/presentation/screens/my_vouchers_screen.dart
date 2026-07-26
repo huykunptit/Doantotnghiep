@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../providers/points_providers.dart';
 import '../../data/models/points_model.dart';
+import '../../../../core/theme/app_typography.dart';
 
 class MyVouchersScreen extends ConsumerStatefulWidget {
   const MyVouchersScreen({super.key});
@@ -266,11 +267,7 @@ class _UserVoucherCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     uv.code,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
+                    style: AppTypography.mono.copyWith(
                       color: isUnused
                           ? const Color(0xFF1565C0)
                           : Colors.grey,

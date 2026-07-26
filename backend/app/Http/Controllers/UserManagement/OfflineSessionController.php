@@ -29,15 +29,18 @@ class OfflineSessionController extends Controller
         $data = $request->validate([
             'title'            => 'required|string|max:255',
             'location'         => 'required|string|max:255',
+            'room'             => 'nullable|string|max:100',
             'start_at'         => 'required|date',
             'duration'         => 'required|integer|min:1',
             'max_participants' => 'nullable|integer|min:1',
             'latitude'         => 'required|numeric|between:-90,90',
             'longitude'        => 'required|numeric|between:-180,180',
+            'check_in_radius_meters' => 'nullable|integer|min:5|max:500',
         ]);
 
         $session = OfflineSession::create([
             ...$data,
+            'check_in_radius_meters' => $data['check_in_radius_meters'] ?? OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS,
             'class_section_id' => $classSection->id,
             'is_active'        => false,
         ]);
@@ -51,17 +54,19 @@ class OfflineSessionController extends Controller
         $data = $request->validate([
             'title'            => 'sometimes|string|max:255',
             'location'         => 'sometimes|string|max:255',
+            'room'             => 'nullable|string|max:100',
             'start_at'         => 'sometimes|date',
             'duration'         => 'sometimes|integer|min:1',
             'max_participants' => 'nullable|integer|min:1',
             'latitude'         => 'sometimes|numeric|between:-90,90',
             'longitude'        => 'sometimes|numeric|between:-180,180',
+            'check_in_radius_meters' => 'sometimes|integer|min:5|max:500',
             'is_active'        => 'sometimes|boolean',
         ]);
 
         $session->update($data);
 
-        return response()->json(['session' => $session]);
+        return response()->json(['session' => $session->fresh()]);
     }
 
     // ─── Instructor: delete session ───────────────────────────────────────────
@@ -72,17 +77,23 @@ class OfflineSessionController extends Controller
     }
 
     // ─── Instructor: generate / refresh QR code ───────────────────────────────
-    public function generateQr(OfflineSession $session): JsonResponse
+    public function generateQr(Request $request, OfflineSession $session): JsonResponse
     {
-        $session->generateQrToken();
+        $ttl = (int) $request->input('ttl_minutes', 5);
+        $session->generateQrToken($ttl);
+
+        // Opening QR implies attendance is open.
+        if (!$session->is_active) {
+            $session->is_active = true;
+            $session->save();
+        }
 
         return response()->json([
             'qr_token'      => $session->qr_token,
             'qr_expires_at' => $session->qr_expires_at->toIso8601String(),
-            'qr_payload'    => json_encode([
-                'session_id' => $session->id,
-                'token'      => $session->qr_token,
-            ]),
+            'qr_payload'    => $session->qrPayload(),
+            'check_in_radius_meters' => $session->checkInRadiusMeters(),
+            'session' => $session->fresh(),
         ]);
     }
 

@@ -70,7 +70,14 @@ class LearnerProfileService
             $skillCounts[$skill] = ($skillCounts[$skill] ?? 0) + 2;
         }
 
-        $gpaCourses = $enrollments->map(fn (Enrollment $e) => [
+        // GPA phải chỉ tính trên CTĐT (học vụ) — loại các ghi danh marketplace (B2C) và
+        // các khóa không tính tín chỉ (is_credit_bearing = false) để không làm sai lệch GPA tích lũy.
+        $academicEnrollments = $enrollments->filter(function (Enrollment $e) {
+            return $e->enrollment_source !== 'marketplace'
+                && (bool) ($e->course?->is_credit_bearing);
+        });
+
+        $gpaCourses = $academicEnrollments->map(fn (Enrollment $e) => [
             'final_score' => $e->final_score,
             'credit_value' => (int) ($e->course->credit_value ?? 0),
         ])->all();

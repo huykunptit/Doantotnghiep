@@ -23,6 +23,11 @@ const submitting = ref(false)
 const error = ref('')
 const examTitle = ref('')
 const proctoring = ref(false)
+const preChecking = ref(true)
+const preCheckError = ref('')
+const requiresFaceCheck = ref(false)
+const hasFaceUrl = ref(false)
+const faceVerified = ref(false)
 const attemptId = ref<number | null>(null)
 const remainingTime = ref<number | null>(null)
 const status = ref('in_progress')
@@ -67,6 +72,41 @@ function typeLabel(type: string) {
     numerical: t('exam.type.num'),
   }
   return map[type] || type
+}
+
+async function runPreCheck() {
+  preChecking.value = true
+  preCheckError.value = ''
+  try {
+    const data = await useApi<{
+      exam: { title: string, proctoring_enabled?: boolean }
+      requires_face_check: boolean
+      has_face_url: boolean
+    }>(`/exams/${examId.value}/pre-check`)
+
+    hasFaceUrl.value = !!data.has_face_url
+    requiresFaceCheck.value = !!data.requires_face_check
+
+    if (requiresFaceCheck.value) {
+      examTitle.value = data.exam?.title || ''
+      preChecking.value = false
+      return
+    }
+
+    await loadExam()
+  }
+  catch (e: any) {
+    preCheckError.value = e?.data?.message || t('exam.faceCheck.preCheckError')
+  }
+  finally {
+    preChecking.value = false
+  }
+}
+
+function onFaceVerified() {
+  faceVerified.value = true
+  requiresFaceCheck.value = false
+  loadExam()
 }
 
 async function loadExam() {
@@ -204,7 +244,7 @@ function unbindProctor() {
   document.removeEventListener('visibilitychange', onVisibility)
 }
 
-onMounted(loadExam)
+onMounted(runPreCheck)
 onBeforeUnmount(() => {
   if (timerInterval) clearInterval(timerInterval)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
@@ -229,7 +269,27 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
-    <div v-if="loading" class="center">{{ t('exam.loading') }}</div>
+    <div v-if="preChecking" class="center">{{ t('exam.faceCheck.checkingAccess') }}</div>
+    <div v-else-if="preCheckError" class="center error-box">
+      <p>{{ preCheckError }}</p>
+      <Button :label="t('exam.backExams')" severity="secondary" @click="navigateTo('/student/exams')" />
+    </div>
+
+    <div v-else-if="requiresFaceCheck && !faceVerified" class="center face-gate">
+      <div class="face-gate-card">
+        <ExamFaceVerification :exam-id="examId" :has-face-url="hasFaceUrl" @verified="onFaceVerified" />
+        <Button
+          v-if="!hasFaceUrl"
+          :label="t('exam.faceCheck.backToExams')"
+          severity="secondary"
+          outlined
+          class="mt"
+          @click="navigateTo('/student/exams')"
+        />
+      </div>
+    </div>
+
+    <div v-else-if="loading" class="center">{{ t('exam.loading') }}</div>
     <div v-else-if="error" class="center error-box">
       <p>{{ error }}</p>
       <Button :label="t('exam.back')" severity="secondary" @click="navigateTo('/student/exams')" />
@@ -330,6 +390,13 @@ onBeforeUnmount(() => {
 .timer.urgent { color: #dc2626; }
 .center { min-height: 60vh; display: grid; place-content: center; gap: 12px; text-align: center; }
 .error-box { color: #b91c1c; }
+.face-gate { padding: 16px; }
+.face-gate-card {
+  width: min(560px, 92vw); text-align: left; padding: 24px;
+  border: 1px solid var(--border, #d7e2df); border-radius: 18px;
+  background: color-mix(in srgb, #fff 96%, transparent);
+}
+.face-gate-card .mt { margin-top: 14px; width: 100%; }
 .exam-body {
   display: grid; grid-template-columns: 88px 1fr; gap: 16px;
   max-width: 1100px; margin: 0 auto; padding: 16px;

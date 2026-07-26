@@ -7,6 +7,7 @@ export interface StudentMenuItem {
 
 export const studentMenu: StudentMenuItem[] = [
   { key: 'dashboard', labelKey: 'student.menu.dashboard', icon: 'pi pi-home', to: '/student' },
+  { key: 'idCard', labelKey: 'student.menu.idCard', icon: 'pi pi-id-card', to: '/student/profile' },
   { key: 'courses', labelKey: 'student.menu.myCourses', icon: 'pi pi-book', to: '/student/courses' },
   { key: 'timetable', labelKey: 'student.menu.timetable', icon: 'pi pi-calendar', to: '/student/timetable' },
   { key: 'exams', labelKey: 'student.menu.exams', icon: 'pi pi-file-edit', to: '/student/exams' },

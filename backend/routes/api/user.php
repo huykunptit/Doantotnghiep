@@ -142,6 +142,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/users/import-preview', [AdminController::class, 'importUsersPreview']);
         Route::post('/users/import-execute', [AdminController::class, 'importUsersExecute']);
         Route::post('/users/bulk-delete', [AdminController::class, 'bulkDestroyUsers']);
+        Route::post('/users/import-faces', [AdminController::class, 'importFaces']);
         Route::get('/students', [AdminController::class, 'listStudents']);
         Route::get('/instructors', [AdminController::class, 'listInstructors']);
         Route::post('/users', [AdminController::class, 'storeUser']);
@@ -191,6 +192,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/academic/class-sections', [EnrollmentManagementController::class, 'storeClassSection']);
         Route::put('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'updateClassSection']);
         Route::delete('/academic/class-sections/{classSection}', [EnrollmentManagementController::class, 'destroyClassSection']);
+
+        // Offline / workshop attendance (QR + geofence)
+        Route::get('/academic/class-sections/{classSection}/sessions', [OfflineSessionController::class, 'index']);
+        Route::post('/academic/class-sections/{classSection}/sessions', [OfflineSessionController::class, 'store']);
+        Route::put('/academic/sessions/{session}', [OfflineSessionController::class, 'update']);
+        Route::delete('/academic/sessions/{session}', [OfflineSessionController::class, 'destroy']);
+        Route::post('/academic/sessions/{session}/qr', [OfflineSessionController::class, 'generateQr']);
+        Route::get('/academic/sessions/{session}/attendance', [OfflineSessionController::class, 'attendanceReport']);
+        Route::get('/academic/class-sections/{classSection}/attendance-stats', [OfflineSessionController::class, 'sectionStats']);
+
         Route::get('/academic/cohorts/{cohort}/students', [EnrollmentManagementController::class, 'students']);
         Route::get('/academic/lnd/reports/class-progress', [EnrollmentManagementController::class, 'classProgressReport']);
         Route::get('/academic/lnd/analytics/overview', [EnrollmentManagementController::class, 'analyticsOverview']);

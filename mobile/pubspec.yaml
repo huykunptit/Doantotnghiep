@@ -31,6 +31,10 @@ dependencies:
   webview_flutter: ^4.7.0
   url_launcher: ^6.2.5
   intl: ^0.19.0
+  mobile_scanner: ^6.0.2
+  geolocator: ^13.0.2
+  permission_handler: ^11.3.1
+  youtube_player_iframe: ^6.0.2
 
 
 dev_dependencies:
@@ -39,6 +43,21 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   riverpod_generator: ^2.6.1
   build_runner: ^2.4.13
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/branding/logo.png"
+  adaptive_icon_background: "#050805"
+  adaptive_icon_foreground: "assets/branding/logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/branding/logo.png"
+    background_color: "#050805"
+    theme_color: "#2F7A4F"
 
 flutter:
   uses-material-design: true

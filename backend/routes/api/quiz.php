@@ -57,10 +57,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/attempts/{attempt}/force-stop', [ExamProctorController::class, 'forceStopAttempt']);
         Route::post('/attempts/{attempt}/extend-time', [ExamProctorController::class, 'extendTime']);
         Route::get('/exams/{exam}/live-monitor', [ExamProctorController::class, 'liveMonitor']);
+        Route::get('/exams/{exam}/print', [ExamController::class, 'printExam']);
     });
 
     // Student exam-taking
     Route::middleware('permission:take_exams')->group(function () {
+        Route::get('/exams/{exam}/pre-check', [QuizController::class, 'examPreCheck']);
+        Route::post('/exams/{exam}/verify-face', [ExamProctorController::class, 'verifyFace']);
         Route::get('/exams/{exam}/start', [QuizController::class, 'startExamQuiz']);
         Route::post('/exams/{exam}/submit', [QuizController::class, 'submitExam']);
         Route::get('/exams/{exam}/results/{attempt}', [QuizController::class, 'examResults']);

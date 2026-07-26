@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/quiz_model.dart';
 import '../../../../core/theme/app_spacing.dart';
 
-class QuestionDisplay extends StatelessWidget {
+class QuestionDisplay extends StatefulWidget {
   const QuestionDisplay({
     super.key,
     required this.question,
@@ -13,6 +13,52 @@ class QuestionDisplay extends StatelessWidget {
   final QuestionModel question;
   final dynamic currentAnswer;
   final ValueChanged<dynamic> onAnswerChanged;
+
+  @override
+  State<QuestionDisplay> createState() => _QuestionDisplayState();
+}
+
+class _QuestionDisplayState extends State<QuestionDisplay> {
+  // Kept alive across rebuilds (instead of recreated on every keystroke) so
+  // the cursor position, composing state (accented input), and focus are
+  // preserved while typing. Reset only when the displayed question changes.
+  TextEditingController? _textController;
+  TextEditingController? _essayController;
+
+  QuestionModel get question => widget.question;
+  dynamic get currentAnswer => widget.currentAnswer;
+  ValueChanged<dynamic> get onAnswerChanged => widget.onAnswerChanged;
+
+  @override
+  void didUpdateWidget(covariant QuestionDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.question.id != widget.question.id) {
+      _disposeControllers();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposeControllers();
+    super.dispose();
+  }
+
+  void _disposeControllers() {
+    _textController?.dispose();
+    _essayController?.dispose();
+    _textController = null;
+    _essayController = null;
+  }
+
+  TextEditingController _ensureTextController() {
+    _textController ??= TextEditingController(text: currentAnswer?.toString() ?? '');
+    return _textController!;
+  }
+
+  TextEditingController _ensureEssayController() {
+    _essayController ??= TextEditingController(text: currentAnswer?.toString() ?? '');
+    return _essayController!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,9 +291,7 @@ class QuestionDisplay extends StatelessWidget {
 
   Widget _buildTextOrNumericalInput(BuildContext context) {
     final theme = Theme.of(context);
-    final initialText = currentAnswer?.toString() ?? '';
-    final controller = TextEditingController(text: initialText);
-    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+    final controller = _ensureTextController();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,9 +324,7 @@ class QuestionDisplay extends StatelessWidget {
 
   Widget _buildEssayInput(BuildContext context) {
     final theme = Theme.of(context);
-    final initialText = currentAnswer?.toString() ?? '';
-    final controller = TextEditingController(text: initialText);
-    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
+    final controller = _ensureEssayController();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

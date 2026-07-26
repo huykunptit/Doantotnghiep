@@ -81,12 +81,19 @@ class DashboardRepository {
     }
   }
 
-  Future<CheckInResultModel> checkIn(int offlineSessionId, {String? deviceInfo}) async {
+  Future<CheckInResultModel> checkIn({
+    required String qrToken,
+    required double latitude,
+    required double longitude,
+    String? deviceInfo,
+  }) async {
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/me/attendance/check-in',
         data: {
-          'offline_session_id': offlineSessionId,
+          'qr_token': qrToken,
+          'latitude': latitude,
+          'longitude': longitude,
           'device_info': deviceInfo,
         },
       );

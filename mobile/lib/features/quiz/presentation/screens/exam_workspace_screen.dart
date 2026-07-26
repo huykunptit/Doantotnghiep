@@ -218,6 +218,7 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
     final isUrgent = state.remainingTime != null && state.remainingTime! < 300;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +310,16 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
           // Scrollable Question Panel
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                // Extra bottom padding so fields near the end (e.g. essay
+                // answers) can still scroll fully above the keyboard even
+                // with the fixed bottom nav bar taking up space.
+                16 + MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

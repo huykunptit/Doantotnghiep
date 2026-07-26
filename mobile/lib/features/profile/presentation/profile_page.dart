@@ -119,6 +119,12 @@ class ProfilePage extends ConsumerWidget {
                     _SectionCard(
                       children: [
                         _NavTile(
+                          icon: Icons.badge_outlined,
+                          iconColor: AppColors.primary600,
+                          title: 'Thẻ sinh viên',
+                          onTap: () => context.push('/id-card'),
+                        ),
+                        _NavTile(
                           icon: Icons.receipt_long_outlined,
                           iconColor: AppColors.secondary600,
                           title: 'Bảng điểm học tập',
