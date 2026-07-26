@@ -10,6 +10,22 @@ interface CourseRec {
   thumbnail?: string | null
   reason?: string
 }
+
+interface ApiCourseRec {
+  id?: number
+  title?: string
+  price?: number
+  thumbnail?: string | null
+  reason?: string
+  course?: {
+    id: number
+    title: string
+    price?: number
+    thumbnail?: string | null
+  }
+  reasons?: string[]
+}
+
 interface EvalSummary {
   has_curriculum?: boolean
   message?: string
@@ -22,7 +38,7 @@ interface EvalSummary {
   }
   strengths?: Array<{ title: string, final_score: number }>
   weaknesses?: Array<{ title: string, final_score: number }>
-  suggested_courses?: CourseRec[]
+  suggested_courses?: ApiCourseRec[]
   suggested_paths?: Array<{ id: number, title: string }>
 }
 
@@ -34,15 +50,44 @@ const tipLoading = ref(false)
 const evaluation = ref<EvalSummary | null>(null)
 const recCourses = ref<CourseRec[]>([])
 
+/** Phân loại theo thang GPA 4.0 (PTIT-style). */
+function classifyGpa(gpa?: number | null) {
+  if (gpa == null || Number.isNaN(gpa)) return 'none'
+  if (gpa >= 3.6) return 'excellent'
+  if (gpa >= 3.2) return 'very_good'
+  if (gpa >= 2.5) return 'good'
+  if (gpa >= 2.0) return 'average'
+  if (gpa >= 1.0) return 'weak'
+  return 'none'
+}
+
+const gpaClassLabel = computed(() => {
+  const key = classifyGpa(evaluation.value?.summary?.overall_gpa)
+  return t(`student.studyAdvisor.gpaClass.${key}`)
+})
+
+function normalizeCourseRec(item: ApiCourseRec): CourseRec | null {
+  const course = item.course
+  const id = course?.id ?? item.id
+  const title = course?.title ?? item.title
+  if (!id || !title) return null
+  return {
+    id,
+    title,
+    price: course?.price ?? item.price,
+    thumbnail: course?.thumbnail ?? item.thumbnail,
+    reason: item.reasons?.[0] || item.reason,
+  }
+}
+
 async function load() {
   loading.value = true
   try {
-    const [evalRes, recRes] = await Promise.all([
-      useApi<EvalSummary>('/me/curriculum-evaluation'),
-      useApi<{ recommendations?: CourseRec[] }>('/me/recommendations/extensions'),
-    ])
+    const evalRes = await useApi<EvalSummary>('/me/curriculum-evaluation')
     evaluation.value = evalRes
-    recCourses.value = recRes.recommendations || evalRes.suggested_courses || []
+    recCourses.value = (evalRes.suggested_courses || [])
+      .map(normalizeCourseRec)
+      .filter((c): c is CourseRec => !!c)
   }
   catch (e: any) {
     toast.add({ severity: 'error', summary: t('student.studyAdvisor.loadError'), detail: e?.data?.message, life: 3500 })
@@ -103,7 +148,7 @@ onMounted(async () => {
         <div class="stats">
           <div><span>{{ t('student.studyAdvisor.completion') }}</span><strong>{{ Math.round((evaluation.summary?.completion_ratio || 0) * 100) }}%</strong></div>
           <div><span>GPA</span><strong>{{ evaluation.summary?.overall_gpa ?? '—' }}</strong></div>
-          <div><span>{{ t('student.studyAdvisor.level') }}</span><strong>{{ evaluation.summary?.level || '—' }}</strong></div>
+          <div><span>{{ t('student.studyAdvisor.level') }}</span><strong>{{ gpaClassLabel }}</strong></div>
         </div>
         <div v-if="evaluation.weaknesses?.length" class="list">
           <h3>{{ t('student.studyAdvisor.weak') }}</h3>

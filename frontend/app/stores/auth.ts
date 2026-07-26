@@ -10,12 +10,12 @@ export const useAuthStore = defineStore('auth', () => {
   const roles = computed(() => user.value?.roles || (user.value?.role ? [user.value.role] : []))
 
   function persist() {
-    useCookie<string | null>('sylva-token', {
+    useCookie<string | null>('eript-token', {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
       sameSite: 'lax',
     }).value = token.value
-    useCookie<AuthUser | null>('sylva-user', {
+    useCookie<AuthUser | null>('eript-user', {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
       sameSite: 'lax',
@@ -23,8 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hydrate() {
-    token.value = useCookie<string | null>('sylva-token').value || null
-    user.value = useCookie<AuthUser | null>('sylva-user').value || null
+    token.value = useCookie<string | null>('eript-token').value || null
+    user.value = useCookie<AuthUser | null>('eript-user').value || null
     ready.value = true
   }
 

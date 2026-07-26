@@ -27,7 +27,7 @@ const FIELD_SAMPLE: Record<string, string> = {
   student_name: 'Nguyễn Văn A',
   course_title: 'Lập trình Web với Laravel & Vue.js',
   issued_date: '20 tháng 06 năm 2026',
-  credential_id: 'SYLVA-2026-000001',
+  credential_id: 'ERIPT-2026-000001',
 }
 
 const props = defineProps<{

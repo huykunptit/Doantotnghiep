@@ -35,8 +35,8 @@ async function loginViaFetch(email: string, password: string) {
   }
   // Persist the same cookies the Pinia store uses
   const maxAge = 60 * 60 * 24 * 7
-  document.cookie = `sylva-token=${encodeURIComponent(data.access_token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
-  document.cookie = `sylva-user=${encodeURIComponent(JSON.stringify(data.user))}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
+  document.cookie = `eript-token=${encodeURIComponent(data.access_token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
+  document.cookie = `eript-user=${encodeURIComponent(JSON.stringify(data.user))}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
   return data
 }
 
@@ -45,7 +45,7 @@ async function submit(event?: Event) {
   error.value = ''
 
   // Prefer Vue-bound values; fall back to native DOM if hydration failed
-  const formEl = document.getElementById('sylva-login-form') as HTMLFormElement | null
+  const formEl = document.getElementById('eript-login-form') as HTMLFormElement | null
   const email
     = form.email
       || (formEl?.querySelector<HTMLInputElement>('input[name="email"]')?.value ?? '')
@@ -95,9 +95,9 @@ async function submit(event?: Event) {
 
 // Attach native listener ASAP so login works before/without Vue hydration
 onMounted(() => {
-  const formEl = document.getElementById('sylva-login-form')
-  if (!formEl || (formEl as any)._sylvaBound) return
-  ;(formEl as any)._sylvaBound = true
+  const formEl = document.getElementById('eript-login-form')
+  if (!formEl || (formEl as any)._eriptBound) return
+  ;(formEl as any)._eriptBound = true
   formEl.addEventListener('submit', (e) => {
     e.preventDefault()
     void submit(e)
@@ -108,18 +108,18 @@ onMounted(() => {
 useHead({
   script: [
     {
-      key: 'sylva-login-boot',
+      key: 'eript-login-boot',
       // Runs on every login page render; no-op once Vue takes over
       children: `
 (function () {
-  if (window.__sylvaLoginBoot) return;
-  window.__sylvaLoginBoot = true;
+  if (window.__eriptLoginBoot) return;
+  window.__eriptLoginBoot = true;
   function boot() {
-    var form = document.getElementById('sylva-login-form');
-    if (!form || form._sylvaBound) return;
-    form._sylvaBound = true;
+    var form = document.getElementById('eript-login-form');
+    if (!form || form._eriptBound) return;
+    form._eriptBound = true;
     var btn = form.querySelector('[data-login-btn]');
-    var errEl = document.getElementById('sylva-login-error');
+    var errEl = document.getElementById('eript-login-error');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -146,8 +146,8 @@ useHead({
           throw new Error((r.data && r.data.message) || 'Email hoặc mật khẩu không chính xác.');
         }
         var maxAge = 60 * 60 * 24 * 7;
-        document.cookie = 'sylva-token=' + encodeURIComponent(r.data.access_token) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
-        document.cookie = 'sylva-user=' + encodeURIComponent(JSON.stringify(r.data.user)) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
+        document.cookie = 'eript-token=' + encodeURIComponent(r.data.access_token) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
+        document.cookie = 'eript-user=' + encodeURIComponent(JSON.stringify(r.data.user)) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
         var roles = (r.data.user && r.data.user.roles) || [];
         var dest = '/student';
         if (roles.indexOf('admin') !== -1) dest = '/admin';
@@ -171,7 +171,7 @@ useHead({
 <template>
   <div class="auth-panel">
     <section class="auth-story">
-      <span class="story-label">Sylva Learning Ecosystem</span>
+      <span class="story-label">Eript Learning Ecosystem</span>
       <h1>Một không gian học tập được thiết kế để phát triển lâu dài.</h1>
       <p>Quản trị đào tạo, nội dung, khảo thí và dữ liệu học tập trên cùng một nền tảng.</p>
       <div class="story-points">
@@ -186,14 +186,14 @@ useHead({
         <div class="auth-heading">
           <span>Chào mừng trở lại</span>
           <h2>Đăng nhập hệ thống</h2>
-          <p>Sử dụng tài khoản Sylva LMS của bạn.</p>
+          <p>Sử dụng tài khoản Eript LMS của bạn.</p>
         </div>
 
         <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
-        <div id="sylva-login-error" class="boot-error" hidden />
+        <div id="eript-login-error" class="boot-error" hidden />
 
         <!-- Native controls so login works before PrimeVue/Vue hydrate -->
-        <form id="sylva-login-form" class="auth-form" method="post" action="#" onsubmit="return false;" @submit.prevent="submit">
+        <form id="eript-login-form" class="auth-form" method="post" action="#" onsubmit="return false;" @submit.prevent="submit">
           <label>
             <span>Email</span>
             <input

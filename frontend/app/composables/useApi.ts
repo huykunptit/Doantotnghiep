@@ -32,7 +32,7 @@ export async function useApi<TResponse = unknown, TBody extends ApiBody = ApiBod
   options: ApiOptions<TBody> = {},
 ) {
   const config = useRuntimeConfig()
-  const tokenCookie = useCookie<string | null>('sylva-token')
+  const tokenCookie = useCookie<string | null>('eript-token')
   const token = options.token === undefined ? tokenCookie.value : options.token
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
@@ -60,7 +60,7 @@ export async function useApiDownload(
   } = {},
 ) {
   const config = useRuntimeConfig()
-  const tokenCookie = useCookie<string | null>('sylva-token')
+  const tokenCookie = useCookie<string | null>('eript-token')
   const params = buildQuery(options.query)
   const qs = params.toString()
   const url = `${config.public.apiBase}${path.startsWith('/') ? path : `/${path}`}${qs ? `?${qs}` : ''}`

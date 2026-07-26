@@ -150,14 +150,23 @@ onMounted(load)
 }
 .card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .thumb {
-  aspect-ratio: 16/10;
+  width: 100%;
+  height: 132px;
+  overflow: hidden;
   display: grid;
   place-items: center;
   background: color-mix(in srgb, var(--brand-soft) 70%, var(--surface));
   color: var(--brand);
   font-size: 1.6rem;
+  flex-shrink: 0;
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
 .body { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; min-width: 0; }
 .cat { color: var(--text-muted); font-size: .75rem; font-weight: 650; text-transform: uppercase; letter-spacing: .04em; }
 .body strong { font-size: .95rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

@@ -63,7 +63,7 @@ function selectLanguage(code: string) {
   currentLang.value = code
   langOpen.value = false
   if (import.meta.client) {
-    localStorage.setItem('sylva-locale', code)
+    localStorage.setItem('eript-locale', code)
   }
 }
 
@@ -166,7 +166,7 @@ onMounted(() => {
   document.addEventListener('keydown', handleEscapeKey)
   if (import.meta.client) {
     unreadPoll = setInterval(fetchUnreadCount, 60_000)
-    const savedLocale = localStorage.getItem('sylva-locale')
+    const savedLocale = localStorage.getItem('eript-locale')
     if (savedLocale) currentLang.value = savedLocale
   }
 })

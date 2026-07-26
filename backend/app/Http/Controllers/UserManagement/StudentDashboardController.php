@@ -148,7 +148,7 @@ class StudentDashboardController extends Controller
 
         $exams = \App\Models\ExamEnrollment::query()
             ->where('user_id', $user->id)
-            ->with('exam:id,title,starts_at,ends_at,duration')
+            ->with('exam:id,title,starts_at,ends_at,duration,room')
             ->get()
             ->map(fn ($e) => $e->exam)
             ->filter()
@@ -158,6 +158,7 @@ class StudentDashboardController extends Controller
                 'starts_at' => $ex->starts_at?->toIso8601String(),
                 'ends_at'   => $ex->ends_at?->toIso8601String(),
                 'duration'  => $ex->duration,
+                'room'      => $ex->room,
             ])
             ->values();
 
@@ -402,7 +403,7 @@ class StudentDashboardController extends Controller
         // Fetch ExamEnrollment for this student
         $enrollments = \App\Models\ExamEnrollment::where('user_id', $user->id)
             ->with([
-                'exam:id,title,description,type,status,duration,pass_score,starts_at,ends_at,proctoring_enabled'
+                'exam:id,title,description,type,status,duration,pass_score,starts_at,ends_at,room,proctoring_enabled'
             ])
             ->get();
 
@@ -458,6 +459,7 @@ class StudentDashboardController extends Controller
                 'pass_score' => $exam->pass_score,
                 'starts_at' => $exam->starts_at ? $exam->starts_at->toIso8601String() : null,
                 'ends_at' => $exam->ends_at ? $exam->ends_at->toIso8601String() : null,
+                'room' => $exam->room,
                 'proctoring_enabled' => $exam->proctoring_enabled,
                 'attempts_count' => $attemptsCount,
                 'best_score' => $bestScore,

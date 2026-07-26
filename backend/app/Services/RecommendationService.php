@@ -243,4 +243,181 @@ class RecommendationService
 
         return $rows;
     }
+
+    /**
+     * Gợi ý cho Cố vấn học tập: ưu tiên môn điểm thấp + môn sắp học trong CTĐT,
+     * kèm khóa bổ trợ (extension) liên quan để củng cố / chuẩn bị.
+     *
+     * @return array<int, array{course: Course, score: int, reasons: array, matched_skills: array, source: string}>
+     */
+    public function recommendForStudyAdvisor(User $user, int $limit = 8): array
+    {
+        $user->loadMissing(['administrativeClass', 'cohort:id,start_year']);
+        $curriculumId = $user->administrativeClass?->curriculum_id;
+        if (!$curriculumId) {
+            return [];
+        }
+
+        $enrollments = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->with(['gradeEntries.component'])
+            ->get()
+            ->keyBy('course_id');
+
+        $curriculumCourses = \App\Models\CurriculumCourse::query()
+            ->where('curriculum_id', $curriculumId)
+            ->with(['course' => fn ($q) => $q->with(['category:id,name,slug', 'instructor:id,name,avatar', 'skills:id,name'])])
+            ->orderBy('term_number')
+            ->orderBy('position')
+            ->get();
+
+        $currentTerm = $this->inferCurrentTermNumber($user);
+        $rows = collect();
+
+        // 1) Môn điểm thấp trong CTĐT
+        foreach ($curriculumCourses as $cc) {
+            $course = $cc->course;
+            if (!$course || $course->status !== 'published') {
+                continue;
+            }
+            $enrollment = $enrollments->get($course->id);
+            $score = $enrollment?->final_score;
+            if ($score === null || (float) $score >= 7.0) {
+                continue;
+            }
+            $rows->push([
+                'course' => $course,
+                'score' => 120 - (int) round((float) $score * 5),
+                'matched_skills' => $course->skills->pluck('name')->all(),
+                'reasons' => [sprintf('Điểm thấp (%.1f/10) — cần củng cố môn CTĐT kỳ %d', (float) $score, (int) $cc->term_number)],
+                'source' => 'weak',
+                'seed_title' => $course->title,
+            ]);
+        }
+
+        // 2) Môn sắp học trên khung CTĐT (kỳ hiện tại / kỳ kế)
+        foreach ($curriculumCourses as $cc) {
+            $course = $cc->course;
+            if (!$course || $course->status !== 'published') {
+                continue;
+            }
+            $term = (int) $cc->term_number;
+            if ($term < $currentTerm || $term > $currentTerm + 1) {
+                continue;
+            }
+            $enrollment = $enrollments->get($course->id);
+            $done = $enrollment && (
+                ($enrollment->progress ?? 0) >= 100
+                || $enrollment->final_score !== null
+            );
+            if ($done) {
+                continue;
+            }
+            $reason = $term === $currentTerm
+                ? sprintf('Sắp / đang học trong CTĐT — kỳ %d', $term)
+                : sprintf('Môn sắp tới trong khung CTĐT — kỳ %d', $term);
+            $rows->push([
+                'course' => $course,
+                'score' => $term === $currentTerm ? 110 : 95,
+                'matched_skills' => $course->skills->pluck('name')->all(),
+                'reasons' => [$reason],
+                'source' => 'upcoming',
+                'seed_title' => $course->title,
+            ]);
+        }
+
+        // 3) Khóa bổ trợ marketplace liên quan điểm thấp / môn sắp tới
+        $seeds = $rows->pluck('seed_title')->filter()->unique()->values();
+        if ($seeds->isNotEmpty()) {
+            $boosts = $this->relatedExtensionCourses($seeds->all(), $enrollments->keys()->all(), $limit);
+            $rows = $rows->concat($boosts);
+        }
+
+        $weak = $rows->where('source', 'weak')->sortByDesc('score')->take(3);
+        $upcoming = $rows->where('source', 'upcoming')->sortByDesc('score')->take(3);
+        $boost = $rows->where('source', 'boost')->sortByDesc('score')->take(2);
+
+        return $weak
+            ->concat($upcoming)
+            ->concat($boost)
+            ->unique(fn ($row) => $row['course']->id)
+            ->take($limit)
+            ->map(function (array $row) {
+                unset($row['seed_title']);
+                return $row;
+            })
+            ->values()
+            ->all();
+    }
+
+    private function inferCurrentTermNumber(User $user): int
+    {
+        $startYear = (int) ($user->cohort?->start_year ?? 2024);
+
+        return $startYear <= 2023 ? 5 : 3;
+    }
+
+    /**
+     * @param  list<string>  $seedTitles
+     * @param  list<int>  $excludeCourseIds
+     */
+    private function relatedExtensionCourses(array $seedTitles, array $excludeCourseIds, int $limit): Collection
+    {
+        $stop = collect([
+            'học', 'phần', 'môn', 'và', 'các', 'cho', 'với', 'của', 'trong', 'nhập', 'cơ', 'sở',
+            'ứng', 'dụng', 'kỳ', 'cuối', 'khóa', 'course', 'plus', 'the', 'and', 'for',
+        ]);
+
+        $tokens = collect($seedTitles)
+            ->flatMap(function (string $title) {
+                $clean = mb_strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $title) ?? $title);
+                return preg_split('/\s+/u', $clean, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            })
+            ->filter(fn ($t) => mb_strlen((string) $t) >= 4 && !$stop->contains($t))
+            ->unique()
+            ->take(24)
+            ->values();
+
+        if ($tokens->isEmpty()) {
+            return collect();
+        }
+
+        $extensions = Course::query()
+            ->where('course_mode', 'extension')
+            ->where('status', 'published')
+            ->whereNotIn('id', $excludeCourseIds)
+            ->with(['skills:id,name', 'category:id,name,slug', 'instructor:id,name,avatar'])
+            ->limit(80)
+            ->get();
+
+        return $extensions->map(function (Course $course) use ($tokens, $seedTitles) {
+            $hay = mb_strtolower(trim(
+                ($course->title ?? '') . ' ' .
+                ($course->slug ?? '') . ' ' .
+                ($course->category?->name ?? '') . ' ' .
+                $course->skills->pluck('name')->implode(' ')
+            ));
+            $hit = $tokens->filter(fn ($t) => str_contains($hay, (string) $t));
+            if ($hit->isEmpty()) {
+                return null;
+            }
+            $related = collect($seedTitles)->first(function (string $seed) use ($hay, $hit) {
+                $seedTokens = preg_split('/\s+/u', mb_strtolower($seed), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                return collect($seedTokens)->contains(fn ($t) => mb_strlen($t) >= 3 && str_contains($hay, $t));
+            }) ?? $seedTitles[0];
+
+            return [
+                'course' => $course,
+                'score' => 40 + ($hit->count() * 12),
+                'matched_skills' => $course->skills->pluck('name')->all(),
+                'reasons' => ['Khóa bổ trợ liên quan: ' . $related],
+                'source' => 'boost',
+                'seed_title' => $related,
+            ];
+        })
+            ->filter()
+            ->sortByDesc('score')
+            ->take(max(2, (int) ceil($limit / 2)))
+            ->values();
+    }
 }

@@ -19,6 +19,7 @@ interface ExamItem {
   starts_at?: string | null
   ends_at?: string | null
   duration?: number | null
+  room?: string | null
 }
 
 const { t } = useI18n()
@@ -95,6 +96,7 @@ onMounted(load)
           <strong>{{ ex.title }}</strong>
           <span class="muted">{{ fmtDateTime(ex.starts_at) }}</span>
           <span v-if="ex.duration" class="muted">· {{ ex.duration }}'</span>
+          <span v-if="ex.room" class="muted">· <i class="pi pi-map-marker" /> {{ ex.room }}</span>
         </div>
       </section>
     </template>

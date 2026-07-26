@@ -58,11 +58,11 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Sylva LMS',
+      title: 'Eript LMS',
       meta: [
         {
           name: 'description',
-          content: 'Sylva LMS — Nền tảng học tập trực tuyến thế hệ mới, thích nghi và nuôi dưỡng tri thức lâu dài theo triết lý Dương Liễu Mộc.',
+          content: 'Eript LMS — Nền tảng học tập trực tuyến thế hệ mới, thích nghi và nuôi dưỡng tri thức lâu dài theo triết lý Dương Liễu Mộc.',
         },
       ],
       link: [

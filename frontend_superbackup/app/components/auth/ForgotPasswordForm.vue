@@ -55,7 +55,7 @@ async function handleSubmit() {
               class="fpf-input"
               type="email"
               name="email"
-              placeholder="hocvien@sylva.edu.vn"
+              placeholder="hocvien@eript.edu.vn"
               autocomplete="email"
               required
             >

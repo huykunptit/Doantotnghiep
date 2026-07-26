@@ -229,7 +229,7 @@ services:
     networks:
       - lms_network
 
-  # ── Cloudflare Tunnel → https://sylva-lms.io.vn ─────────────────────────────
+  # ── Cloudflare Tunnel → https://eript-lms.io.vn ─────────────────────────────
   # Chỉ chạy khi bật profile "public":
   #   docker compose --profile public up -d
   # hoặc:  .\scripts\start-public.ps1

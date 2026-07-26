@@ -1,10 +1,10 @@
 ---
-description: Phạm vi đồ án Sylva LMS — học vụ gọn, học liệu đầy đủ, B2C + cá nhân hoá 3 role
+description: Phạm vi đồ án Eript LMS — học vụ gọn, học liệu đầy đủ, B2C + cá nhân hoá 3 role
 globs: frontend/**/*.{vue,ts},backend/**/*.php,ai-service/**/*.py,mobile/**/*
 alwaysApply: false
 ---
 
-# Thesis scope — Sylva LMS
+# Thesis scope — Eript LMS
 
 Đề tài: học tập trực tuyến **cá nhân hoá** cho đại học + **B2C bán khóa** (doanh thu GV). Cá nhân hoá cho **SV, GV, Admin**.
 

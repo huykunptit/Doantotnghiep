@@ -147,7 +147,7 @@ function toneClasses(tone: string) {
 <template>
   <AdminWorkspaceShell
     title="Bảng điều khiển"
-    :subtitle="`Chào mừng ${adminName} quay trở lại hệ thống quản trị Sylva LMS.`"
+    :subtitle="`Chào mừng ${adminName} quay trở lại hệ thống quản trị Eript LMS.`"
     :breadcrumbs="breadcrumbs"
   >
     <div class="space-y-6">

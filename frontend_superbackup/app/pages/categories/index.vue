@@ -65,7 +65,7 @@ const categoriesWithCounts = computed(() =>
           <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <NuxtLink :to="`/categories/${cat.id}`" class="group block max-w-2xl">
               <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500 shadow-sm">
-                <SylvaIcon :name="categoryIcons[cat.icon] || categoryIcons.default" :size="30" />
+                <EriptIcon :name="categoryIcons[cat.icon] || categoryIcons.default" :size="30" />
               </div>
               <h3 class="text-2xl font-headline font-bold mb-3 text-on-surface group-hover:text-primary transition-colors">{{ cat.name }}</h3>
               <p class="text-on-surface-variant text-sm font-medium flex items-center gap-2">

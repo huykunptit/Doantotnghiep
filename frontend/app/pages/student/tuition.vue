@@ -13,12 +13,25 @@ interface TuitionItem {
   note?: string | null
 }
 
+interface PaymentHistoryItem {
+  id: string
+  type: 'tuition' | 'extension_course' | 'career_path'
+  title: string
+  description?: string | null
+  amount: number
+  status: string
+  payment_method?: string | null
+  payment_ref?: string | null
+  paid_at?: string | null
+}
+
 const { t } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
 const loading = ref(true)
 const paying = ref<number | null>(null)
 const items = ref<TuitionItem[]>([])
+const paymentHistory = ref<PaymentHistoryItem[]>([])
 const totalDue = ref(0)
 const totalPaid = ref(0)
 
@@ -29,8 +42,14 @@ function money(value: number) {
 async function load() {
   loading.value = true
   try {
-    const res = await useApi<{ items: TuitionItem[], total_due: number, total_paid: number }>('/me/tuition')
+    const res = await useApi<{
+      items: TuitionItem[]
+      total_due: number
+      total_paid: number
+      payment_history: PaymentHistoryItem[]
+    }>('/me/tuition')
     items.value = res.items || []
+    paymentHistory.value = res.payment_history || []
     totalDue.value = Number(res.total_due || 0)
     totalPaid.value = Number(res.total_paid || 0)
   }
@@ -49,6 +68,16 @@ function confirmPay(row: TuitionItem) {
     icon: 'pi pi-wallet',
     accept: () => pay(row),
   })
+}
+
+function paymentType(item: PaymentHistoryItem) {
+  return t(`student.tuition.paymentTypes.${item.type}`)
+}
+
+function paymentIcon(item: PaymentHistoryItem) {
+  if (item.type === 'tuition') return 'pi pi-building-columns'
+  if (item.type === 'career_path') return 'pi pi-map'
+  return 'pi pi-book'
 }
 
 async function pay(row: TuitionItem) {
@@ -115,6 +144,33 @@ onMounted(load)
         <span v-else class="muted paid-at">{{ row.paid_at ? new Date(row.paid_at).toLocaleDateString('vi-VN') : '' }}</span>
       </div>
     </div>
+
+    <section class="history">
+      <header class="section-head">
+        <div>
+          <h2>{{ t('student.tuition.historyTitle') }}</h2>
+          <p>{{ t('student.tuition.historySubtitle') }}</p>
+        </div>
+      </header>
+
+      <div v-if="loading" class="empty">…</div>
+      <div v-else-if="!paymentHistory.length" class="empty">{{ t('student.tuition.historyEmpty') }}</div>
+      <div v-else class="history-list">
+        <article v-for="payment in paymentHistory" :key="payment.id" class="history-row">
+          <span class="payment-icon"><i :class="paymentIcon(payment)" /></span>
+          <div class="info">
+            <strong>{{ payment.title }}</strong>
+            <small>{{ payment.description || paymentType(payment) }}</small>
+            <small v-if="payment.payment_ref" class="muted">{{ payment.payment_ref }}</small>
+          </div>
+          <Tag severity="secondary" :value="paymentType(payment)" />
+          <div class="payment-total">
+            <strong>{{ money(payment.amount) }}</strong>
+            <small>{{ payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('vi-VN') : '—' }}</small>
+          </div>
+        </article>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -139,5 +195,27 @@ onMounted(load)
 .amount { font-weight: 800; }
 .muted { color: var(--text-muted); font-weight: 500; }
 .paid-at { font-size: .82rem; }
-@media (max-width: 700px) { .row { grid-template-columns: 1fr auto; } }
+.history { margin-top: 6px; }
+.section-head { margin-bottom: 10px; }
+.section-head h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.section-head p { margin: 0; color: var(--text-muted); font-size: .88rem; font-weight: 500; }
+.history-list { display: grid; gap: 8px; }
+.history-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
+  padding: 13px 16px; border: 1px solid var(--border); border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+.payment-icon {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
+  background: var(--brand-soft); color: var(--brand); font-size: 1rem;
+}
+.info small { display: block; margin-top: 2px; color: var(--text-muted); font-size: .8rem; font-weight: 500; }
+.payment-total { display: grid; justify-items: end; gap: 2px; min-width: 120px; }
+.payment-total strong { color: var(--brand); }
+.payment-total small { color: var(--text-muted); font-size: .78rem; font-weight: 500; }
+@media (max-width: 700px) {
+  .row { grid-template-columns: 1fr auto; }
+  .history-row { grid-template-columns: auto 1fr; }
+  .history-row > .p-tag, .payment-total { grid-column: 2; justify-self: start; justify-items: start; }
+}
 </style>

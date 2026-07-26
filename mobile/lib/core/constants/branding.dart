@@ -1,8 +1,8 @@
 class Branding {
   Branding._();
 
-  static const name = 'Sylva LMS';
-  static const shortName = 'Sylva';
+  static const name = 'Eript LMS';
+  static const shortName = 'Eript';
   static const tagline = 'Học tập thích nghi · Vững tri thức';
 
   static const logoAsset = 'assets/branding/logo.png';

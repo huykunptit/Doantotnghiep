@@ -110,7 +110,7 @@ onMounted(loadCourses)
       <Card class="chat-card">
         <template #content>
           <div ref="messagesEl" class="messages">
-            <div v-if="!messages.length" class="empty-state"><i class="pi pi-sparkles" /><h2>Xin chào! Tôi là trợ lý AI của PTIT Sylva.</h2><p>Hãy hỏi về khóa học, thống kê hệ thống hoặc nội dung học tập.</p></div>
+            <div v-if="!messages.length" class="empty-state"><i class="pi pi-sparkles" /><h2>Xin chào! Tôi là trợ lý AI của PTIT Eript.</h2><p>Hãy hỏi về khóa học, thống kê hệ thống hoặc nội dung học tập.</p></div>
             <template v-else>
               <div v-for="(message, index) in messages" :key="index" class="message-row" :class="{ user: message.role === 'user' }">
                 <span class="avatar"><i class="pi" :class="message.role === 'assistant' ? 'pi-sparkles' : 'pi-user'" /></span>

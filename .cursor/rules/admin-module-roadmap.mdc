@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Admin module roadmap
 
-Thiết kế theo contract `sylva-admin-crud.mdc`. UI + API + fix trong cùng vòng.
+Thiết kế theo contract `eript-admin-crud.mdc`. UI + API + fix trong cùng vòng.
 
 ## Trạng thái
 

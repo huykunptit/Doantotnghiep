@@ -607,7 +607,7 @@ async function uploadLessonVideo(lessonId: number) {
   videoUploadProgress.value = 0
   videoUploadError.value = ''
 
-  const token = useCookie<string | null>('sylva-token').value
+  const token = useCookie<string | null>('eript-token').value
   const base = String(runtimeConfig.public.apiBase || '').replace(/\/$/, '')
   const url = `${base}/courses/${courseId.value}/lessons/${lessonId}/upload-video`
 

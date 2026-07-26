@@ -19,7 +19,7 @@ class OfflineSyncManager {
   final SecureStorageService storage;
   final Dio dio;
 
-  static const _mutationsKey = 'sylva_offline_mutations';
+  static const _mutationsKey = 'eript_offline_mutations';
 
   Future<void> queueMutation({
     required String method,

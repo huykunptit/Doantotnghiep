@@ -127,7 +127,7 @@ class UserSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                     'avatar' => 'https://i.pravatar.cc/300?img=' . (40 + $n),
-                    'bio' => "Sinh viên ngành đào tạo tại Học viện, tham gia học tập trên Sylva LMS.",
+                    'bio' => "Sinh viên ngành đào tạo tại Học viện, tham gia học tập trên Eript LMS.",
                 ]
             );
             $user->syncRoles(['student']);

@@ -26,6 +26,28 @@ const continueList = computed(() =>
   enrollments.value.filter(e => e.course).slice(0, 4),
 )
 
+const FALLBACK_THUMBS = [
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&q=80',
+  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80',
+  'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&q=80',
+  'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&q=80',
+  'https://images.unsplash.com/photo-1547658719-da2b51169166?w=600&q=80',
+  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600&q=80',
+  'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&q=80',
+  'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&q=80',
+]
+
+function thumbFor(course?: { id?: number, title?: string, thumbnail?: string | null } | null) {
+  if (course?.thumbnail) return course.thumbnail
+  const title = (course?.title || '').toLowerCase()
+  if (title.includes('trí tuệ') || title.includes('ai')) return FALLBACK_THUMBS[3]
+  if (title.includes('mạng')) return FALLBACK_THUMBS[2]
+  if (title.includes('phần mềm') || title.includes('lập trình')) return FALLBACK_THUMBS[1]
+  if (title.includes('web')) return FALLBACK_THUMBS[4]
+  const id = course?.id || 0
+  return FALLBACK_THUMBS[id % FALLBACK_THUMBS.length]
+}
+
 async function load() {
   loading.value = true
   try {
@@ -77,12 +99,14 @@ onMounted(() => {
           class="card"
           @click="navigateTo(`/learn/${item.course!.id}`)"
         >
-          <img v-if="item.course?.thumbnail" :src="item.course.thumbnail" alt="">
+          <div class="thumb">
+            <img :src="thumbFor(item.course)" :alt="item.course?.title || ''">
+          </div>
           <div class="copy">
             <strong>{{ item.course?.title }}</strong>
             <span>{{ t('student.dashboard.progress', { n: item.progress || 0 }) }}</span>
           </div>
-          <i class="pi pi-play-circle" />
+          <i class="pi pi-play-circle play" />
         </button>
       </div>
     </section>
@@ -109,15 +133,20 @@ onMounted(() => {
 .panel-head { margin-bottom: 10px; }
 .cards { display: grid; gap: 8px; }
 .card {
-  display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; width: 100%;
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%;
   padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle);
   color: var(--text); font: inherit; text-align: left; cursor: pointer;
 }
 .card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
-.card img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; }
+.thumb { width: 56px; height: 56px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--surface-subtle); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.copy span { color: var(--text-muted); font-size: .85rem; font-weight: 500; }
+.copy strong {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 700;
+}
+.copy span { color: var(--text-muted); font-size: .85rem; font-weight: 500; white-space: nowrap; }
+.play { font-size: 1.25rem; color: var(--brand); }
 .empty { color: var(--text-muted); }
 .mt { margin-top: 8px; }
 </style>

@@ -24,7 +24,7 @@ const TEMPLATES: EmailTemplate[] = [
     id: 'welcome',
     name: 'Chào mừng đăng ký',
     trigger: 'Khi người dùng đăng ký tài khoản mới',
-    subject: 'Chào mừng bạn đến với Sylva LMS!',
+    subject: 'Chào mừng bạn đến với Eript LMS!',
     description: 'Gửi ngay sau khi đăng ký thành công, hướng dẫn người dùng xác minh email.',
     variables: ['{{user_name}}', '{{verify_url}}', '{{site_name}}'],
     bodyHtml: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
