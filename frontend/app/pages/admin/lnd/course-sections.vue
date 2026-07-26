@@ -439,7 +439,7 @@ onMounted(async () => {
         </label>
         <label class="field full">
           <span>{{ t('admin.sections.description') }}</span>
-          <Textarea v-model="form.description" rows="3" class="w-full" />
+          <CommonRichTextEditor v-model="form.description" height="180px" />
         </label>
       </div>
       <template #footer>

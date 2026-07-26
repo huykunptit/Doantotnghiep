@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
             @click="markOne(item)"
           >
             <strong>{{ item.title || t('student.notif.untitled') }}</strong>
-            <span>{{ item.message }}</span>
+            <span class="rich" v-html="item.message || ''" />
             <small>{{ formatTime(item.created_at) }}</small>
           </li>
         </ul>

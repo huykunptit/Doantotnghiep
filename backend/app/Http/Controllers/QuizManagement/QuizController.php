@@ -31,7 +31,7 @@ class QuizController extends Controller
         $user = $request->user();
 
         // Basic permission check
-        $isOwner = $user && ($user->hasRole('admin') || $course->user_id === $user->id);
+        $isOwner = $user && (\App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id);
         $isEnrolled = $user && Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
@@ -103,15 +103,15 @@ class QuizController extends Controller
         if ($exam->isCourseExam()) {
             $isEnrolled = Enrollment::where('user_id', $user->id)
                 ->where('course_id', $exam->course_id)->exists();
-            abort_unless($isEnrolled || $user->hasRole('admin'), 403, 'Bạn chưa đăng ký khóa học này.');
+            abort_unless($isEnrolled || \App\Support\Authorize::isAdmin($user), 403, 'Bạn chưa đăng ký khóa học này.');
         } else {
             $isEnrolled = ExamEnrollment::where('exam_id', $exam->id)
                 ->where('user_id', $user->id)->exists();
-            abort_unless($isEnrolled || $user->hasRole('admin'), 403, 'Bạn chưa được gán vào kỳ thi này.');
+            abort_unless($isEnrolled || \App\Support\Authorize::isAdmin($user), 403, 'Bạn chưa được gán vào kỳ thi này.');
         }
 
         // Check if exam is open
-        if (!$exam->isOpen() && !$user->hasRole('admin')) {
+        if (!$exam->isOpen() && !\App\Support\Authorize::isAdmin($user)) {
             return response()->json(['message' => 'Kỳ thi chưa mở hoặc đã đóng.'], 422);
         }
 
@@ -126,7 +126,7 @@ class QuizController extends Controller
             ->whereIn('status', ['submitted', 'force_stopped'])
             ->count();
 
-        if ($attemptCount >= ($exam->max_attempts ?? 1) && !$user->hasRole('admin')) {
+        if ($attemptCount >= ($exam->max_attempts ?? 1) && !\App\Support\Authorize::isAdmin($user)) {
             return response()->json([
                 'message'      => 'Bạn đã hết lượt thi.',
                 'max_attempts' => $exam->max_attempts,
@@ -192,7 +192,7 @@ class QuizController extends Controller
     {
         $user = $request->user();
 
-        if (!$user || (!$user->hasRole('admin') && $course->user_id !== $user->id) || $lesson->course_id !== $course->id) {
+        if (!$user || (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) || $lesson->course_id !== $course->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -277,7 +277,7 @@ class QuizController extends Controller
     public function showExamQuiz(Request $request, Course $course, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_if(!$user || (!$user->hasRole('admin') && $course->user_id !== $user->id), 403);
+        abort_if(!$user || (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id), 403);
         abort_if($exam->course_id !== $course->id, 404);
 
         $quiz = Quiz::where('exam_id', $exam->id)
@@ -298,7 +298,7 @@ class QuizController extends Controller
     public function storeOrUpdateExamQuiz(Request $request, Course $course, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_if(!$user || (!$user->hasRole('admin') && $course->user_id !== $user->id), 403);
+        abort_if(!$user || (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id), 403);
         abort_if($exam->course_id !== $course->id, 404);
 
         $validated = $request->validate([
@@ -344,7 +344,7 @@ class QuizController extends Controller
     public function showStandaloneExamQuiz(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
         abort_unless($exam->isStandalone(), 404);
 
         $quiz = Quiz::where('exam_id', $exam->id)->where('scope', 'exam')->first();
@@ -361,7 +361,7 @@ class QuizController extends Controller
     public function storeOrUpdateStandaloneExamQuiz(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
         abort_unless($exam->isStandalone(), 404);
 
         $validated = $request->validate([
@@ -452,7 +452,7 @@ class QuizController extends Controller
         // Apply review options filtering
         $responseData = json_decode($result->getContent(), true);
 
-        if (!$user->hasRole('admin') && $exam->review_options) {
+        if (!\App\Support\Authorize::isAdmin($user) && $exam->review_options) {
             $reviewOpts = $exam->review_options['after_submit'] ?? [];
 
             if (!($reviewOpts['marks'] ?? true)) {
@@ -477,7 +477,7 @@ class QuizController extends Controller
         $user = $request->user();
         abort_unless($user, 403);
 
-        $isOwner = $user->hasRole('admin') || $exam->created_by === $user->id;
+        $isOwner = \App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id;
         $isStudent = $attempt->user_id === $user->id;
         abort_unless($isOwner || $isStudent, 403);
         abort_unless($attempt->isCompleted(), 422);

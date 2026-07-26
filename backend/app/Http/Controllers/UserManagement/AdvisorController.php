@@ -21,7 +21,7 @@ class AdvisorController extends Controller
     public function advisees(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['advisor', 'admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, 'advise_students')) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -69,7 +69,7 @@ class AdvisorController extends Controller
     public function atRisk(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['advisor', 'admin'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, 'advise_students')) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -78,7 +78,8 @@ class AdvisorController extends Controller
             ?? Term::latest('id')->first();
 
         $studentsQuery = User::query()->whereNotNull('cohort_id');
-        if ($user->hasRole('advisor')) {
+        // Non-admin advisors only see their own advisees
+        if (!\App\Support\Authorize::isAdmin($user)) {
             $studentsQuery->where('advisor_id', $user->id);
         }
         $students = $studentsQuery->select('id', 'name', 'email', 'student_code', 'cohort_id', 'advisor_id')

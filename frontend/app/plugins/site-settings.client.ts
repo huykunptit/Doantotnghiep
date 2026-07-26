@@ -1,4 +1,5 @@
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(() => {
   const { load } = useSiteSettings()
-  await load().catch(() => undefined)
+  // Non-blocking: never stall route mount (e.g. Google OAuth return page).
+  load().catch(() => undefined)
 })

@@ -428,7 +428,7 @@ onMounted(async () => {
         </label>
         <label class="full">
           <span>{{ t('admin.careerPaths.fieldDescription') }}</span>
-          <Textarea v-model="form.description" rows="3" class="w-full" auto-resize />
+          <CommonRichTextEditor v-model="form.description" height="180px" />
         </label>
         <label>
           <span>{{ t('admin.careerPaths.fieldRole') }}</span>

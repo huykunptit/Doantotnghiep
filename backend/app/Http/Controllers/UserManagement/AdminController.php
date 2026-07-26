@@ -861,6 +861,8 @@ class AdminController extends Controller
         $role->syncPermissions($validated['permissions']);
         $role->load('permissions');
 
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
         return response()->json([
             'message' => 'Role permissions updated successfully',
             'role' => $role,

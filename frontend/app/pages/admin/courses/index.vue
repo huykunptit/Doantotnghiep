@@ -322,7 +322,7 @@ onMounted(load)
       <p class="hint">{{ t('admin.courseReview.rejectHint', { title: selected?.title || '' }) }}</p>
       <label class="field">
         <span>{{ t('admin.courseReview.reason') }}</span>
-        <Textarea v-model="rejectReason" rows="4" class="w-full" :placeholder="t('admin.courseReview.reasonPh')" />
+        <CommonRichTextEditor v-model="rejectReason" height="180px" :placeholder="t('admin.courseReview.reasonPh')" />
       </label>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text @click="rejectOpen = false" />

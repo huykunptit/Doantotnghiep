@@ -94,6 +94,20 @@ sudo docker compose up -d
 
 > File `.env` của backend được tự động tạo từ `.env.example` khi container khởi động.
 
+### Public ra domain Cloudflare (`sylva-lms.io.vn`)
+
+Đã gắn **Cloudflare Tunnel** (profile `public`). Không cần mở port router.
+
+1. Tạo tunnel trên Cloudflare Zero Trust → Public Hostname `sylva-lms.io.vn` → `http://nginx:80`
+2. Dán token vào file `.env` gốc: `CLOUDFLARE_TUNNEL_TOKEN=...`
+3. Chạy:
+   ```powershell
+   .\scripts\start-public.ps1
+   ```
+   hoặc `docker compose --profile public up -d`
+
+Chi tiết: `docs/cloudflare-tunnel.md` → site tại **https://sylva-lms.io.vn**
+
 ### Bước 3: Truy cập ứng dụng
 
 ---
@@ -138,7 +152,8 @@ flutter run
 
 | Service | Container | Cổng host | Truy cập | Ghi chú |
 |---|---|---|---|---|
-| **Nginx** (Entry point) | `lms_nginx` | `80` | http://localhost | Proxy toàn bộ traffic |
+| **Nginx** (Entry point) | `lms_nginx` | `80` | http://localhost · https://sylva-lms.io.vn (tunnel) | Proxy toàn bộ traffic |
+| **Cloudflare Tunnel** | `lms_cloudflared` | — | profile `public` | Public domain qua CF |
 | **Frontend** (Nuxt) | `lms_frontend` | _(internal)_ | http://localhost/ | Qua nginx |
 | **Backend** (Laravel) | `lms_backend` | _(internal)_ | http://localhost/api | Qua nginx |
 | **AI Service** (FastAPI) | `lms_ai_service` | `8001` | http://localhost:8001 | REST API trực tiếp |
@@ -146,7 +161,7 @@ flutter run
 | **n8n** (Automation) | `lms_n8n` | `5678` | http://localhost:5678 | Workflow automation |
 | **MinIO Console** | `lms_minio` | `9001` | http://localhost:9001 | Quản lý object storage |
 | **MinIO API** | `lms_minio` | `9000` | http://localhost:9000 | S3-compatible API |
-| **MySQL** | `lms_mysql` | `3308` | `localhost:3308` | Kết nối qua client |
+| **MySQL** | `lms_mysql` | `3306` | `localhost:3306` | Kết nối qua client |
 | **Redis** | `lms_redis` | `6379` | `localhost:6379` | Cache & Queue |
 | **MongoDB** | `lms_mongodb` | `27017` | `localhost:27017` | Chat history |
 

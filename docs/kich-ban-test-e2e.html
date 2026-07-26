@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sylva LMS — Kịch bản test E2E (tick + ghi chú)</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #fff;
+      --text: #1a2332;
+      --muted: #5a6a7a;
+      --border: #d8e0e8;
+      --brand: #1a7a4c;
+      --brand-soft: #e8f5ee;
+      --warn: #b45309;
+      --danger: #b91c1c;
+      --pass: #15803d;
+      --fail: #b91c1c;
+      --skip: #64748b;
+      --shadow: 0 1px 3px rgba(16, 24, 40, .08), 0 4px 16px rgba(16, 24, 40, .04);
+      --radius: 12px;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #d9f0e4 0%, transparent 55%),
+        radial-gradient(900px 400px at 100% 0%, #e8eef8 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 18px 80px; }
+
+    /* Sticky toolbar */
+    .toolbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      padding: 10px 12px; margin: -8px -8px 20px;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .toolbar .spacer { flex: 1; min-width: 8px; }
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font: inherit; font-size: .875rem; font-weight: 600;
+      padding: 7px 12px; border-radius: 8px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { border-color: #a8b8c8; background: #f8fafc; }
+    .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn.primary:hover { filter: brightness(.95); }
+    .btn.danger { color: var(--danger); border-color: #fecaca; }
+    .progress-pill {
+      font-size: .8rem; font-weight: 700; padding: 6px 10px; border-radius: 999px;
+      background: var(--brand-soft); color: var(--brand);
+      white-space: nowrap;
+    }
+
+    header.hero {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    header.hero h1 { margin: 0 0 6px; font-size: 1.45rem; letter-spacing: -.02em; }
+    header.hero .sub { margin: 0; color: var(--muted); font-size: .92rem; }
+    .meta-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      margin-top: 16px;
+    }
+    label.field { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--brand); }
+    label.field input, label.field select, label.field textarea,
+    .note, .section-note {
+      font: inherit; font-size: .9rem; font-weight: 500; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+      background: #fff; width: 100%;
+    }
+    label.field input:focus, label.field select:focus, label.field textarea:focus,
+    .note:focus, .section-note:focus {
+      outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent);
+      border-color: var(--brand);
+    }
+
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px;
+      font-size: .82rem; color: var(--muted);
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.pass { background: var(--pass); }
+    .dot.fail { background: var(--fail); }
+    .dot.skip { background: var(--skip); }
+    .dot.pend { background: #cbd5e1; }
+
+    .toc {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 18px; margin-bottom: 18px;
+      box-shadow: var(--shadow);
+    }
+    .toc h2 { margin: 0 0 8px; font-size: 1rem; }
+    .toc ol { margin: 0; padding-left: 1.2rem; columns: 2; gap: 24px; }
+    .toc a { color: var(--brand); text-decoration: none; font-size: .88rem; }
+    .toc a:hover { text-decoration: underline; }
+    @media (max-width: 720px) { .toc ol { columns: 1; } }
+
+    .matrix {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px; margin-bottom: 18px;
+      box-shadow: var(--shadow); overflow-x: auto;
+    }
+    .matrix h2 { margin: 0 0 10px; font-size: 1rem; }
+    .matrix table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .matrix th, .matrix td { border: 1px solid var(--border); padding: 6px 8px; text-align: center; }
+    .matrix th:first-child, .matrix td:first-child { text-align: left; font-weight: 600; }
+    .matrix th { background: #f8fafc; }
+
+    section.mod {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    section.mod > summary,
+    .mod-head {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 14px 16px;
+      background: linear-gradient(180deg, #fafbfc, #f3f6f8);
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; list-style: none; user-select: none;
+    }
+    .mod-head h2 { margin: 0; font-size: 1.05rem; flex: 1; }
+    .mod-count {
+      font-size: .75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      background: #eef2f6; color: var(--muted);
+    }
+    .mod-count.done { background: var(--brand-soft); color: var(--brand); }
+    .mod-body { padding: 8px 12px 14px; }
+
+    .group-title {
+      margin: 14px 4px 8px;
+      font-size: .78rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .04em; color: var(--muted);
+    }
+
+    .case {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 8px 0;
+      background: #fff;
+      transition: border-color .15s, background .15s;
+    }
+    .case.is-pass { border-color: #86efac; background: #f0fdf4; }
+    .case.is-fail { border-color: #fca5a5; background: #fef2f2; }
+    .case.is-skip { border-color: #cbd5e1; background: #f8fafc; opacity: .85; }
+    .case-top {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+    .case-check {
+      width: 18px; height: 18px; margin-top: 3px; accent-color: var(--brand); cursor: pointer;
+    }
+    .case-title { font-size: .92rem; font-weight: 650; }
+    .case-id {
+      font-family: var(--mono); font-size: .72rem; font-weight: 600;
+      color: var(--muted); margin-right: 6px;
+    }
+    .case-flow {
+      margin: 4px 0 0; font-size: .8rem; color: var(--muted); line-height: 1.45;
+    }
+    .case-flow strong { color: var(--text); font-weight: 650; }
+    .badge {
+      display: inline-block; font-size: .68rem; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px; margin-right: 4px;
+      vertical-align: middle;
+    }
+    .b-admin { background: #ede9fe; color: #5b21b6; }
+    .b-inst { background: #e0f2fe; color: #075985; }
+    .b-stu { background: #dcfce7; color: #166534; }
+    .b-mob { background: #ffedd5; color: #9a3412; }
+    .b-pub { background: #f1f5f9; color: #334155; }
+    .b-neg { background: #fee2e2; color: #991b1b; }
+
+    .verdict {
+      display: flex; gap: 4px; flex-shrink: 0;
+    }
+    .verdict button {
+      border: 1px solid var(--border); background: #fff; border-radius: 6px;
+      padding: 4px 8px; font-size: .72rem; font-weight: 700; cursor: pointer; color: var(--muted);
+    }
+    .verdict button.active-pass { background: #dcfce7; color: var(--pass); border-color: #86efac; }
+    .verdict button.active-fail { background: #fee2e2; color: var(--fail); border-color: #fca5a5; }
+    .verdict button.active-skip { background: #e2e8f0; color: var(--skip); border-color: #94a3b8; }
+
+    .note {
+      margin-top: 8px; min-height: 38px; resize: vertical;
+      font-size: .85rem !important;
+    }
+    .note::placeholder { color: #94a3b8; }
+
+    .section-note-wrap { margin: 10px 4px 4px; }
+    .section-note-wrap label {
+      display: block; font-size: .75rem; font-weight: 700; color: var(--muted); margin-bottom: 4px;
+    }
+    .section-note { min-height: 56px; resize: vertical; }
+
+    .hint {
+      margin: 10px 0 0; padding: 10px 12px; border-radius: 8px;
+      background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+      font-size: .82rem;
+    }
+
+    footer.page-foot {
+      margin-top: 28px; text-align: center; color: var(--muted); font-size: .8rem;
+    }
+
+    /* Print / export view */
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none !important; }
+      .case { break-inside: avoid; }
+      .note, .section-note { border: 1px solid #999; }
+      section.mod { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar" id="toolbar">
+      <span class="progress-pill" id="progressPill">0 / 0 · 0%</span>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="btnExpand">Mở tất cả</button>
+      <button type="button" class="btn" id="btnCollapse">Thu gọn</button>
+      <button type="button" class="btn" id="btnExport">Xuất JSON</button>
+      <button type="button" class="btn" id="btnImport">Nhập JSON</button>
+      <button type="button" class="btn" id="btnPrint">In / PDF</button>
+      <button type="button" class="btn danger" id="btnReset">Xóa tiến độ</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+    </div>
+
+    <header class="hero">
+      <h1>Sylva LMS — Kịch bản test E2E theo phân hệ & liên đới</h1>
+      <p class="sub">
+        Tick từng bước · chọn Pass / Fail / Skip · ghi chú ngay dưới mỗi case.
+        Tiến độ tự lưu trên trình duyệt (localStorage). Khi xong, bấm <strong>Xuất JSON</strong> và gửi lại file để tạo báo cáo test.
+      </p>
+
+      <div class="meta-grid">
+        <label class="field">Người test
+          <input type="text" data-meta="tester" placeholder="Họ tên" />
+        </label>
+        <label class="field">Ngày test
+          <input type="date" data-meta="date" />
+        </label>
+        <label class="field">Môi trường
+          <select data-meta="env">
+            <option value="local-docker">Local Docker (localhost)</option>
+            <option value="staging">Staging</option>
+            <option value="other">Khác</option>
+          </select>
+        </label>
+        <label class="field">Build / phiên bản
+          <input type="text" data-meta="build" placeholder="vd: commit / tag / ngày build" />
+        </label>
+        <label class="field">Web URL
+          <input type="text" data-meta="webUrl" placeholder="http://localhost" />
+        </label>
+        <label class="field">Mobile API base
+          <input type="text" data-meta="mobileApi" placeholder="vd: http://10.0.2.2/api" />
+        </label>
+      </div>
+
+      <label class="field" style="margin-top:10px">Ghi chú chung (môi trường, tài khoản dùng, hạn chế…)
+        <textarea data-meta="generalNote" rows="2" placeholder="vd: Dùng tài khoản admin@lms.com / instructor@… / student@… ; Mobile chạy emulator Android…"></textarea>
+      </label>
+
+      <div class="legend">
+        <span><i class="dot pass"></i> Pass</span>
+        <span><i class="dot fail"></i> Fail</span>
+        <span><i class="dot skip"></i> Skip</span>
+        <span><i class="dot pend"></i> Chưa đánh giá</span>
+        <span><span class="badge b-admin">Admin</span><span class="badge b-inst">GV</span><span class="badge b-stu">HV-Web</span><span class="badge b-mob">Mobile</span></span>
+      </div>
+    </header>
+
+    <nav class="toc">
+      <h2>Mục lục phân hệ</h2>
+      <ol id="tocList"></ol>
+    </nav>
+
+    <div class="matrix">
+      <h2>Ma trận độ phủ (tham chiếu)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Phân hệ</th>
+            <th>Admin Web</th>
+            <th>Giảng viên Web</th>
+            <th>Học viên Web</th>
+            <th>Mobile</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Khóa học &amp; duyệt</td><td>✔</td><td>✔</td><td>xem/học</td><td>xem/học</td></tr>
+          <tr><td>Học liệu 14 loại</td><td>✔</td><td>✔</td><td>học</td><td>học</td></tr>
+          <tr><td>Quiz / Exam &amp; giám thị</td><td>✔</td><td>✔</td><td>thi</td><td>thi</td></tr>
+          <tr><td>Assignment / Chấm điểm</td><td>✔</td><td>✔</td><td>nộp</td><td>nộp</td></tr>
+          <tr><td>Điểm danh QR</td><td>–</td><td>tạo/QR</td><td>–</td><td><strong>check-in</strong></td></tr>
+          <tr><td>Career paths</td><td>✔</td><td>–</td><td>follow/mua</td><td>follow/mua</td></tr>
+          <tr><td>Chứng chỉ</td><td>✔</td><td>–</td><td>nhận/verify</td><td>nhận</td></tr>
+          <tr><td>Points / Voucher</td><td>✔</td><td>–</td><td>đổi</td><td>đổi</td></tr>
+          <tr><td>Thông báo</td><td>broadcast</td><td>–</td><td>nhận</td><td>nhận</td></tr>
+          <tr><td>AI</td><td>cấu hình</td><td>–</td><td>dùng</td><td>dùng</td></tr>
+          <tr><td>Học phí / Thanh toán</td><td>quản lý</td><td>doanh thu</td><td>trả</td><td>trả</td></tr>
+        </tbody>
+      </table>
+      <p class="hint" style="margin-top:12px">
+        <strong>Quy tắc liên đới:</strong> mỗi lần tạo/sửa ở Admin hoặc Giảng viên → kiểm tra đủ 3 điểm chạm:
+        (1) trang quản trị phản ánh đúng · (2) Web học viên · (3) App Mobile.
+        Mobile <em>chỉ có vai trò học viên</em> — không có màn admin/giảng viên.
+      </p>
+    </div>
+
+    <!-- ===================== MODULES ===================== -->
+    <div id="modules"></div>
+
+    <footer class="page-foot">
+      Sylva LMS · Kịch bản test E2E · Xuất JSON sau khi test xong để chuyển thành báo cáo nghiệm thu.
+    </footer>
+  </div>
+
+<script>
+/**
+ * Data model: modules → groups → cases
+ * Each case: { id, title, flow, roles?: string[], negative?: boolean }
+ */
+const MODULES = [
+  {
+    id: "M0",
+    title: "0. Chuẩn bị (Prerequisites)",
+    groups: [
+      {
+        title: "Môi trường & tài khoản",
+        cases: [
+          { id: "M0-01", title: "Docker stack chạy ổn định", flow: "docker compose up -d → http://localhost trả 200 · backend API /api phản hồi · phpMyAdmin :8083 nếu cần đối chiếu DB.", roles: ["admin"] },
+          { id: "M0-02", title: "Có đủ tài khoản 3–4 vai trò", flow: "Admin · Instructor · Student · (Advisor nếu seed có). Ghi email dùng vào Ghi chú chung.", roles: ["admin", "inst", "stu"] },
+          { id: "M0-03", title: "Mobile trỏ đúng API", flow: "Cấu hình mobile/.env (API base) · cài app/emulator · login student thành công.", roles: ["mob"] },
+          { id: "M0-04", title: "Chuẩn bị media mẫu", flow: "1 video, 1 audio, 1 PDF, 1 SCORM .zip, 1 link H5P embed, 1 ảnh nền chứng chỉ.", roles: ["inst"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M1",
+    title: "1. Xác thực & Tài khoản (Auth)",
+    groups: [
+      {
+        title: "Đăng ký / xác minh / đăng nhập",
+        cases: [
+          { id: "M1-01", title: "Đăng ký học viên mới (Web)", flow: "<span class='badge b-stu'>HV-Web</span> /register → nhận mail verify → /verify-email/{id}/{hash} thành công.", roles: ["stu"] },
+          { id: "M1-02", title: "Đăng ký & nhắc verify (Mobile)", flow: "<span class='badge b-mob'>Mobile</span> register_page → verify_email_prompt_page hiện đúng khi chưa xác minh.", roles: ["mob"] },
+          { id: "M1-03", title: "Google OAuth", flow: "Web + Mobile (google_oauth_webview) đăng nhập Google thành công, tạo/map user đúng role.", roles: ["stu", "mob"] },
+          { id: "M1-04", title: "Quên / đặt lại mật khẩu", flow: "/forgot-password → mail → /reset-password → đăng nhập lại được (Web + Mobile).", roles: ["stu", "mob"] },
+        ],
+      },
+      {
+        title: "Phân quyền liên đới",
+        cases: [
+          { id: "M1-05", title: "Đổi quyền Role → ảnh hưởng ngay", flow: "<span class='badge b-admin'>Admin</span> /admin/roles tắt 1 quyền → login lại vai trò đó → chức năng tương ứng biến mất.", roles: ["admin", "inst", "stu"] },
+          { id: "M1-06", title: "Đổi role User Student → Instructor", flow: "<span class='badge b-admin'>Admin</span> /admin/users đổi role → user login lại thấy menu giảng viên.", roles: ["admin", "inst"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M2",
+    title: "2. Danh mục & Khóa học (chuỗi liên đới lõi)",
+    groups: [
+      {
+        title: "Category lan toả",
+        cases: [
+          { id: "M2-01", title: "Admin tạo danh mục X", flow: "<span class='badge b-admin'>Admin</span> /admin/categories tạo \"X\".", roles: ["admin"] },
+          { id: "M2-02", title: "Instructor thấy X khi tạo khóa", flow: "<span class='badge b-inst'>GV</span> form tạo khóa → dropdown danh mục có \"X\".", roles: ["inst"] },
+          { id: "M2-03", title: "Student Web lọc theo X", flow: "<span class='badge b-stu'>HV-Web</span> /courses → bộ lọc danh mục có \"X\".", roles: ["stu"] },
+          { id: "M2-04", title: "Mobile lọc theo X", flow: "<span class='badge b-mob'>Mobile</span> course_catalog_page → filter có \"X\".", roles: ["mob"] },
+        ],
+      },
+      {
+        title: "Flow trạng thái: draft → pending → published",
+        cases: [
+          { id: "M2-05", title: "Instructor tạo khóa (draft)", flow: "<span class='badge b-inst'>GV</span> /instructor/courses tạo khóa mới → trạng thái draft.", roles: ["inst"] },
+          { id: "M2-06", title: "Gửi duyệt (pending)", flow: "<span class='badge b-inst'>GV</span> gửi duyệt → pending. Admin /admin/courses thấy trong hàng chờ.", roles: ["inst", "admin"] },
+          { id: "M2-07", title: "Âm tính: chưa duyệt không lộ ra ngoài", flow: "<span class='badge b-neg'>NEG</span> Student /courses + Mobile catalog <strong>KHÔNG</strong> thấy khóa pending.", roles: ["stu", "mob"], negative: true },
+          { id: "M2-08", title: "Admin duyệt / publish", flow: "<span class='badge b-admin'>Admin</span> approve → khóa published.", roles: ["admin"] },
+          { id: "M2-09", title: "Sau duyệt: Web-student thấy", flow: "<span class='badge b-stu'>HV-Web</span> /courses + /courses/[id] thấy khóa, meta (outcomes/benefits/requirements) render HTML đúng.", roles: ["stu"] },
+          { id: "M2-10", title: "Sau duyệt: Mobile thấy", flow: "<span class='badge b-mob'>Mobile</span> catalog + course_detail_page thấy khóa.", roles: ["mob"] },
+          { id: "M2-11", title: "Nhánh từ chối (reject)", flow: "<span class='badge b-admin'>Admin</span> reject + lý do → Instructor thấy lý do · student/mobile vẫn không thấy.", roles: ["admin", "inst", "stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M3",
+    title: "3. Học liệu / Curriculum (14 loại) → trình học",
+    groups: [
+      {
+        title: "Giảng viên dựng chương trình",
+        cases: [
+          { id: "M3-01", title: "Tạo Section + Lesson đủ loại", flow: "<span class='badge b-inst'>GV</span> tab Chương trình: video, audio, page, file, document, scorm, h5p, quiz, assignment, forum, survey, zoom, meet, virtual_class.", roles: ["inst"] },
+          { id: "M3-02", title: "Upload media (MinIO)", flow: "Upload video/audio/PDF → lưu được · video-url ký hoạt động.", roles: ["inst"] },
+          { id: "M3-03", title: "SCORM / H5P", flow: "Upload SCORM .zip · dán H5P embed URL · lưu package thành công.", roles: ["inst"] },
+          { id: "M3-04", title: "Virtual class (Zoom/Meet)", flow: "joinUrl, meetingId, password, startAt, duration lưu & hiển thị lại khi sửa.", roles: ["inst"] },
+          { id: "M3-05", title: "Rich text mô tả bài / hướng dẫn BT", flow: "Editor (không còn textarea thường) · nội dung HTML lưu & load lại đúng.", roles: ["inst"] },
+        ],
+      },
+      {
+        title: "Học viên tiêu thụ (sau ghi danh)",
+        cases: [
+          { id: "M3-06", title: "Web learn render từng loại", flow: "<span class='badge b-stu'>HV-Web</span> /learn/[courseId]/[lessonId]: player video/audio, PDF, SCORM/H5P, mở link live.", roles: ["stu"] },
+          { id: "M3-07", title: "Mobile lesson player", flow: "<span class='badge b-mob'>Mobile</span> lesson_player_screen phát/mở đúng loại tương ứng.", roles: ["mob"] },
+          { id: "M3-08", title: "Tiến độ đồng bộ Web ↔ Mobile", flow: "Học xong 1 bài trên 1 nền → mở nền kia thấy đã hoàn thành.", roles: ["stu", "mob"] },
+          { id: "M3-09", title: "Ghi chú bài học đồng bộ", flow: "Tạo note trên Web → Mobile thấy (và ngược lại).", roles: ["stu", "mob"] },
+          { id: "M3-10", title: "Attachments tải được", flow: "Instructor thêm đính kèm → student tải được Web + Mobile.", roles: ["inst", "stu", "mob"] },
+          { id: "M3-11", title: "Âm tính: chưa ghi danh bị chặn", flow: "<span class='badge b-neg'>NEG</span> User không enroll → /learn/... bị chặn / không vào được nội dung.", roles: ["stu"], negative: true },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M4",
+    title: "4. Ghi danh (Enrollment) — 3 con đường",
+    groups: [
+      {
+        title: "Tự mua (PayOS)",
+        cases: [
+          { id: "M4-01", title: "Checkout Web", flow: "<span class='badge b-stu'>HV-Web</span> /checkout/[courseId] → PayOS → order paid → khóa vào \"Khóa của tôi\".", roles: ["stu"] },
+          { id: "M4-02", title: "Checkout Mobile", flow: "<span class='badge b-mob'>Mobile</span> checkout_webview_page → thanh toán → my_courses_page có khóa.", roles: ["mob"] },
+        ],
+      },
+      {
+        title: "Admin ghi danh thủ công / import",
+        cases: [
+          { id: "M4-03", title: "Enroll thủ công", flow: "<span class='badge b-admin'>Admin</span> academic/LnD enroll 1 SV → SV thấy khóa không cần trả tiền.", roles: ["admin", "stu", "mob"] },
+          { id: "M4-04", title: "Import ghi danh (preview → execute)", flow: "Số lượng khớp sau import. Test cả import xóa ghi danh.", roles: ["admin"] },
+          { id: "M4-05", title: "Enroll theo cohort (enroll-core)", flow: "Toàn bộ SV trong cohort nhận khóa · kiểm tra 1–2 SV trên Web + Mobile.", roles: ["admin", "stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M5",
+    title: "5. Quiz / Ngân hàng câu hỏi / Kỳ thi",
+    groups: [
+      {
+        title: "Ngân hàng câu hỏi",
+        cases: [
+          { id: "M5-01", title: "Tạo bank + group + câu hỏi", flow: "<span class='badge b-admin'>Admin</span>/<span class='badge b-inst'>GV</span> /admin/question-bank: trắc nghiệm, đúng/sai, tự luận + đính kèm ảnh.", roles: ["admin", "inst"] },
+          { id: "M5-02", title: "Rich text câu hỏi / giải thích", flow: "Nội dung HTML hiển thị đúng khi làm bài (không lòi thẻ).", roles: ["stu", "mob"] },
+        ],
+      },
+      {
+        title: "Kỳ thi & ghi danh thí sinh",
+        cases: [
+          { id: "M5-03", title: "Tạo exam (khóa + standalone)", flow: "Instructor tạo exam trong khóa · Admin tạo exam standalone.", roles: ["inst", "admin"] },
+          { id: "M5-04", title: "Enroll thí sinh (user / lớp)", flow: "enrollUsers + enroll-class theo lớp hành chính.", roles: ["admin", "inst"] },
+          { id: "M5-05", title: "Student thấy kỳ thi được giao", flow: "<span class='badge b-stu'>HV-Web</span> /student/exams · <span class='badge b-mob'>Mobile</span> exam_list + exam_calendar.", roles: ["stu", "mob"] },
+          { id: "M5-06", title: "Âm tính: chưa enroll không thấy thi", flow: "<span class='badge b-neg'>NEG</span> SV không được enroll → không thấy kỳ thi.", roles: ["stu", "mob"], negative: true },
+        ],
+      },
+      {
+        title: "Làm bài & giám thị",
+        cases: [
+          { id: "M5-07", title: "Làm bài Web + Mobile (auto-save)", flow: "/exam/[examId] · exam_workspace_screen · thoát vào lại khôi phục.", roles: ["stu", "mob"] },
+          { id: "M5-08", title: "Live monitor + điều khiển", flow: "<span class='badge b-admin'>Admin</span> /admin/exam-monitor: pause / resume / force-stop / extend-time → phía SV phản ánh ngay.", roles: ["admin", "stu"] },
+          { id: "M5-09", title: "Kết quả sau nộp", flow: "Web /exam/result/[attemptId] · Mobile exam_result_screen.", roles: ["stu", "mob"] },
+          { id: "M5-10", title: "Báo cáo kỳ thi có dữ liệu", flow: "/admin/reports/exams & exam-tracking có attempt vừa tạo.", roles: ["admin"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M6",
+    title: "6. Bài tập (Assignment) & Chấm điểm",
+    groups: [
+      {
+        title: "Nộp bài → chấm → điểm về transcript",
+        cases: [
+          { id: "M6-01", title: "Instructor tạo assignment", flow: "Lesson type assignment + hướng dẫn rich text.", roles: ["inst"] },
+          { id: "M6-02", title: "Student nộp bài", flow: "<span class='badge b-stu'>HV-Web</span> (và Mobile nếu hỗ trợ) nộp file/nội dung.", roles: ["stu", "mob"] },
+          { id: "M6-03", title: "Instructor xem submissions", flow: "indexSubmissions thấy bài nộp.", roles: ["inst"] },
+          { id: "M6-04", title: "Chấm Gradebook → Transcript", flow: "Nhập điểm section → Student transcript Web + Mobile khớp.", roles: ["inst", "stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M7",
+    title: "7. Điểm số / GPA / At-risk",
+    groups: [
+      {
+        title: "Thành phần điểm & GPA",
+        cases: [
+          { id: "M7-01", title: "Cấu hình grade-components", flow: "<span class='badge b-inst'>GV</span> upsert / preset thành phần điểm cho khóa.", roles: ["inst"] },
+          { id: "M7-02", title: "GPA report đúng", flow: "sectionGpaReport tính đúng theo thành phần.", roles: ["inst"] },
+          { id: "M7-03", title: "Student transcript khớp", flow: "/student/transcript · transcript_screen Mobile.", roles: ["stu", "mob"] },
+          { id: "M7-04", title: "Advisor at-risk", flow: "SV điểm thấp xuất hiện /advisor/at-risk.", roles: ["admin", "inst"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M8",
+    title: "8. Lớp offline & Điểm danh QR",
+    groups: [
+      {
+        title: "Buổi học offline → QR → check-in Mobile",
+        cases: [
+          { id: "M8-01", title: "Instructor tạo session", flow: "POST sessions cho class section.", roles: ["inst"] },
+          { id: "M8-02", title: "Sinh QR buổi học", flow: "generateQr → mã/QR hiển thị.", roles: ["inst"] },
+          { id: "M8-03", title: "Student Mobile check-in", flow: "<span class='badge b-mob'>Mobile</span> attendance_screen → /me/attendance/check-in thành công.", roles: ["mob"] },
+          { id: "M8-04", title: "Báo cáo điểm danh cập nhật", flow: "attendanceReport + sectionStats · SV xem lịch sử attendance Web/Mobile.", roles: ["inst", "stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M9",
+    title: "9. Học vụ (LnD / Academic)",
+    groups: [
+      {
+        title: "Cấu trúc học vụ → lộ trình / TKB học viên",
+        cases: [
+          { id: "M9-01", title: "Tạo Term / Curriculum / Cohort / Section / Path / Calendar", flow: "<span class='badge b-admin'>Admin</span> /admin/lnd/* + /admin/academic.", roles: ["admin"] },
+          { id: "M9-02", title: "Gắn khóa vào curriculum", flow: "curricula/{id}/courses → SV theo curriculum thấy lộ trình.", roles: ["admin", "stu"] },
+          { id: "M9-03", title: "Learning path học viên", flow: "/me/learning-path · learning_path_screen Mobile.", roles: ["stu", "mob"] },
+          { id: "M9-04", title: "Thời khóa biểu", flow: "/student/timetable · timetable_screen Mobile phản ánh class section.", roles: ["stu", "mob"] },
+          { id: "M9-05", title: "Báo cáo LnD / analytics", flow: "overview, at-risk, completion-rate, enrollment-by-cohort có số liệu.", roles: ["admin"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M10",
+    title: "10. Lộ trình nghề nghiệp (Career Paths)",
+    groups: [
+      {
+        title: "Admin tạo → public → follow → mua",
+        cases: [
+          { id: "M10-01", title: "Admin tạo path + gắn khóa", flow: "/admin/career-paths + syncCourses.", roles: ["admin"] },
+          { id: "M10-02", title: "Public catalog Web + Mobile", flow: "/paths · /paths/[slug] · paths_catalog + path_detail Mobile.", roles: ["pub", "stu", "mob"] },
+          { id: "M10-03", title: "Follow path", flow: "Follow → /me/career-paths (Web) + provider Mobile ghi nhận.", roles: ["stu", "mob"] },
+          { id: "M10-04", title: "Mua trọn path", flow: "/checkout/path/[slug] → nhận tất cả khóa trong path.", roles: ["stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M11",
+    title: "11. Chứng chỉ (Certificate)",
+    groups: [
+      {
+        title: "Template → cấp → xem → verify công khai",
+        cases: [
+          { id: "M11-01", title: "Admin tạo template + fields", flow: "/admin/certificates.", roles: ["admin"] },
+          { id: "M11-02", title: "Hoàn thành khóa → được cấp", flow: "SV đủ điều kiện nhận chứng chỉ.", roles: ["stu"] },
+          { id: "M11-03", title: "Xem chứng chỉ Web + Mobile", flow: "/student/certificates · certificates_screen.", roles: ["stu", "mob"] },
+          { id: "M11-04", title: "Verify công khai (không login)", flow: "<span class='badge b-pub'>Public</span> /certificates/verify/[credentialId] trả đúng thông tin.", roles: ["pub"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M12",
+    title: "12. Thanh toán / Đơn hàng / Doanh thu",
+    groups: [
+      {
+        title: "Order flow liên đới",
+        cases: [
+          { id: "M12-01", title: "Admin thấy đơn sau mua", flow: "/admin/orders · /admin/reports/payments thống kê đúng.", roles: ["admin"] },
+          { id: "M12-02", title: "Instructor doanh thu cập nhật", flow: "/instructor/revenue · courses/[id]/revenue.", roles: ["inst"] },
+          { id: "M12-03", title: "Payouts", flow: "/admin/payouts chi trả instructor.", roles: ["admin"] },
+          { id: "M12-04", title: "Mobile lịch sử đơn", flow: "order_history_screen.", roles: ["mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M13",
+    title: "13. Tin tức (News CMS)",
+    groups: [
+      {
+        title: "CMS → public",
+        cases: [
+          { id: "M13-01", title: "Admin tạo bài (rich text)", flow: "/admin/news nội dung HTML.", roles: ["admin"] },
+          { id: "M13-02", title: "Public /news + /news/[slug]", flow: "Render HTML đúng, không lòi thẻ.", roles: ["pub", "stu"] },
+          { id: "M13-03", title: "Mobile / Home hiển thị bài mới", flow: "Home hoặc màn tin tức (nếu có) thấy bài.", roles: ["mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M14",
+    title: "14. Thông báo (Notifications)",
+    groups: [
+      {
+        title: "Broadcast → chuông Web + Mobile",
+        cases: [
+          { id: "M14-01", title: "Admin broadcast", flow: "/admin/notifications gửi thông báo rich text.", roles: ["admin"] },
+          { id: "M14-02", title: "Student Web nhận", flow: "Chuông + /student/notifications · unread-count tăng.", roles: ["stu"] },
+          { id: "M14-03", title: "Mobile nhận + badge", flow: "notifications_screen.", roles: ["mob"] },
+          { id: "M14-04", title: "Đánh dấu đã đọc đồng bộ", flow: "Đọc 1 / tất cả → Web ↔ Mobile đồng bộ.", roles: ["stu", "mob"] },
+          { id: "M14-05", title: "Test email SMTP", flow: "Admin test-email thành công.", roles: ["admin"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M15",
+    title: "15. Điểm thưởng / Voucher / Leaderboard",
+    groups: [
+      {
+        title: "Gamification liên đới",
+        cases: [
+          { id: "M15-01", title: "Daily login + quests cộng điểm", flow: "Student nhận điểm đúng rule.", roles: ["stu", "mob"] },
+          { id: "M15-02", title: "Admin tạo voucher → shop học viên", flow: "/admin/vouchers → student shop Web + Mobile thấy.", roles: ["admin", "stu", "mob"] },
+          { id: "M15-03", title: "Đổi voucher → my-vouchers", flow: "/student/points/shop · voucher_shop_screen → my vouchers.", roles: ["stu", "mob"] },
+          { id: "M15-04", title: "Leaderboard đồng nhất", flow: "/student/leaderboard · points_screen Mobile.", roles: ["stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M16",
+    title: "16. AI (Chat / Tutoring / Career Advisor)",
+    groups: [
+      {
+        title: "AI học viên + cấu hình Admin",
+        cases: [
+          { id: "M16-01", title: "AI chat / tutoring", flow: "/student/study-advisor · ai_chat / study_advisor Mobile.", roles: ["stu", "mob"] },
+          { id: "M16-02", title: "Career advisor (CV → recommend)", flow: "Upload/form → evaluate → recommend khóa (Web /career + Mobile).", roles: ["stu", "mob"] },
+          { id: "M16-03", title: "Recommendations extensions", flow: "/me/recommendations/extensions hiện trên Mobile recommendations_section.", roles: ["stu", "mob"] },
+          { id: "M16-04", title: "Admin AI settings ảnh hưởng SV", flow: "/admin/ai đổi provider/quota → phản hồi AI đổi theo.", roles: ["admin", "stu"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M17",
+    title: "17. Review & Hỏi đáp (Q&A)",
+    groups: [
+      {
+        title: "Review / Q&A",
+        cases: [
+          { id: "M17-01", title: "Student viết review sau mua", flow: "Rating + review hiện /courses/[id].", roles: ["stu"] },
+          { id: "M17-02", title: "Admin xóa review vi phạm", flow: "/admin/reviews xóa → biến mất phía student.", roles: ["admin", "stu"] },
+          { id: "M17-03", title: "Q&A hỏi–đáp + reactions", flow: "SV hỏi → GV trả lời → reaction hoạt động.", roles: ["stu", "inst"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M18",
+    title: "18. Học phí (Tuition)",
+    groups: [
+      {
+        title: "Gán học phí → thanh toán",
+        cases: [
+          { id: "M18-01", title: "Gán học phí → SV thấy", flow: "Admin/LnD gán → /student/tuition · tuition_screen Mobile.", roles: ["admin", "stu", "mob"] },
+          { id: "M18-02", title: "Thanh toán học phí", flow: "/me/tuition/{id}/pay → trạng thái cập nhật Web + Mobile.", roles: ["stu", "mob"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "M19",
+    title: "19. Cấu hình hệ thống (toàn cục)",
+    groups: [
+      {
+        title: "Settings / Email / Chat",
+        cases: [
+          { id: "M19-01", title: "Site settings → public", flow: "/admin/settings đổi tên/logo → site-settings public đổi (Web + Mobile header).", roles: ["admin", "pub", "mob"] },
+          { id: "M19-02", title: "Email templates", flow: "/admin/email-templates sửa → mail gửi ra dùng template mới.", roles: ["admin"] },
+          { id: "M19-03", title: "Admin chat", flow: "/admin/chat chat với người dùng hoạt động.", roles: ["admin", "stu"] },
+        ],
+      },
+    ],
+  },
+];
+
+const STORAGE_KEY = "sylva-e2e-test-v1";
+
+function roleBadges(roles = []) {
+  const map = {
+    admin: "b-admin",
+    inst: "b-inst",
+    stu: "b-stu",
+    mob: "b-mob",
+    pub: "b-pub",
+  };
+  return "";
+}
+
+function render() {
+  const root = document.getElementById("modules");
+  const toc = document.getElementById("tocList");
+  root.innerHTML = "";
+  toc.innerHTML = "";
+
+  MODULES.forEach((mod) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="#${mod.id}">${mod.title}</a>`;
+    toc.appendChild(li);
+
+    const details = document.createElement("details");
+    details.className = "mod";
+    details.id = mod.id;
+    details.open = true;
+
+    const summary = document.createElement("summary");
+    summary.className = "mod-head";
+    summary.innerHTML = `<h2>${mod.title}</h2><span class="mod-count" data-mod-count="${mod.id}">0/0</span>`;
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "mod-body";
+
+    mod.groups.forEach((g) => {
+      const gt = document.createElement("div");
+      gt.className = "group-title";
+      gt.textContent = g.title;
+      body.appendChild(gt);
+
+      g.cases.forEach((c) => {
+        const el = document.createElement("div");
+        el.className = "case";
+        el.dataset.caseId = c.id;
+        el.innerHTML = `
+          <div class="case-top">
+            <input type="checkbox" class="case-check" data-field="done" aria-label="Đã kiểm" />
+            <div>
+              <div class="case-title"><span class="case-id">${c.id}</span>${escapeHtml(c.title)}</div>
+              <div class="case-flow">${c.flow}</div>
+            </div>
+            <div class="verdict" role="group" aria-label="Kết quả">
+              <button type="button" data-v="pass" title="Pass">Pass</button>
+              <button type="button" data-v="fail" title="Fail">Fail</button>
+              <button type="button" data-v="skip" title="Skip">Skip</button>
+            </div>
+          </div>
+          <textarea class="note" data-field="note" rows="2" placeholder="Ghi chú: lỗi quan sát, screenshot, ticket, dữ liệu dùng…"></textarea>
+        `;
+        body.appendChild(el);
+      });
+    });
+
+    const sn = document.createElement("div");
+    sn.className = "section-note-wrap";
+    sn.innerHTML = `
+      <label>Ghi chú phân hệ ${mod.id}</label>
+      <textarea class="section-note" data-section-note="${mod.id}" rows="2" placeholder="Tóm tắt phân hệ này: blocker, rủi ro, đề xuất…"></textarea>
+    `;
+    body.appendChild(sn);
+    details.appendChild(body);
+    root.appendChild(details);
+  });
+
+  bindEvents();
+  loadState();
+  updateProgress();
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function bindEvents() {
+  document.querySelectorAll(".case").forEach((el) => {
+    const check = el.querySelector('[data-field="done"]');
+    const note = el.querySelector('[data-field="note"]');
+    const buttons = el.querySelectorAll(".verdict button");
+
+    check.addEventListener("change", () => {
+      if (check.checked && !el.dataset.verdict) setVerdict(el, "pass");
+      saveState();
+      updateProgress();
+    });
+    note.addEventListener("input", debounce(saveState, 300));
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const v = btn.dataset.v;
+        const cur = el.dataset.verdict;
+        setVerdict(el, cur === v ? "" : v);
+        if (el.dataset.verdict === "pass" || el.dataset.verdict === "fail" || el.dataset.verdict === "skip") {
+          check.checked = el.dataset.verdict !== "";
+        }
+        if (!el.dataset.verdict) check.checked = false;
+        saveState();
+        updateProgress();
+      });
+    });
+  });
+
+  document.querySelectorAll("[data-meta]").forEach((inp) => {
+    inp.addEventListener("input", debounce(saveState, 300));
+    inp.addEventListener("change", saveState);
+  });
+  document.querySelectorAll("[data-section-note]").forEach((ta) => {
+    ta.addEventListener("input", debounce(saveState, 300));
+  });
+}
+
+function setVerdict(el, v) {
+  el.dataset.verdict = v || "";
+  el.classList.remove("is-pass", "is-fail", "is-skip");
+  if (v) el.classList.add(`is-${v}`);
+  el.querySelectorAll(".verdict button").forEach((b) => {
+    b.classList.remove("active-pass", "active-fail", "active-skip");
+    if (v && b.dataset.v === v) b.classList.add(`active-${v}`);
+  });
+}
+
+function collectState() {
+  const meta = {};
+  document.querySelectorAll("[data-meta]").forEach((el) => {
+    meta[el.dataset.meta] = el.value;
+  });
+  const sectionNotes = {};
+  document.querySelectorAll("[data-section-note]").forEach((el) => {
+    sectionNotes[el.dataset.sectionNote] = el.value;
+  });
+  const cases = {};
+  document.querySelectorAll(".case").forEach((el) => {
+    cases[el.dataset.caseId] = {
+      done: el.querySelector('[data-field="done"]').checked,
+      verdict: el.dataset.verdict || "",
+      note: el.querySelector('[data-field="note"]').value,
+    };
+  });
+  return {
+    schema: "sylva-e2e-test/v1",
+    exportedAt: new Date().toISOString(),
+    meta,
+    sectionNotes,
+    cases,
+  };
+}
+
+function applyState(state) {
+  if (!state) return;
+  if (state.meta) {
+    Object.entries(state.meta).forEach(([k, v]) => {
+      const el = document.querySelector(`[data-meta="${k}"]`);
+      if (el) el.value = v ?? "";
+    });
+  }
+  if (state.sectionNotes) {
+    Object.entries(state.sectionNotes).forEach(([k, v]) => {
+      const el = document.querySelector(`[data-section-note="${k}"]`);
+      if (el) el.value = v ?? "";
+    });
+  }
+  if (state.cases) {
+    Object.entries(state.cases).forEach(([id, c]) => {
+      const el = document.querySelector(`.case[data-case-id="${id}"]`);
+      if (!el) return;
+      el.querySelector('[data-field="done"]').checked = !!c.done;
+      el.querySelector('[data-field="note"]').value = c.note || "";
+      setVerdict(el, c.verdict || "");
+    });
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+  } catch (e) {
+    console.warn("localStorage save failed", e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) applyState(JSON.parse(raw));
+  } catch (e) {
+    console.warn("localStorage load failed", e);
+  }
+  // default date today if empty
+  const dateEl = document.querySelector('[data-meta="date"]');
+  if (dateEl && !dateEl.value) {
+    dateEl.value = new Date().toISOString().slice(0, 10);
+  }
+}
+
+function updateProgress() {
+  const all = [...document.querySelectorAll(".case")];
+  const total = all.length;
+  let pass = 0, fail = 0, skip = 0, done = 0;
+  all.forEach((el) => {
+    const v = el.dataset.verdict;
+    if (v === "pass") pass++;
+    else if (v === "fail") fail++;
+    else if (v === "skip") skip++;
+    if (el.querySelector('[data-field="done"]').checked || v) done++;
+  });
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById("progressPill").textContent =
+    `${done}/${total} · ${pct}%  (P${pass} / F${fail} / S${skip})`;
+
+  MODULES.forEach((mod) => {
+    const ids = mod.groups.flatMap((g) => g.cases.map((c) => c.id));
+    let d = 0;
+    ids.forEach((id) => {
+      const el = document.querySelector(`.case[data-case-id="${id}"]`);
+      if (!el) return;
+      if (el.dataset.verdict || el.querySelector('[data-field="done"]').checked) d++;
+    });
+    const badge = document.querySelector(`[data-mod-count="${mod.id}"]`);
+    if (badge) {
+      badge.textContent = `${d}/${ids.length}`;
+      badge.classList.toggle("done", d === ids.length && ids.length > 0);
+    }
+  });
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+
+function exportJson() {
+  const state = collectState();
+  // enrich with titles for report generation
+  const catalog = {};
+  MODULES.forEach((m) => {
+    m.groups.forEach((g) => {
+      g.cases.forEach((c) => {
+        catalog[c.id] = { module: m.id, moduleTitle: m.title, group: g.title, title: c.title, flow: c.flow.replace(/<[^>]+>/g, "") };
+      });
+    });
+  });
+  state.catalog = catalog;
+  state.summary = summarize(state);
+
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  const who = (state.meta.tester || "tester").replace(/\s+/g, "_");
+  const day = state.meta.date || new Date().toISOString().slice(0, 10);
+  a.href = URL.createObjectURL(blob);
+  a.download = `sylva-e2e-test-${day}-${who}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function summarize(state) {
+  const cases = Object.values(state.cases || {});
+  return {
+    total: cases.length,
+    pass: cases.filter((c) => c.verdict === "pass").length,
+    fail: cases.filter((c) => c.verdict === "fail").length,
+    skip: cases.filter((c) => c.verdict === "skip").length,
+    pending: cases.filter((c) => !c.verdict).length,
+    withNotes: cases.filter((c) => (c.note || "").trim()).length,
+  };
+}
+
+document.getElementById("btnExport").addEventListener("click", exportJson);
+document.getElementById("btnImport").addEventListener("click", () => document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    applyState(data);
+    saveState();
+    updateProgress();
+    alert("Đã nhập kết quả test từ JSON.");
+  } catch (err) {
+    alert("File JSON không hợp lệ: " + err.message);
+  }
+  e.target.value = "";
+});
+document.getElementById("btnPrint").addEventListener("click", () => window.print());
+document.getElementById("btnReset").addEventListener("click", () => {
+  if (!confirm("Xóa toàn bộ tick / Pass-Fail / ghi chú đã lưu trên trình duyệt này?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.querySelectorAll(".case").forEach((el) => {
+    el.querySelector('[data-field="done"]').checked = false;
+    el.querySelector('[data-field="note"]').value = "";
+    setVerdict(el, "");
+  });
+  document.querySelectorAll("[data-section-note]").forEach((el) => { el.value = ""; });
+  updateProgress();
+});
+document.getElementById("btnExpand").addEventListener("click", () => {
+  document.querySelectorAll("details.mod").forEach((d) => { d.open = true; });
+});
+document.getElementById("btnCollapse").addEventListener("click", () => {
+  document.querySelectorAll("details.mod").forEach((d) => { d.open = false; });
+});
+
+render();
+</script>
+</body>
+</html>

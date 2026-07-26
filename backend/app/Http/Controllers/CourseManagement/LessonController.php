@@ -29,7 +29,7 @@ class LessonController extends Controller
         /** @var \App\Models\User|null $user */
         $user = $request->user() ?? auth('sanctum')->user();
 
-        $isOwner = $user && ($user->hasRole('admin') || $course->user_id === $user->id);
+        $isOwner = $user && (\App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id);
         $isEnrolled = $user && Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
@@ -68,7 +68,7 @@ class LessonController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -111,7 +111,7 @@ class LessonController extends Controller
         /** @var \App\Models\User|null $user */
         $user = $request->user() ?? auth('sanctum')->user();
 
-        $isOwner = $user && ($user->hasRole('admin') || $course->user_id === $user->id);
+        $isOwner = $user && (\App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id);
         $isEnrolled = $user && Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
@@ -157,7 +157,7 @@ class LessonController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -186,7 +186,7 @@ class LessonController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -208,7 +208,7 @@ class LessonController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -315,7 +315,7 @@ class LessonController extends Controller
         /** @var \App\Models\User|null $user */
         $user = $request->user() ?? auth('sanctum')->user();
 
-        $isOwner = $user && ($user->hasRole('admin') || $course->user_id === $user->id);
+        $isOwner = $user && (\App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id);
         $isEnrolled = $user && Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
@@ -344,7 +344,7 @@ class LessonController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

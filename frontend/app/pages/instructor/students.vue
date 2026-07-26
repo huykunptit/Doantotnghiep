@@ -3,7 +3,8 @@ import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'instructor',
-  middleware: ['auth', 'instructor'],
+  middleware: ['auth', 'instructor', 'permission'],
+  permission: ['manage_courses', 'manage_grades'],
 })
 
 interface MyCourse {

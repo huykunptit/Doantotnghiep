@@ -16,7 +16,7 @@ class AiManagementController extends Controller
 {
     private function ensureAdmin(Request $request): ?JsonResponse
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($request->user())) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
         return null;

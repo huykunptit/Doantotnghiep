@@ -22,6 +22,16 @@ const userInitials = computed(() =>
     .toUpperCase() || 'GV',
 )
 
+const { can, canAny, isAdmin } = usePermissions()
+
+const visibleMenu = computed(() =>
+  instructorMenu.filter((item) => {
+    if (!item.permission) return true
+    if (isAdmin.value) return true
+    return Array.isArray(item.permission) ? canAny(item.permission) : can(item.permission)
+  }),
+)
+
 function isActive(to: string) {
   if (to === '/instructor') return route.path === '/instructor'
   return route.path === to || route.path.startsWith(`${to}/`)
@@ -55,7 +65,7 @@ onMounted(() => {
 
     <nav class="nav" :aria-label="t('instructor.console')">
       <NuxtLink
-        v-for="item in instructorMenu"
+        v-for="item in visibleMenu"
         :key="item.key"
         :to="item.to"
         class="link"

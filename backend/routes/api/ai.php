@@ -18,7 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ai/tutoring', [AIChatController::class, 'tutoring']);
 
     // ─── AI Management (Admin) ───
-    Route::prefix('admin/ai')->group(function () {
+    Route::prefix('admin/ai')->middleware('role:admin')->group(function () {
         Route::get('/dashboard', [AiManagementController::class, 'dashboard']);
         Route::put('/settings', [AiManagementController::class, 'updateSettings']);
         Route::post('/reset-quota', [AiManagementController::class, 'resetQuota']);

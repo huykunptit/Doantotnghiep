@@ -25,7 +25,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -76,7 +76,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -181,7 +181,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -199,7 +199,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -235,7 +235,7 @@ class EnrollmentManagementController extends Controller
             });
         }
 
-        if (!$user->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($user)) {
             $activeUnitIds = $this->activeUnitIdsFor($user);
             if ($activeUnitIds->isEmpty()) {
                 $query->whereRaw('1=0');
@@ -260,7 +260,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !\App\Support\Authorize::isAdmin($user)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -286,7 +286,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !\App\Support\Authorize::isAdmin($user)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -311,7 +311,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !\App\Support\Authorize::isAdmin($user)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -325,7 +325,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -394,7 +394,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -529,7 +529,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -583,7 +583,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -605,7 +605,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -734,7 +734,7 @@ class EnrollmentManagementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -766,7 +766,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -933,7 +933,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -961,7 +961,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -1070,7 +1070,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -1109,7 +1109,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -1176,7 +1176,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -1200,7 +1200,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -1252,7 +1252,7 @@ class EnrollmentManagementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

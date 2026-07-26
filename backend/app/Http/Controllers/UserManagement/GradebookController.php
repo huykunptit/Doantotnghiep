@@ -126,7 +126,7 @@ class GradebookController extends Controller
     public function upsertComponents(Request $request, int $courseId): JsonResponse
     {
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -178,7 +178,7 @@ class GradebookController extends Controller
     public function presetComponents(Request $request, int $courseId): JsonResponse
     {
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -277,14 +277,15 @@ class GradebookController extends Controller
     private function canAccess($user, ClassSection $classSection): bool
     {
         if (!$user) return false;
-        if ($user->hasRole('admin')) return true;
-        if ($user->hasAnyRole(['instructor', 'academic_manager'])) {
-            // Instructor can grade only sections they teach.
-            if ($user->hasRole('instructor') && $classSection->lecturer_id !== $user->id) {
-                return false;
-            }
-            return true;
+        if (\App\Support\Authorize::isAdmin($user)) return true;
+        if (!\App\Support\Authorize::allows($user, ['manage_grades', 'view_grades', 'manage_academic'])) {
+            return false;
         }
-        return false;
+        // Instructor can grade only sections they teach (unless academic_manager with manage_academic).
+        if ($user->hasRole('instructor') && !\App\Support\Authorize::allows($user, 'manage_academic')
+            && $classSection->lecturer_id !== $user->id) {
+            return false;
+        }
+        return true;
     }
 }

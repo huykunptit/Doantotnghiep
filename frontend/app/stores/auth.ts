@@ -41,6 +41,38 @@ export const useAuthStore = defineStore('auth', () => {
     return response
   }
 
+  async function googleLoginUrl() {
+    const response = await useApi<{ url: string }>('/auth/google/url', { token: null })
+    return response.url
+  }
+
+  async function loginWithToken(accessToken: string) {
+    // Validate before persisting: the cookie write is async, so the token must be
+    // passed explicitly instead of relying on `useApi` reading it back.
+    const profile = await useApi<AuthUser>('/auth/me', { token: accessToken })
+    token.value = accessToken
+    user.value = profile
+    ready.value = true
+    persist()
+    return { access_token: accessToken, token_type: 'Bearer', user: profile } satisfies AuthResponse
+  }
+
+  async function loginWithGoogle(query: Record<string, string> | string) {
+    const params = typeof query === 'string'
+      ? Object.fromEntries(new URLSearchParams(query.startsWith('?') ? query.slice(1) : query))
+      : query
+
+    const response = await useApi<AuthResponse>('/auth/google/callback', {
+      token: null,
+      query: { ...params, format: 'json' },
+    })
+    token.value = response.access_token
+    user.value = response.user
+    ready.value = true
+    persist()
+    return response
+  }
+
   async function register(payload: {
     name: string
     email: string
@@ -57,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchMe() {
     if (!token.value) return null
     try {
-      user.value = await useApi<AuthUser>('/auth/me')
+      user.value = await useApi<AuthUser>('/auth/me', { token: token.value })
       persist()
       return user.value
     }
@@ -91,6 +123,9 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     hydrate,
     login,
+    googleLoginUrl,
+    loginWithToken,
+    loginWithGoogle,
     register,
     fetchMe,
     logout,

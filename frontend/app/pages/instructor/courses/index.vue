@@ -3,7 +3,8 @@ import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'instructor',
-  middleware: ['auth', 'instructor'],
+  middleware: ['auth', 'instructor', 'permission'],
+  permission: 'manage_courses',
 })
 
 interface CategoryItem { id: number, name: string }
@@ -225,7 +226,7 @@ onMounted(async () => {
         </label>
         <label class="field">
           <span>{{ t('instructor.courses.fieldDesc') }}</span>
-          <Textarea v-model="form.description" rows="3" class="w-full" />
+          <CommonRichTextEditor v-model="form.description" height="180px" />
         </label>
         <label class="field">
           <span>{{ t('instructor.courses.fieldPrice') }}</span>

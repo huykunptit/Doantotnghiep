@@ -281,6 +281,7 @@
     "roles": {
       "title": "Roles & permissions",
       "subtitle": "Thesis roles only: Admin, Instructor, Student. The system admin role is locked.",
+      "superuserNote": "Admin is a superuser: always has full /admin access and bypasses permission checks. Ticks on the Admin column are seed documentation only. Instructor / Student ticks are enforced — after Save, users must log in again to refresh permissions.",
       "permission": "Permission",
       "locked": "Locked",
       "save": "Save changes",
@@ -851,21 +852,42 @@
       "videoNetworkError": "Network error while uploading video",
       "types": {
         "video": "Video",
+        "audio": "Audio",
         "page": "Page",
         "file": "File",
         "document": "Document",
+        "scorm": "SCORM",
+        "h5p": "H5P",
         "quiz": "Quiz",
         "assignment": "Assignment",
-        "scorm": "SCORM"
+        "forum": "Forum",
+        "survey": "Survey",
+        "zoom": "Zoom",
+        "meet": "Google Meet",
+        "virtual_class": "Virtual class"
       },
       "typeHints": {
         "video": "Video lessons (embed or upload).",
+        "audio": "Podcast, listening practice, or pronunciation audio.",
         "page": "HTML/text content to read in-app.",
         "file": "PDF/DOCX or downloadable attachment.",
         "document": "Readable/downloadable document (PDF, DOC…).",
+        "scorm": "SCORM learning package (.zip).",
+        "h5p": "Interactive H5P content (URL or embed).",
         "quiz": "Assessment attached to a lesson.",
-        "assignment": "File submission with instructions and due date."
+        "assignment": "File submission with instructions and due date.",
+        "forum": "Discussion topic between instructor and learners.",
+        "survey": "Survey / collect learner feedback.",
+        "zoom": "Live session via Zoom.",
+        "meet": "Live session via Google Meet.",
+        "virtual_class": "Live virtual classroom (Zoom/Meet)."
       },
+      "pickGroupContent": "Content",
+      "pickGroupActivity": "Activities",
+      "pickGroupLive": "Live",
+      "curriculumIdle": "Select a lesson on the left, or add a new lesson to a section.",
+      "tabCurriculum": "Course curriculum",
+      "tabInfo": "General information",
       "fields": {
         "title": "Course title",
         "description": "Description",
@@ -901,7 +923,17 @@
         "assignmentInstructions": "Assignment instructions",
         "assignmentExt": "Allowed extensions",
         "assignmentMaxMb": "Max size (KB)",
-        "assignmentDue": "Due date"
+        "assignmentDue": "Due date",
+        "audioUrl": "Audio URL",
+        "audioUpload": "Upload audio file",
+        "joinUrl": "Join URL",
+        "meetingId": "Meeting ID",
+        "meetingPassword": "Meeting password",
+        "startAt": "Start time",
+        "liveDuration": "Duration (minutes)",
+        "scormZip": "SCORM package (.zip)",
+        "h5pUrl": "H5P URL / embed",
+        "h5pHint": "Paste a bare URL or an <iframe …> snippet. The src is extracted automatically."
       },
       "statuses": {
         "draft": "Draft",

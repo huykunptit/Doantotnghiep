@@ -97,7 +97,7 @@ watch(() => [props.courseId, props.lessonId], load, { immediate: true })
         />
         <label class="field">
           <span>{{ t('student.learn.assignmentNote') }}</span>
-          <Textarea v-model="note" rows="3" class="w-full" auto-resize />
+          <CommonRichTextEditor v-model="note" height="160px" />
         </label>
         <Button
           :label="t('student.learn.assignmentSubmit')"

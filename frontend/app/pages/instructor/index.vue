@@ -3,7 +3,8 @@ import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'instructor',
-  middleware: ['auth', 'instructor'],
+  middleware: ['auth', 'instructor', 'permission'],
+  permission: ['view_dashboard', 'manage_courses'],
 })
 
 interface MonthPoint { month: string, label: string, value: number }

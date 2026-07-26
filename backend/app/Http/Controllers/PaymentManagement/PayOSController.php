@@ -53,7 +53,7 @@ class PayOSController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user || !$user->hasRole('admin')) {
+        if (!$user || !\App\Support\Authorize::isAdmin($user)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

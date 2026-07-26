@@ -75,35 +75,45 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
     // ─── Instructor (legacy + dashboard + gradebook) ───
-    Route::get('/instructor/stats', [InstructorController::class, 'stats']);
-    Route::get('/instructor/courses/{course}/students', [InstructorController::class, 'students']);
-    Route::get('/instructor/courses/{course}/revenue', [InstructorController::class, 'revenue']);
+    Route::middleware('permission:manage_courses|view_dashboard')->group(function () {
+        Route::get('/instructor/stats', [InstructorController::class, 'stats']);
+        Route::get('/instructor/courses/{course}/students', [InstructorController::class, 'students']);
+        Route::get('/instructor/courses/{course}/revenue', [InstructorController::class, 'revenue']);
+        Route::get('/instructor/dashboard', [InstructorDashboardController::class, 'dashboard']);
+    });
 
-    Route::get('/instructor/dashboard', [InstructorDashboardController::class, 'dashboard']);
-    Route::get('/instructor/sections/{classSection}/grades', [GradebookController::class, 'show']);
-    Route::put('/instructor/sections/{classSection}/grades', [GradebookController::class, 'update']);
-    Route::get('/instructor/sections/{classSection}/grade-report', [GradebookController::class, 'sectionGpaReport']);
-    Route::get('/instructor/courses/{course}/grade-components', [GradebookController::class, 'listComponents']);
-    Route::put('/instructor/courses/{course}/grade-components', [GradebookController::class, 'upsertComponents']);
-    Route::post('/instructor/courses/{course}/grade-components/preset', [GradebookController::class, 'presetComponents']);
+    Route::middleware('permission:view_grades|manage_grades')->group(function () {
+        Route::get('/instructor/sections/{classSection}/grades', [GradebookController::class, 'show']);
+        Route::get('/instructor/sections/{classSection}/grade-report', [GradebookController::class, 'sectionGpaReport']);
+        Route::get('/instructor/courses/{course}/grade-components', [GradebookController::class, 'listComponents']);
+    });
 
-    // ─── Offline Sessions ───
-    Route::get('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'index']);
-    Route::post('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'store']);
-    Route::put('/instructor/sessions/{session}', [OfflineSessionController::class, 'update']);
-    Route::delete('/instructor/sessions/{session}', [OfflineSessionController::class, 'destroy']);
-    Route::post('/instructor/sessions/{session}/qr', [OfflineSessionController::class, 'generateQr']);
-    Route::get('/instructor/sessions/{session}/attendance', [OfflineSessionController::class, 'attendanceReport']);
-    Route::get('/instructor/sections/{classSection}/attendance-stats', [OfflineSessionController::class, 'sectionStats']);
+    Route::middleware('permission:manage_grades')->group(function () {
+        Route::put('/instructor/sections/{classSection}/grades', [GradebookController::class, 'update']);
+        Route::put('/instructor/courses/{course}/grade-components', [GradebookController::class, 'upsertComponents']);
+        Route::post('/instructor/courses/{course}/grade-components/preset', [GradebookController::class, 'presetComponents']);
+
+        Route::get('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'index']);
+        Route::post('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'store']);
+        Route::put('/instructor/sessions/{session}', [OfflineSessionController::class, 'update']);
+        Route::delete('/instructor/sessions/{session}', [OfflineSessionController::class, 'destroy']);
+        Route::post('/instructor/sessions/{session}/qr', [OfflineSessionController::class, 'generateQr']);
+        Route::get('/instructor/sessions/{session}/attendance', [OfflineSessionController::class, 'attendanceReport']);
+        Route::get('/instructor/sections/{classSection}/attendance-stats', [OfflineSessionController::class, 'sectionStats']);
+    });
 
     // ─── Advisor ───
-    Route::get('/advisor/advisees', [AdvisorController::class, 'advisees']);
-    Route::get('/advisor/at-risk', [AdvisorController::class, 'atRisk']);
+    Route::middleware('permission:advise_students')->group(function () {
+        Route::get('/advisor/advisees', [AdvisorController::class, 'advisees']);
+        Route::get('/advisor/at-risk', [AdvisorController::class, 'atRisk']);
+    });
 
     // ─── Student-facing /me ───
     Route::get('/me/dashboard', [StudentDashboardController::class, 'dashboard']);
     Route::get('/me/learning-path', [StudentDashboardController::class, 'learningPath']);
-    Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    Route::middleware('permission:view_grades')->group(function () {
+        Route::get('/me/transcript', [StudentDashboardController::class, 'transcript']);
+    });
     Route::get('/me/timetable', [StudentDashboardController::class, 'timetable']);
     Route::get('/me/tuition', [\App\Http\Controllers\UserManagement\TuitionController::class, 'index']);
     Route::post('/me/tuition/{tuition}/pay', [\App\Http\Controllers\UserManagement\TuitionController::class, 'pay']);
@@ -115,8 +125,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me/attendance', [StudentDashboardController::class, 'attendanceHistory']);
     Route::post('/me/attendance/check-in', [StudentDashboardController::class, 'checkIn']);
 
-    // ─── Admin ───
-    Route::prefix('admin')->group(function () {
+    // ─── Admin (2B — role admin only via ensureAdmin inside controller) ───
+    Route::prefix('admin')->middleware('role:admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
         Route::get('/dashboard-extra', [AdminController::class, 'dashboardExtra']);
         Route::post('/upload', [AdminController::class, 'uploadAsset']);
@@ -230,10 +240,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/vouchers/{voucher}/redeem', [PointsController::class, 'redeem']);
     Route::get('/me/vouchers', [PointsController::class, 'myVouchers']);
 
-    // ── Admin / Instructor: Voucher management + Points stats ──────────────
-    Route::get('/admin/vouchers', [PointsController::class, 'adminVoucherIndex']);
-    Route::post('/admin/vouchers', [PointsController::class, 'adminVoucherStore']);
-    Route::put('/admin/vouchers/{voucher}', [PointsController::class, 'adminVoucherUpdate']);
-    Route::delete('/admin/vouchers/{voucher}', [PointsController::class, 'adminVoucherDestroy']);
-    Route::get('/admin/points/stats', [PointsController::class, 'adminStats']);
+    // ── Admin voucher / points stats (2B — admin role only)
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/admin/vouchers', [PointsController::class, 'adminVoucherIndex']);
+        Route::post('/admin/vouchers', [PointsController::class, 'adminVoucherStore']);
+        Route::put('/admin/vouchers/{voucher}', [PointsController::class, 'adminVoucherUpdate']);
+        Route::delete('/admin/vouchers/{voucher}', [PointsController::class, 'adminVoucherDestroy']);
+        Route::get('/admin/points/stats', [PointsController::class, 'adminStats']);
+    });
 });

@@ -3,6 +3,8 @@ export interface InstructorMenuItem {
   labelKey: string
   icon: string
   to: string
+  /** Spatie permission required (admin always passes). */
+  permission?: string | string[]
 }
 
 /** Slim GV menu — thesis demo: overview, courses/builder, revenue, students. */
@@ -12,30 +14,35 @@ export const instructorMenu: InstructorMenuItem[] = [
     labelKey: 'instructor.menu.dashboard',
     icon: 'pi pi-home',
     to: '/instructor',
+    permission: ['view_dashboard', 'manage_courses'],
   },
   {
     key: 'courses',
     labelKey: 'instructor.menu.courses',
     icon: 'pi pi-book',
     to: '/instructor/courses',
+    permission: 'manage_courses',
   },
   {
     key: 'revenue',
     labelKey: 'instructor.menu.revenue',
     icon: 'pi pi-wallet',
     to: '/instructor/revenue',
+    permission: 'manage_courses',
   },
   {
     key: 'students',
     labelKey: 'instructor.menu.students',
     icon: 'pi pi-users',
     to: '/instructor/students',
+    permission: ['manage_courses', 'manage_grades'],
   },
   {
     key: 'exams',
     labelKey: 'instructor.menu.exams',
     icon: 'pi pi-file-edit',
     to: '/instructor/exams',
+    permission: 'manage_exams',
   },
 ]
 

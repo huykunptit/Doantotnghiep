@@ -281,6 +281,7 @@
     "roles": {
       "title": "Phân quyền",
       "subtitle": "Chỉ 3 vai trò đồ án: Admin, Giảng viên, Sinh viên. Admin hệ thống bị khóa không sửa được.",
+      "superuserNote": "Admin là siêu quyền (superuser): luôn vào được toàn bộ /admin và bỏ qua kiểm tra permission. Tick trên cột Admin chỉ mang tính đồng bộ seed. Tick Giảng viên / Sinh viên có hiệu lực thật — sau khi Lưu, user cần đăng nhập lại để nhận permission mới.",
       "permission": "Quyền",
       "locked": "Khóa",
       "save": "Lưu thay đổi",
@@ -851,21 +852,42 @@
       "videoNetworkError": "Lỗi mạng khi tải video",
       "types": {
         "video": "Video",
+        "audio": "Audio",
         "page": "Trang",
         "file": "Tệp",
         "document": "Tài liệu",
+        "scorm": "SCORM",
+        "h5p": "H5P",
         "quiz": "Quiz",
         "assignment": "Bài tập",
-        "scorm": "SCORM"
+        "forum": "Diễn đàn",
+        "survey": "Khảo sát",
+        "zoom": "Zoom",
+        "meet": "Google Meet",
+        "virtual_class": "Lớp trực tuyến"
       },
       "typeHints": {
         "video": "Bài giảng video (nhúng hoặc upload).",
+        "audio": "Podcast, bài nghe hoặc luyện phát âm.",
         "page": "Nội dung HTML/text đọc trực tiếp.",
         "file": "Tài liệu PDF/DOCX hoặc tệp đính kèm.",
         "document": "Tài liệu đọc/tải (PDF, DOC…).",
+        "scorm": "Gói học liệu SCORM (.zip).",
+        "h5p": "Nội dung tương tác H5P (URL hoặc embed).",
         "quiz": "Bài kiểm tra gắn với bài học.",
-        "assignment": "Bài tập nộp tệp có hạn và hướng dẫn."
+        "assignment": "Bài tập nộp tệp có hạn và hướng dẫn.",
+        "forum": "Chủ đề thảo luận giữa GV và học viên.",
+        "survey": "Khảo sát / lấy phản hồi học viên.",
+        "zoom": "Buổi học trực tuyến qua Zoom.",
+        "meet": "Buổi học trực tuyến qua Google Meet.",
+        "virtual_class": "Lớp học trực tuyến (Zoom/Meet)."
       },
+      "pickGroupContent": "Nội dung",
+      "pickGroupActivity": "Hoạt động",
+      "pickGroupLive": "Trực tuyến",
+      "curriculumIdle": "Chọn một học liệu ở danh sách bên trái, hoặc thêm học liệu mới vào chương.",
+      "tabCurriculum": "Chương trình khóa học",
+      "tabInfo": "Thông tin chung",
       "fields": {
         "title": "Tiêu đề khóa",
         "description": "Mô tả",
@@ -901,7 +923,17 @@
         "assignmentInstructions": "Hướng dẫn bài tập",
         "assignmentExt": "Phần mở rộng cho phép",
         "assignmentMaxMb": "Dung lượng tối đa (KB)",
-        "assignmentDue": "Hạn nộp"
+        "assignmentDue": "Hạn nộp",
+        "audioUrl": "URL audio",
+        "audioUpload": "Tải file audio",
+        "joinUrl": "Link tham gia",
+        "meetingId": "Mã phòng",
+        "meetingPassword": "Mật khẩu phòng",
+        "startAt": "Thời gian bắt đầu",
+        "liveDuration": "Thời lượng (phút)",
+        "scormZip": "File gói SCORM (.zip)",
+        "h5pUrl": "URL / embed H5P",
+        "h5pHint": "Dán URL trần hoặc đoạn <iframe …>. Hệ thống tự lấy src."
       },
       "statuses": {
         "draft": "Bản nháp",

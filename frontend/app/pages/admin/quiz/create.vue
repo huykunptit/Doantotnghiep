@@ -258,7 +258,7 @@ onMounted(async () => {
         </label>
         <label class="field full">
           <span>{{ t('admin.quiz.description') }}</span>
-          <Textarea v-model="form.description" rows="3" auto-resize class="w-full" />
+          <CommonRichTextEditor v-model="form.description" height="180px" />
         </label>
         <label class="field">
           <span>{{ t('admin.quiz.status') }}</span>

@@ -216,6 +216,40 @@ p {
   background: var(--border-strong);
 }
 
+/* Output of the rich text editor: tame Quill's block spacing so authored
+   HTML sits inline with the surrounding layout. */
+.rich {
+  display: block;
+}
+
+.rich > :first-child {
+  margin-top: 0;
+}
+
+.rich > :last-child {
+  margin-bottom: 0;
+}
+
+.rich p {
+  margin: 0 0 .4em;
+}
+
+.rich ul,
+.rich ol {
+  margin: .3em 0;
+  padding-left: 1.25em;
+}
+
+.rich img {
+  max-width: 100%;
+  height: auto;
+}
+
+.rich a {
+  color: var(--brand);
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .page {
     gap: 14px;

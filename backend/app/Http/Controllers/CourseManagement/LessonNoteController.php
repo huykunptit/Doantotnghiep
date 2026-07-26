@@ -87,7 +87,7 @@ class LessonNoteController extends Controller
         if ($lesson->course_id !== $course->id) {
             return response()->json(['message' => 'Not found'], 404);
         }
-        $isOwner = $user->hasRole('admin') || $course->user_id === $user->id;
+        $isOwner = \App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id;
         $isEnrolled = Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->exists();
         return $isOwner || $isEnrolled ? null : response()->json(['message' => 'Enrollment required'], 403);
     }

@@ -18,7 +18,7 @@ class InstructorDashboardController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['instructor', 'admin'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'view_dashboard', 'manage_grades'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -33,7 +33,7 @@ class InstructorDashboardController extends Controller
             ])
             ->withCount('enrollments');
 
-        if (!$user->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($user)) {
             $sectionsQuery->where('lecturer_id', $user->id);
         }
         if ($currentTerm) {
