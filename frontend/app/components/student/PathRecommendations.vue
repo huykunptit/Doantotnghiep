@@ -106,8 +106,13 @@ onMounted(load)
 }
 .card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .cover {
-  min-height: 88px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 40%, #1e293b), #0f172a);
-  background-size: cover; background-position: center; position: relative;
+  height: 132px;
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 40%, #1e293b), #0f172a);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  flex-shrink: 0;
 }
 .cover span {
   position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px;

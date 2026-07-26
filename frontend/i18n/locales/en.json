@@ -1578,13 +1578,21 @@
       "tipFallback": "Finish current-term curriculum courses and strengthen weak subjects with marketplace boost courses.",
       "progress": "Curriculum progress",
       "completion": "Completion",
-      "level": "Level",
+      "level": "Classification",
+      "gpaClass": {
+        "excellent": "Excellent",
+        "very_good": "Very good",
+        "good": "Fairly good",
+        "average": "Average",
+        "weak": "Weak",
+        "none": "—"
+      },
       "weak": "Needs improvement",
       "noCurriculum": "Your admin class has no curriculum assigned.",
       "courses": "Suggested boost courses",
-      "coursesHint": "Marketplace courses that can improve your learning outcomes.",
+      "coursesHint": "Based on low-scoring subjects and upcoming courses in your curriculum.",
       "noCourses": "No course suggestions yet.",
-      "buyHint": "Available to purchase on the platform"
+      "buyHint": "Available to study or strengthen on the platform"
     },
     "transcript": {
       "title": "Transcript",
@@ -1617,7 +1625,15 @@
       "payTitle": "Pay tuition",
       "confirmPay": "Confirm tuition payment of {amount}?",
       "paySuccess": "Tuition paid successfully",
-      "payError": "Payment failed"
+      "payError": "Payment failed",
+      "historyTitle": "Payment history",
+      "historySubtitle": "Previous tuition payments and courses or paths purchased outside the curriculum.",
+      "historyEmpty": "No completed payments yet.",
+      "paymentTypes": {
+        "tuition": "Tuition",
+        "extension_course": "Extension course",
+        "career_path": "Career path"
+      }
     },
     "timetable": {
       "title": "Timetable",
@@ -1759,7 +1775,10 @@
       "suggestedPaths": "Suggested paths now",
       "levels": {
         "excellent": "Excellent",
-        "good": "Good",
+        "very_good": "Very good",
+        "good": "Fairly good",
+        "average": "Average",
+        "weak": "Weak",
         "developing": "Developing",
         "early": "Early stage"
       }
@@ -1768,7 +1787,7 @@
       "recEyebrow": "Personalized",
       "recTitle": "Recommended for you",
       "recSubtitle": "Based on your major/skills and current enrollments.",
-      "recMore": "Browse catalog →",
+      "recMore": "Browse all courses",
       "recEmpty": "No recommendations yet. Complete a few courses or update your major profile.",
       "recError": "Could not load recommendations.",
       "recFallbackCat": "Course",

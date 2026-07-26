@@ -37,7 +37,8 @@ export function resolveStudentTitle(path: string, t: TranslateFn) {
 }
 
 export function resolveStudentBreadcrumb(path: string, t: TranslateFn) {
-  if (path === '/student') return [{ label: t('student.menu.dashboard'), to: '/student' }]
+  // Trang gốc: chỉ giữ title, tránh trùng "Tổng quan" với breadcrumb.
+  if (path === '/student') return []
   if (path.startsWith('/paths')) {
     return [
       { label: t('student.menu.dashboard'), to: '/student' },

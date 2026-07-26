@@ -1578,13 +1578,21 @@
       "tipFallback": "Hãy hoàn thành các môn CTĐT kỳ hiện tại và củng cố các môn điểm thấp bằng khóa bổ trợ trên hệ thống.",
       "progress": "Tiến trình CTĐT",
       "completion": "Hoàn thành",
-      "level": "Mức",
+      "level": "Phân loại",
+      "gpaClass": {
+        "excellent": "Xuất sắc",
+        "very_good": "Giỏi",
+        "good": "Khá",
+        "average": "Trung bình",
+        "weak": "Yếu",
+        "none": "—"
+      },
       "weak": "Cần củng cố",
       "noCurriculum": "Lớp hành chính chưa được gán CTĐT.",
       "courses": "Khóa học bổ trợ gợi ý",
-      "coursesHint": "Các khóa marketplace phù hợp để cải thiện kết quả học.",
+      "coursesHint": "Dựa trên môn điểm thấp và môn sắp học trong khung chương trình đào tạo.",
       "noCourses": "Chưa có gợi ý khóa học.",
-      "buyHint": "Có thể mua và học bổ trợ trên hệ thống"
+      "buyHint": "Có thể học / củng cố trên hệ thống"
     },
     "transcript": {
       "title": "Bảng điểm",
@@ -1617,7 +1625,15 @@
       "payTitle": "Thanh toán học phí",
       "confirmPay": "Xác nhận thanh toán học phí {amount}?",
       "paySuccess": "Thanh toán học phí thành công",
-      "payError": "Thanh toán thất bại"
+      "payError": "Thanh toán thất bại",
+      "historyTitle": "Lịch sử thanh toán",
+      "historySubtitle": "Học phí các kỳ trước và khóa học, lộ trình mua ngoài chương trình đào tạo.",
+      "historyEmpty": "Chưa có giao dịch đã thanh toán.",
+      "paymentTypes": {
+        "tuition": "Học phí",
+        "extension_course": "Khóa học ngoài CTĐT",
+        "career_path": "Lộ trình nghề"
+      }
     },
     "timetable": {
       "title": "Thời khóa biểu",
@@ -1759,7 +1775,10 @@
       "suggestedPaths": "Lộ trình đề xuất ngay",
       "levels": {
         "excellent": "Xuất sắc",
-        "good": "Tốt",
+        "very_good": "Giỏi",
+        "good": "Khá",
+        "average": "Trung bình",
+        "weak": "Yếu",
         "developing": "Đang phát triển",
         "early": "Giai đoạn đầu"
       }
@@ -1768,7 +1787,7 @@
       "recEyebrow": "Cá nhân hoá",
       "recTitle": "Gợi ý khóa phù hợp",
       "recSubtitle": "Dựa trên ngành/kỹ năng và khóa bạn đang học.",
-      "recMore": "Xem catalog →",
+      "recMore": "Xem tất cả khóa học",
       "recEmpty": "Chưa có gợi ý. Hãy học thêm vài khóa hoặc cập nhật hồ sơ ngành.",
       "recError": "Không tải được gợi ý.",
       "recFallbackCat": "Khóa học",

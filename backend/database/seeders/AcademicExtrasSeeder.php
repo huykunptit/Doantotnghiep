@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\AdministrativeClass;
+use App\Models\AcademicYear;
 use App\Models\ClassSchedule;
 use App\Models\CurriculumCourse;
 use App\Models\Exam;
@@ -47,6 +48,37 @@ class AcademicExtrasSeeder extends Seeder
             return;
         }
 
+        $previousYear = AcademicYear::query()->updateOrCreate(
+            [
+                'institution_id' => $currentTerm->academicYear?->institution_id,
+                'name' => '2024-2025',
+            ],
+            [
+                'start_date' => '2024-08-01',
+                'end_date' => '2025-07-31',
+                'is_current' => false,
+                'status' => 'completed',
+            ]
+        );
+
+        $previousTerms = collect([
+            [
+                'code' => 'HK1-2024',
+                'name' => 'Học kỳ 1 (2024-2025)',
+                'start_date' => '2024-09-01',
+                'end_date' => '2025-01-10',
+            ],
+            [
+                'code' => 'HK2-2024',
+                'name' => 'Học kỳ 2 (2024-2025)',
+                'start_date' => '2025-02-01',
+                'end_date' => '2025-06-15',
+            ],
+        ])->map(fn (array $term) => Term::query()->updateOrCreate(
+            ['academic_year_id' => $previousYear->id, 'code' => $term['code']],
+            [...$term, 'is_current' => false, 'status' => 'completed']
+        ));
+
         $adminClasses = AdministrativeClass::query()
             ->with(['program:id,code', 'cohort:id,start_year', 'advisor:id,name'])
             ->whereNotNull('curriculum_id')
@@ -82,6 +114,19 @@ class AcademicExtrasSeeder extends Seeder
                     ]
                 );
                 $tuitionCount++;
+
+                foreach ($previousTerms as $termIndex => $previousTerm) {
+                    Tuition::query()->updateOrCreate(
+                        ['user_id' => $student->id, 'term_id' => $previousTerm->id],
+                        [
+                            'amount' => max(0, $termAmount - (($termIndex + 1) * 500_000)),
+                            'status' => 'paid',
+                            'paid_at' => $previousTerm->end_date?->copy()->subDays(20),
+                            'note' => 'Học phí ' . $previousTerm->name,
+                        ]
+                    );
+                    $tuitionCount++;
+                }
             }
 
             // ── Môn CTĐT của kỳ hiện tại ──
@@ -123,6 +168,7 @@ class AcademicExtrasSeeder extends Seeder
             }
 
             // ── Lịch thi cuối kỳ + điểm thi (tối đa 3 môn đầu) ──
+            $examRooms = ['502 - A3', '105 - A2', '803 - NT', '301 - A1', '204 - B2'];
             foreach ($courses->take(3) as $idx => $course) {
                 // Kỳ thi đã diễn ra (đóng) → có điểm cho bảng điểm
                 $isPast = $idx < 2;
@@ -144,6 +190,7 @@ class AcademicExtrasSeeder extends Seeder
                         'max_attempts' => 1,
                         'starts_at' => $starts,
                         'ends_at' => (clone $starts)->addMinutes(90),
+                        'room' => $examRooms[$idx % count($examRooms)],
                         'proctoring_enabled' => true,
                         'review_options' => Exam::defaultReviewOptions(),
                         'created_by' => $class->advisor?->id,

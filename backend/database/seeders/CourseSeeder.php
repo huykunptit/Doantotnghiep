@@ -179,14 +179,26 @@ class CourseSeeder extends Seeder
                 ?? $this->fallbackThumbs;
 
             $title = Str::lower($course->title);
-            if (Str::contains($title, ['nhập môn', 'cơ bản', 'beginner'])) $thumb = $pool[0];
-            elseif (Str::contains($title, ['thực chiến', 'thực hành']))      $thumb = $pool[1 % count($pool)];
-            elseif (Str::contains($title, ['chuyên sâu', 'pro', 'expert']))  $thumb = $pool[2 % count($pool)];
-            elseif (Str::contains($title, ['dự án', 'project']))             $thumb = $pool[3 % count($pool)];
-            else                                                              $thumb = $pool[$course->id % count($pool)];
+            $thumb = match (true) {
+                Str::contains($title, ['trí tuệ', 'học máy', ' ai', 'ai ']) => 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&q=80',
+                Str::contains($title, ['mạng máy tính', 'mạng', 'an ninh mạng', 'iot']) => 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80',
+                Str::contains($title, ['cơ sở dữ liệu', 'dữ liệu', 'database']) => 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&q=80',
+                Str::contains($title, ['công nghệ phần mềm', 'phần mềm', 'devops']) => 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80',
+                Str::contains($title, ['web', 'frontend', 'html', 'css']) => 'https://images.unsplash.com/photo-1547658719-da2b51169166?w=1200&q=80',
+                Str::contains($title, ['mobile', 'android', 'ios', 'flutter']) => 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&q=80',
+                Str::contains($title, ['tiếng anh', 'english']) => 'https://images.unsplash.com/photo-1543109740-4bdb38fda756?w=1200&q=80',
+                Str::contains($title, ['toán', 'giải tích', 'đại số', 'xác suất']) => 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1200&q=80',
+                Str::contains($title, ['nhập môn', 'cơ bản', 'beginner']) => $pool[0],
+                Str::contains($title, ['thực chiến', 'thực hành', 'thực tập']) => $pool[1 % count($pool)],
+                Str::contains($title, ['chuyên sâu', 'pro', 'expert']) => $pool[2 % count($pool)],
+                Str::contains($title, ['dự án', 'project', 'đồ án']) => $pool[3 % count($pool)],
+                default => $pool[$course->id % count($pool)],
+            };
 
-            $course->update(['thumbnail' => $thumb]);
-            $updated++;
+            if (empty($course->thumbnail) || $course->thumbnail !== $thumb) {
+                $course->update(['thumbnail' => $thumb]);
+                $updated++;
+            }
         });
 
         $this->command?->info("CourseSeeder: {$updated} thumbnail(s) đã được refresh.");
