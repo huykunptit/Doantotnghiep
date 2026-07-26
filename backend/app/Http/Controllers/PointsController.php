@@ -392,7 +392,7 @@ class PointsController extends Controller
     private function requireAdminOrInstructor(Request $request): void
     {
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             abort(403, 'Forbidden');
         }
     }

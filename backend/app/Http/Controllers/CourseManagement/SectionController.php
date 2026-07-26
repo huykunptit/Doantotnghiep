@@ -36,7 +36,7 @@ class SectionController extends Controller
     public function store(Request $request, Course $course)
     {
         // Check authorization (instructor or admin)
-        if (auth()->id() !== $course->user_id && !auth()->user()->hasRole('admin')) {
+        if (auth()->id() !== $course->user_id && !\App\Support\Authorize::isAdmin(auth()->user())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -80,7 +80,7 @@ class SectionController extends Controller
     public function update(Request $request, Section $section)
     {
         // Check authorization
-        if (auth()->id() !== $section->course->user_id && !auth()->user()->hasRole('admin')) {
+        if (auth()->id() !== $section->course->user_id && !\App\Support\Authorize::isAdmin(auth()->user())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -104,7 +104,7 @@ class SectionController extends Controller
     public function destroy(Section $section)
     {
         // Check authorization
-        if (auth()->id() !== $section->course->user_id && !auth()->user()->hasRole('admin')) {
+        if (auth()->id() !== $section->course->user_id && !\App\Support\Authorize::isAdmin(auth()->user())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -128,7 +128,7 @@ class SectionController extends Controller
     public function reorder(Request $request, Course $course)
     {
         // Check authorization
-        if (auth()->id() !== $course->user_id && !auth()->user()->hasRole('admin')) {
+        if (auth()->id() !== $course->user_id && !\App\Support\Authorize::isAdmin(auth()->user())) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

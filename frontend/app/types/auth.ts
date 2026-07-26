@@ -5,6 +5,7 @@ export interface AuthUser {
   avatar?: string | null
   role?: string | null
   roles?: string[]
+  permissions?: string[]
   email_verified?: boolean
   email_verified_at?: string | null
   student_code?: string | null

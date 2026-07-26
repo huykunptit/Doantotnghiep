@@ -118,7 +118,7 @@ class CareerPathController extends Controller
 
     public function adminIndex(Request $request): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -146,7 +146,7 @@ class CareerPathController extends Controller
 
     public function adminStore(Request $request): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -176,7 +176,7 @@ class CareerPathController extends Controller
 
     public function adminShow(Request $request, CareerPath $careerPath): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -191,7 +191,7 @@ class CareerPathController extends Controller
 
     public function adminUpdate(Request $request, CareerPath $careerPath): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -221,7 +221,7 @@ class CareerPathController extends Controller
 
     public function adminDestroy(Request $request, CareerPath $careerPath): JsonResponse
     {
-        if (!$request->user()?->hasRole('admin')) {
+        if (!($request->user() && \App\Support\Authorize::isAdmin($request->user()))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -232,7 +232,7 @@ class CareerPathController extends Controller
 
     public function syncCourses(Request $request, CareerPath $careerPath): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -282,7 +282,7 @@ class CareerPathController extends Controller
 
     public function destroyCourse(Request $request, CareerPath $careerPath, CareerPathCourse $pathCourse): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

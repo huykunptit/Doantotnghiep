@@ -357,7 +357,7 @@ onMounted(load)
       <div class="modal-grid">
         <label class="field full">
           <span>{{ t('admin.questionBank.content') }} *</span>
-          <Textarea v-model="form.content" rows="4" auto-resize class="w-full" />
+          <CommonRichTextEditor v-model="form.content" height="200px" />
         </label>
         <label class="field">
           <span>{{ t('admin.questionBank.qType') }}</span>
@@ -379,7 +379,7 @@ onMounted(load)
         </label>
         <label class="field full">
           <span>{{ t('admin.questionBank.explanation') }}</span>
-          <Textarea v-model="form.explanation" rows="2" auto-resize class="w-full" />
+          <CommonRichTextEditor v-model="form.explanation" height="160px" />
         </label>
 
         <div v-if="needsChoices(form.type) || form.type === 'short_answer'" class="answers full">

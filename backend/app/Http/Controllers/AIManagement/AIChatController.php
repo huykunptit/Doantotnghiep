@@ -35,7 +35,7 @@ class AIChatController extends Controller
 
         $user = $request->user();
         $role = 'student';
-        if ($user->hasRole('admin')) {
+        if (\App\Support\Authorize::isAdmin($user)) {
             $role = 'admin';
         } elseif ($user->hasRole('instructor')) {
             $role = 'instructor';

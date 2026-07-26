@@ -158,7 +158,7 @@ onMounted(() => {
       <ul>
         <li v-for="n in myNotifs" :key="n.id" :class="{ unread: !n.read_at }">
           <strong>{{ n.title }}</strong>
-          <span>{{ n.message }}</span>
+          <span class="rich" v-html="n.message || ''" />
         </li>
       </ul>
     </section>
@@ -171,7 +171,7 @@ onMounted(() => {
         </label>
         <label class="field full">
           <span>{{ t('admin.notifications.fieldMessage') }}</span>
-          <Textarea v-model="form.message" rows="5" class="w-full" auto-resize />
+          <CommonRichTextEditor v-model="form.message" height="220px" />
         </label>
         <label class="field">
           <span>{{ t('admin.notifications.fieldLink') }}</span>

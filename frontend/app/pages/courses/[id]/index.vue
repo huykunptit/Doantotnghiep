@@ -165,14 +165,14 @@ onMounted(load)
       <section v-if="outcomes.length" class="sec">
         <h2>{{ t('student.detail.outcomes') }}</h2>
         <ul class="ticks">
-          <li v-for="(item, i) in outcomes" :key="`o-${i}`">{{ item }}</li>
+          <li v-for="(item, i) in outcomes" :key="`o-${i}`" v-html="item" />
         </ul>
       </section>
 
       <section v-if="benefits.length" class="sec">
         <h2>{{ t('student.detail.benefits') }}</h2>
         <ul class="ticks soft">
-          <li v-for="(item, i) in benefits" :key="`b-${i}`">{{ item }}</li>
+          <li v-for="(item, i) in benefits" :key="`b-${i}`" v-html="item" />
         </ul>
       </section>
 
@@ -184,7 +184,7 @@ onMounted(load)
       <section v-if="requirements.length" class="sec">
         <h2>{{ t('student.detail.requirements') }}</h2>
         <ul class="dots">
-          <li v-for="(item, i) in requirements" :key="`r-${i}`">{{ item }}</li>
+          <li v-for="(item, i) in requirements" :key="`r-${i}`" v-html="item" />
         </ul>
       </section>
 
@@ -327,6 +327,9 @@ onMounted(load)
 .ticks.soft li::before { content: '•'; color: var(--text-muted); }
 .prose { line-height: 1.7; font-weight: 500; color: var(--text); }
 .dots { margin: 0; padding-left: 1.1rem; display: grid; gap: 8px; font-weight: 550; }
+/* Items are authored in the rich text editor, so they arrive wrapped in <p>. */
+.ticks li :deep(p),
+.dots li :deep(p) { margin: 0; }
 
 .curr { display: grid; gap: 8px; border-top: 1px solid var(--border); }
 .curr article { border-bottom: 1px solid var(--border); }

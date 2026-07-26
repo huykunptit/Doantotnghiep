@@ -283,7 +283,7 @@ class ExamProctorController extends Controller
     public function liveMonitor(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
 
         $quiz = $exam->quiz;
         if (!$quiz) {
@@ -336,7 +336,7 @@ class ExamProctorController extends Controller
         abort_unless($user, 403);
 
         // Admin always allowed
-        if ($user->hasRole('admin')) return;
+        if (\App\Support\Authorize::isAdmin($user)) return;
 
         // Instructor: must own the exam's course or be exam creator
         $quiz = $attempt->quiz;

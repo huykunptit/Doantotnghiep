@@ -11,7 +11,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/career-paths/{careerPath}/follow', [CareerPathController::class, 'follow']);
     Route::get('/me/career-paths', [CareerPathController::class, 'myPaths']);
 
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware('role:admin')->group(function () {
         Route::get('/career-paths', [CareerPathController::class, 'adminIndex']);
         Route::post('/career-paths', [CareerPathController::class, 'adminStore']);
         Route::get('/career-paths/{careerPath}', [CareerPathController::class, 'adminShow']);

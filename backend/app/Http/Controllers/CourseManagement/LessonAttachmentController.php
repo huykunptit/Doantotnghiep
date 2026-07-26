@@ -45,7 +45,7 @@ class LessonAttachmentController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -83,7 +83,7 @@ class LessonAttachmentController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

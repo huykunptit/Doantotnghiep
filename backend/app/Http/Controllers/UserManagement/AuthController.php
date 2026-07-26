@@ -168,19 +168,30 @@ class AuthController extends Controller
         }
     }
 
-    public function handleGoogleCallback(): JsonResponse
+    public function handleGoogleCallback(Request $request): JsonResponse|RedirectResponse
     {
+        $frontend = rtrim((string) env('FRONTEND_URL', env('APP_URL', 'http://localhost:3000')), '/');
+        $wantsRedirect = $this->wantsGoogleBrowserRedirect($request);
+
         try {
             /** @var \Laravel\Socialite\Two\AbstractProvider $provider */
             $provider = Socialite::driver('google');
             $googleUser = $provider->stateless()->user();
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            if ($wantsRedirect) {
+                return redirect($frontend.'/auth/google?error='.urlencode('Google authentication failed: '.$e->getMessage()));
+            }
+
             return response()->json([
-                'message' => 'Google authentication failed',
+                'message' => 'Google authentication failed: '.$e->getMessage(),
             ], 422);
         }
 
         if (!$googleUser->getEmail()) {
+            if ($wantsRedirect) {
+                return redirect($frontend.'/auth/google?error='.urlencode('Google account does not provide an email'));
+            }
+
             return response()->json([
                 'message' => 'Google account does not provide an email',
             ], 422);
@@ -206,12 +217,33 @@ class AuthController extends Controller
         $this->assignDefaultRole($user);
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Browser OAuth return: finish on frontend with token (avoids fragile JS code-exchange).
+        if ($wantsRedirect) {
+            return redirect($frontend.'/auth/google?token='.urlencode($token));
+        }
+
         return response()->json([
             'message' => 'Google login success',
             'access_token' => $token,
             'token_type' => 'Bearer',
             'user' => $this->serializeUser($user),
         ]);
+    }
+
+    private function wantsGoogleBrowserRedirect(Request $request): bool
+    {
+        if ($request->query('format') === 'json') {
+            return false;
+        }
+
+        $accept = (string) $request->header('Accept', '');
+
+        // XHR/fetch from SPA sends Accept: application/json
+        if (str_contains($accept, 'application/json') && ! str_contains($accept, 'text/html')) {
+            return false;
+        }
+
+        return true;
     }
 
     public function forgotPassword(Request $request): JsonResponse
@@ -316,6 +348,7 @@ class AuthController extends Controller
             'avatar' => $user->avatar,
             'role' => $user->roles->pluck('name')->first(),
             'roles' => $user->roles->pluck('name')->values(),
+            'permissions' => $user->getAllPermissions()->pluck('name')->values(),
             'email_verified' => $user->hasVerifiedEmail(),
             'email_verified_at' => $user->email_verified_at?->toISOString(),
             'user_type' => $user->user_type,

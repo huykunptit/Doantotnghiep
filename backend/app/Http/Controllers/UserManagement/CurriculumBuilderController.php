@@ -12,7 +12,7 @@ class CurriculumBuilderController extends Controller
 {
     public function index(Request $request, Curriculum $curriculum): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_enrollments', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -54,7 +54,7 @@ class CurriculumBuilderController extends Controller
 
     public function bulkUpsert(Request $request, Curriculum $curriculum): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_enrollments', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -88,7 +88,7 @@ class CurriculumBuilderController extends Controller
 
     public function destroy(Request $request, Curriculum $curriculum, CurriculumCourse $curriculumCourse): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_enrollments', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

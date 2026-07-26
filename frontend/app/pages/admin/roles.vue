@@ -216,6 +216,7 @@ onMounted(load)
         <span class="eyebrow">{{ t('admin.menu.people') }}</span>
         <h1>{{ t('admin.roles.title') }}</h1>
         <p>{{ t('admin.roles.subtitle') }}</p>
+        <Message severity="info" :closable="false" class="roles-note">{{ t('admin.roles.superuserNote') }}</Message>
       </div>
       <div class="page-actions">
         <Button :label="t('admin.roles.reset')" icon="pi pi-replay" severity="secondary" outlined :disabled="!dirty || saving" @click="resetChanges" />
@@ -289,6 +290,7 @@ onMounted(load)
 }
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
+.roles-note { margin-top: 12px; max-width: 720px; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .table-panel {

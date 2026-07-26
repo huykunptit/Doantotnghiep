@@ -50,12 +50,12 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_academic', 'manage_enrollments', 'manage_courses'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
         $query = $modelClass::query()->latest('id');
-        $query = $this->applyScope($query, $resource, $user->id, $user->hasRole('admin'));
+        $query = $this->applyScope($query, $resource, $user->id, \App\Support\Authorize::isAdmin($user));
         $query = $this->applyEagerLoad($query, $resource);
         $query = $this->applyFilters($query, $resource, $request);
 
@@ -132,7 +132,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_academic', 'manage_enrollments', 'manage_courses'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -157,7 +157,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_academic', 'manage_enrollments', 'manage_courses'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -182,7 +182,7 @@ class AcademicManagementController extends Controller
         }
 
         $user = $request->user();
-        if (!$user || !$user->hasAnyRole(['admin', 'academic_manager', 'instructor'])) {
+        if (!$user || !\App\Support\Authorize::allows($user, ['manage_academic', 'manage_enrollments', 'manage_courses'])) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

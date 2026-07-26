@@ -18,6 +18,22 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleCors::class,
         ]);
 
+        $middleware->alias([
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+        ]);
+
+        // Cloudflare Tunnel / nginx terminate TLS; trust forwarded proto/host.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_AWS_ELB
+        );
+
         // API routes: return 401 JSON instead of redirecting to "login" route
         $middleware->redirectGuestsTo(fn (Request $request) =>
             $request->expectsJson() || $request->is('api/*')

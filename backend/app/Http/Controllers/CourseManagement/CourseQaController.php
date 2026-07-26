@@ -57,7 +57,7 @@ class CourseQaController extends Controller
         $enrolled = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
-        if (!$enrolled && !$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!$enrolled && !\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Bạn cần đăng ký khóa học để đặt câu hỏi.'], 403);
         }
 
@@ -109,7 +109,7 @@ class CourseQaController extends Controller
         $enrolled = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
-        if (!$enrolled && !$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!$enrolled && !\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

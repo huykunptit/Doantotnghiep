@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
 
-definePageMeta({ layout: 'instructor', middleware: ['auth', 'instructor'] })
+definePageMeta({ layout: 'instructor', middleware: ['auth', 'instructor', 'permission'], permission: 'manage_exams' })
 
 interface ExamRow {
   id: number
@@ -300,7 +300,7 @@ onMounted(async () => {
         </label>
         <label class="field full">
           <span>{{ t('instructor.exams.description') }}</span>
-          <Textarea v-model="form.description" rows="2" auto-resize class="w-full" />
+          <CommonRichTextEditor v-model="form.description" height="160px" />
         </label>
         <label class="field">
           <span>{{ t('instructor.exams.status') }}</span>

@@ -4,7 +4,8 @@ import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
   layout: 'instructor',
-  middleware: ['auth', 'instructor'],
+  middleware: ['auth', 'instructor', 'permission'],
+  permission: ['manage_courses', 'manage_lessons'],
 })
 
 interface CategoryItem { id: number, name: string }
@@ -46,7 +47,11 @@ type Selection =
   | { kind: 'section', sectionId: number }
   | { kind: 'lesson', sectionId: number, lessonId: number }
 
-const CONTENT_TYPES = ['video', 'page', 'file', 'document', 'quiz', 'assignment'] as const
+const CONTENT_TYPE_GROUPS = [
+  { key: 'content', types: ['video', 'audio', 'page', 'file', 'document', 'scorm', 'h5p'] },
+  { key: 'activity', types: ['quiz', 'assignment', 'forum', 'survey'] },
+  { key: 'live', types: ['zoom', 'meet', 'virtual_class'] },
+] as const
 
 const route = useRoute()
 const courseId = computed(() => String(route.params.id))
@@ -102,6 +107,16 @@ const videoUploading = ref(false)
 const videoUploadProgress = ref(0)
 const videoUploadError = ref('')
 const resourceFile = ref<File | null>(null)
+const scormFile = ref<File | null>(null)
+const scormConfig = reactive({ entry_url: '', title: '', identifier: '', version: '1.2' })
+const liveConfig = reactive({
+  provider: 'zoom' as string,
+  meeting_id: '',
+  meeting_password: '',
+  join_url: '',
+  start_at: '',
+  duration: 60,
+})
 const quizConfig = reactive({ title: '', description: '', time_limit: 15, pass_score: 70 })
 const selectedQuestionIds = ref<number[]>([])
 const questionOptions = ref<{ label: string, value: number }[]>([])
@@ -125,22 +140,34 @@ const statusOptions = computed(() => [
   { label: t('admin.builder.statuses.closed'), value: 'closed' },
 ])
 
-const contentTypeOptions = computed(() =>
-  CONTENT_TYPES.map(key => ({
-    key,
-    label: t(`admin.builder.types.${key}`),
-    icon: typeIcon(key),
+const contentTypeGroups = computed(() =>
+  CONTENT_TYPE_GROUPS.map(group => ({
+    key: group.key,
+    label: t(`admin.builder.pickGroup${group.key === 'content' ? 'Content' : group.key === 'activity' ? 'Activity' : 'Live'}`),
+    items: group.types.map(key => ({
+      key,
+      label: t(`admin.builder.types.${key}`),
+      icon: typeIcon(key),
+    })),
   })),
 )
 
 function typeIcon(type: string) {
   return ({
     video: 'pi pi-play-circle',
+    audio: 'pi pi-volume-up',
     page: 'pi pi-file-edit',
     file: 'pi pi-file',
     document: 'pi pi-book',
+    scorm: 'pi pi-box',
+    h5p: 'pi pi-code',
     quiz: 'pi pi-question-circle',
     assignment: 'pi pi-pencil',
+    forum: 'pi pi-comments',
+    survey: 'pi pi-chart-bar',
+    zoom: 'pi pi-video',
+    meet: 'pi pi-globe',
+    virtual_class: 'pi pi-desktop',
   } as Record<string, string>)[type] || 'pi pi-book'
 }
 
@@ -279,9 +306,19 @@ async function loadCurriculum() {
 
 function selectCourse() {
   selection.value = { kind: 'course' }
+  mainTab.value = 'info'
+}
+
+function onMainTab(key: string | number) {
+  const next = String(key) === 'curriculum' ? 'curriculum' : 'info'
+  mainTab.value = next
+  if (next === 'info') {
+    selection.value = { kind: 'course' }
+  }
 }
 
 function selectLesson(sectionId: number, lessonId: number) {
+  mainTab.value = 'curriculum'
   selection.value = { kind: 'lesson', sectionId, lessonId }
   openLessonEditor(sectionId, lessonId)
 }
@@ -390,6 +427,7 @@ function chooseContentType(type: string) {
   lessonForm.section_id = pickerSectionId.value
   lessonForm.type = type
   lessonForm.id = null
+  mainTab.value = 'curriculum'
   selection.value = {
     kind: 'lesson',
     sectionId: pickerSectionId.value!,
@@ -397,6 +435,12 @@ function chooseContentType(type: string) {
   }
   if (type === 'quiz') {
     loadQuestionOptions()
+  }
+  if (type === 'zoom' || type === 'meet') {
+    liveConfig.provider = type === 'meet' ? 'meet' : 'zoom'
+  }
+  if (type === 'virtual_class') {
+    liveConfig.provider = 'zoom'
   }
 }
 
@@ -414,6 +458,16 @@ function resetLessonForm() {
   videoUploadProgress.value = 0
   videoUploadError.value = ''
   resourceFile.value = null
+  scormFile.value = null
+  Object.assign(scormConfig, { entry_url: '', title: '', identifier: '', version: '1.2' })
+  Object.assign(liveConfig, {
+    provider: 'zoom',
+    meeting_id: '',
+    meeting_password: '',
+    join_url: '',
+    start_at: '',
+    duration: 60,
+  })
   Object.assign(quizConfig, { title: '', description: '', time_limit: 15, pass_score: 70 })
   selectedQuestionIds.value = []
   quizSyncQuestions.value = false
@@ -488,6 +542,48 @@ async function openLessonEditor(sectionId: number, lessonId: number) {
       }
       catch {
         /* new assignment */
+      }
+    }
+    if (['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)) {
+      try {
+        const res = await useApi<{
+          provider?: string
+          meeting_id?: string
+          meeting_password?: string
+          join_url?: string
+          start_at?: string
+          duration?: number
+        }>(`/courses/${courseId.value}/lessons/${lessonId}/virtual-class`)
+        Object.assign(liveConfig, {
+          provider: res.provider === 'google_meet' ? 'meet' : (res.provider || lessonForm.type || 'zoom'),
+          meeting_id: res.meeting_id || '',
+          meeting_password: res.meeting_password || '',
+          join_url: res.join_url || '',
+          start_at: res.start_at ? String(res.start_at).slice(0, 16) : '',
+          duration: res.duration || 60,
+        })
+      }
+      catch {
+        /* new live lesson */
+      }
+    }
+    if (['scorm', 'h5p'].includes(lessonForm.type)) {
+      try {
+        const res = await useApi<{
+          entry_url?: string
+          title?: string
+          identifier?: string
+          version?: string
+        }>(`/courses/${courseId.value}/lessons/${lessonId}/scorm-package`)
+        Object.assign(scormConfig, {
+          entry_url: res.entry_url || '',
+          title: res.title || '',
+          identifier: res.identifier || '',
+          version: res.version || '1.2',
+        })
+      }
+      catch {
+        /* new scorm/h5p */
       }
     }
   }
@@ -588,7 +684,7 @@ async function saveLesson() {
     if (lessonForm.type === 'video' && videoSourceMode.value === 'embed' && lessonForm.video_url) {
       payload.video_url = lessonForm.video_url
     }
-    else if ((lessonForm.type === 'file' || lessonForm.type === 'document') && lessonForm.video_url && !resourceFile.value) {
+    else if (['file', 'document', 'audio'].includes(lessonForm.type) && lessonForm.video_url && !resourceFile.value) {
       payload.video_url = lessonForm.video_url
     }
 
@@ -610,7 +706,7 @@ async function saveLesson() {
       videoFile.value = null
     }
 
-    if ((lessonForm.type === 'file' || lessonForm.type === 'document') && resourceFile.value) {
+    if (['file', 'document', 'audio'].includes(lessonForm.type) && resourceFile.value) {
       const formData = new FormData()
       formData.append('file', resourceFile.value)
       const attachmentResponse = await useApi<{ attachment: { url: string } }, FormData>(
@@ -650,6 +746,46 @@ async function saveLesson() {
           due_at: assignmentConfig.due_at || null,
         },
       })
+    }
+
+    if (['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)) {
+      const provider = lessonForm.type === 'meet' || liveConfig.provider === 'meet'
+        ? 'google_meet'
+        : 'zoom'
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}/virtual-class`, {
+        method: 'POST',
+        body: {
+          provider,
+          meeting_id: liveConfig.meeting_id || null,
+          meeting_password: liveConfig.meeting_password || null,
+          join_url: liveConfig.join_url || null,
+          start_url: null,
+          start_at: liveConfig.start_at || null,
+          duration: liveConfig.duration || 60,
+        },
+      })
+    }
+
+    if (['scorm', 'h5p'].includes(lessonForm.type)) {
+      const formData = new FormData()
+      formData.append('type', lessonForm.type)
+      if (lessonForm.type === 'h5p') {
+        const raw = scormConfig.entry_url.trim()
+        const match = raw.match(/<iframe[^>]+src=["']([^"']+)["']/i)
+        const src = match ? match[1] : raw
+        if (src) formData.append('entry_url', src)
+      }
+      if (lessonForm.type === 'scorm' && scormFile.value) {
+        formData.append('scorm_file', scormFile.value)
+      }
+      else if (lessonForm.type === 'scorm' && scormConfig.entry_url.trim()) {
+        formData.append('entry_url', scormConfig.entry_url.trim())
+      }
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}/scorm-package`, {
+        method: 'POST',
+        body: formData,
+      })
+      scormFile.value = null
     }
 
     toast.add({
@@ -725,11 +861,17 @@ async function moveLesson(section: SectionItem, index: number, direction: -1 | 1
   }
 }
 
+const mainTab = ref<'curriculum' | 'info'>('info')
 const metaTab = ref<'basic' | 'sell' | 'media'>('basic')
 const metaTabs = computed(() => [
   { key: 'basic' as const, label: t('admin.builder.metaTabs.basic') },
   { key: 'sell' as const, label: t('admin.builder.metaTabs.sell') },
   { key: 'media' as const, label: t('admin.builder.metaTabs.media') },
+])
+
+const mainTabs = computed(() => [
+  { key: 'info' as const, label: t('admin.builder.tabInfo'), icon: 'pi pi-info-circle' },
+  { key: 'curriculum' as const, label: t('admin.builder.tabCurriculum'), icon: 'pi pi-book' },
 ])
 
 const levelOptions = computed(() => [
@@ -891,13 +1033,6 @@ onMounted(async () => {
       </div>
       <div class="top-actions">
         <Button
-          :label="t('admin.builder.courseSettings')"
-          icon="pi pi-cog"
-          severity="secondary"
-          outlined
-          @click="selectCourse"
-        />
-        <Button
           :label="t('common.save')"
           icon="pi pi-save"
           :loading="savingMeta"
@@ -913,7 +1048,156 @@ onMounted(async () => {
       </div>
     </header>
 
-    <div class="builder-layout">
+
+        <nav class="builder-tabnav" role="tablist" aria-label="Course builder tabs">
+      <button
+        v-for="tab in mainTabs"
+        :key="tab.key"
+        type="button"
+        role="tab"
+        class="builder-tabnav__item"
+        :class="{ 'is-active': mainTab === tab.key }"
+        :aria-selected="mainTab === tab.key"
+        @click="onMainTab(tab.key)"
+      >
+        <i :class="tab.icon" aria-hidden="true" />
+        <span>{{ tab.label }}</span>
+      </button>
+    </nav>
+
+    <div v-if="mainTab === 'info'">
+<section class="info-panel surface">
+          <div class="editor-head">
+            <div>
+              <span class="eyebrow">{{ t('admin.builder.tabInfo') }}</span>
+              <h2>{{ t('admin.builder.metaTitle') }}</h2>
+            </div>
+            <Button :label="t('common.save')" icon="pi pi-save" :loading="savingMeta" @click="saveCourseMeta" />
+          </div>
+
+          <div class="meta-tabs" role="tablist">
+            <button
+              v-for="tab in metaTabs"
+              :key="tab.key"
+              type="button"
+              role="tab"
+              :class="{ on: metaTab === tab.key }"
+              :aria-selected="metaTab === tab.key"
+              @click="metaTab = tab.key"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+
+          <div v-show="metaTab === 'basic'" class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.title') }}</span>
+              <InputText v-model="metaForm.title" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.description') }}</span>
+              <CommonRichTextEditor v-model="metaForm.description" height="220px" />
+            </label>
+            <div class="form-row">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.price') }}</span>
+                <InputNumber v-model="metaForm.price" :min="0" class="w-full" />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.level') }}</span>
+                <Select
+                  v-model="metaForm.level"
+                  :options="levelOptions"
+                  option-label="label"
+                  option-value="value"
+                  show-clear
+                  class="w-full"
+                />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.category') }}</span>
+                <Select
+                  v-model="metaForm.category_id"
+                  :options="categoryOptions"
+                  option-label="label"
+                  option-value="value"
+                  show-clear
+                  class="w-full"
+                />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.status') }}</span>
+                <Select
+                  v-model="metaForm.status"
+                  :options="statusOptions"
+                  option-label="label"
+                  option-value="value"
+                  class="w-full"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div v-show="metaTab === 'sell'" class="form-grid">
+            <p class="tab-lead">{{ t('admin.builder.metaTabs.sellLead') }}</p>
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.outcomes') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('learning_outcomes')" />
+              </div>
+              <p class="list-hint">{{ t('admin.builder.fields.outcomesHint') }}</p>
+              <div v-for="(_item, idx) in metaForm.learning_outcomes" :key="`out-${idx}`" class="list-row">
+                <CommonRichTextEditor v-model="metaForm.learning_outcomes[idx]" compact :placeholder="t('admin.builder.fields.outcomesPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('learning_outcomes', idx)" />
+              </div>
+            </div>
+
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.benefits') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('benefits')" />
+              </div>
+              <p class="list-hint">{{ t('admin.builder.fields.benefitsHint') }}</p>
+              <div v-for="(_item, idx) in metaForm.benefits" :key="`ben-${idx}`" class="list-row">
+                <CommonRichTextEditor v-model="metaForm.benefits[idx]" compact :placeholder="t('admin.builder.fields.benefitsPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('benefits', idx)" />
+              </div>
+            </div>
+
+            <div class="list-field">
+              <div class="list-head">
+                <span>{{ t('admin.builder.fields.requirements') }}</span>
+                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('requirements')" />
+              </div>
+              <div v-for="(_item, idx) in metaForm.requirements" :key="`req-${idx}`" class="list-row">
+                <CommonRichTextEditor v-model="metaForm.requirements[idx]" compact :placeholder="t('admin.builder.fields.requirementsPh')" />
+                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('requirements', idx)" />
+              </div>
+            </div>
+          </div>
+
+          <div v-show="metaTab === 'media'" class="form-grid">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.trailer') }}</span>
+              <InputText v-model="metaForm.trailer_url" class="w-full" placeholder="https://..." />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.thumbnail') }}</span>
+              <CommonMediaUpload
+                v-model="thumbnailUrl"
+                folder="courses"
+                :label="t('admin.builder.fields.thumbnail')"
+                :hint="t('upload.imageOnly')"
+                variant="thumbnail"
+                :placeholder-initial="(metaForm.title || 'C').slice(0, 1).toUpperCase()"
+              />
+            </label>
+          </div>
+    </section>
+    </div>
+
+    <div v-if="mainTab === 'curriculum'">
+<div class="builder-layout">
       <aside class="tree-panel surface">
         <div class="tree-head">
           <strong>{{ t('admin.builder.curriculum') }}</strong>
@@ -985,131 +1269,9 @@ onMounted(async () => {
 
       <section class="editor-panel surface">
         <template v-if="!showLessonEditor">
-          <div class="editor-head">
-            <div>
-              <span class="eyebrow">{{ t('admin.builder.courseSettings') }}</span>
-              <h2>{{ t('admin.builder.metaTitle') }}</h2>
-            </div>
-            <Button :label="t('common.save')" icon="pi pi-save" :loading="savingMeta" @click="saveCourseMeta" />
-          </div>
-
-          <div class="meta-tabs" role="tablist">
-            <button
-              v-for="tab in metaTabs"
-              :key="tab.key"
-              type="button"
-              role="tab"
-              :class="{ on: metaTab === tab.key }"
-              :aria-selected="metaTab === tab.key"
-              @click="metaTab = tab.key"
-            >
-              {{ tab.label }}
-            </button>
-          </div>
-
-          <div v-show="metaTab === 'basic'" class="form-grid">
-            <label class="field">
-              <span>{{ t('admin.builder.fields.title') }}</span>
-              <InputText v-model="metaForm.title" class="w-full" />
-            </label>
-            <label class="field">
-              <span>{{ t('admin.builder.fields.description') }}</span>
-              <Textarea v-model="metaForm.description" rows="5" class="w-full" auto-resize />
-            </label>
-            <div class="form-row">
-              <label class="field">
-                <span>{{ t('admin.builder.fields.price') }}</span>
-                <InputNumber v-model="metaForm.price" :min="0" class="w-full" />
-              </label>
-              <label class="field">
-                <span>{{ t('admin.builder.fields.level') }}</span>
-                <Select
-                  v-model="metaForm.level"
-                  :options="levelOptions"
-                  option-label="label"
-                  option-value="value"
-                  show-clear
-                  class="w-full"
-                />
-              </label>
-              <label class="field">
-                <span>{{ t('admin.builder.fields.category') }}</span>
-                <Select
-                  v-model="metaForm.category_id"
-                  :options="categoryOptions"
-                  option-label="label"
-                  option-value="value"
-                  show-clear
-                  class="w-full"
-                />
-              </label>
-              <label class="field">
-                <span>{{ t('admin.builder.fields.status') }}</span>
-                <Select
-                  v-model="metaForm.status"
-                  :options="statusOptions"
-                  option-label="label"
-                  option-value="value"
-                  class="w-full"
-                />
-              </label>
-            </div>
-          </div>
-
-          <div v-show="metaTab === 'sell'" class="form-grid">
-            <p class="tab-lead">{{ t('admin.builder.metaTabs.sellLead') }}</p>
-            <div class="list-field">
-              <div class="list-head">
-                <span>{{ t('admin.builder.fields.outcomes') }}</span>
-                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('learning_outcomes')" />
-              </div>
-              <p class="list-hint">{{ t('admin.builder.fields.outcomesHint') }}</p>
-              <div v-for="(_item, idx) in metaForm.learning_outcomes" :key="`out-${idx}`" class="list-row">
-                <InputText v-model="metaForm.learning_outcomes[idx]" class="w-full" :placeholder="t('admin.builder.fields.outcomesPh')" />
-                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('learning_outcomes', idx)" />
-              </div>
-            </div>
-
-            <div class="list-field">
-              <div class="list-head">
-                <span>{{ t('admin.builder.fields.benefits') }}</span>
-                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('benefits')" />
-              </div>
-              <p class="list-hint">{{ t('admin.builder.fields.benefitsHint') }}</p>
-              <div v-for="(_item, idx) in metaForm.benefits" :key="`ben-${idx}`" class="list-row">
-                <InputText v-model="metaForm.benefits[idx]" class="w-full" :placeholder="t('admin.builder.fields.benefitsPh')" />
-                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('benefits', idx)" />
-              </div>
-            </div>
-
-            <div class="list-field">
-              <div class="list-head">
-                <span>{{ t('admin.builder.fields.requirements') }}</span>
-                <Button :label="t('common.add')" icon="pi pi-plus" text size="small" @click="addListItem('requirements')" />
-              </div>
-              <div v-for="(_item, idx) in metaForm.requirements" :key="`req-${idx}`" class="list-row">
-                <InputText v-model="metaForm.requirements[idx]" class="w-full" :placeholder="t('admin.builder.fields.requirementsPh')" />
-                <Button icon="pi pi-times" text rounded severity="secondary" @click="removeListItem('requirements', idx)" />
-              </div>
-            </div>
-          </div>
-
-          <div v-show="metaTab === 'media'" class="form-grid">
-            <label class="field">
-              <span>{{ t('admin.builder.fields.trailer') }}</span>
-              <InputText v-model="metaForm.trailer_url" class="w-full" placeholder="https://..." />
-            </label>
-            <label class="field">
-              <span>{{ t('admin.builder.fields.thumbnail') }}</span>
-              <CommonMediaUpload
-                v-model="thumbnailUrl"
-                folder="courses"
-                :label="t('admin.builder.fields.thumbnail')"
-                :hint="t('upload.imageOnly')"
-                variant="thumbnail"
-                :placeholder-initial="(metaForm.title || 'C').slice(0, 1).toUpperCase()"
-              />
-            </label>
+          <div class="curriculum-idle">
+            <i class="pi pi-book" />
+            <p>{{ t('admin.builder.curriculumIdle') }}</p>
           </div>
         </template>
 
@@ -1148,7 +1310,7 @@ onMounted(async () => {
                   ? t('admin.builder.fields.pageContent')
                   : t('admin.builder.fields.description') }}
               </span>
-              <Textarea v-model="lessonForm.description" rows="8" class="w-full" auto-resize />
+              <CommonRichTextEditor v-model="lessonForm.description" height="300px" />
             </label>
 
             <template v-if="lessonForm.type === 'video'">
@@ -1181,20 +1343,21 @@ onMounted(async () => {
               </label>
             </template>
 
-            <template v-if="lessonForm.type === 'file' || lessonForm.type === 'document'">
+            <template v-if="lessonForm.type === 'file' || lessonForm.type === 'document' || lessonForm.type === 'audio'">
               <label class="field">
-                <span>{{ t('admin.builder.fields.fileUrl') }}</span>
+                <span>{{ lessonForm.type === 'audio' ? t('admin.builder.fields.audioUrl') : t('admin.builder.fields.fileUrl') }}</span>
                 <InputText v-model="lessonForm.video_url" class="w-full" placeholder="https://..." />
               </label>
               <label class="field">
-                <span>{{ t('admin.builder.fields.fileUpload') }}</span>
+                <span>{{ lessonForm.type === 'audio' ? t('admin.builder.fields.audioUpload') : t('admin.builder.fields.fileUpload') }}</span>
                 <CommonFileDropzone
                   v-model="resourceFile"
-                  :label="t('admin.builder.fields.fileUpload')"
-                  hint="PDF, DOC, ZIP… — kéo thả hoặc chọn tệp"
+                  :label="lessonForm.type === 'audio' ? t('admin.builder.fields.audioUpload') : t('admin.builder.fields.fileUpload')"
+                  :hint="lessonForm.type === 'audio' ? 'MP3, WAV, M4A… — kéo thả hoặc chọn tệp' : 'PDF, DOC, ZIP… — kéo thả hoặc chọn tệp'"
+                  :accept="lessonForm.type === 'audio' ? 'audio/*,.mp3,.wav,.m4a,.ogg,.aac' : undefined"
                   :max-size-mb="100"
                   :existing-url="lessonForm.video_url"
-                  icon="pi pi-file"
+                  :icon="lessonForm.type === 'audio' ? 'pi pi-volume-up' : 'pi pi-file'"
                 />
               </label>
             </template>
@@ -1202,7 +1365,7 @@ onMounted(async () => {
             <template v-if="lessonForm.type === 'assignment'">
               <label class="field">
                 <span>{{ t('admin.builder.fields.assignmentInstructions') }}</span>
-                <Textarea v-model="assignmentConfig.instructions" rows="6" class="w-full" auto-resize />
+                <CommonRichTextEditor v-model="assignmentConfig.instructions" height="240px" />
               </label>
               <div class="form-row">
                 <label class="field">
@@ -1228,7 +1391,7 @@ onMounted(async () => {
                 </label>
                 <label class="field">
                   <span>{{ t('admin.builder.fields.quizDescription') }}</span>
-                  <Textarea v-model="quizConfig.description" rows="3" class="w-full" auto-resize />
+                  <CommonRichTextEditor v-model="quizConfig.description" height="160px" />
                 </label>
                 <div class="form-row">
                   <label class="field">
@@ -1257,10 +1420,66 @@ onMounted(async () => {
                 <p class="hint">{{ t('admin.builder.quizHint') }}</p>
               </div>
             </template>
+
+            <template v-if="['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.joinUrl') }}</span>
+                <InputText v-model="liveConfig.join_url" class="w-full" placeholder="https://..." />
+              </label>
+              <div class="form-row">
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.meetingId') }}</span>
+                  <InputText v-model="liveConfig.meeting_id" class="w-full" />
+                </label>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.meetingPassword') }}</span>
+                  <InputText v-model="liveConfig.meeting_password" class="w-full" />
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.startAt') }}</span>
+                  <InputText v-model="liveConfig.start_at" type="datetime-local" class="w-full" />
+                </label>
+                <label class="field">
+                  <span>{{ t('admin.builder.fields.liveDuration') }}</span>
+                  <InputNumber v-model="liveConfig.duration" :min="15" :step="15" class="w-full" />
+                </label>
+              </div>
+            </template>
+
+            <template v-if="lessonForm.type === 'h5p'">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.h5pUrl') }}</span>
+                <Textarea v-model="scormConfig.entry_url" rows="3" class="w-full" auto-resize placeholder="https://h5p.org/h5p/embed/..." />
+                <small class="hint">{{ t('admin.builder.fields.h5pHint') }}</small>
+              </label>
+            </template>
+
+            <template v-if="lessonForm.type === 'scorm'">
+              <label class="field">
+                <span>{{ t('admin.builder.fields.scormZip') }}</span>
+                <CommonFileDropzone
+                  v-model="scormFile"
+                  :label="t('admin.builder.fields.scormZip')"
+                  hint="ZIP SCORM 1.2 / 2004 — kéo thả hoặc chọn tệp"
+                  accept=".zip,application/zip"
+                  :max-size-mb="200"
+                  :existing-url="scormConfig.entry_url"
+                  icon="pi pi-box"
+                />
+              </label>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.fileUrl') }}</span>
+                <InputText v-model="scormConfig.entry_url" class="w-full" placeholder="https://... (tuỳ chọn nếu đã upload ZIP)" />
+              </label>
+            </template>
           </div>
         </template>
       </section>
     </div>
+    </div>
+
 
     <Dialog
       v-model:visible="sectionDialogOpen"
@@ -1282,20 +1501,25 @@ onMounted(async () => {
       v-model:visible="pickerOpen"
       modal
       :header="t('admin.builder.pickType')"
-      :style="{ width: 'min(560px, 96vw)' }"
+      :style="{ width: 'min(760px, 96vw)' }"
     >
-      <div class="type-grid">
-        <button
-          v-for="item in contentTypeOptions"
-          :key="item.key"
-          type="button"
-          class="type-card"
-          @click="chooseContentType(item.key)"
-        >
-          <i :class="item.icon" />
-          <strong>{{ item.label }}</strong>
-          <span>{{ t(`admin.builder.typeHints.${item.key}`) }}</span>
-        </button>
+      <div class="type-groups">
+        <div v-for="group in contentTypeGroups" :key="group.key" class="type-group">
+          <h4>{{ group.label }}</h4>
+          <div class="type-grid">
+            <button
+              v-for="item in group.items"
+              :key="item.key"
+              type="button"
+              class="type-card"
+              @click="chooseContentType(item.key)"
+            >
+              <i :class="item.icon" />
+              <strong>{{ item.label }}</strong>
+              <span>{{ t(`admin.builder.typeHints.${item.key}`) }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </Dialog>
   </div>
@@ -1320,15 +1544,48 @@ onMounted(async () => {
 }
 .top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
+.builder-tabnav {
+  display: flex; flex-wrap: wrap; gap: 0;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+  overflow-x: auto;
+}
+.builder-tabnav__item {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 0; background: transparent;
+  color: #64748b;
+  padding: 16px 22px;
+  cursor: pointer; font: inherit; font-size: .95rem; font-weight: 600;
+  border-bottom: 3px solid transparent;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.builder-tabnav__item:hover { color: #0f172a; background: #f8fafc; }
+.builder-tabnav__item.is-active {
+  color: var(--brand, #16a34a);
+  border-bottom-color: var(--brand, #16a34a);
+  background: color-mix(in srgb, var(--brand, #16a34a) 8%, #fff);
+}
+.builder-tabnav__item i { font-size: 1rem; }
+
 .builder-layout {
   display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 12px;
   align-items: start; min-height: 0; flex: 1;
 }
-.tree-panel, .editor-panel {
+.tree-panel, .editor-panel, .info-panel {
   border: 1px solid var(--border); border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
   min-height: 520px;
 }
+.info-panel { padding-bottom: 16px; }
+.curriculum-idle {
+  display: grid; place-items: center; gap: 10px; min-height: 420px;
+  color: var(--text-muted); text-align: center; padding: 24px;
+}
+.curriculum-idle i { font-size: 1.8rem; opacity: .7; }
+.curriculum-idle p { margin: 0; max-width: 320px; line-height: 1.45; }
 .tree-head, .editor-head {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 12px 14px; border-bottom: 1px solid var(--border);
@@ -1386,7 +1643,8 @@ onMounted(async () => {
 .list-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .list-head > span { font-size: .8rem; font-weight: 700; color: var(--brand); }
 .list-hint { margin: 0; color: var(--text-muted); font-size: .78rem; font-weight: 500; }
-.list-row { display: flex; gap: 6px; align-items: center; }
+.list-row { display: flex; gap: 6px; align-items: flex-start; }
+.list-row > :first-child { flex: 1; min-width: 0; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: .8rem; font-weight: 700; color: var(--brand); }
 .check-row { display: flex; align-items: center; gap: 8px; min-height: 38px; }
@@ -1410,7 +1668,12 @@ onMounted(async () => {
   border: 1px dashed color-mix(in srgb, var(--brand) 35%, var(--border));
   background: color-mix(in srgb, var(--brand-soft) 45%, transparent);
 }
-.type-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.type-groups { display: grid; gap: 16px; }
+.type-group h4 {
+  margin: 0 0 8px; font-size: .78rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted);
+}
+.type-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .type-card {
   display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
   padding: 14px; border-radius: 14px; border: 1px solid var(--border);
@@ -1428,5 +1691,10 @@ onMounted(async () => {
   .builder-layout { grid-template-columns: 1fr; }
   .tree-panel, .editor-panel { min-height: 0; }
   .tree-list { max-height: 360px; }
+  .type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .type-grid { grid-template-columns: 1fr; }
+  .builder-tabnav__item { flex: 1; justify-content: center; padding: 12px 10px; }
 }
 </style>

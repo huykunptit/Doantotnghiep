@@ -44,7 +44,7 @@ class OrderController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if ($order->user_id !== $user->id && !$user->hasRole('admin')) {
+        if ($order->user_id !== $user->id && !\App\Support\Authorize::isAdmin($user)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

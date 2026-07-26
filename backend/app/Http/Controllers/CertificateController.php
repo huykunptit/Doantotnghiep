@@ -14,7 +14,7 @@ class CertificateController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        if (!$request->user()->hasRole('admin') && !$request->user()->hasRole('instructor')) {
+        if (!\App\Support\Authorize::allows($request->user(), 'manage_courses')) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -23,7 +23,7 @@ class CertificateController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($request->user())) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -55,7 +55,7 @@ class CertificateController extends Controller
 
     public function update(Request $request, CertificateTemplate $template): JsonResponse
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($request->user())) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -82,7 +82,7 @@ class CertificateController extends Controller
 
     public function updateFields(Request $request, CertificateTemplate $template): JsonResponse
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($request->user())) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -110,7 +110,7 @@ class CertificateController extends Controller
 
     public function destroy(Request $request, CertificateTemplate $template): JsonResponse
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($request->user())) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

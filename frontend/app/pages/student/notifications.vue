@@ -70,7 +70,7 @@ onMounted(load)
         @click="openItem(item)"
       >
         <strong>{{ item.title || t('student.notif.untitled') }}</strong>
-        <span>{{ item.message }}</span>
+        <span class="rich" v-html="item.message || ''" />
         <small>{{ item.created_at ? new Date(item.created_at).toLocaleString(dateLocale) : '' }}</small>
       </button>
     </div>

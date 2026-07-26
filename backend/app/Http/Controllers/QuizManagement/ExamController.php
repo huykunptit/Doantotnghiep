@@ -33,12 +33,12 @@ class ExamController extends Controller
     public function standaloneIndex(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $user->hasRole('instructor')), 403);
+        abort_unless($user && \App\Support\Authorize::allows($user, 'manage_exams'), 403);
 
         $query = Exam::standalone()->with('quiz', 'creator')->withCount('examEnrollments');
 
         // Instructors can only see their own standalone exams
-        if (!$user->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($user)) {
             $query->where('created_by', $user->id);
         }
 
@@ -57,7 +57,7 @@ class ExamController extends Controller
         if ($course) {
             $this->authorizeOwner($request, $course);
         } else {
-            abort_unless($user && ($user->hasRole('admin') || $user->hasRole('instructor')), 403);
+            abort_unless($user && \App\Support\Authorize::allows($user, 'manage_exams'), 403);
         }
 
         $validated = $request->validate([
@@ -112,7 +112,7 @@ class ExamController extends Controller
     public function showStandalone(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
         abort_unless($exam->isStandalone(), 404);
 
         return response()->json($exam->load(['quiz.questions.answers', 'examEnrollments.user']));
@@ -149,7 +149,7 @@ class ExamController extends Controller
     public function updateStandalone(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
         abort_unless($exam->isStandalone(), 404);
 
         $validated = $request->validate([
@@ -188,7 +188,7 @@ class ExamController extends Controller
     public function destroyStandalone(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
         abort_unless($exam->isStandalone(), 404);
 
         $exam->delete();
@@ -204,7 +204,7 @@ class ExamController extends Controller
     public function enrollUsers(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
 
         $validated = $request->validate([
             'user_ids'   => ['required', 'array', 'min:1'],
@@ -232,7 +232,7 @@ class ExamController extends Controller
     public function unenrollUser(Request $request, Exam $exam, User $targetUser): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
 
         ExamEnrollment::where('exam_id', $exam->id)
             ->where('user_id', $targetUser->id)
@@ -247,7 +247,7 @@ class ExamController extends Controller
     public function enrolledUsers(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
 
         $enrollments = $exam->examEnrollments()
             ->with('user:id,name,email')
@@ -262,7 +262,7 @@ class ExamController extends Controller
     public function enrollByAdminClass(Request $request, Exam $exam): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $exam->created_by === $user->id), 403);
+        abort_unless($user && (\App\Support\Authorize::isAdmin($user) || (int) $exam->created_by === (int) $user->id), 403);
 
         $validated = $request->validate([
             'administrative_class_id' => ['required', 'integer', 'exists:administrative_classes,id'],
@@ -296,6 +296,11 @@ class ExamController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user && ($user->hasRole('admin') || $course->user_id === $user->id), 403);
+        abort_unless(
+            $user
+            && \App\Support\Authorize::allows($user, 'manage_exams')
+            && (\App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id),
+            403
+        );
     }
 }

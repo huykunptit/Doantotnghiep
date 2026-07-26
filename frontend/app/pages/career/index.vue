@@ -237,12 +237,12 @@ onMounted(load)
         <label class="field"><span>Email</span><InputText v-model="form.email" class="w-full" /></label>
         <label class="field"><span>{{ t('career.phone') }}</span><InputText v-model="form.phone" class="w-full" /></label>
         <label class="field"><span>{{ t('career.headline') }}</span><InputText v-model="form.headline" class="w-full" /></label>
-        <label class="field full"><span>{{ t('career.summary') }}</span><Textarea v-model="form.summary" rows="3" class="w-full" /></label>
+        <label class="field full"><span>{{ t('career.summary') }}</span><CommonRichTextEditor v-model="form.summary" height="180px" /></label>
         <label class="field full"><span>{{ t('career.skills') }}</span><Textarea v-model="form.skillsText" rows="2" class="w-full" :placeholder="t('career.skillsHint')" /></label>
         <label class="field"><span>{{ t('career.school') }}</span><InputText v-model="form.education[0].school" class="w-full" /></label>
         <label class="field"><span>{{ t('career.degree') }}</span><InputText v-model="form.education[0].degree" class="w-full" /></label>
         <label class="field full"><span>{{ t('career.project') }}</span><InputText v-model="form.projects[0].name" class="w-full" /></label>
-        <label class="field full"><span>{{ t('career.projectDesc') }}</span><Textarea v-model="form.projects[0].description" rows="2" class="w-full" /></label>
+        <label class="field full"><span>{{ t('career.projectDesc') }}</span><CommonRichTextEditor v-model="form.projects[0].description" height="160px" /></label>
       </div>
       <div class="actions">
         <Button :label="t('career.saveForm')" icon="pi pi-check" :loading="saving" @click="saveForm" />

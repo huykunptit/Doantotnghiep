@@ -13,7 +13,7 @@ class AdminClassSectionController extends Controller
 {
     public function index(Request $request, AdministrativeClass $adminClass): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -28,7 +28,7 @@ class AdminClassSectionController extends Controller
 
     public function attach(Request $request, AdministrativeClass $adminClass): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -61,7 +61,7 @@ class AdminClassSectionController extends Controller
 
     public function detach(Request $request, AdministrativeClass $adminClass, ClassSection $section): JsonResponse
     {
-        if (!$request->user()?->hasAnyRole(['admin', 'academic_manager'])) {
+        if (!($request->user() && \App\Support\Authorize::allows($request->user(), ['manage_academic', 'manage_courses']))) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

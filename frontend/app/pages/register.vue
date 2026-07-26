@@ -82,6 +82,8 @@ async function submit() {
           <Button type="submit" label="Tạo tài khoản" icon="pi pi-user-plus" :loading="loading" fluid />
         </form>
 
+        <AuthGoogleButton label="Đăng ký / Đăng nhập bằng Google" @error="error = $event" />
+
         <p class="auth-foot">Đã có tài khoản? <NuxtLink to="/login">Đăng nhập</NuxtLink></p>
       </template>
     </Card>

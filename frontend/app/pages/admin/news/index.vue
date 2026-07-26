@@ -235,7 +235,7 @@ onMounted(load)
         </label>
         <label class="field full">
           <span>{{ t('admin.news.fieldContent') }}</span>
-          <Textarea v-model="form.content" rows="8" class="w-full" auto-resize />
+          <CommonRichTextEditor v-model="form.content" height="320px" />
         </label>
         <label class="field">
           <span>{{ t('admin.news.fieldCover') }}</span>

@@ -76,7 +76,7 @@ onMounted(load)
             <strong>{{ ex.title }}</strong>
             <Tag :severity="statusInfo(ex).severity" :value="statusInfo(ex).label" />
           </div>
-          <p v-if="ex.description" class="desc">{{ ex.description }}</p>
+          <div v-if="ex.description" class="desc rich" v-html="ex.description" />
           <div class="meta">
             <span><i class="pi pi-calendar" /> {{ fmt(ex.starts_at) }} → {{ fmt(ex.ends_at) }}</span>
             <span v-if="ex.duration"><i class="pi pi-clock" /> {{ ex.duration }}'</span>

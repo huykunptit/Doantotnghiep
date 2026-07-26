@@ -24,12 +24,12 @@ class QuestionBankController extends Controller
     public function allBanks(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && ($user->hasRole('admin') || $user->hasRole('instructor')), 403);
+        abort_unless($user && \App\Support\Authorize::allows($user, 'manage_exams'), 403);
 
         $query = QuestionBank::with('course:id,title')
             ->withCount('questions');
 
-        if (!$user->hasRole('admin')) {
+        if (!\App\Support\Authorize::isAdmin($user)) {
             $query->whereHas('course', fn ($q) => $q->where('user_id', $user->id));
         }
 

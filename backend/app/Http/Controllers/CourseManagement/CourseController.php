@@ -80,7 +80,7 @@ class CourseController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasAnyRole(['admin', 'instructor'])) {
+        if (!\App\Support\Authorize::allows($user, ['manage_courses', 'manage_lessons', 'manage_exams', 'manage_grades', 'view_dashboard'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -169,7 +169,7 @@ class CourseController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -224,7 +224,7 @@ class CourseController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -238,7 +238,7 @@ class CourseController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        if (!$user->hasRole('admin') && $course->user_id !== $user->id) {
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 

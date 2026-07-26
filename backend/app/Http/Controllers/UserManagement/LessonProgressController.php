@@ -28,7 +28,7 @@ class LessonProgressController extends Controller
         $isEnrolled = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
-        $isOwner = $user->hasRole('admin') || $course->user_id === $user->id;
+        $isOwner = \App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id;
 
         if (!$isEnrolled && !$isOwner) {
             return response()->json(['message' => 'Enrollment required'], 403);
@@ -86,7 +86,7 @@ class LessonProgressController extends Controller
         $isEnrolled = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)->exists();
 
-        $isOwner = $user->hasRole('admin') || $course->user_id === $user->id;
+        $isOwner = \App\Support\Authorize::isAdmin($user) || (int) $course->user_id === (int) $user->id;
 
         if (!$isEnrolled && !$isOwner) {
             return response()->json(['message' => 'Enrollment required'], 403);

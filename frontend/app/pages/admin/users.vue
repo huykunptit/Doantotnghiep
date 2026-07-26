@@ -977,7 +977,7 @@ onMounted(async () => {
         </label>
         <label class="field full bio-field">
           <span>{{ t('admin.users.bio') }}</span>
-          <Textarea v-model="form.bio" rows="3" auto-resize class="w-full bio-input" :disabled="isReadonly" />
+          <CommonRichTextEditor v-model="form.bio" height="180px" :readonly="isReadonly" />
         </label>
       </div>
       <template #footer>
