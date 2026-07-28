@@ -3,12 +3,25 @@ import { useToast } from 'primevue/usetoast'
 
 definePageMeta({ layout: 'student', middleware: ['auth', 'student'] })
 
-interface NamedRef { id: number, code?: string | null, name?: string | null }
+interface NamedRef {
+  id: number
+  code?: string | null
+  name?: string | null
+  start_year?: number | null
+  end_year?: number | null
+  program_type?: NamedRef | null
+}
 
 interface LearnerProfileUser {
   id: number
   name: string
   student_code: string | null
+  gender?: string | null
+  date_of_birth?: string | null
+  hometown?: string | null
+  permanent_address?: string | null
+  nationality?: string | null
+  study_status?: string | null
   program: NamedRef | null
   major: NamedRef | null
   cohort: NamedRef | null
@@ -29,23 +42,53 @@ const profileUser = ref<LearnerProfileUser | null>(null)
 
 const displayName = computed(() => profileUser.value?.name || auth.user?.name || '—')
 const studentCode = computed(() => profileUser.value?.student_code || auth.user?.student_code || '—')
-const className = computed(() => profileUser.value?.administrative_class?.code || profileUser.value?.administrative_class?.name || '—')
-const programName = computed(() => profileUser.value?.program?.name || '—')
-const majorName = computed(() => profileUser.value?.major?.name || null)
-const programMajorLabel = computed(() => {
-  if (programName.value !== '—' && majorName.value) return `${programName.value} — ${majorName.value}`
-  return majorName.value || programName.value
+const className = computed(() =>
+  profileUser.value?.administrative_class?.code
+  || profileUser.value?.administrative_class?.name
+  || '—',
+)
+
+/** Physical cards use degree level (Đại học); training mode like "Chính quy" maps to that default. */
+const programTypeName = computed(() => {
+  const type = profileUser.value?.program?.program_type
+  if (!type?.name || type.code === 'CHINH_QUY') return t('student.idCard.defaultProgramLevel')
+  return type.name
 })
-const cohortName = computed(() => profileUser.value?.cohort?.name || null)
+
+const majorLabel = computed(() => {
+  const major = profileUser.value?.major
+  if (!major) return '—'
+  return major.code || major.name || '—'
+})
+
+const permanentResidence = computed(() => {
+  const fromProfile = profileUser.value?.hometown || profileUser.value?.permanent_address
+  if (fromProfile) return fromProfile
+  return auth.user?.hometown || auth.user?.permanent_address || '—'
+})
+
+const cohortYears = computed(() => {
+  const cohort = profileUser.value?.cohort
+  if (!cohort) return '—'
+  if (cohort.start_year && cohort.end_year) return `${cohort.start_year}-${cohort.end_year}`
+  return cohort.code || cohort.name || '—'
+})
 
 const dobLabel = computed(() => {
-  const raw = auth.user?.date_of_birth
-  if (!raw) return null
+  const raw = profileUser.value?.date_of_birth || auth.user?.date_of_birth
+  if (!raw) return '—'
   const date = new Date(raw)
-  if (Number.isNaN(date.getTime())) return null
+  if (Number.isNaN(date.getTime())) return '—'
   return new Intl.DateTimeFormat(locale.value === 'en' ? 'en-US' : 'vi-VN', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   }).format(date)
+})
+
+const genderLabel = computed(() => {
+  const gender = (profileUser.value?.gender || auth.user?.gender || '').toLowerCase()
+  if (gender === 'male' || gender === 'nam') return t('student.idCard.genderMale')
+  if (gender === 'female' || gender === 'nu' || gender === 'nữ') return t('student.idCard.genderFemale')
+  return gender || '—'
 })
 
 const institutionName = computed(() => settings.value.site_name || t('student.idCard.defaultInstitution'))
@@ -55,13 +98,13 @@ const barcodeBars = computed(() => {
   const code = studentCode.value === '—' ? '00000000' : studentCode.value
   const chars = code.split('')
   if (!chars.length) return []
-  return chars.map((ch, index) => {
-    const code0 = ch.charCodeAt(0) + index
-    return {
-      width: 2 + (code0 % 4),
-      tall: code0 % 5 !== 0,
-    }
-  })
+  const expanded: { width: number, tall: boolean }[] = []
+  for (let i = 0; i < chars.length; i++) {
+    const code0 = chars[i].charCodeAt(0) + i
+    expanded.push({ width: 2 + (code0 % 4), tall: code0 % 5 !== 0 })
+    expanded.push({ width: 1 + (code0 % 2), tall: true })
+  }
+  return expanded
 })
 
 async function loadLearnerProfile() {
@@ -108,8 +151,10 @@ onMounted(async () => {
     <div v-if="loading" class="empty">…</div>
 
     <div v-else class="card-stage">
-      <div class="id-card" id="student-id-card">
-        <div class="watermark">{{ t('student.idCard.cardTitle') }}</div>
+      <div id="student-id-card" class="id-card">
+        <div class="watermark" aria-hidden="true">
+          <i class="pi pi-building-columns" />
+        </div>
 
         <div class="card-header">
           <Avatar
@@ -118,56 +163,77 @@ onMounted(async () => {
             shape="square"
             class="inst-logo"
           />
-          <i v-else class="pi pi-building-columns inst-logo-fallback" />
+          <div v-else class="inst-logo-fallback">
+            <i class="pi pi-building-columns" />
+          </div>
           <div class="header-text">
             <strong class="inst-name">{{ institutionName }}</strong>
-            <span class="card-title">{{ t('student.idCard.cardTitle') }}</span>
-            <span class="card-subtitle">{{ t('student.idCard.cardSubtitle') }}</span>
           </div>
         </div>
 
-        <div class="card-photo-row">
+        <div class="title-band">
+          <span class="card-title">{{ t('student.idCard.cardTitle') }}</span>
+          <span class="card-subtitle">{{ t('student.idCard.cardSubtitle') }}</span>
+        </div>
+
+        <div class="card-body">
           <div class="photo-frame">
             <img v-if="auth.user?.avatar" :src="auth.user.avatar" :alt="displayName">
             <i v-else class="pi pi-user photo-fallback" />
           </div>
-          <div class="name-block">
-            <span class="name-label">{{ t('student.idCard.fullName') }}</span>
-            <strong class="name-value">{{ displayName }}</strong>
-            <span v-if="cohortName" class="cohort-chip">{{ cohortName }}</span>
-          </div>
+
+          <dl class="card-fields">
+            <div class="field-row">
+              <dt>{{ t('student.idCard.fullName') }}</dt>
+              <dd class="name-value">{{ displayName }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.dob') }}</dt>
+              <dd>{{ dobLabel }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.gender') }}</dt>
+              <dd>{{ genderLabel }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.residence') }}</dt>
+              <dd>{{ permanentResidence }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.className') }}</dt>
+              <dd>{{ className }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.programLevel') }}</dt>
+              <dd>{{ programTypeName }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.major') }}</dt>
+              <dd>{{ majorLabel }}</dd>
+            </div>
+            <div class="field-row">
+              <dt>{{ t('student.idCard.cohort') }}</dt>
+              <dd>{{ cohortYears }}</dd>
+            </div>
+          </dl>
         </div>
 
-        <dl class="card-fields">
-          <div class="field-row">
-            <dt>{{ t('student.idCard.studentCode') }}</dt>
-            <dd class="mono">{{ studentCode }}</dd>
+        <div class="card-footer">
+          <div class="student-code-row">
+            <span class="code-label">{{ t('student.idCard.studentCode') }}</span>
+            <strong class="code-value">{{ studentCode }}</strong>
           </div>
-          <div v-if="dobLabel" class="field-row">
-            <dt>{{ t('student.idCard.dob') }}</dt>
-            <dd>{{ dobLabel }}</dd>
+          <div class="barcode-block" aria-hidden="true">
+            <div class="barcode-bars">
+              <span
+                v-for="(bar, index) in barcodeBars"
+                :key="index"
+                class="bar"
+                :class="{ short: !bar.tall }"
+                :style="{ width: `${bar.width}px` }"
+              />
+            </div>
           </div>
-          <div class="field-row">
-            <dt>{{ t('student.idCard.className') }}</dt>
-            <dd>{{ className }}</dd>
-          </div>
-          <div class="field-row">
-            <dt>{{ t('student.idCard.program') }}</dt>
-            <dd>{{ programMajorLabel || '—' }}</dd>
-          </div>
-        </dl>
-
-        <div class="barcode-block">
-          <div class="barcode-bars">
-            <span
-              v-for="(bar, index) in barcodeBars"
-              :key="index"
-              class="bar"
-              :class="{ short: !bar.tall }"
-              :style="{ width: `${bar.width}px` }"
-            />
-          </div>
-          <span class="barcode-code">{{ studentCode }}</span>
         </div>
       </div>
 
@@ -187,17 +253,23 @@ onMounted(async () => {
 .card-stage { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 10px 0 30px; }
 
 .id-card {
+  --card-red: #c62828;
+  --card-blue: #1a237e;
+  --card-ink: #1f2937;
   position: relative;
-  width: min(340px, 90vw);
-  border-radius: 20px;
+  width: min(360px, 92vw);
+  border-radius: 14px;
   overflow: hidden;
-  background: linear-gradient(165deg, var(--brand) 0%, var(--brand-hover) 55%, #0b3b36 100%);
-  color: #fff;
-  box-shadow: 0 20px 45px -18px color-mix(in srgb, var(--brand) 65%, black 20%), 0 2px 8px rgba(0, 0, 0, .12);
-  padding: 20px 20px 22px;
+  background:
+    radial-gradient(ellipse 80% 50% at 70% 55%, rgba(198, 40, 40, .06), transparent 70%),
+    linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  color: var(--card-ink);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 18px 40px -20px rgba(15, 23, 42, .35), 0 2px 8px rgba(0, 0, 0, .06);
+  padding: 16px 18px 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .watermark {
@@ -206,68 +278,166 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.6rem;
-  font-weight: 900;
-  letter-spacing: .1em;
-  color: rgba(255, 255, 255, .08);
-  transform: rotate(-22deg) scale(1.3);
   pointer-events: none;
-  white-space: nowrap;
-  user-select: none;
+  z-index: 0;
+}
+.watermark i {
+  font-size: 7.5rem;
+  color: rgba(198, 40, 40, .07);
+  transform: translateY(8px);
 }
 
-.card-header { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
 .inst-logo, .inst-logo-fallback {
-  width: 38px; height: 38px; border-radius: 10px; flex: 0 0 38px;
-  background: rgba(255, 255, 255, .15);
+  width: 42px; height: 42px; border-radius: 8px; flex: 0 0 42px;
+  object-fit: contain;
 }
-.inst-logo-fallback { display: grid; place-items: center; font-size: 1.1rem; }
-.header-text { display: flex; flex-direction: column; min-width: 0; }
+.inst-logo-fallback {
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--card-red) 12%, white);
+  color: var(--card-red);
+  font-size: 1.15rem;
+}
+.header-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .inst-name {
-  font-size: .72rem; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--card-blue);
+  line-height: 1.35;
 }
-.card-title { font-size: 1.05rem; font-weight: 900; letter-spacing: .04em; margin-top: 2px; }
-.card-subtitle { font-size: .62rem; font-weight: 600; letter-spacing: .18em; opacity: .75; }
 
-.card-photo-row { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+.title-band {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 6px 0 8px;
+  border-top: 2px solid var(--card-red);
+  border-bottom: 1px solid #e8eaed;
+}
+.card-title {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  color: var(--card-red);
+}
+.card-subtitle {
+  display: block;
+  margin-top: 2px;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.card-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
 .photo-frame {
-  width: 76px; height: 92px; border-radius: 10px; overflow: hidden; flex: 0 0 76px;
-  background: rgba(255, 255, 255, .18); border: 2px solid rgba(255, 255, 255, .55);
+  width: 88px; height: 110px; border-radius: 4px; overflow: hidden; flex: 0 0 88px;
+  background: #e8eef5; border: 1px solid #c5d0dc;
   display: grid; place-items: center;
 }
 .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-.photo-fallback { font-size: 2rem; opacity: .7; }
-.name-block { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.name-label { font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
-.name-value { font-size: 1.05rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
-.cohort-chip {
-  align-self: flex-start; margin-top: 2px; padding: 2px 8px; border-radius: 999px;
-  background: rgba(255, 255, 255, .18); font-size: .68rem; font-weight: 700;
+.photo-fallback { font-size: 2.2rem; color: #94a3b8; }
+
+.card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 4px;
+  align-items: baseline;
+}
+.field-row dt {
+  margin: 0;
+  font-size: .68rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+.field-row dd {
+  margin: 0;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--card-blue);
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+.field-row dd.name-value {
+  font-size: .88rem;
+  font-weight: 800;
 }
 
-.card-fields { display: flex; flex-direction: column; gap: 7px; margin: 0; position: relative; z-index: 1; }
-.field-row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; align-items: baseline; }
-.field-row dt { margin: 0; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; opacity: .75; }
-.field-row dd { margin: 0; font-size: .88rem; font-weight: 700; overflow-wrap: anywhere; }
-.field-row dd.mono { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; letter-spacing: .04em; }
-
+.card-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px dashed #d1d5db;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.student-code-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.code-label {
+  font-size: .68rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+.code-value {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  font-size: .95rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--card-red);
+}
 .barcode-block {
-  position: relative; z-index: 1; margin-top: 4px; padding-top: 12px;
-  border-top: 1px dashed rgba(255, 255, 255, .3);
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  background: rgba(255, 255, 255, .08); border-radius: 10px; padding: 12px 10px 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: center;
 }
-.barcode-bars { display: flex; align-items: flex-end; gap: 1.5px; height: 34px; }
-.bar { display: block; height: 100%; background: #fff; border-radius: 1px; }
-.bar.short { height: 62%; opacity: .75; }
-.barcode-code { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: .78rem; font-weight: 700; letter-spacing: .12em; }
+.barcode-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 36px;
+  width: 100%;
+  justify-content: center;
+}
+.bar { display: block; height: 100%; background: #111; border-radius: 0; }
+.bar.short { height: 62%; }
 
-.card-hint { color: var(--text-muted); font-size: .82rem; text-align: center; max-width: 340px; }
+.card-hint { color: var(--text-muted); font-size: .82rem; text-align: center; max-width: 360px; }
 
 @media print {
   .workspace-head, .card-hint, .print-btn { display: none !important; }
   .page, .card-stage { padding: 0; gap: 0; }
-  .id-card { box-shadow: none; }
+  .id-card { box-shadow: none; border-color: #ccc; }
 }
 </style>

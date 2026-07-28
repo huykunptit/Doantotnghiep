@@ -11,7 +11,11 @@ export interface AuthUser {
   student_code?: string | null
   class_name?: string | null
   department?: string | null
+  gender?: string | null
   date_of_birth?: string | null
+  hometown?: string | null
+  permanent_address?: string | null
+  nationality?: string | null
 }
 
 export interface AuthResponse {
