@@ -32,6 +32,7 @@ class Course extends Model
         'credit_value',
         'status',
         'is_featured',
+        'certificate_template_id',
         'thumbnail',
         'reject_reason',
         'published_at',
@@ -56,6 +57,11 @@ class Course extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function certificateTemplate(): BelongsTo
+    {
+        return $this->belongsTo(CertificateTemplate::class);
     }
 
     public function programType(): BelongsTo

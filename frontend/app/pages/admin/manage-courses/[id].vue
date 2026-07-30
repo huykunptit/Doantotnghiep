@@ -40,6 +40,8 @@ interface CourseDetail {
   requirements?: string[] | null
   level?: string | null
   trailer_url?: string | null
+  certificate_template_id?: number | null
+  certificate_template?: { id: number, name: string } | null
 }
 
 type Selection =
@@ -77,12 +79,14 @@ const metaForm = reactive({
   category_id: null as number | null,
   status: 'draft',
   is_featured: false,
+  certificate_template_id: null as number | null,
   level: '' as string,
   trailer_url: '',
   learning_outcomes: [''] as string[],
   benefits: [''] as string[],
   requirements: [''] as string[],
 })
+const certOptions = ref<Array<{ label: string, value: number }>>([])
 const thumbnailFile = ref<File | null>(null)
 const thumbnailUrl = ref<string | null>(null)
 
@@ -252,6 +256,17 @@ async function loadCategories() {
   }
 }
 
+async function loadCertTemplates() {
+  try {
+    const res = await useApi<any>('/admin/certificates')
+    const list = Array.isArray(res) ? res : (res.data || [])
+    certOptions.value = list.map((c: any) => ({ label: c.name, value: c.id }))
+  }
+  catch {
+    certOptions.value = []
+  }
+}
+
 async function loadCourse() {
   try {
     const detail = await useApi<CourseDetail>(`/admin/courses/${courseId.value}`).catch(() => null)
@@ -267,6 +282,9 @@ async function loadCourse() {
     metaForm.category_id = course.value.category_id ?? course.value.category?.id ?? null
     metaForm.status = course.value.status || 'draft'
     metaForm.is_featured = !!course.value.is_featured
+    metaForm.certificate_template_id = course.value.certificate_template_id
+      || course.value.certificate_template?.id
+      || null
     metaForm.level = course.value.level || ''
     metaForm.trailer_url = course.value.trailer_url || ''
     metaForm.learning_outcomes = (course.value.learning_outcomes?.length ? [...course.value.learning_outcomes] : [''])
@@ -916,6 +934,7 @@ function metaPayload() {
     category_id: metaForm.category_id,
     status: metaStatusForApi(),
     is_featured: Boolean(metaForm.is_featured),
+    certificate_template_id: metaForm.certificate_template_id,
     level: metaForm.level || null,
     trailer_url: metaForm.trailer_url || null,
     learning_outcomes: cleanList(metaForm.learning_outcomes),
@@ -938,6 +957,12 @@ async function saveCourseMeta() {
       if (payload.category_id) formData.append('category_id', String(payload.category_id))
       formData.append('status', payload.status)
       formData.append('is_featured', payload.is_featured ? '1' : '0')
+      if (payload.certificate_template_id) {
+        formData.append('certificate_template_id', String(payload.certificate_template_id))
+      }
+      else {
+        formData.append('certificate_template_id', '')
+      }
       formData.append('level', payload.level || '')
       formData.append('trailer_url', payload.trailer_url || '')
       formData.append('learning_outcomes', JSON.stringify(payload.learning_outcomes))
@@ -951,6 +976,9 @@ async function saveCourseMeta() {
       course.value = res.course
       metaForm.status = res.course.status || metaForm.status
       metaForm.is_featured = Boolean(res.course.is_featured)
+      metaForm.certificate_template_id = res.course.certificate_template_id
+        || res.course.certificate_template?.id
+        || null
       thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
       thumbnailFile.value = null
     }
@@ -960,12 +988,16 @@ async function saveCourseMeta() {
         body: {
           ...payload,
           is_featured: Boolean(payload.is_featured),
+          certificate_template_id: payload.certificate_template_id || null,
           ...(thumbnailUrl.value ? { thumbnail: thumbnailUrl.value } : {}),
         },
       })
       course.value = res.course
       metaForm.status = res.course.status || metaForm.status
       metaForm.is_featured = Boolean(res.course.is_featured)
+      metaForm.certificate_template_id = res.course.certificate_template_id
+        || res.course.certificate_template?.id
+        || null
       thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
     }
     toast.add({
@@ -1021,7 +1053,7 @@ const isNewLessonDraft = computed(() =>
 )
 
 onMounted(async () => {
-  await Promise.all([loadCategories(), loadCourse(), loadCurriculum()])
+  await Promise.all([loadCategories(), loadCertTemplates(), loadCourse(), loadCurriculum()])
 })
 </script>
 
@@ -1153,6 +1185,18 @@ onMounted(async () => {
                   <label for="course-featured">{{ t('admin.builder.fields.featuredHint') }}</label>
                 </div>
               </div>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.certificate') }}</span>
+                <Select
+                  v-model="metaForm.certificate_template_id"
+                  :options="certOptions"
+                  option-label="label"
+                  option-value="value"
+                  show-clear
+                  class="w-full"
+                  :placeholder="t('admin.builder.fields.certificatePh')"
+                />
+              </label>
             </div>
           </div>
 

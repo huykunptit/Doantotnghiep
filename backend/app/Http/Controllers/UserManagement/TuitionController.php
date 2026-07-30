@@ -10,11 +10,149 @@ use Illuminate\Http\Request;
 
 /**
  * Học phí sinh viên (mức cố định theo kỳ).
- *  GET  /me/tuition          — danh sách học phí các kỳ của SV
- *  POST /me/tuition/{tuition}/pay — thanh toán (demo: đánh dấu đã đóng)
+ *  Student: GET /me/tuition, POST /me/tuition/{tuition}/pay
+ *  Admin:   CRUD /admin/tuitions*
  */
 class TuitionController extends Controller
 {
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'in:unpaid,paid'],
+            'term_id' => ['nullable', 'integer', 'exists:terms,id'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = Tuition::query()
+            ->with([
+                'user:id,name,email,student_code',
+                'term.academicYear',
+            ])
+            ->latest('id');
+
+        if (!empty($validated['status'])) {
+            $query->where('status', $validated['status']);
+        }
+        if (!empty($validated['term_id'])) {
+            $query->where('term_id', $validated['term_id']);
+        }
+        if (!empty($validated['search'])) {
+            $q = $validated['search'];
+            $query->whereHas('user', function ($userQuery) use ($q) {
+                $userQuery->where('name', 'like', "%{$q}%")
+                    ->orWhere('email', 'like', "%{$q}%")
+                    ->orWhere('student_code', 'like', "%{$q}%");
+            });
+        }
+
+        $paginator = $query->paginate($validated['per_page'] ?? 20);
+
+        $paginator->getCollection()->transform(function (Tuition $t) {
+            $term = $t->term;
+            return [
+                'id' => $t->id,
+                'user' => $t->user,
+                'term' => $term ? [
+                    'id' => $term->id,
+                    'name' => $term->name,
+                    'code' => $term->code,
+                    'label' => $term->displayName(),
+                    'academic_year' => $term->academicYear?->name,
+                ] : null,
+                'amount' => (float) $t->amount,
+                'status' => $t->status,
+                'paid_at' => $t->paid_at?->toIso8601String(),
+                'note' => $t->note,
+                'created_at' => $t->created_at?->toIso8601String(),
+            ];
+        });
+
+        return response()->json($paginator);
+    }
+
+    public function adminStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'term_id' => ['required', 'integer', 'exists:terms,id'],
+            'amount' => ['required', 'numeric', 'min:0'],
+            'status' => ['nullable', 'in:unpaid,paid'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $status = $validated['status'] ?? 'unpaid';
+        $tuition = Tuition::query()->updateOrCreate(
+            [
+                'user_id' => $validated['user_id'],
+                'term_id' => $validated['term_id'],
+            ],
+            [
+                'amount' => $validated['amount'],
+                'status' => $status,
+                'paid_at' => $status === 'paid' ? now() : null,
+                'note' => $validated['note'] ?? null,
+            ]
+        );
+
+        $tuition->load(['user:id,name,email,student_code', 'term.academicYear']);
+
+        return response()->json([
+            'message' => 'Đã tạo/cập nhật học phí.',
+            'tuition' => $tuition,
+        ], 201);
+    }
+
+    public function adminUpdate(Request $request, Tuition $tuition): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => ['sometimes', 'numeric', 'min:0'],
+            'status' => ['sometimes', 'in:unpaid,paid'],
+            'note' => ['nullable', 'string', 'max:255'],
+            'term_id' => ['sometimes', 'integer', 'exists:terms,id'],
+        ]);
+
+        if (array_key_exists('status', $validated)) {
+            if ($validated['status'] === 'paid' && !$tuition->isPaid()) {
+                $validated['paid_at'] = now();
+            }
+            if ($validated['status'] === 'unpaid') {
+                $validated['paid_at'] = null;
+            }
+        }
+
+        $tuition->update($validated);
+        $tuition->load(['user:id,name,email,student_code', 'term.academicYear']);
+
+        return response()->json([
+            'message' => 'Đã cập nhật học phí.',
+            'tuition' => $tuition,
+        ]);
+    }
+
+    public function adminDestroy(Tuition $tuition): JsonResponse
+    {
+        $tuition->delete();
+        return response()->json(['message' => 'Đã xóa học phí.']);
+    }
+
+    public function adminMarkPaid(Tuition $tuition): JsonResponse
+    {
+        if ($tuition->isPaid()) {
+            return response()->json(['message' => 'Học phí đã được thanh toán.'], 422);
+        }
+
+        $tuition->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'Đã xác nhận thanh toán học phí.',
+            'tuition' => $tuition->fresh(['user:id,name,email,student_code', 'term.academicYear']),
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
