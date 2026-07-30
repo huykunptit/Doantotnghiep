@@ -8,6 +8,7 @@ interface ApiOptions<TBody> {
   headers?: Record<string, string>
   token?: string | null
   query?: ApiQuery
+  timeout?: number
 }
 
 function buildQuery(query?: ApiQuery) {
@@ -41,6 +42,7 @@ export async function useApi<TResponse = unknown, TBody extends ApiBody = ApiBod
     method: options.method || 'GET',
     body: options.body as TBody,
     query: options.query,
+    timeout: options.timeout,
     headers: {
       Accept: 'application/json',
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),

@@ -33,6 +33,24 @@
     "apply": "Áp dụng",
     "reset": "Xóa lọc"
   },
+  "public": {
+    "ai": {
+      "chatTitle": "Trợ lý AI",
+      "chatStatus": "Tư vấn nhanh trước khi đăng ký",
+      "chatWelcome": "Eript LMS xin chào! Tôi có thể giúp gì cho bạn?",
+      "chatCleared": "Đã xoá hội thoại. Bạn cần hỗ trợ gì?",
+      "chatEmptyReply": "Hệ thống chưa có phản hồi cho yêu cầu này.",
+      "chatError": "Lỗi kết nối. Trợ lý AI tạm không khả dụng, thử lại sau.",
+      "chatRateLimit": "Bạn hỏi hơi nhanh. Vui lòng đợi khoảng 1 phút rồi thử lại.",
+      "chatPlaceholder": "Hỏi về đăng ký, khóa học phù hợp, lộ trình nghề nghiệp…",
+      "chatDisclaimer": "Chế độ khách: tư vấn nhanh. Đăng nhập để được hỗ trợ chi tiết hơn.",
+      "chatClear": "Xóa hội thoại",
+      "chatClose": "Đóng",
+      "q1": "Cách đăng ký tài khoản?",
+      "q2": "Gợi ý khóa học phù hợp cho tôi",
+      "q3": "Tư vấn lộ trình nghề nghiệp"
+    }
+  },
   "exam": {
     "title": "Bài thi",
     "loading": "Đang tải bài thi...",
@@ -977,6 +995,13 @@
       "learners": "Học viên",
       "enrollments": "Ghi danh",
       "status": "Trạng thái",
+      "featured": "Nổi bật",
+      "toggleFeatured": "Đánh dấu khóa nổi bật",
+      "featuredOn": "Đã đánh dấu nổi bật",
+      "featuredOff": "Đã bỏ nổi bật",
+      "featuredOnHint": "Bỏ đánh dấu nổi bật",
+      "featuredOffHint": "Đánh dấu nổi bật (hiện trang chủ)",
+      "featuredError": "Không cập nhật được trạng thái nổi bật",
       "apply": "Áp dụng",
       "reset": "Xóa lọc",
       "builder": "Builder",
@@ -1092,6 +1117,10 @@
         "price": "Giá",
         "category": "Danh mục",
         "status": "Trạng thái",
+        "featured": "Khóa nổi bật",
+        "featuredHint": "Đánh dấu để ưu tiên giới thiệu ngoài trang công khai và chatbot.",
+        "featuredOn": "Đã bật khóa nổi bật — sẽ hiện ở trang chủ.",
+        "featuredOff": "Chưa bật khóa nổi bật.",
         "thumbnail": "Ảnh bìa",
         "level": "Cấp độ",
         "trailer": "Trailer / video giới thiệu",
@@ -1819,7 +1848,7 @@
       "weak": "Cần củng cố",
       "noCurriculum": "Lớp hành chính chưa được gán CTĐT.",
       "courses": "Khóa học bổ trợ gợi ý",
-      "coursesHint": "Dựa trên môn điểm thấp và môn sắp học trong khung chương trình đào tạo.",
+      "coursesHint": "Điểm thấp khi < 6.5/10 hoặc thấp hơn GPA của bạn từ 1.0 điểm trở lên; kèm môn sắp học trong CTĐT.",
       "noCourses": "Chưa có gợi ý khóa học.",
       "buyHint": "Có thể học / củng cố trên hệ thống"
     },

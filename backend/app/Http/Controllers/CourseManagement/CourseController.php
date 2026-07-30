@@ -49,13 +49,19 @@ class CourseController extends Controller
             });
         }
 
+        if ($request->filled('featured')) {
+            $query->where('is_featured', $request->boolean('featured'));
+        }
+
         if ($request->filled('instructor_id')) {
             $query->where('user_id', $request->instructor_id);
         }
 
         $perPage = max(1, min(100, $request->integer('per_page', 12)));
 
-        $courses = $query->orderByDesc('created_at')
+        $courses = $query
+            ->orderByDesc('is_featured')
+            ->orderByDesc('created_at')
             ->paginate($perPage);
 
         return response()->json($courses);
@@ -93,6 +99,7 @@ class CourseController extends Controller
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
+            'is_featured' => ['nullable', 'boolean'],
         ]);
 
         // Auto-generate unique slug from title
@@ -118,6 +125,7 @@ class CourseController extends Controller
             'category_id' => $validated['category_id'] ?? null,
             'thumbnail'   => $thumbnailPath,
             'status'      => 'draft',
+            'is_featured' => (bool) ($validated['is_featured'] ?? false),
         ]);
 
         $course->load('instructor:id,name,avatar');
@@ -202,6 +210,7 @@ class CourseController extends Controller
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
             'status'      => ['sometimes', 'in:draft,published,closed,pending_review,rejected'],
+            'is_featured' => ['nullable', 'boolean'],
         ]);
 
         if ($request->hasFile('thumbnail_file')) {
@@ -211,8 +220,12 @@ class CourseController extends Controller
 
         unset($validated['thumbnail_file']);
 
+        if ($request->exists('is_featured')) {
+            $validated['is_featured'] = $request->boolean('is_featured');
+        }
+
         $course->fill($validated)->save();
-        $course->load('instructor:id,name,avatar');
+        $course->load('instructor:id,name,avatar', 'category:id,name,slug');
         $course->loadCount('lessons', 'enrollments');
 
         return response()->json([

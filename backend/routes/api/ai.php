@@ -5,6 +5,10 @@ use App\Http\Controllers\AIManagement\CareerAdvisorController;
 use App\Http\Controllers\AIManagement\AIChatController;
 use App\Http\Controllers\AIManagement\AiManagementController;
 
+// Chat công khai cho khách chưa đăng nhập (giới hạn tần suất).
+Route::post('/ai/chat/guest', [AIChatController::class, 'guestChat'])
+    ->middleware('throttle:20,1');
+
 Route::middleware('auth:sanctum')->group(function () {
     // ─── Career Advisor ───
     Route::get('/career/advisor', [CareerAdvisorController::class, 'index']);
