@@ -13,6 +13,7 @@ interface PathCard {
 }
 
 const route = useRoute()
+const auth = useAuthStore()
 const { t, locale } = useI18n()
 const search = ref(String(route.query.search || ''))
 const loading = ref(false)
@@ -20,6 +21,7 @@ const paths = ref<PathCard[]>([])
 const total = ref(0)
 
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+const showPersonalized = computed(() => auth.isAuthenticated)
 
 async function load() {
   loading.value = true
@@ -74,6 +76,14 @@ onMounted(load)
 
     <p class="result">{{ t('student.paths.result', { n: total }) }}</p>
 
+    <StudentPathRecommendations
+      v-if="showPersonalized"
+      class="path-recs"
+      :limit="4"
+      compact
+      :show-more="false"
+    />
+
     <div v-if="loading" class="empty">…</div>
     <div v-else-if="!paths.length" class="empty">{{ t('student.paths.empty') }}</div>
     <div v-else class="grid">
@@ -100,12 +110,26 @@ onMounted(load)
 </template>
 
 <style scoped>
-.paths-page { width: min(1100px, calc(100% - 32px)); margin: 0 auto 48px; padding-top: 28px; }
-.page-heading h1 { margin: 0 0 6px; }
+.paths-page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 36px 0 64px;
+}
+.page-heading h1 { margin: 0 0 6px; font-size: clamp(1.6rem, 3vw, 2rem); }
 .page-heading p { margin: 0; color: var(--text-muted); font-weight: 500; }
-.filter-bar { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin: 18px 0 10px; }
-.result { margin: 0 0 14px; color: var(--text-muted); font-weight: 600; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.path-recs { margin: 18px 0 22px; }
+.filter-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin: 18px 0 12px;
+}
+.result { margin: 0 0 18px; color: var(--text-muted); font-weight: 500; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
 .card {
   display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
   background: color-mix(in srgb, var(--surface) 92%, transparent); text-decoration: none; color: inherit;
@@ -120,7 +144,7 @@ onMounted(load)
   position: absolute; left: 10px; bottom: 10px; padding: 4px 8px; border-radius: 999px;
   background: rgba(0,0,0,.45); color: #fff; font-size: .75rem; font-weight: 700;
 }
-.body { padding: 14px; display: grid; gap: 8px; flex: 1; }
+.body { padding: 12px 14px 16px; display: grid; gap: 8px; flex: 1; }
 .body p {
   margin: 0; color: var(--text-muted); font-size: .9rem; font-weight: 500;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Seed toàn bộ site_settings.
- * Giữ nguyên tên site (Eript LMS), màu chủ đạo (#0F6E8C / #0b5167),
+ * Giữ nguyên tên site (Eript LMS), màu chủ đạo (#0f766e / #0d655e),
  * logo PTIT và các thông tin liên hệ mặc định.
  *
  * Idempotent: chỉ insert key chưa tồn tại.
@@ -26,13 +26,13 @@ class SiteSettingsSeeder extends Seeder
             'site_favicon'         => '/favicon.ico',
 
             // ── Theme Colors ──────────────────────────────────────────────────
-            'theme_color_primary'  => '#0F6E8C',
-            'theme_color_deep'     => '#0b5167',
+            'theme_color_primary'  => '#0f766e',
+            'theme_color_deep'     => '#0d655e',
 
             // ── Contact ───────────────────────────────────────────────────────
-            'contact_email'        => 'lienhe@ptit.edu.vn',
-            'contact_phone'        => '024 3756 2854',
-            'contact_address'      => '122 Hoàng Quốc Việt, Cầu Giấy, Hà Nội',
+            'contact_email'        => 'namtd@ptit.edu.vn',
+            'contact_phone'        => '024-35746799',
+            'contact_address'      => 'Số 122 Hoàng Quốc Việt, phường Nghĩa Đô, thành phố Hà Nội',
             'support_hours'        => 'Thứ 2 – Thứ 7, 8:00 – 17:30',
 
             // ── Social ────────────────────────────────────────────────────────

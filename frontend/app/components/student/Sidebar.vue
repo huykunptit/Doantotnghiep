@@ -41,7 +41,7 @@ onMounted(() => {
 <template>
   <aside class="sidebar" :class="{ mobile }">
     <NuxtLink to="/student" class="brand" @click="emit('navigate')">
-      <span class="brand-mark"><i class="pi pi-user" /></span>
+      <CommonBrandMark />
       <span class="brand-copy">
         <strong>{{ brand }}</strong>
         <small>{{ t('student.console') }}</small>
@@ -82,10 +82,6 @@ onMounted(() => {
   border-right: 1px solid var(--border); backdrop-filter: blur(10px);
 }
 .brand { display: flex; align-items: center; gap: 12px; min-height: var(--topbar-height); padding: 14px 16px; border-bottom: 1px solid var(--border); }
-.brand-mark {
-  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px;
-  background: linear-gradient(145deg, var(--brand), var(--brand-hover)); color: white;
-}
 .brand-copy { display: flex; flex-direction: column; min-width: 0; }
 .brand-copy strong { overflow: hidden; color: var(--text); font-size: 1.08rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .brand-copy small { color: var(--text-muted); font-size: .74rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }

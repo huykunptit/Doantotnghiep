@@ -57,8 +57,8 @@ async function submit() {
       <p>Chọn mật khẩu mạnh và không dùng chung với các dịch vụ khác.</p>
     </section>
 
-    <Card class="auth-card">
-      <template #content>
+    <AuthPanelCard>
+        <AuthSideHeader />
         <div class="auth-heading">
           <span>Đặt lại mật khẩu</span>
           <h2>Mật khẩu mới</h2>
@@ -91,7 +91,6 @@ async function submit() {
           </form>
           <p class="auth-foot">Đã nhớ mật khẩu? <NuxtLink to="/login">Đăng nhập</NuxtLink></p>
         </template>
-      </template>
-    </Card>
+    </AuthPanelCard>
   </div>
 </template>

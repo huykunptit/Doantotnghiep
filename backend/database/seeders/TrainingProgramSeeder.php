@@ -58,6 +58,12 @@ class TrainingProgramSeeder extends Seeder
 
         $loaiLabels = $data['mo_ta_loai'] ?? [];
 
+        $categoryByProgram = [
+            'CNTT' => \App\Models\Category::query()->where('slug', 'cong-nghe-thong-tin')->value('id'),
+            'QTKD' => \App\Models\Category::query()->where('slug', 'quan-tri-kinh-doanh')->value('id'),
+            'DTVT' => \App\Models\Category::query()->where('slug', 'dien-tu-vien-thong')->value('id'),
+        ];
+
         $courseCache = []; // [normalized title] => Course
         $stats = ['courses_created' => 0, 'courses_reused' => 0, 'curriculum_courses' => 0, 'electives' => 0, 'curricula_missing' => 0];
 
@@ -79,6 +85,8 @@ class TrainingProgramSeeder extends Seeder
                 $stats['curricula_missing']++;
                 continue;
             }
+
+            $categoryId = $categoryByProgram[$progCode] ?? null;
 
             // Lấy chuyên ngành đầu tiên trong JSON làm CTĐT đại diện cho cả chương trình
             $chuyenNganh = ($progEntry['chuyen_nganh'] ?? [])[0] ?? null;
@@ -109,6 +117,9 @@ class TrainingProgramSeeder extends Seeder
                                 $loaiLabels[$loai] ?? $loai,
                                 $courseCache,
                                 $stats,
+                                $program?->id,
+                                $categoryId,
+                                $curriculum->id,
                             );
 
                             $notes = json_encode([
@@ -127,6 +138,9 @@ class TrainingProgramSeeder extends Seeder
                                 $loaiLabels[$loai] ?? $loai,
                                 $courseCache,
                                 $stats,
+                                $program?->id,
+                                $categoryId,
+                                $curriculum->id,
                             );
 
                             $notes = json_encode([
@@ -173,13 +187,29 @@ class TrainingProgramSeeder extends Seeder
         int $ownerId,
         ?string $loaiLabel,
         array &$cache,
-        array &$stats
+        array &$stats,
+        ?int $programId = null,
+        ?int $categoryId = null,
+        ?int $curriculumId = null,
     ): Course {
         $key = $this->normalizeTitle($title);
         if (isset($cache[$key])) {
             $course = $cache[$key];
+            $patch = [];
             if (empty($course->thumbnail)) {
-                $course->update(['thumbnail' => $this->fakeThumbnail($title, (int) $course->id)]);
+                $patch['thumbnail'] = $this->fakeThumbnail($title, (int) $course->id);
+            }
+            if ($programId && !$course->program_id) {
+                $patch['program_id'] = $programId;
+            }
+            if ($categoryId && !$course->category_id) {
+                $patch['category_id'] = $categoryId;
+            }
+            if ($curriculumId && !$course->curriculum_id) {
+                $patch['curriculum_id'] = $curriculumId;
+            }
+            if ($patch !== []) {
+                $course->update($patch);
                 $course->refresh();
             }
             $stats['courses_reused']++;
@@ -188,8 +218,21 @@ class TrainingProgramSeeder extends Seeder
 
         $existing = Course::query()->where('title', $title)->first();
         if ($existing) {
+            $patch = [];
             if (empty($existing->thumbnail)) {
-                $existing->update(['thumbnail' => $this->fakeThumbnail($title, (int) $existing->id)]);
+                $patch['thumbnail'] = $this->fakeThumbnail($title, (int) $existing->id);
+            }
+            if ($programId && !$existing->program_id) {
+                $patch['program_id'] = $programId;
+            }
+            if ($categoryId && !$existing->category_id) {
+                $patch['category_id'] = $categoryId;
+            }
+            if ($curriculumId && !$existing->curriculum_id) {
+                $patch['curriculum_id'] = $curriculumId;
+            }
+            if ($patch !== []) {
+                $existing->update($patch);
                 $existing->refresh();
             }
             $cache[$key] = $existing;
@@ -206,7 +249,9 @@ class TrainingProgramSeeder extends Seeder
 
         $course = Course::query()->create([
             'user_id' => $ownerId,
-            'category_id' => null,
+            'category_id' => $categoryId,
+            'program_id' => $programId,
+            'curriculum_id' => $curriculumId,
             'title' => $title,
             'slug' => $slug,
             'description' => $loaiLabel ? "Học phần thuộc nhóm: {$loaiLabel}" : null,

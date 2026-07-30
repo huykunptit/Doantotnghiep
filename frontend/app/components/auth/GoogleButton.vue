@@ -31,7 +31,7 @@ withDefaults(defineProps<{
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 16px 0 12px;
+  margin: 12px 0 10px;
   color: var(--text-muted);
   font-size: .7rem;
   text-transform: uppercase;
@@ -52,13 +52,13 @@ withDefaults(defineProps<{
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 11px 14px;
+  padding: 9px 14px;
   border: 1px solid var(--border, #d8e0e8);
   border-radius: 10px;
   background: #fff;
   color: #1a2332;
   font: inherit;
-  font-size: .88rem;
+  font-size: .85rem;
   font-weight: 650;
   text-decoration: none;
   cursor: pointer;

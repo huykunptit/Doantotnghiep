@@ -101,8 +101,7 @@ onMounted(load)
         <p>{{ t('student.points.subtitle') }}</p>
       </div>
       <div class="head-actions">
-        <Button :label="t('student.points.openShop')" icon="pi pi-gift" severity="secondary" @click="navigateTo('/student/points/shop')" />
-        <Button :label="t('student.points.openBoard')" icon="pi pi-chart-bar" @click="navigateTo('/student/leaderboard')" />
+        <Button :label="t('student.points.openShop')" icon="pi pi-gift" @click="navigateTo('/student/points/shop')" />
       </div>
     </header>
 

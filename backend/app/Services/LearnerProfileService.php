@@ -34,7 +34,7 @@ class LearnerProfileService
 
     public function build(User $user, bool $useCache = true): array
     {
-        $cacheKey = "learner_profile:{$user->id}";
+        $cacheKey = "learner_profile:v2:{$user->id}";
         if ($useCache) {
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
@@ -43,9 +43,10 @@ class LearnerProfileService
         }
 
         $user->loadMissing([
-            'program:id,code,name',
+            'program:id,code,name,program_type_id',
+            'program.programType:id,code,name',
             'major:id,code,name',
-            'cohort:id,code,name',
+            'cohort:id,code,name,start_year,end_year',
             'administrativeClass:id,code,name,curriculum_id',
             'latestCv',
         ]);
@@ -111,14 +112,34 @@ class LearnerProfileService
 
         $targetRoles = $this->inferTargetRoles($user, $pathFollows);
 
+        $program = $user->program;
         $profile = [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'student_code' => $user->student_code,
-                'program' => $user->program,
-                'major' => $user->major,
-                'cohort' => $user->cohort,
+                'gender' => $user->gender,
+                'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+                'hometown' => $user->hometown,
+                'permanent_address' => $user->permanent_address,
+                'nationality' => $user->nationality,
+                'study_status' => $user->study_status,
+                'program' => $program
+                    ? [
+                        'id' => $program->id,
+                        'code' => $program->code,
+                        'name' => $program->name,
+                        'program_type' => $program->programType
+                            ? $program->programType->only(['id', 'code', 'name'])
+                            : null,
+                    ]
+                    : null,
+                'major' => $user->major
+                    ? $user->major->only(['id', 'code', 'name'])
+                    : null,
+                'cohort' => $user->cohort
+                    ? $user->cohort->only(['id', 'code', 'name', 'start_year', 'end_year'])
+                    : null,
                 'administrative_class' => $user->administrativeClass
                     ? $user->administrativeClass->only(['id', 'code', 'name', 'curriculum_id'])
                     : null,
@@ -158,6 +179,7 @@ class LearnerProfileService
     {
         $id = $user instanceof User ? $user->id : $user;
         Cache::forget("learner_profile:{$id}");
+        Cache::forget("learner_profile:v2:{$id}");
     }
 
     public function inferTargetRoles(User $user, ?Collection $pathFollows = null): array

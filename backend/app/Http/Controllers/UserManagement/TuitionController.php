@@ -22,17 +22,28 @@ class TuitionController extends Controller
 
         $rows = Tuition::query()
             ->where('user_id', $user->id)
-            ->with('term:id,name,code')
+            ->with(['term.academicYear'])
             ->orderBy('term_id')
             ->get()
-            ->map(fn (Tuition $t) => [
-                'id'      => $t->id,
-                'term'    => $t->term,
-                'amount'  => (float) $t->amount,
-                'status'  => $t->status,
-                'paid_at' => $t->paid_at?->toIso8601String(),
-                'note'    => $t->note,
-            ]);
+            ->map(function (Tuition $t) {
+                $term = $t->term;
+                $label = $term?->displayName() ?? 'Học phí';
+
+                return [
+                    'id'      => $t->id,
+                    'term'    => $term ? [
+                        'id' => $term->id,
+                        'name' => $term->name,
+                        'code' => $term->code,
+                        'label' => $label,
+                        'academic_year' => $term->academicYear?->name,
+                    ] : null,
+                    'amount'  => (float) $t->amount,
+                    'status'  => $t->status,
+                    'paid_at' => $t->paid_at?->toIso8601String(),
+                    'note'    => $t->note,
+                ];
+            });
 
         $totalDue = $rows->where('status', 'unpaid')->sum('amount');
         $totalPaid = $rows->where('status', 'paid')->sum('amount');
@@ -42,8 +53,8 @@ class TuitionController extends Controller
             ->map(fn (array $row) => [
                 'id' => 'tuition-' . $row['id'],
                 'type' => 'tuition',
-                'title' => $row['term']?->name ?? 'Học phí',
-                'description' => $row['note'],
+                'title' => $row['term']['label'] ?? $row['term']['name'] ?? 'Học phí',
+                'description' => null,
                 'amount' => $row['amount'],
                 'status' => 'paid',
                 'payment_method' => 'bank_transfer',

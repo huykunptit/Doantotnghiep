@@ -1332,8 +1332,8 @@ class AdminController extends Controller
         $siteTitle = $settings['site_title'] ?? $brandName;
 
         return response()->json([
-            'theme_color_primary' => $settings['theme_color_primary'] ?? '#0F6E8C',
-            'theme_color_deep'    => $settings['theme_color_deep'] ?? '#0b5167',
+            'theme_color_primary' => $settings['theme_color_primary'] ?? '#0f766e',
+            'theme_color_deep'    => $settings['theme_color_deep'] ?? '#0d655e',
             'brand_name' => $brandName,
             'brand_mark' => $settings['brand_mark'] ?? null,
             'brand_logo' => !empty($brandLogo) ? $mediaService->getUrl($brandLogo) : null,
