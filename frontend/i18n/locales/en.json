@@ -33,6 +33,24 @@
     "apply": "Apply",
     "reset": "Reset"
   },
+  "public": {
+    "ai": {
+      "chatTitle": "AI assistant",
+      "chatStatus": "Quick guidance before sign-up",
+      "chatWelcome": "Welcome to Eript LMS! How can I help you?",
+      "chatCleared": "Conversation cleared. How can I help?",
+      "chatEmptyReply": "No reply was returned for this request.",
+      "chatError": "Connection error. The AI assistant is temporarily unavailable.",
+      "chatRateLimit": "Too many requests. Please wait about a minute and try again.",
+      "chatPlaceholder": "Ask about signup, suitable courses, career paths…",
+      "chatDisclaimer": "Guest mode: quick guidance. Sign in for deeper help.",
+      "chatClear": "Clear chat",
+      "chatClose": "Close",
+      "q1": "How do I create an account?",
+      "q2": "Suggest suitable courses for me",
+      "q3": "Advise a career roadmap"
+    }
+  },
   "exam": {
     "title": "Exam",
     "loading": "Loading exam...",
@@ -977,6 +995,13 @@
       "learners": "Learners",
       "enrollments": "Enrollments",
       "status": "Status",
+      "featured": "Featured",
+      "toggleFeatured": "Toggle featured course",
+      "featuredOn": "Marked as featured",
+      "featuredOff": "Removed from featured",
+      "featuredOnHint": "Remove featured mark",
+      "featuredOffHint": "Mark as featured (homepage)",
+      "featuredError": "Could not update featured status",
       "apply": "Apply filters",
       "reset": "Clear filters",
       "builder": "Builder",
@@ -1092,6 +1117,10 @@
         "price": "Price",
         "category": "Category",
         "status": "Status",
+        "featured": "Featured course",
+        "featuredHint": "Mark to prioritize this course on public pages and chatbot suggestions.",
+        "featuredOn": "Featured on — will appear on the homepage.",
+        "featuredOff": "Featured off.",
         "thumbnail": "Thumbnail",
         "level": "Level",
         "trailer": "Trailer / intro video",
@@ -1819,7 +1848,7 @@
       "weak": "Needs improvement",
       "noCurriculum": "Your admin class has no curriculum assigned.",
       "courses": "Suggested boost courses",
-      "coursesHint": "Based on low-scoring subjects and upcoming courses in your curriculum.",
+      "coursesHint": "A score counts as low when below 6.5/10 or at least 1.0 below your personal GPA; plus upcoming curriculum courses.",
       "noCourses": "No course suggestions yet.",
       "buyHint": "Available to study or strengthen on the platform"
     },

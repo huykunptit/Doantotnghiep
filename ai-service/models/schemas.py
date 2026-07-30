@@ -55,11 +55,22 @@ class CategoryContext(BaseModel):
     children: list[CategoryItem] = Field(default_factory=list)
 
 
+class CareerPathContext(BaseModel):
+    """Lộ trình nghề trong context guest/chat."""
+    id: int
+    title: str
+    target_role: str | None = None
+    description: str | None = None
+
+
 class ChatContext(BaseModel):
     """Context đầy đủ cho chatbot."""
     courses: list[CourseContext] = Field(default_factory=list)
     categories: list[CategoryContext] = Field(default_factory=list)
+    career_paths: list[CareerPathContext] = Field(default_factory=list)
     current_course: CourseContext | None = None
+    guest_mode: bool | None = None
+    hint: str | None = None
 
 
 class ChatRequest(BaseModel):

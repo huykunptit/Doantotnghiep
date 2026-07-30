@@ -25,12 +25,20 @@ const { settings } = useSiteSettings()
 const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const tagline = computed(() => settings.value.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.')
 
-const { data: coursesData } = await useAsyncData('home-courses', () =>
-  useApi<{ data?: Course[] }>('/courses', {
+const { data: coursesData } = await useAsyncData('home-courses', async () => {
+  const featured = await useApi<{ data?: Course[] }>('/courses', {
+    query: { per_page: 8, status: 'published', featured: 1 },
+    token: null,
+  }).catch(() => ({ data: [] as Course[] }))
+
+  if (featured.data?.length) return featured
+
+  // Chưa có khóa đánh dấu nổi bật → hiện khóa published mới nhất
+  return await useApi<{ data?: Course[] }>('/courses', {
     query: { per_page: 8, status: 'published' },
     token: null,
-  }).catch(() => ({ data: [] as Course[] })),
-)
+  }).catch(() => ({ data: [] as Course[] }))
+}, { getCachedData: () => undefined })
 
 const { data: categoriesData } = await useAsyncData('home-categories', () =>
   useApi<Category[]>('/courses/categories', { token: null }).catch(() => [] as Category[]),
@@ -132,7 +140,7 @@ useSeoMeta({
             </div>
           </div>
         </NuxtLink>
-        <div v-if="!featuredCourses.length" class="empty-note">Chưa có khóa học công khai. Hãy quay lại sau.</div>
+        <div v-if="!featuredCourses.length" class="empty-note">Chưa có khóa học nổi bật hoặc công khai. Hãy quay lại sau.</div>
       </div>
     </section>
 

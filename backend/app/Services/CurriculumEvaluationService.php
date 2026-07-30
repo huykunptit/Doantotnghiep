@@ -6,6 +6,7 @@ use App\Helpers\GpaCalculator;
 use App\Models\Curriculum;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Support\StudyAdvisorScoreRule;
 use Illuminate\Support\Collection;
 
 /**
@@ -135,6 +136,7 @@ class CurriculumEvaluationService
         ksort($termStats);
 
         $overallGpa = GpaCalculator::cumulativeGpa($scoredCourses);
+        $overallScore10 = GpaCalculator::cumulativeScore10($scoredCourses);
         $creditsEarned = GpaCalculator::earnedCredits($scoredCourses);
         $completionRatio = $requiredTotal > 0 ? $requiredDone / $requiredTotal : 0;
         $creditRatio = $creditsRequired > 0 ? $creditsEarned / $creditsRequired : 0;
@@ -149,8 +151,9 @@ class CurriculumEvaluationService
             ->values()
             ->all();
 
+        // Điểm thấp: tuyệt đối < 6.5 HOẶC < GPA10 − 1.0 (cùng rule với gợi ý khóa)
         $weaknesses = collect($scoredCourses)
-            ->filter(fn ($c) => $c['final_score'] < 5.5)
+            ->filter(fn ($c) => StudyAdvisorScoreRule::classify((float) $c['final_score'], $overallScore10)['is_weak'])
             ->sortBy('final_score')
             ->take(5)
             ->values()

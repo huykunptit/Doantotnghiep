@@ -30,6 +30,7 @@ interface CourseDetail {
   description?: string | null
   price?: number
   status?: string
+  is_featured?: boolean
   thumbnail?: string | null
   category_id?: number | null
   category?: { id: number, name: string } | null
@@ -75,6 +76,7 @@ const metaForm = reactive({
   price: 0,
   category_id: null as number | null,
   status: 'draft',
+  is_featured: false,
   level: '' as string,
   trailer_url: '',
   learning_outcomes: [''] as string[],
@@ -264,6 +266,7 @@ async function loadCourse() {
     metaForm.price = Number(course.value.price || 0)
     metaForm.category_id = course.value.category_id ?? course.value.category?.id ?? null
     metaForm.status = course.value.status || 'draft'
+    metaForm.is_featured = !!course.value.is_featured
     metaForm.level = course.value.level || ''
     metaForm.trailer_url = course.value.trailer_url || ''
     metaForm.learning_outcomes = (course.value.learning_outcomes?.length ? [...course.value.learning_outcomes] : [''])
@@ -912,6 +915,7 @@ function metaPayload() {
     price: metaForm.price,
     category_id: metaForm.category_id,
     status: metaStatusForApi(),
+    is_featured: Boolean(metaForm.is_featured),
     level: metaForm.level || null,
     trailer_url: metaForm.trailer_url || null,
     learning_outcomes: cleanList(metaForm.learning_outcomes),
@@ -933,6 +937,7 @@ async function saveCourseMeta() {
       formData.append('price', String(payload.price || 0))
       if (payload.category_id) formData.append('category_id', String(payload.category_id))
       formData.append('status', payload.status)
+      formData.append('is_featured', payload.is_featured ? '1' : '0')
       formData.append('level', payload.level || '')
       formData.append('trailer_url', payload.trailer_url || '')
       formData.append('learning_outcomes', JSON.stringify(payload.learning_outcomes))
@@ -945,6 +950,7 @@ async function saveCourseMeta() {
       })
       course.value = res.course
       metaForm.status = res.course.status || metaForm.status
+      metaForm.is_featured = Boolean(res.course.is_featured)
       thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
       thumbnailFile.value = null
     }
@@ -953,14 +959,21 @@ async function saveCourseMeta() {
         method: 'PUT',
         body: {
           ...payload,
+          is_featured: Boolean(payload.is_featured),
           ...(thumbnailUrl.value ? { thumbnail: thumbnailUrl.value } : {}),
         },
       })
       course.value = res.course
       metaForm.status = res.course.status || metaForm.status
+      metaForm.is_featured = Boolean(res.course.is_featured)
       thumbnailUrl.value = res.course.thumbnail || thumbnailUrl.value
     }
-    toast.add({ severity: 'success', summary: t('admin.builder.metaSaved'), life: 2200 })
+    toast.add({
+      severity: 'success',
+      summary: t('admin.builder.metaSaved'),
+      detail: metaForm.is_featured ? t('admin.builder.fields.featuredOn') : t('admin.builder.fields.featuredOff'),
+      life: 2200,
+    })
   }
   catch (error: any) {
     toast.add({
@@ -1133,6 +1146,13 @@ onMounted(async () => {
                   class="w-full"
                 />
               </label>
+              <div class="field">
+                <span>{{ t('admin.builder.fields.featured') }}</span>
+                <div class="check-row">
+                  <Checkbox v-model="metaForm.is_featured" binary input-id="course-featured" />
+                  <label for="course-featured">{{ t('admin.builder.fields.featuredHint') }}</label>
+                </div>
+              </div>
             </div>
           </div>
 

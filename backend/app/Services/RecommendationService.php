@@ -7,6 +7,8 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\User;
 use App\Models\UserCareerPath;
+use App\Helpers\GpaCalculator;
+use App\Support\StudyAdvisorScoreRule;
 use Illuminate\Support\Collection;
 
 class RecommendationService
@@ -274,7 +276,25 @@ class RecommendationService
         $currentTerm = $this->inferCurrentTermNumber($user);
         $rows = collect();
 
-        // 1) Môn điểm thấp trong CTĐT
+        // GPA thang 10 (có trọng số tín chỉ) để áp dụng rule tương đối
+        $gpaRows = [];
+        foreach ($curriculumCourses as $cc) {
+            $course = $cc->course;
+            if (!$course) {
+                continue;
+            }
+            $enrollment = $enrollments->get($course->id);
+            if ($enrollment?->final_score === null) {
+                continue;
+            }
+            $gpaRows[] = [
+                'final_score' => (float) $enrollment->final_score,
+                'credit_value' => (int) ($course->credit_value ?? $cc->credits ?? 0),
+            ];
+        }
+        $gpa10 = GpaCalculator::cumulativeScore10($gpaRows);
+
+        // 1) Môn điểm thấp trong CTĐT: tuyệt đối < 6.5 HOẶC < GPA10 − 1.0
         foreach ($curriculumCourses as $cc) {
             $course = $cc->course;
             if (!$course || $course->status !== 'published') {
@@ -282,14 +302,19 @@ class RecommendationService
             }
             $enrollment = $enrollments->get($course->id);
             $score = $enrollment?->final_score;
-            if ($score === null || (float) $score >= 7.0) {
+            if ($score === null) {
+                continue;
+            }
+            $score = (float) $score;
+            $weak = StudyAdvisorScoreRule::classify($score, $gpa10);
+            if (!$weak['is_weak']) {
                 continue;
             }
             $rows->push([
                 'course' => $course,
-                'score' => 120 - (int) round((float) $score * 5),
+                'score' => 120 - (int) round($score * 5),
                 'matched_skills' => $course->skills->pluck('name')->all(),
-                'reasons' => [sprintf('Điểm thấp (%.1f/10) — cần củng cố môn CTĐT kỳ %d', (float) $score, (int) $cc->term_number)],
+                'reasons' => [StudyAdvisorScoreRule::reason($score, $gpa10, (int) $cc->term_number)],
                 'source' => 'weak',
                 'seed_title' => $course->title,
             ]);

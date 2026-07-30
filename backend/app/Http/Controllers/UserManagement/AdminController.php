@@ -950,7 +950,9 @@ class AdminController extends Controller
             });
         }
 
-        $courses = $query->orderByDesc('created_at')
+        $courses = $query
+            ->orderByDesc('is_featured')
+            ->orderByDesc('created_at')
             ->paginate($request->integer('per_page', 15));
 
         return response()->json($courses);

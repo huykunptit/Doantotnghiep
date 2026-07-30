@@ -109,6 +109,8 @@ onMounted(() => {
       <slot />
     </main>
 
+    <CommonPublicAiChatbot v-if="!auth.isAuthenticated" />
+
     <footer class="public-footer">
       <div class="footer-inner">
         <div class="footer-brand">
