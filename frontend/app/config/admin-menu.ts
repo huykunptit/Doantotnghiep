@@ -40,6 +40,7 @@ export const adminMenu: AdminMenuItem[] = [
       { labelKey: 'admin.menu.classSchedules', to: '/admin/lnd/schedules' },
       { labelKey: 'admin.menu.classPathEnrollment', to: '/admin/lnd/class-path-enrollment' },
       { labelKey: 'admin.menu.attendance', to: '/admin/lnd/attendance' },
+      { labelKey: 'admin.menu.courseSections', to: '/admin/lnd/course-sections' },
     ],
   },
   {
@@ -82,7 +83,9 @@ export const adminMenu: AdminMenuItem[] = [
     icon: 'pi pi-wallet',
     children: [
       { labelKey: 'admin.menu.orders', to: '/admin/orders' },
+      { labelKey: 'admin.menu.tuition', to: '/admin/tuition' },
       { labelKey: 'admin.menu.paymentReports', to: '/admin/reports/payments' },
+      { labelKey: 'admin.menu.points', to: '/admin/points' },
     ],
   },
   {

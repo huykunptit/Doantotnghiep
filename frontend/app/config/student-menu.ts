@@ -13,6 +13,7 @@ export const studentMenu: StudentMenuItem[] = [
   { key: 'timetable', labelKey: 'student.menu.timetable', icon: 'pi pi-calendar', to: '/student/timetable' },
   { key: 'exams', labelKey: 'student.menu.exams', icon: 'pi pi-file-edit', to: '/student/exams' },
   { key: 'transcript', labelKey: 'student.menu.transcript', icon: 'pi pi-list-check', to: '/student/transcript' },
+  { key: 'attendance', labelKey: 'student.menu.attendance', icon: 'pi pi-qrcode', to: '/student/attendance' },
   { key: 'tuition', labelKey: 'student.menu.tuition', icon: 'pi pi-wallet', to: '/student/tuition' },
   { key: 'paths', labelKey: 'student.menu.paths', icon: 'pi pi-map', to: '/paths' },
   { key: 'points', labelKey: 'student.menu.points', icon: 'pi pi-star', to: '/student/points' },

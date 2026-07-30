@@ -30,6 +30,14 @@ interface CourseDetail {
   enrollments_count?: number
   avg_rating?: number
   is_enrolled?: boolean
+  has_reviewed?: boolean
+  latest_reviews?: Array<{
+    id: number
+    rating: number
+    comment?: string | null
+    created_at?: string
+    user?: { name?: string, avatar?: string | null } | null
+  }>
   instructor?: { id?: number, name?: string, avatar?: string | null } | null
   category?: { name?: string } | null
   lessons?: LessonItem[]
@@ -206,6 +214,20 @@ onMounted(load)
           <li v-if="!(course.lessons || []).length">—</li>
         </ol>
       </section>
+
+      <StudentCourseReviews
+        :course-id="courseId"
+        :enrolled="!!course.is_enrolled"
+        :has-reviewed="!!course.has_reviewed"
+        :avg-rating="course.avg_rating || 0"
+        :reviews="course.latest_reviews || []"
+        @refreshed="load"
+      />
+
+      <StudentCourseQa
+        :course-id="courseId"
+        :enrolled="!!course.is_enrolled"
+      />
     </div>
   </div>
 </template>
