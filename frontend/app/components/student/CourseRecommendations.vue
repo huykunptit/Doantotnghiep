@@ -15,9 +15,14 @@ interface RecItem {
   reasons?: string[]
 }
 
-const props = withDefaults(defineProps<{ limit?: number, compact?: boolean }>(), {
+const props = withDefaults(defineProps<{
+  limit?: number
+  compact?: boolean
+  showMore?: boolean
+}>(), {
   limit: 6,
   compact: false,
+  showMore: true,
 })
 
 const { t, locale } = useI18n()
@@ -63,7 +68,7 @@ onMounted(load)
         <h2>{{ t('student.ai.recTitle') }}</h2>
         <p>{{ t('student.ai.recSubtitle') }}</p>
       </div>
-      <NuxtLink to="/courses" class="more">{{ t('student.ai.recMore') }}</NuxtLink>
+      <NuxtLink v-if="showMore" to="/courses" class="more">{{ t('student.ai.recMore') }} <i class="pi pi-arrow-right" /></NuxtLink>
     </header>
 
     <p v-if="error" class="msg error">{{ error }}</p>
@@ -129,17 +134,22 @@ onMounted(load)
 }
 .rec-head h2 { margin: 0 0 4px; font-size: 1.15rem; }
 .rec-head p { margin: 0; color: var(--text-muted); font-weight: 500; font-size: .9rem; }
-.more { color: var(--brand); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.more { display: inline-flex; align-items: center; gap: 6px; color: var(--brand); font-weight: 700; text-decoration: none; white-space: nowrap; }
 .more:hover { text-decoration: underline; }
+.more i { font-size: .85em; }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
-.compact .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.compact .grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .card {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
@@ -194,17 +204,24 @@ onMounted(load)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 6px;
+  margin-top: auto;
+  padding-top: 6px;
   gap: 8px;
 }
 .foot em { font-style: normal; font-weight: 750; color: var(--brand); }
 .foot span { color: var(--text-muted); font-size: .8rem; font-weight: 650; }
 .msg { color: var(--text-muted); margin: 0; font-weight: 500; }
 .msg.error { color: var(--p-red-500, #c0392b); }
-.skeleton { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.skeleton { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .sk { height: 160px; border-radius: 12px; background: color-mix(in srgb, var(--border) 55%, transparent); animation: pulse 1.2s ease infinite; }
 @keyframes pulse { 50% { opacity: .55; } }
-@media (max-width: 700px) {
+@media (max-width: 960px) {
+  .compact .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .skeleton { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .grid,
+  .compact .grid,
   .skeleton { grid-template-columns: 1fr; }
 }
 </style>

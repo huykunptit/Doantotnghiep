@@ -64,6 +64,39 @@ class GpaCalculator
         return $totalCredits > 0 ? round($weightedTotal / $totalCredits, 2) : null;
     }
 
+    /** Average score on the 10-point scale, weighted by credits. */
+    public static function cumulativeScore10(array $courses): ?float
+    {
+        $totalCredits  = 0;
+        $weightedTotal = 0.0;
+
+        foreach ($courses as $c) {
+            if ($c['final_score'] === null) continue;
+            $credits        = (int) ($c['credit_value'] ?? 0);
+            $totalCredits  += $credits;
+            $weightedTotal += (float) $c['final_score'] * $credits;
+        }
+
+        return $totalCredits > 0 ? round($weightedTotal / $totalCredits, 2) : null;
+    }
+
+    /** Credits that count as earned (passed). Default pass threshold: 4.0. */
+    public static function earnedCredits(array $courses, float $passThreshold = 4.0): int
+    {
+        $total = 0;
+        foreach ($courses as $c) {
+            if ($c['final_score'] === null) continue;
+            if ((float) $c['final_score'] < $passThreshold) continue;
+            $total += (int) ($c['credit_value'] ?? 0);
+        }
+        return $total;
+    }
+
+    public static function isPassed(?float $score, float $passThreshold = 4.0): bool
+    {
+        return $score !== null && $score >= $passThreshold;
+    }
+
     /**
      * Haversine distance in meters between two lat/lng points.
      */

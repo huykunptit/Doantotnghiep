@@ -20,8 +20,9 @@ use Illuminate\Support\Collection;
 class StudentDashboardController extends Controller
 {
     /**
-     * BẢNG ĐIỂM — chỉ tổng hợp KẾT QUẢ THI trên LMS (không dùng gradebook trọng số).
-     * Mỗi dòng = 1 kỳ thi (Exam) mà SV được ghi danh + điểm bài làm tốt nhất.
+     * BẢNG ĐIỂM:
+     *  - results: điểm ngoài CTĐT (kỳ thi / khóa LMS)
+     *  - curriculum: điểm trong CTĐT theo học kỳ (GPA / CPA / tín chỉ)
      */
     public function transcript(Request $request): JsonResponse
     {
@@ -78,38 +79,294 @@ class StudentDashboardController extends Controller
             ];
         }
 
-        // Sắp xếp theo ngày thi
         usort($results, fn ($a, $b) => strcmp((string) $a['exam_date'], (string) $b['exam_date']));
 
         $average = count($scores) > 0 ? round(array_sum($scores) / count($scores), 2) : null;
 
-        // Bảng điểm ở trên chỉ tổng hợp kết quả thi (average_score), chưa phải GPA thật sự.
-        // Bổ sung GPA tích lũy theo tín chỉ, chỉ tính trên các ghi danh học vụ (CTĐT) —
-        // loại bỏ enrollment_source = 'marketplace' và các khóa không tính tín chỉ.
-        $academicGpaCourses = Enrollment::where('user_id', $user->id)
-            ->where('enrollment_source', '!=', 'marketplace')
-            ->with('course:id,credit_value,is_credit_bearing')
-            ->get()
-            ->filter(fn ($e) => (bool) $e->course?->is_credit_bearing)
-            ->map(fn ($e) => [
-                'final_score'  => $e->final_score,
-                'credit_value' => (int) ($e->course->credit_value ?? 0),
-            ])
-            ->all();
-
-        $creditWeightedGpa = GpaCalculator::cumulativeGpa($academicGpaCourses);
+        $curriculum = $this->buildCurriculumTranscript($user);
+        $external = $this->buildExternalTranscript($user);
 
         return response()->json([
             'student'     => $user->only(['id', 'name', 'email', 'student_code', 'cohort_id', 'major_id', 'program_id']),
             'results'     => $results,
             'summary'     => [
-                'total_exams'        => count($results),
-                'taken'              => count($scores),
-                'passed'             => $passedCount,
-                'average_score'      => $average,
-                'credit_weighted_gpa' => $creditWeightedGpa,
+                'total_exams'         => count($results),
+                'taken'               => count($scores),
+                'passed'              => $passedCount,
+                'average_score'       => $average,
+                'credit_weighted_gpa' => $curriculum['overall']['gpa4'] ?? null,
             ],
+            'curriculum'  => $curriculum,
+            'external'    => $external,
         ]);
+    }
+
+    /**
+     * Điểm trong CTĐT: nhóm theo học kỳ khung chương trình, kèm GPA/CPA/tín chỉ.
+     */
+    private function buildCurriculumTranscript($user): array
+    {
+        $user->loadMissing(['administrativeClass', 'cohort:id,start_year,end_year,name']);
+        $curriculumId = $user->administrativeClass?->curriculum_id;
+
+        $empty = [
+            'has_curriculum' => false,
+            'semesters' => [],
+            'overall' => [
+                'gpa4' => null,
+                'gpa10' => null,
+                'credits_earned' => 0,
+                'credits_attempted' => 0,
+                'courses_graded' => 0,
+            ],
+        ];
+
+        if (!$curriculumId) {
+            return $empty;
+        }
+
+        $curriculumCourses = \App\Models\CurriculumCourse::query()
+            ->where('curriculum_id', $curriculumId)
+            ->with(['course:id,title,slug,credit_value,is_credit_bearing,status'])
+            ->orderBy('term_number')
+            ->orderBy('position')
+            ->get();
+
+        if ($curriculumCourses->isEmpty()) {
+            return $empty;
+        }
+
+        $enrollments = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('enrollment_source', '!=', 'marketplace')
+            ->with([
+                'gradeEntries.component',
+                'classSection:id,code,name',
+            ])
+            ->get()
+            ->keyBy('course_id');
+
+        $startYear = (int) ($user->cohort?->start_year ?? now()->year);
+        $byTerm = $curriculumCourses->groupBy(fn ($cc) => (int) $cc->term_number);
+
+        // Học kỳ đang học = kỳ có ghi danh cao nhất (cuối kỳ mới có điểm → để trống).
+        $currentTermNumber = $curriculumCourses
+            ->filter(fn ($cc) => $cc->course_id && $enrollments->has($cc->course_id))
+            ->max(fn ($cc) => (int) $cc->term_number);
+
+        $semesters = [];
+        $cumulativeRows = [];
+
+        foreach ($byTerm->sortKeys() as $termNumber => $rows) {
+            $coursesOut = [];
+            $semesterRows = [];
+            $stt = 0;
+            $isCurrent = $currentTermNumber !== null && (int) $termNumber === (int) $currentTermNumber;
+
+            foreach ($rows as $cc) {
+                $course = $cc->course;
+                if (!$course) continue;
+
+                $enrollment = $enrollments->get($course->id);
+
+                // Chỉ hiện học kỳ đã có ghi danh (đã/đang học trong CTĐT)
+                if (!$enrollment) {
+                    continue;
+                }
+
+                $stt++;
+                $credits = (int) ($course->credit_value ?? $cc->credits ?? 0);
+
+                // Kỳ đang học: liệt kê môn + tín chỉ, điểm để trống (thi cuối kỳ mới có).
+                if ($isCurrent) {
+                    $coursesOut[] = [
+                        'stt' => $stt,
+                        'course_id' => $course->id,
+                        'code' => $course->slug ? strtoupper(str_replace('-', '', substr($course->slug, 0, 12))) : null,
+                        'title' => $course->title,
+                        'credits' => $credits,
+                        'attendance_score' => null,
+                        'midterm_score' => null,
+                        'exam_score' => null,
+                        'score10' => null,
+                        'score4' => null,
+                        'letter' => null,
+                        'passed' => null,
+                        'components' => [],
+                    ];
+                    continue;
+                }
+
+                $score10 = $enrollment->final_score;
+                $componentScores = $this->extractComponentScores($enrollment);
+                $grade = $score10 !== null ? GpaCalculator::gradeInfo((float) $score10) : null;
+                $passed = GpaCalculator::isPassed($score10);
+
+                $coursesOut[] = [
+                    'stt' => $stt,
+                    'course_id' => $course->id,
+                    'code' => $course->slug ? strtoupper(str_replace('-', '', substr($course->slug, 0, 12))) : null,
+                    'title' => $course->title,
+                    'credits' => $credits,
+                    'attendance_score' => $componentScores['attendance'],
+                    'midterm_score' => $componentScores['midterm'],
+                    'exam_score' => $componentScores['final'],
+                    'score10' => $score10,
+                    'score4' => $grade['gpa4'] ?? null,
+                    'letter' => $grade['letter'] ?? null,
+                    'passed' => $score10 !== null ? $passed : null,
+                    'components' => $this->mapGradeComponents($enrollment),
+                ];
+
+                if ($score10 !== null && $credits > 0) {
+                    $semesterRows[] = ['final_score' => $score10, 'credit_value' => $credits];
+                    $cumulativeRows[] = ['final_score' => $score10, 'credit_value' => $credits];
+                }
+            }
+
+            if (!count($coursesOut)) {
+                continue;
+            }
+
+            $yearOffset = (int) ceil($termNumber / 2) - 1;
+            $ayStart = $startYear + $yearOffset;
+            // Trong năm học chỉ có HK 1 / HK 2 (kỳ lẻ = 1, kỳ chẵn = 2 theo khung CTĐT).
+            $semesterInYear = ((int) $termNumber % 2 === 1) ? 1 : 2;
+
+            $semesters[] = [
+                'term_number' => (int) $termNumber,
+                'label' => sprintf(
+                    'Học kỳ %d - Năm học %d - %d',
+                    $semesterInYear,
+                    $ayStart,
+                    $ayStart + 1
+                ),
+                'is_current' => $isCurrent,
+                'courses' => $coursesOut,
+                // Kỳ đang học: GPA / tín chỉ kỳ để trống; CPA vẫn giữ đến kỳ trước.
+                'semester_gpa4' => $isCurrent ? null : GpaCalculator::cumulativeGpa($semesterRows),
+                'semester_gpa10' => $isCurrent ? null : GpaCalculator::cumulativeScore10($semesterRows),
+                'semester_credits_earned' => $isCurrent ? null : GpaCalculator::earnedCredits($semesterRows),
+                'cumulative_gpa4' => $isCurrent ? null : GpaCalculator::cumulativeGpa($cumulativeRows),
+                'cumulative_gpa10' => $isCurrent ? null : GpaCalculator::cumulativeScore10($cumulativeRows),
+                'cumulative_credits' => $isCurrent ? null : GpaCalculator::earnedCredits($cumulativeRows),
+            ];
+        }
+
+        // Newest semester first (như mẫu PTIT)
+        $semesters = array_reverse($semesters);
+
+        return [
+            'has_curriculum' => true,
+            'semesters' => $semesters,
+            'overall' => [
+                'gpa4' => GpaCalculator::cumulativeGpa($cumulativeRows),
+                'gpa10' => GpaCalculator::cumulativeScore10($cumulativeRows),
+                'credits_earned' => GpaCalculator::earnedCredits($cumulativeRows),
+                'credits_attempted' => array_sum(array_map(fn ($r) => (int) $r['credit_value'], $cumulativeRows)),
+                'courses_graded' => count($cumulativeRows),
+            ],
+        ];
+    }
+
+    /**
+     * Điểm ngoài CTĐT: khóa marketplace / extension — điểm tổng kết + đầu điểm chi tiết.
+     */
+    private function buildExternalTranscript($user): array
+    {
+        $enrollments = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->where('enrollment_source', 'marketplace')
+                    ->orWhereHas('course', fn ($c) => $c->where('course_mode', 'extension'));
+            })
+            ->with([
+                'course:id,title,credit_value,course_mode,status',
+                'gradeEntries.component',
+            ])
+            ->orderByDesc('enrolled_at')
+            ->get()
+            ->unique('course_id')
+            ->values();
+
+        $courses = [];
+        $scores = [];
+        $passedCount = 0;
+
+        foreach ($enrollments as $enrollment) {
+            $course = $enrollment->course;
+            if (!$course) continue;
+
+            $score10 = $enrollment->final_score;
+            $passed = $score10 !== null ? GpaCalculator::isPassed($score10) : null;
+            if ($score10 !== null) {
+                $scores[] = $score10;
+                if ($passed) $passedCount++;
+            }
+
+            $courses[] = [
+                'enrollment_id' => $enrollment->id,
+                'course_id' => $course->id,
+                'title' => $course->title,
+                'credits' => (int) ($course->credit_value ?? 0),
+                'score10' => $score10,
+                'passed' => $passed,
+                'components' => $this->mapGradeComponents($enrollment),
+            ];
+        }
+
+        return [
+            'courses' => $courses,
+            'summary' => [
+                'total_courses' => count($courses),
+                'graded' => count($scores),
+                'passed' => $passedCount,
+                'average_score' => count($scores) ? round(array_sum($scores) / count($scores), 2) : null,
+            ],
+        ];
+    }
+
+    /** Danh sách đầu điểm (thành phần) của một enrollment. */
+    private function mapGradeComponents(?Enrollment $enrollment): array
+    {
+        if (!$enrollment) {
+            return [];
+        }
+
+        return $enrollment->gradeEntries
+            ->filter(fn ($e) => $e->component)
+            ->sortBy(fn ($e) => (int) ($e->component->position ?? 0))
+            ->values()
+            ->map(fn ($e, $i) => [
+                'stt' => $i + 1,
+                'name' => $e->component->name,
+                'weight' => (float) $e->component->weight,
+                'score' => $e->score !== null ? (float) $e->score : null,
+                'max_score' => (float) ($e->component->max_score ?: 10),
+            ])
+            ->all();
+    }
+
+    private function extractComponentScores(?Enrollment $enrollment): array
+    {
+        $out = ['attendance' => null, 'midterm' => null, 'final' => null];
+        if (!$enrollment) return $out;
+
+        foreach ($enrollment->gradeEntries as $entry) {
+            $name = mb_strtolower((string) ($entry->component?->name ?? ''));
+            $score = $entry->score !== null ? (float) $entry->score : null;
+            if ($score === null) continue;
+
+            if (str_contains($name, 'chuyên cần') || str_contains($name, 'attendance')) {
+                $out['attendance'] = $score;
+            } elseif (str_contains($name, 'giữa') || str_contains($name, 'mid')) {
+                $out['midterm'] = $score;
+            } elseif (str_contains($name, 'cuối') || str_contains($name, 'final') || str_contains($name, 'thi')) {
+                $out['final'] = $score;
+            }
+        }
+
+        return $out;
     }
 
     /**
@@ -309,7 +566,9 @@ class StudentDashboardController extends Controller
         }
 
         $curriculum = \App\Models\Curriculum::with([
-            'curriculumCourses.course:id,title,credit_value,is_credit_bearing,course_mode,slug,thumbnail'
+            'curriculumCourses' => fn ($q) => $q->orderBy('term_number')->orderBy('position'),
+            'curriculumCourses.course:id,title,credit_value,is_credit_bearing,course_mode,slug,thumbnail,major_id',
+            'curriculumCourses.course.major:id,name,code',
         ])->find($adminClass->curriculum_id);
 
         if (!$curriculum) {
@@ -320,8 +579,9 @@ class StudentDashboardController extends Controller
             ]);
         }
 
-        // Get student enrollments for these courses
+        // Chỉ ghi danh CTĐT (không tính khóa marketplace bổ trợ trên web).
         $enrollments = Enrollment::where('user_id', $user->id)
+            ->where('enrollment_source', '!=', 'marketplace')
             ->get()
             ->keyBy('course_id');
 
@@ -342,44 +602,37 @@ class StudentDashboardController extends Controller
             $course = $cc->course;
             if (!$course) continue;
 
-            $enrollment = $enrollments->get($course->id);
-            $status = 'not_started';
-            $progress = 0;
-            $finalScore = null;
-
-            if ($enrollment) {
-                $progress = $enrollment->progress ?? 0;
-                $finalScore = $enrollment->final_score;
-                if ($progress >= 100) {
-                    $status = 'completed';
-                    if ($course->is_credit_bearing) {
-                        $totalCreditsEarned += ($course->credit_value ?? $cc->credits ?? 0);
-                    }
-                } else {
-                    $status = 'learning';
-                }
+            $termNum = (int) $cc->term_number;
+            if ($termNum < 1 || $termNum > 8) {
+                continue;
             }
+
+            $enrollment = $enrollments->get($course->id);
+            // Đã học = đã/đang học môn trong CTĐT (có ghi danh học vụ), không phải tiến độ khóa web.
+            $studied = $enrollment !== null;
+            $finalScore = $enrollment?->final_score;
 
             $creditsVal = ($course->credit_value ?? $cc->credits ?? 0);
             if ($course->is_credit_bearing) {
                 $totalCreditsRequired += $creditsVal;
-            }
-
-            $termNum = $cc->term_number;
-            if ($termNum < 1 || $termNum > 8) {
-                continue;
+                if ($studied && $finalScore !== null && \App\Helpers\GpaCalculator::isPassed($finalScore)) {
+                    $totalCreditsEarned += $creditsVal;
+                }
             }
 
             $termsData[$termNum]['courses'][] = [
                 'id' => $course->id,
                 'title' => $course->title,
+                'code' => $course->slug
+                    ? strtoupper(str_replace('-', '', substr($course->slug, 0, 12)))
+                    : null,
                 'slug' => $course->slug,
                 'thumbnail' => $course->thumbnail,
+                'major' => $course->major?->name,
                 'credits' => $creditsVal,
-                'is_required' => $cc->is_required,
+                'is_required' => (bool) $cc->is_required,
                 'course_mode' => $course->course_mode,
-                'status' => $status,
-                'progress' => $progress,
+                'studied' => $studied,
                 'final_score' => $finalScore,
             ];
             $termsData[$termNum]['credits'] += $creditsVal;

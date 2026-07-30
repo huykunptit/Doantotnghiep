@@ -89,8 +89,8 @@ type FormState = {
 }
 
 const FORM_DEFAULTS: FormState = {
-  theme_color_primary: '#0F6E8C',
-  theme_color_deep: '#0b5167',
+  theme_color_primary: '#0f766e',
+  theme_color_deep: '#0d655e',
   brand_name: '',
   brand_mark: '',
   brand_logo: '',

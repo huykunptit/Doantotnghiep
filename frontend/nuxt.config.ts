@@ -1,4 +1,4 @@
-import Aura from '@primevue/themes/aura'
+import { EriptAura } from './app/theme/eript-preset'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -29,7 +29,7 @@ export default defineNuxtConfig({
     options: {
       ripple: true,
       theme: {
-        preset: Aura,
+        preset: EriptAura,
         options: {
           prefix: 'p',
           darkModeSelector: '.dark',

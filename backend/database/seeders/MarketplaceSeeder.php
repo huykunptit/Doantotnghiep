@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\GradeComponent;
+use App\Models\GradeEntry;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Order;
@@ -74,6 +76,17 @@ class MarketplaceSeeder extends Seeder
                 );
                 $total['enrollments']++;
 
+                // Điểm ngoài CTĐT: seed đầu điểm cho 3 SV đầu mỗi khóa (để bảng điểm demo).
+                if ($studentIndex < 3) {
+                    $enrollment = Enrollment::query()
+                        ->where('user_id', $student->id)
+                        ->where('course_id', $course->id)
+                        ->first();
+                    if ($enrollment) {
+                        $this->seedExtensionGrades($enrollment, $student->id + $course->id);
+                    }
+                }
+
                 if ($studentIndex < 3) {
                     Review::query()->updateOrCreate(
                         ['user_id' => $student->id, 'course_id' => $course->id],
@@ -120,6 +133,52 @@ class MarketplaceSeeder extends Seeder
             'MarketplaceSeeder: %d orders, %d enrollments, %d reviews, %d lesson-progress records.',
             $total['orders'], $total['enrollments'], $total['reviews'], $total['progress']
         ));
+    }
+
+    /** Template đầu điểm gần mẫu PTIT (ảnh chi tiết). */
+    private function seedExtensionGrades(Enrollment $enrollment, int $seed): void
+    {
+        $template = [
+            ['name' => 'Bài tập', 'weight' => 0, 'max_score' => 10, 'position' => 1],
+            ['name' => 'Kiểm tra', 'weight' => 10, 'max_score' => 10, 'position' => 2],
+            ['name' => 'Thực hành', 'weight' => 10, 'max_score' => 10, 'position' => 3],
+            ['name' => 'Chuyên cần', 'weight' => 10, 'max_score' => 10, 'position' => 4],
+            ['name' => 'Điểm thi', 'weight' => 70, 'max_score' => 10, 'position' => 5],
+        ];
+
+        foreach ($template as $row) {
+            GradeComponent::query()->updateOrCreate(
+                ['course_id' => $enrollment->course_id, 'name' => $row['name']],
+                array_merge($row, ['course_id' => $enrollment->course_id, 'is_required' => true]),
+            );
+        }
+
+        $base = 4.0 + (($seed % 50) / 10); // ~4.0–8.9
+        $components = GradeComponent::query()
+            ->where('course_id', $enrollment->course_id)
+            ->whereIn('name', collect($template)->pluck('name'))
+            ->get();
+
+        foreach ($components as $component) {
+            $score = match ($component->name) {
+                'Bài tập' => min(10, round($base + 1.5, 1)),
+                'Kiểm tra' => round(max(4, $base - 0.5), 1),
+                'Thực hành' => min(10, round($base + 1.0, 1)),
+                'Chuyên cần' => min(10, max(7, round($base + 2, 1))),
+                'Điểm thi' => round(max(3.5, $base), 1),
+                default => round($base, 1),
+            };
+            GradeEntry::query()->updateOrCreate(
+                [
+                    'enrollment_id' => $enrollment->id,
+                    'grade_component_id' => $component->id,
+                ],
+                [
+                    'score' => $score,
+                    'graded_at' => now()->subDays(mt_rand(3, 20)),
+                ]
+            );
+        }
     }
 }
 

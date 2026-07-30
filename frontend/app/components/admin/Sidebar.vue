@@ -68,7 +68,7 @@ onMounted(() => {
 <template>
   <aside class="sidebar" :class="{ mobile }">
     <NuxtLink to="/admin" class="brand" @click="emit('navigate')">
-      <span class="brand-mark"><i class="pi pi-sparkles" /></span>
+      <CommonBrandMark />
       <span class="brand-copy">
         <strong>{{ brand }}</strong>
         <small>{{ t('admin.console') }}</small>
@@ -152,17 +152,6 @@ onMounted(() => {
   min-height: var(--topbar-height);
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  background: linear-gradient(145deg, var(--brand), var(--brand-hover));
-  color: white;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 
 .brand-copy {

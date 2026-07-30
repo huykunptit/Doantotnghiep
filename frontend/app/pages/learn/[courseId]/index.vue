@@ -20,10 +20,12 @@ const courseId = computed(() => Number(route.params.courseId))
 
 const loading = ref(true)
 const courseTitle = ref('')
+const empty = ref(false)
 const lessons = ref<Lesson[]>([])
 
 async function load() {
   loading.value = true
+  empty.value = false
   try {
     const [course, progress] = await Promise.all([
       useApi<any>(`/courses/${courseId.value}`),
@@ -31,6 +33,12 @@ async function load() {
     ])
     courseTitle.value = course.title || ''
     lessons.value = [...(course.lessons || [])].sort((a, b) => (a.order || 0) - (b.order || 0))
+
+    if (!lessons.value.length) {
+      empty.value = true
+      return
+    }
+
     const completedIds = new Set<number>(
       (progress?.lessons || progress?.completed_lesson_ids || [])
         .filter((x: any) => x?.completed || typeof x === 'number')
@@ -53,11 +61,40 @@ onMounted(load)
 
 <template>
   <div class="boot">
-    <i class="pi pi-spin pi-spinner" />
-    <span>{{ loading ? '…' : courseTitle }}</span>
+    <template v-if="loading">
+      <i class="pi pi-spin pi-spinner" />
+      <span>…</span>
+    </template>
+    <template v-else-if="empty">
+      <i class="pi pi-book empty-icon" />
+      <strong>{{ courseTitle || t('student.learn.emptyTitle') }}</strong>
+      <p>{{ t('student.learn.emptyBody') }}</p>
+      <div class="actions">
+        <Button :label="t('student.transcript.title')" severity="secondary" outlined @click="navigateTo('/student/transcript')" />
+        <Button :label="t('student.courses.title')" @click="navigateTo('/student/courses')" />
+      </div>
+    </template>
+    <template v-else>
+      <i class="pi pi-spin pi-spinner" />
+      <span>{{ courseTitle }}</span>
+    </template>
   </div>
 </template>
 
 <style scoped>
-.boot { min-height: 100dvh; display: grid; place-items: center; gap: 10px; color: var(--text-muted); font-weight: 600; }
+.boot {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-align: center;
+}
+.empty-icon { font-size: 2rem; opacity: .7; }
+.boot strong { color: var(--text); font-size: 1.15rem; }
+.boot p { margin: 0; max-width: 360px; font-weight: 500; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
 </style>

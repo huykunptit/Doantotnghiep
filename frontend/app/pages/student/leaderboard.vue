@@ -47,7 +47,6 @@ onMounted(load)
         <h1>{{ t('student.points.boardTitle') }}</h1>
         <p>{{ t('student.points.boardSubtitle') }}</p>
       </div>
-      <Button :label="t('student.points.backPoints')" icon="pi pi-arrow-left" text @click="navigateTo('/student/points')" />
     </header>
 
     <section class="me">

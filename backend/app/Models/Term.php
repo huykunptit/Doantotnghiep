@@ -40,6 +40,23 @@ class Term extends Model
         return $this->belongsTo(AcademicYear::class);
     }
 
+    /** Ví dụ: "Học kỳ 1 - Năm học 2025-2026" */
+    public function displayName(): string
+    {
+        $name = trim((string) $this->name);
+        $year = $this->academicYear?->name;
+
+        if (preg_match('/^(Học kỳ\s+\d+)\s*\(([^)]+)\)$/ui', $name, $m)) {
+            return "{$m[1]} - Năm học {$m[2]}";
+        }
+
+        if ($year && $year !== '' && !str_contains($name, $year)) {
+            return "{$name} - Năm học {$year}";
+        }
+
+        return $name;
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);

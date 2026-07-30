@@ -14,6 +14,7 @@ use App\Models\Quiz;
 use App\Models\ScormPackage;
 use App\Models\Section;
 use App\Models\VirtualClass;
+use Database\Seeders\Support\SubjectQuizBank;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,9 +31,45 @@ class CourseContentSeeder extends Seeder
         }
 
         foreach ($courses as $course) {
+            if ($course->lessons()->exists()) {
+                $this->command?->info("Refreshing subject quizzes for #{$course->id}: {$course->title}");
+                $this->refreshCourseQuizzes($course);
+                continue;
+            }
             $this->command?->info("Seeding content for course #{$course->id}: {$course->title}");
             $this->seedCourse($course);
         }
+    }
+
+    /** Làm mới ngân hàng câu hỏi + gắn lại quiz theo đúng nội dung môn. */
+    private function refreshCourseQuizzes(Course $course): void
+    {
+        $bank = QuestionBank::query()->updateOrCreate(
+            ['course_id' => $course->id, 'name' => 'Ngân hàng câu hỏi chính'],
+            ['description' => "Ngân hàng câu hỏi theo đề cương môn «{$course->title}»."],
+        );
+
+        $group = QuestionGroup::query()->updateOrCreate(
+            ['course_id' => $course->id, 'question_bank_id' => $bank->id, 'name' => 'Nhóm kiến thức nền'],
+            ['description' => 'Câu hỏi bám nội dung chuyên môn của học phần.', 'sort_order' => 1],
+        );
+
+        $bankQuestions = $this->ensureBankQuestions($course, $bank, $group);
+
+        $quizLessons = Lesson::query()
+            ->where('course_id', $course->id)
+            ->where('type', 'quiz')
+            ->orderBy('order')
+            ->get();
+
+        foreach ($quizLessons as $lesson) {
+            $this->seedQuiz($course, $lesson, $bank, $bankQuestions, [
+                'title' => $lesson->title,
+                'asset' => str_contains(mb_strtolower($lesson->title), 'tổng hợp') ? 'quiz-final' : 'quiz-foundation',
+            ]);
+        }
+
+        $this->seedCourseFinalExam($course, $bank, $bankQuestions);
     }
 
     private function seedCourse(Course $course): void
@@ -370,156 +407,39 @@ class CourseContentSeeder extends Seeder
 
     private function ensureBankQuestions(Course $course, QuestionBank $bank, QuestionGroup $group): array
     {
-        $blueprints = [
-            [
-                'content' => "Mục tiêu chính của khóa {$course->title} là gì?",
-                'options' => [
-                    'Hiểu và áp dụng được kiến thức vào tình huống thực tế',
-                    'Chỉ cần ghi nhớ tên các bài học',
-                    'Không cần theo dõi tiến độ học tập',
-                    'Bỏ qua phần thực hành',
-                ],
-                'correct' => 0,
-                'difficulty' => 1,
-                'explanation' => 'Mục tiêu cuối cùng luôn là áp dụng được vào công việc hoặc dự án thực tế.',
-            ],
-            [
-                'content' => 'Yếu tố nào quan trọng nhất khi lập kế hoạch học một khóa mới?',
-                'options' => [
-                    'Mục tiêu rõ ràng và lịch học ổn định',
-                    'Chỉ cần học khi có thời gian',
-                    'Bỏ qua phần mục tiêu, học theo ngẫu hứng',
-                    'Không cần chuẩn bị tài nguyên',
-                ],
-                'correct' => 0,
-                'difficulty' => 1,
-                'explanation' => 'Mục tiêu và lịch học rõ ràng là nền tảng để học đều và bền.',
-            ],
-            [
-                'content' => 'Khi học viên gặp khó khăn với một bài học, việc hợp lý nhất là gì?',
-                'options' => [
-                    'Đặt câu hỏi trong phần hỏi đáp và xem lại tài liệu',
-                    'Bỏ hẳn bài học đó',
-                    'Chuyển sang khóa khác',
-                    'Đợi đến khi khóa kết thúc mới hỏi',
-                ],
-                'correct' => 0,
-                'difficulty' => 2,
-                'explanation' => 'Trao đổi sớm giúp tránh hiểu sai và rút ngắn thời gian giải quyết.',
-            ],
-            [
-                'content' => 'Quiz trong khóa học có vai trò gì đối với học viên?',
-                'options' => [
-                    'Củng cố kiến thức và xác định lỗ hổng để cải thiện',
-                    'Tăng độ khó một cách không cần thiết',
-                    'Chỉ để làm đẹp báo cáo',
-                    'Không có tác dụng đáng kể',
-                ],
-                'correct' => 0,
-                'difficulty' => 2,
-                'explanation' => 'Quiz giúp người học phản hồi nhanh về mức độ hiểu bài của bản thân.',
-            ],
-            [
-                'content' => 'Vì sao nên hoàn thành assignment thay vì chỉ xem video thụ động?',
-                'options' => [
-                    'Assignment buộc học viên áp dụng kiến thức và nhận phản hồi có hệ thống',
-                    'Video luôn đầy đủ và không cần thực hành',
-                    'Chỉ cần nghe giảng là nhớ lâu',
-                    'Assignment không quan trọng',
-                ],
-                'correct' => 0,
-                'difficulty' => 2,
-                'explanation' => 'Thực hành + phản hồi là công thức ghi nhớ bền vững nhất trong học tập.',
-            ],
-            [
-                'content' => 'Khi có buổi live, học viên nên chuẩn bị gì?',
-                'options' => [
-                    'Xem lại bài liên quan và chuẩn bị câu hỏi',
-                    'Vào lớp mà không cần chuẩn bị',
-                    'Chỉ cần ghi âm lại để xem sau',
-                    'Chờ giảng viên hỏi mới trả lời',
-                ],
-                'correct' => 0,
-                'difficulty' => 2,
-                'explanation' => 'Chuẩn bị trước giúp buổi live tập trung vào thảo luận giá trị, không lặp lại kiến thức cơ bản.',
-            ],
-            [
-                'content' => 'Làm thế nào để theo dõi tiến độ học tập hiệu quả?',
-                'options' => [
-                    'Dùng tính năng theo dõi tiến độ của hệ thống và đối chiếu với mục tiêu',
-                    'Chỉ nhớ trong đầu',
-                    'Viết tay trên giấy rồi bỏ quên',
-                    'Không cần theo dõi',
-                ],
-                'correct' => 0,
-                'difficulty' => 3,
-                'explanation' => 'Hệ thống cung cấp dashboard tiến độ để học viên nhìn thấy mình đang ở đâu.',
-            ],
-            [
-                'content' => 'Vai trò của question bank trong hệ thống quiz là gì?',
-                'options' => [
-                    'Chuẩn hóa câu hỏi, tái sử dụng và tạo đề ngẫu nhiên',
-                    'Chỉ để chứa câu hỏi duy nhất cho một quiz',
-                    'Làm rối hệ thống',
-                    'Không liên quan đến quiz',
-                ],
-                'correct' => 0,
-                'difficulty' => 3,
-                'explanation' => 'Question bank giúp tái sử dụng và mở rộng bài thi theo thời gian.',
-            ],
-            [
-                'content' => 'Khi đánh giá một câu hỏi chất lượng, cần chú ý điều gì?',
-                'options' => [
-                    'Đáp án duy nhất đúng, phương án nhiễu hợp lý và có giải thích',
-                    'Đáp án nào cũng được',
-                    'Không cần giải thích',
-                    'Câu hỏi nhiều đáp án đúng để gây khó',
-                ],
-                'correct' => 0,
-                'difficulty' => 3,
-                'explanation' => 'Câu hỏi tốt có cấu trúc rõ ràng và giải thích đáp án để học viên học thêm.',
-            ],
-            [
-                'content' => 'Sau khi hoàn thành khóa học, hành động nào giúp kiến thức được giữ lâu nhất?',
-                'options' => [
-                    'Áp dụng vào dự án thực tế hoặc chia sẻ lại cho người khác',
-                    'Xếp tài liệu vào tủ và không xem lại',
-                    'Chỉ lưu chứng chỉ',
-                    'Bỏ qua bước ôn tập',
-                ],
-                'correct' => 0,
-                'difficulty' => 3,
-                'explanation' => 'Dạy lại hoặc ứng dụng vào dự án là cách học sâu hiệu quả nhất.',
-            ],
-        ];
+        $blueprints = SubjectQuizBank::forCourse($course);
+
+        // Xóa câu hỏi cũ (quiz linh tinh) để gắn bộ mới theo môn.
+        $oldIds = Question::query()->where('question_bank_id', $bank->id)->pluck('id');
+        if ($oldIds->isNotEmpty()) {
+            DB::table('quiz_question')->whereIn('question_id', $oldIds)->delete();
+            DB::table('answers')->whereIn('question_id', $oldIds)->delete();
+            Question::query()->whereIn('id', $oldIds)->delete();
+        }
 
         $questions = [];
 
         foreach ($blueprints as $index => $seed) {
-            $question = Question::query()->updateOrCreate(
-                ['course_id' => $course->id, 'content' => $seed['content']],
-                [
-                    'question_bank_id' => $bank->id,
-                    'question_group_id' => $group->id,
-                    'type' => 'single_choice',
-                    'difficulty' => $seed['difficulty'],
-                    'explanation' => $seed['explanation'],
-                ],
-            );
+            $question = Question::query()->create([
+                'course_id' => $course->id,
+                'question_bank_id' => $bank->id,
+                'question_group_id' => $group->id,
+                'content' => $seed['content'],
+                'type' => 'single_choice',
+                'difficulty' => $seed['difficulty'],
+                'explanation' => $seed['explanation'],
+            ]);
 
             foreach ($seed['options'] as $answerIndex => $answer) {
-                DB::table('answers')->updateOrInsert(
-                    ['question_id' => $question->id, 'content' => $answer],
-                    [
-                        'question_id' => $question->id,
-                        'content' => $answer,
-                        'is_correct' => $answerIndex === $seed['correct'],
-                        'sort_order' => $answerIndex + 1,
-                        'order' => $answerIndex + 1,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ],
-                );
+                DB::table('answers')->insert([
+                    'question_id' => $question->id,
+                    'content' => $answer,
+                    'is_correct' => $answerIndex === $seed['correct'],
+                    'sort_order' => $answerIndex + 1,
+                    'order' => $answerIndex + 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
 
             $questions[] = $question->fresh();
@@ -530,7 +450,8 @@ class CourseContentSeeder extends Seeder
 
     private function seedQuiz(Course $course, Lesson $lesson, QuestionBank $bank, array $bankQuestions, array $blueprint): void
     {
-        $isFinal = str_contains(Str::lower($blueprint['title']), 'tổng hợp') || str_contains($blueprint['asset'], 'final');
+        $isFinal = str_contains(Str::lower($blueprint['title'] ?? ''), 'tổng hợp')
+            || str_contains((string) ($blueprint['asset'] ?? ''), 'final');
         $passScore = $isFinal ? 80 : 60;
 
         $quiz = Quiz::query()->updateOrCreate(
@@ -551,22 +472,21 @@ class CourseContentSeeder extends Seeder
             ],
         );
 
+        DB::table('quiz_question')->where('quiz_id', $quiz->id)->delete();
+
         $picks = $isFinal
             ? $bankQuestions
             : array_slice($bankQuestions, 0, min(5, count($bankQuestions)));
 
         foreach ($picks as $index => $question) {
-            DB::table('quiz_question')->updateOrInsert(
-                ['quiz_id' => $quiz->id, 'question_id' => $question->id],
-                [
-                    'quiz_id' => $quiz->id,
-                    'question_id' => $question->id,
-                    'order' => $index + 1,
-                    'points' => 10,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            );
+            DB::table('quiz_question')->insert([
+                'quiz_id' => $quiz->id,
+                'question_id' => $question->id,
+                'order' => $index + 1,
+                'points' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 
@@ -576,7 +496,7 @@ class CourseContentSeeder extends Seeder
             ['course_id' => $course->id, 'scope' => 'course', 'lesson_id' => null, 'exam_id' => null],
             [
                 'title' => "Kiểm tra tổng hợp: {$course->title}",
-                'description' => 'Bài kiểm tra ở cấp khóa học, tổng hợp toàn bộ kiến thức từ ngân hàng câu hỏi.',
+                'description' => "Bài kiểm tra tổng hợp kiến thức chuyên môn của học phần «{$course->title}».",
                 'time_limit' => 45,
                 'pass_score' => 80,
                 'settings' => [
@@ -588,18 +508,17 @@ class CourseContentSeeder extends Seeder
             ],
         );
 
+        DB::table('quiz_question')->where('quiz_id', $quiz->id)->delete();
+
         foreach ($bankQuestions as $index => $question) {
-            DB::table('quiz_question')->updateOrInsert(
-                ['quiz_id' => $quiz->id, 'question_id' => $question->id],
-                [
-                    'quiz_id' => $quiz->id,
-                    'question_id' => $question->id,
-                    'order' => $index + 1,
-                    'points' => 10,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            );
+            DB::table('quiz_question')->insert([
+                'quiz_id' => $quiz->id,
+                'question_id' => $question->id,
+                'order' => $index + 1,
+                'points' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 }

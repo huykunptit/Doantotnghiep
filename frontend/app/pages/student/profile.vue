@@ -141,8 +141,6 @@ onMounted(async () => {
       <Button
         :label="t('student.idCard.print')"
         icon="pi pi-print"
-        severity="secondary"
-        outlined
         class="print-btn"
         @click="printCard"
       />

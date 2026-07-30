@@ -6,7 +6,13 @@ definePageMeta({ layout: 'student', middleware: ['auth', 'student'] })
 
 interface TuitionItem {
   id: number
-  term?: { id: number, name: string, code: string } | null
+  term?: {
+    id: number
+    name: string
+    code: string
+    label?: string
+    academic_year?: string | null
+  } | null
   amount: number
   status: string
   paid_at?: string | null
@@ -32,11 +38,30 @@ const loading = ref(true)
 const paying = ref<number | null>(null)
 const items = ref<TuitionItem[]>([])
 const paymentHistory = ref<PaymentHistoryItem[]>([])
-const totalDue = ref(0)
-const totalPaid = ref(0)
+const tab = ref<'unpaid' | 'paid'>('unpaid')
+
+const unpaidItems = computed(() => items.value.filter(r => r.status !== 'paid'))
+const unpaidTotal = computed(() => unpaidItems.value.reduce((sum, r) => sum + Number(r.amount || 0), 0))
+const paidTotal = computed(() => paymentHistory.value.reduce((sum, r) => sum + Number(r.amount || 0), 0))
+
+const tabTotalLabel = computed(() =>
+  tab.value === 'unpaid' ? t('student.tuition.unpaidTotal') : t('student.tuition.paidTotal'),
+)
+const tabTotalValue = computed(() => (tab.value === 'unpaid' ? unpaidTotal.value : paidTotal.value))
+const emptyTabMessage = computed(() =>
+  tab.value === 'unpaid' ? t('student.tuition.emptyUnpaid') : t('student.tuition.emptyPaid'),
+)
 
 function money(value: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value || 0)
+}
+
+function termTitle(row: TuitionItem) {
+  return row.term?.label || row.term?.name || row.note || t('student.tuition.term')
+}
+
+function paymentType(item: PaymentHistoryItem) {
+  return t(`student.tuition.paymentTypes.${item.type}`)
 }
 
 async function load() {
@@ -44,14 +69,10 @@ async function load() {
   try {
     const res = await useApi<{
       items: TuitionItem[]
-      total_due: number
-      total_paid: number
       payment_history: PaymentHistoryItem[]
     }>('/me/tuition')
     items.value = res.items || []
     paymentHistory.value = res.payment_history || []
-    totalDue.value = Number(res.total_due || 0)
-    totalPaid.value = Number(res.total_paid || 0)
   }
   catch (error: any) {
     toast.add({ severity: 'error', summary: t('student.tuition.loadError'), detail: error?.data?.message, life: 3500 })
@@ -70,22 +91,13 @@ function confirmPay(row: TuitionItem) {
   })
 }
 
-function paymentType(item: PaymentHistoryItem) {
-  return t(`student.tuition.paymentTypes.${item.type}`)
-}
-
-function paymentIcon(item: PaymentHistoryItem) {
-  if (item.type === 'tuition') return 'pi pi-building-columns'
-  if (item.type === 'career_path') return 'pi pi-map'
-  return 'pi pi-book'
-}
-
 async function pay(row: TuitionItem) {
   paying.value = row.id
   try {
     await useApi(`/me/tuition/${row.id}/pay`, { method: 'POST' })
     toast.add({ severity: 'success', summary: t('student.tuition.paySuccess'), life: 3000 })
     await load()
+    if (!unpaidItems.value.length) tab.value = 'paid'
   }
   catch (error: any) {
     toast.add({ severity: 'error', summary: t('student.tuition.payError'), detail: error?.data?.message, life: 3500 })
@@ -109,68 +121,99 @@ onMounted(load)
       </div>
     </header>
 
-    <section class="stats">
-      <div class="stat">
-        <span>{{ t('student.tuition.totalDue') }}</span>
-        <strong class="due">{{ money(totalDue) }}</strong>
-      </div>
-      <div class="stat">
-        <span>{{ t('student.tuition.totalPaid') }}</span>
-        <strong class="paid">{{ money(totalPaid) }}</strong>
-      </div>
-    </section>
-
-    <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!items.length" class="empty">{{ t('student.tuition.empty') }}</div>
-    <div v-else class="list">
-      <div v-for="row in items" :key="row.id" class="row">
-        <div class="info">
-          <strong>{{ row.term?.name || t('student.tuition.term') }}</strong>
-          <small v-if="row.note" class="muted">{{ row.note }}</small>
-        </div>
-        <span class="amount">{{ money(row.amount) }}</span>
-        <Tag
-          :severity="row.status === 'paid' ? 'success' : 'warn'"
-          :value="row.status === 'paid' ? t('student.tuition.paid') : t('student.tuition.unpaid')"
-        />
-        <Button
-          v-if="row.status !== 'paid'"
-          :label="t('student.tuition.pay')"
-          icon="pi pi-credit-card"
-          size="small"
-          :loading="paying === row.id"
-          @click="confirmPay(row)"
-        />
-        <span v-else class="muted paid-at">{{ row.paid_at ? new Date(row.paid_at).toLocaleDateString('vi-VN') : '' }}</span>
-      </div>
+    <div class="tabs" role="tablist">
+      <button
+        type="button"
+        class="tab"
+        :class="{ on: tab === 'unpaid' }"
+        role="tab"
+        :aria-selected="tab === 'unpaid'"
+        @click="tab = 'unpaid'"
+      >
+        {{ t('student.tuition.tabUnpaid') }}
+      </button>
+      <button
+        type="button"
+        class="tab"
+        :class="{ on: tab === 'paid' }"
+        role="tab"
+        :aria-selected="tab === 'paid'"
+        @click="tab = 'paid'"
+      >
+        {{ t('student.tuition.tabPaid') }}
+      </button>
     </div>
 
-    <section class="history">
-      <header class="section-head">
-        <div>
-          <h2>{{ t('student.tuition.historyTitle') }}</h2>
-          <p>{{ t('student.tuition.historySubtitle') }}</p>
-        </div>
-      </header>
+    <p v-if="!loading" class="tab-sum">
+      {{ tabTotalLabel }}:
+      <strong :class="tab === 'unpaid' ? 'due' : 'paid'">{{ money(tabTotalValue) }}</strong>
+    </p>
 
-      <div v-if="loading" class="empty">…</div>
-      <div v-else-if="!paymentHistory.length" class="empty">{{ t('student.tuition.historyEmpty') }}</div>
-      <div v-else class="history-list">
-        <article v-for="payment in paymentHistory" :key="payment.id" class="history-row">
-          <span class="payment-icon"><i :class="paymentIcon(payment)" /></span>
-          <div class="info">
-            <strong>{{ payment.title }}</strong>
-            <small>{{ payment.description || paymentType(payment) }}</small>
-            <small v-if="payment.payment_ref" class="muted">{{ payment.payment_ref }}</small>
+    <div v-if="loading" class="empty">…</div>
+
+    <!-- Chưa nộp: học phí kỳ còn nợ -->
+    <template v-else-if="tab === 'unpaid'">
+      <div v-if="!unpaidItems.length" class="empty">{{ emptyTabMessage }}</div>
+      <div v-else class="list">
+        <article v-for="row in unpaidItems" :key="row.id" class="debt-card">
+          <header class="debt-head">
+            <strong>{{ termTitle(row) }}</strong>
+            <Tag severity="warn" :value="t('student.tuition.unpaid')" />
+          </header>
+          <div class="debt-sep" />
+          <div class="debt-rows">
+            <div class="debt-row">
+              <span>{{ t('student.tuition.feeToPay') }}</span>
+              <strong class="amt due">{{ money(row.amount) }}</strong>
+            </div>
+            <div class="debt-row">
+              <span>{{ t('student.tuition.feePaid') }}</span>
+              <strong class="amt muted-amt">{{ money(0) }}</strong>
+            </div>
           </div>
-          <Tag severity="secondary" :value="paymentType(payment)" />
-          <div class="payment-total">
-            <strong>{{ money(payment.amount) }}</strong>
-            <small>{{ payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('vi-VN') : '—' }}</small>
+          <footer class="debt-foot">
+            <Button
+              :label="t('student.tuition.pay')"
+              icon="pi pi-credit-card"
+              size="small"
+              :loading="paying === row.id"
+              @click="confirmPay(row)"
+            />
+          </footer>
+        </article>
+      </div>
+    </template>
+
+    <!-- Đã nộp = lịch sử thanh toán (học phí + khóa ngoài CTĐT) -->
+    <template v-else>
+      <div v-if="!paymentHistory.length" class="empty">{{ emptyTabMessage }}</div>
+      <div v-else class="list">
+        <article v-for="payment in paymentHistory" :key="payment.id" class="debt-card">
+          <header class="debt-head">
+            <strong>{{ payment.title }}</strong>
+            <Tag severity="secondary" :value="paymentType(payment)" />
+          </header>
+          <div class="debt-sep" />
+          <div class="debt-rows">
+            <div class="debt-row">
+              <span>{{ t('student.tuition.feeToPay') }}</span>
+              <strong class="amt">{{ money(payment.amount) }}</strong>
+            </div>
+            <div class="debt-row">
+              <span>{{ t('student.tuition.feePaid') }}</span>
+              <strong class="amt muted-amt">{{ money(payment.amount) }}</strong>
+            </div>
+            <div v-if="payment.paid_at" class="debt-row">
+              <span>{{ t('student.tuition.paidOn') }}</span>
+              <strong class="amt muted-amt">{{ new Date(payment.paid_at).toLocaleDateString('vi-VN') }}</strong>
+            </div>
+            <div v-if="payment.description" class="debt-row note">
+              <span>{{ payment.description }}</span>
+            </div>
           </div>
         </article>
       </div>
-    </section>
+    </template>
   </div>
 </template>
 
@@ -179,43 +222,79 @@ onMounted(load)
 .eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
-.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.stat { padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--surface) 92%, transparent); }
-.stat span { display: block; color: var(--text-muted); font-size: .8rem; font-weight: 600; }
-.stat strong { font-size: 1.4rem; }
 .due { color: var(--red-500, #dc2626); }
 .paid { color: var(--green-600, #16a34a); }
-.list { display: grid; gap: 8px; }
-.row {
-  display: grid; grid-template-columns: 1fr auto auto auto; gap: 14px; align-items: center;
-  padding: 14px 16px; border: 1px solid var(--border); border-radius: 14px;
+.tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
-.info strong { display: block; }
-.amount { font-weight: 800; }
-.muted { color: var(--text-muted); font-weight: 500; }
-.paid-at { font-size: .82rem; }
-.history { margin-top: 6px; }
-.section-head { margin-bottom: 10px; }
-.section-head h2 { margin: 0 0 4px; font-size: 1.15rem; }
-.section-head p { margin: 0; color: var(--text-muted); font-size: .88rem; font-weight: 500; }
-.history-list { display: grid; gap: 8px; }
-.history-row {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 12px; align-items: center;
-  padding: 13px 16px; border: 1px solid var(--border); border-radius: 14px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+.tab {
+  border: 0;
+  border-radius: 9px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
 }
-.payment-icon {
-  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
-  background: var(--brand-soft); color: var(--brand); font-size: 1rem;
+.tab.on {
+  background: var(--brand);
+  color: #fff;
 }
-.info small { display: block; margin-top: 2px; color: var(--text-muted); font-size: .8rem; font-weight: 500; }
-.payment-total { display: grid; justify-items: end; gap: 2px; min-width: 120px; }
-.payment-total strong { color: var(--brand); }
-.payment-total small { color: var(--text-muted); font-size: .78rem; font-weight: 500; }
-@media (max-width: 700px) {
-  .row { grid-template-columns: 1fr auto; }
-  .history-row { grid-template-columns: auto 1fr; }
-  .history-row > .p-tag, .payment-total { grid-column: 2; justify-self: start; justify-items: start; }
+.tab-sum {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .92rem;
+  font-weight: 600;
+}
+.tab-sum strong { font-weight: 800; }
+.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+.list { display: grid; gap: 10px; }
+.debt-card {
+  padding: 14px 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+}
+.debt-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.debt-head strong {
+  font-size: .98rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+.debt-sep {
+  margin: 12px 0 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--border) 85%, #999);
+}
+.debt-rows { display: grid; gap: 8px; }
+.debt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: .9rem;
+}
+.debt-row > span { color: var(--text-muted); font-weight: 600; }
+.debt-row.note { justify-content: flex-start; }
+.debt-row.note > span { font-weight: 500; font-size: .82rem; }
+.debt-row .amt { font-weight: 800; font-variant-numeric: tabular-nums; }
+.debt-row .due { color: var(--red-500, #dc2626); }
+.debt-row .muted-amt { color: color-mix(in srgb, var(--text-muted) 70%, #111); font-weight: 700; }
+.debt-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 4px;
 }
 </style>

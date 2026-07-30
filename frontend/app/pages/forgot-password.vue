@@ -38,8 +38,8 @@ async function submit() {
       <p>Nhập email đã đăng ký để nhận hướng dẫn đặt lại mật khẩu an toàn.</p>
     </section>
 
-    <Card class="auth-card">
-      <template #content>
+    <AuthPanelCard>
+        <AuthSideHeader />
         <div class="auth-heading">
           <span>Hỗ trợ tài khoản</span>
           <h2>Quên mật khẩu?</h2>
@@ -67,7 +67,6 @@ async function submit() {
           </form>
           <p class="auth-foot">Nhớ lại mật khẩu? <NuxtLink to="/login">Đăng nhập</NuxtLink></p>
         </template>
-      </template>
-    </Card>
+    </AuthPanelCard>
   </div>
 </template>

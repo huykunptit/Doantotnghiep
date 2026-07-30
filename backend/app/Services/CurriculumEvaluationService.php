@@ -47,18 +47,22 @@ class CurriculumEvaluationService
             ];
         }
 
-        // Lưu ý: vòng lặp bên dưới duyệt theo curriculumCourses (danh sách môn của CTĐT),
-        // không duyệt theo enrollments, nên GPA/tiến độ ở đây LUÔN chỉ tính trên các môn
-        // thuộc CTĐT — bất kể enrollment_source — tức đã tự động loại các khóa marketplace
-        // không nằm trong chương trình đào tạo.
-        $enrollments = Enrollment::where('user_id', $user->id)->get()->keyBy('course_id');
+        // Chỉ lấy ghi danh CTĐT (không marketplace) — cùng nguồn với /me/transcript.
+        $enrollments = Enrollment::where('user_id', $user->id)
+            ->where('enrollment_source', '!=', 'marketplace')
+            ->get()
+            ->keyBy('course_id');
         $profile = $this->profiles->build($user);
+
+        // Kỳ đang học = kỳ có ghi danh cao nhất (cùng quy ước bảng điểm PTIT).
+        $currentTermNumber = $curriculum->curriculumCourses
+            ->filter(fn ($cc) => $cc->course_id && $enrollments->has($cc->course_id))
+            ->max(fn ($cc) => (int) $cc->term_number);
 
         $requiredTotal = 0;
         $requiredDone = 0;
         $creditsRequired = 0;
-        $creditsEarned = 0;
-        $scoredCourses = [];
+        $scoredCourses = []; // dùng cho CPA — loại kỳ đang học
         $termStats = [];
 
         foreach ($curriculum->curriculumCourses as $cc) {
@@ -68,6 +72,8 @@ class CurriculumEvaluationService
             }
 
             $term = max(1, min(8, (int) $cc->term_number));
+            $isCurrentTerm = $currentTermNumber !== null && $term === (int) $currentTermNumber;
+
             if (!isset($termStats[$term])) {
                 $termStats[$term] = [
                     'term_number' => $term,
@@ -100,11 +106,8 @@ class CurriculumEvaluationService
                 $termStats[$term]['completed']++;
             }
 
-            if ($done && $course->is_credit_bearing) {
-                $creditsEarned += $credits;
-            }
-
-            if ($enrollment?->final_score !== null) {
+            // CPA / tín chỉ tích lũy: chỉ môn đã có điểm ở kỳ đã kết thúc (không tính kỳ đang học).
+            if (!$isCurrentTerm && $enrollment?->final_score !== null && $credits > 0) {
                 $score = (float) $enrollment->final_score;
                 $scoredCourses[] = [
                     'final_score' => $score,
@@ -132,15 +135,9 @@ class CurriculumEvaluationService
         ksort($termStats);
 
         $overallGpa = GpaCalculator::cumulativeGpa($scoredCourses);
+        $creditsEarned = GpaCalculator::earnedCredits($scoredCourses);
         $completionRatio = $requiredTotal > 0 ? $requiredDone / $requiredTotal : 0;
         $creditRatio = $creditsRequired > 0 ? $creditsEarned / $creditsRequired : 0;
-
-        // Demo CTĐT CNTT: chuẩn hóa hiển thị theo khung 150 tín chỉ.
-        if ($creditsRequired === 148 && $creditsEarned === 81) {
-            $creditsRequired = 150;
-            $creditsEarned = 79;
-            $creditRatio = $creditsEarned / $creditsRequired;
-        }
 
         // Demo: sẵn sàng career advice khi ≥ 60% môn bắt buộc hoặc ≥ 50% tín chỉ
         $ready = $completionRatio >= 0.6 || $creditRatio >= 0.5;
@@ -235,7 +232,7 @@ class CurriculumEvaluationService
         $gpaText = $gpa !== null ? number_format($gpa, 2) : 'chưa đủ điểm';
 
         $parts = [
-            "Bạn đã hoàn thành khoảng {$pct}% môn bắt buộc trong CTĐT {$major}, GPA tích lũy ~{$gpaText}.",
+            "Bạn đã hoàn thành khoảng {$pct}% môn bắt buộc trong CTĐT {$major}, CPA tích lũy ~{$gpaText}.",
         ];
 
         if ($strengths) {
