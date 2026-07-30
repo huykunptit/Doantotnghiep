@@ -391,9 +391,18 @@ onMounted(async () => {
             <span class="pill" :class="statusClass(data.status)">{{ data.status }}</span>
           </template>
         </Column>
-        <Column style="width:220px">
+        <Column style="width:260px">
           <template #body="{ data }">
             <div class="row-actions">
+              <a
+                v-if="data.slug"
+                :href="`/paths/${data.slug}`"
+                target="_blank"
+                rel="noopener"
+                :title="t('admin.careerPaths.preview')"
+              >
+                <Button icon="pi pi-eye" size="small" text severity="secondary" :aria-label="t('admin.careerPaths.preview')" />
+              </a>
               <Button icon="pi pi-sitemap" size="small" text :title="t('admin.careerPaths.builder')" @click="openBuilder(data)" />
               <Button icon="pi pi-pencil" size="small" text @click="openEdit(data)" />
               <Button icon="pi pi-trash" size="small" text severity="danger" @click="remove(data)" />

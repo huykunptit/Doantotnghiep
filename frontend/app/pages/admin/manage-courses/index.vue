@@ -328,6 +328,11 @@ onMounted(async () => {
         </Column>
         <Column :header="t('admin.users.actions')" style="width:12rem">
           <template #body="{ data }">
+<<<<<<< HEAD
+            <a :href="`/courses/${data.id}`" target="_blank" rel="noopener" :title="t('admin.manageCourses.preview')">
+              <Button icon="pi pi-eye" text rounded severity="secondary" :aria-label="t('admin.manageCourses.preview')" />
+            </a>
+=======
             <Button
               :icon="data.is_featured ? 'pi pi-star-fill' : 'pi pi-star'"
               text
@@ -340,6 +345,7 @@ onMounted(async () => {
               :title="data.is_featured ? t('admin.manageCourses.featuredOnHint') : t('admin.manageCourses.featuredOffHint')"
               @click="toggleFeatured(data)"
             />
+>>>>>>> 793f25b7d2fb39d421a1c793c3bc545583b3880d
             <NuxtLink :to="`/admin/manage-courses/${data.id}`">
               <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.manageCourses.builder')" />
             </NuxtLink>
