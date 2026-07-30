@@ -37,7 +37,7 @@ export const adminMenu: AdminMenuItem[] = [
       { labelKey: 'admin.menu.academicCatalog', to: '/admin/academic' },
       { labelKey: 'admin.menu.learningPaths', to: '/admin/lnd/learning-paths' },
       { labelKey: 'admin.menu.adminClasses', to: '/admin/lnd/classes' },
-      { labelKey: 'admin.menu.classSchedules', to: '/admin/academic/schedules' },
+      { labelKey: 'admin.menu.classSchedules', to: '/admin/lnd/schedules' },
       { labelKey: 'admin.menu.classPathEnrollment', to: '/admin/lnd/class-path-enrollment' },
       { labelKey: 'admin.menu.attendance', to: '/admin/lnd/attendance' },
     ],
@@ -102,24 +102,37 @@ export const adminMenu: AdminMenuItem[] = [
 type TranslateFn = (key: string) => string
 
 export function resolveAdminTitle(path: string, t: TranslateFn) {
+  // Prefer longest/exact child match so /admin/academic/schedules does not
+  // resolve as the parent /admin/academic catalog entry.
+  let best: { labelKey: string, len: number } | null = null
   for (const item of adminMenu) {
     if (item.to === path) return t(item.labelKey)
-    const child = item.children?.find(entry => entry.to === path || path.startsWith(`${entry.to}/`))
-    if (child) return t(child.labelKey)
+    for (const entry of item.children || []) {
+      if (entry.to === path || path.startsWith(`${entry.to}/`)) {
+        if (!best || entry.to.length > best.len) {
+          best = { labelKey: entry.labelKey, len: entry.to.length }
+        }
+      }
+    }
   }
-  return t('admin.systemTitle')
+  return best ? t(best.labelKey) : t('admin.systemTitle')
 }
 
 export function resolveAdminBreadcrumb(path: string, t: TranslateFn) {
+  let best: { parent: AdminMenuItem, child: AdminMenuChild, len: number } | null = null
   for (const item of adminMenu) {
     if (item.to === path) return [{ label: t(item.labelKey), to: item.to }]
-    const child = item.children?.find(entry => entry.to === path || path.startsWith(`${entry.to}/`))
-    if (child) {
-      return [
-        { label: t(item.labelKey) },
-        { label: t(child.labelKey), to: child.to },
-      ]
+    for (const entry of item.children || []) {
+      if (entry.to === path || path.startsWith(`${entry.to}/`)) {
+        if (!best || entry.to.length > best.len) {
+          best = { parent: item, child: entry, len: entry.to.length }
+        }
+      }
     }
   }
-  return []
+  if (!best) return []
+  return [
+    { label: t(best.parent.labelKey) },
+    { label: t(best.child.labelKey), to: best.child.to },
+  ]
 }

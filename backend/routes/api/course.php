@@ -10,6 +10,7 @@ use App\Http\Controllers\CourseManagement\LessonNoteController;
 use App\Http\Controllers\CourseManagement\LessonAttachmentController;
 use App\Http\Controllers\CourseManagement\ReviewController;
 use App\Http\Controllers\CourseManagement\VirtualClassController;
+use App\Http\Controllers\CourseManagement\LessonOfflineSessionController;
 use App\Http\Controllers\CourseManagement\AssignmentController;
 use App\Http\Controllers\CourseManagement\ScormController;
 use App\Http\Controllers\CourseManagement\ScormPackageController;
@@ -61,6 +62,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/courses/{course}/lessons/{lesson}/virtual-class', [VirtualClassController::class, 'store']);
         Route::delete('/courses/{course}/lessons/{lesson}/virtual-class', [VirtualClassController::class, 'destroy']);
 
+        Route::post('/courses/{course}/lessons/{lesson}/offline-session', [LessonOfflineSessionController::class, 'store']);
+        Route::post('/courses/{course}/lessons/{lesson}/offline-session/qr', [LessonOfflineSessionController::class, 'generateQr']);
+        Route::delete('/courses/{course}/lessons/{lesson}/offline-session', [LessonOfflineSessionController::class, 'destroy']);
+
         Route::post('/courses/{course}/lessons/{lesson}/scorm-package', [ScormPackageController::class, 'store']);
         Route::delete('/courses/{course}/lessons/{lesson}/scorm-package', [ScormPackageController::class, 'destroy']);
 
@@ -80,6 +85,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/courses/{course}/lessons/{lesson}/attachments/{attachment}/download', [LessonAttachmentController::class, 'download']);
 
     Route::get('/courses/{course}/lessons/{lesson}/virtual-class', [VirtualClassController::class, 'show']);
+    Route::get('/courses/{course}/lessons/{lesson}/offline-session', [LessonOfflineSessionController::class, 'show']);
     Route::get('/courses/{course}/lessons/{lesson}/scorm-package', [ScormPackageController::class, 'show']);
     Route::get('/courses/{course}/lessons/{lesson}/assignment', [AssignmentController::class, 'show']);
     Route::post('/courses/{course}/lessons/{lesson}/assignment/submit', [AssignmentController::class, 'submit']);

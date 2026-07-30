@@ -36,11 +36,17 @@ class OfflineSessionController extends Controller
             'latitude'         => 'required|numeric|between:-90,90',
             'longitude'        => 'required|numeric|between:-180,180',
             'check_in_radius_meters' => 'nullable|integer|min:5|max:500',
+            'qr_enabled'       => 'nullable|boolean',
+            'qr_mode'          => 'nullable|in:manual,rotating,static',
+            'qr_rotate_seconds'=> 'nullable|integer|min:15|max:600',
         ]);
 
         $session = OfflineSession::create([
             ...$data,
             'check_in_radius_meters' => $data['check_in_radius_meters'] ?? OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS,
+            'qr_enabled'       => (bool) ($data['qr_enabled'] ?? true),
+            'qr_mode'          => $data['qr_mode'] ?? OfflineSession::QR_MODE_MANUAL,
+            'qr_rotate_seconds'=> $data['qr_rotate_seconds'] ?? 60,
             'class_section_id' => $classSection->id,
             'is_active'        => false,
         ]);
@@ -62,6 +68,9 @@ class OfflineSessionController extends Controller
             'longitude'        => 'sometimes|numeric|between:-180,180',
             'check_in_radius_meters' => 'sometimes|integer|min:5|max:500',
             'is_active'        => 'sometimes|boolean',
+            'qr_enabled'       => 'sometimes|boolean',
+            'qr_mode'          => 'sometimes|in:manual,rotating,static',
+            'qr_rotate_seconds'=> 'sometimes|integer|min:15|max:600',
         ]);
 
         $session->update($data);
@@ -79,6 +88,10 @@ class OfflineSessionController extends Controller
     // ─── Instructor: generate / refresh QR code ───────────────────────────────
     public function generateQr(Request $request, OfflineSession $session): JsonResponse
     {
+        if ($session->qr_enabled === false) {
+            return response()->json(['message' => 'Điểm danh QR chưa được bật cho phiên này.'], 422);
+        }
+
         $ttl = (int) $request->input('ttl_minutes', 5);
         $session->generateQrToken($ttl);
 
@@ -92,6 +105,8 @@ class OfflineSessionController extends Controller
             'qr_token'      => $session->qr_token,
             'qr_expires_at' => $session->qr_expires_at->toIso8601String(),
             'qr_payload'    => $session->qrPayload(),
+            'qr_mode'       => $session->normalizedQrMode(),
+            'qr_rotate_seconds' => $session->rotateIntervalSeconds(),
             'check_in_radius_meters' => $session->checkInRadiusMeters(),
             'session' => $session->fresh(),
         ]);

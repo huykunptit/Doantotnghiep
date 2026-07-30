@@ -24,7 +24,23 @@ const userInitials = computed(() =>
 )
 
 function isChildActive(to: string) {
-  return route.path === to || route.path.startsWith(`${to}/`)
+  // Exact match wins; prefix only when no longer sibling path exists under a
+  // more specific menu entry (handled by preferring exact elsewhere).
+  if (route.path === to) return true
+  if (!route.path.startsWith(`${to}/`)) return false
+  // Avoid /admin/academic lighting up for /admin/lnd/... etc. — only prefix
+  // activate when this `to` is the longest matching menu child.
+  const allTos = adminMenu.flatMap(item => [
+    ...(item.to ? [item.to] : []),
+    ...(item.children?.map(c => c.to) || []),
+  ])
+  const longer = allTos.some(other =>
+    other !== to
+    && other.length > to.length
+    && (route.path === other || route.path.startsWith(`${other}/`))
+    && other.startsWith(`${to}/`),
+  )
+  return !longer
 }
 
 function isGroupActive(item: (typeof adminMenu)[number]) {

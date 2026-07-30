@@ -50,7 +50,7 @@ type Selection =
 const CONTENT_TYPE_GROUPS = [
   { key: 'content', types: ['video', 'audio', 'page', 'file', 'document', 'scorm', 'h5p'] },
   { key: 'activity', types: ['quiz', 'assignment', 'forum', 'survey'] },
-  { key: 'live', types: ['zoom', 'meet', 'virtual_class'] },
+  { key: 'live', types: ['live', 'offline', 'zoom', 'meet', 'virtual_class'] },
 ] as const
 
 const route = useRoute()
@@ -118,6 +118,46 @@ const liveConfig = reactive({
   start_at: '',
   duration: 60,
 })
+const offlineConfig = reactive({
+  location: '',
+  room: '',
+  start_at: '',
+  duration: 120,
+  max_participants: 35 as number | null,
+  latitude: null as number | null,
+  longitude: null as number | null,
+  check_in_radius_meters: 15,
+  qr_enabled: false,
+  qr_mode: 'manual' as 'manual' | 'rotating' | 'static',
+  qr_rotate_seconds: 60,
+})
+const qrDialogOpen = ref(false)
+const qrModeOptions = computed(() => [
+  { label: t('admin.builder.fields.qrModeManual'), value: 'manual' },
+  { label: t('admin.builder.fields.qrModeRotating'), value: 'rotating' },
+  { label: t('admin.builder.fields.qrModeStatic'), value: 'static' },
+])
+const offlineQrUrl = computed(() =>
+  lessonForm.id
+    ? `/courses/${courseId.value}/lessons/${lessonForm.id}/offline-session/qr`
+    : '',
+)
+
+function useDeviceLocationForOffline() {
+  if (!import.meta.client || !navigator.geolocation) {
+    toast.add({ severity: 'warn', summary: t('admin.attendance.geoUnsupported'), life: 3000 })
+    return
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      offlineConfig.latitude = Number(pos.coords.latitude.toFixed(7))
+      offlineConfig.longitude = Number(pos.coords.longitude.toFixed(7))
+      toast.add({ severity: 'success', summary: t('admin.attendance.geoOk'), life: 2000 })
+    },
+    () => toast.add({ severity: 'error', summary: t('admin.attendance.geoFail'), life: 3000 }),
+    { enableHighAccuracy: true, timeout: 15000 },
+  )
+}
 const quizConfig = reactive({ title: '', description: '', time_limit: 15, pass_score: 70 })
 const selectedQuestionIds = ref<number[]>([])
 const questionOptions = ref<{ label: string, value: number }[]>([])
@@ -169,6 +209,8 @@ function typeIcon(type: string) {
     zoom: 'pi pi-video',
     meet: 'pi pi-globe',
     virtual_class: 'pi pi-desktop',
+    live: 'pi pi-comments',
+    offline: 'pi pi-map-marker',
   } as Record<string, string>)[type] || 'pi pi-book'
 }
 
@@ -442,8 +484,23 @@ function chooseContentType(type: string) {
   if (type === 'zoom' || type === 'meet') {
     liveConfig.provider = type === 'meet' ? 'meet' : 'zoom'
   }
-  if (type === 'virtual_class') {
-    liveConfig.provider = 'zoom'
+  if (type === 'virtual_class' || type === 'live') {
+    liveConfig.provider = type === 'live' ? 'meet' : 'zoom'
+  }
+  if (type === 'offline') {
+    Object.assign(offlineConfig, {
+      location: '',
+      room: '',
+      start_at: '',
+      duration: 120,
+      max_participants: 35,
+      latitude: null,
+      longitude: null,
+      check_in_radius_meters: 15,
+      qr_enabled: false,
+      qr_mode: 'manual',
+      qr_rotate_seconds: 60,
+    })
   }
 }
 
@@ -470,6 +527,19 @@ function resetLessonForm() {
     join_url: '',
     start_at: '',
     duration: 60,
+  })
+  Object.assign(offlineConfig, {
+    location: '',
+    room: '',
+    start_at: '',
+    duration: 120,
+    max_participants: 35,
+    latitude: null,
+    longitude: null,
+    check_in_radius_meters: 15,
+    qr_enabled: false,
+    qr_mode: 'manual',
+    qr_rotate_seconds: 60,
   })
   Object.assign(quizConfig, { title: '', description: '', time_limit: 15, pass_score: 70 })
   selectedQuestionIds.value = []
@@ -547,7 +617,7 @@ async function openLessonEditor(sectionId: number, lessonId: number) {
         /* new assignment */
       }
     }
-    if (['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)) {
+    if (['zoom', 'meet', 'virtual_class', 'live'].includes(lessonForm.type)) {
       try {
         const res = await useApi<{
           provider?: string
@@ -568,6 +638,39 @@ async function openLessonEditor(sectionId: number, lessonId: number) {
       }
       catch {
         /* new live lesson */
+      }
+    }
+    if (lessonForm.type === 'offline') {
+      try {
+        const res = await useApi<{
+          location?: string
+          room?: string | null
+          start_at?: string
+          duration?: number
+          max_participants?: number | null
+          latitude?: number | null
+          longitude?: number | null
+          check_in_radius_meters?: number | null
+          qr_enabled?: boolean
+          qr_mode?: 'manual' | 'rotating' | 'static'
+          qr_rotate_seconds?: number
+        }>(`/courses/${courseId.value}/lessons/${lessonId}/offline-session`)
+        Object.assign(offlineConfig, {
+          location: res.location || '',
+          room: res.room || '',
+          start_at: res.start_at ? String(res.start_at).slice(0, 16) : '',
+          duration: res.duration || 120,
+          max_participants: res.max_participants ?? 35,
+          latitude: res.latitude ?? null,
+          longitude: res.longitude ?? null,
+          check_in_radius_meters: res.check_in_radius_meters || 15,
+          qr_enabled: !!res.qr_enabled,
+          qr_mode: res.qr_mode || 'manual',
+          qr_rotate_seconds: res.qr_rotate_seconds || 60,
+        })
+      }
+      catch {
+        /* new offline lesson */
       }
     }
     if (['scorm', 'h5p'].includes(lessonForm.type)) {
@@ -673,6 +776,14 @@ async function onVideoFileSelected(event: Event) {
 
 async function saveLesson() {
   if (!lessonForm.title.trim() || !lessonForm.section_id) return
+  if (
+    lessonForm.type === 'offline'
+    && offlineConfig.qr_enabled
+    && (offlineConfig.latitude == null || offlineConfig.longitude == null)
+  ) {
+    toast.add({ severity: 'warn', summary: t('admin.builder.fields.qrNeedGeo'), life: 3500 })
+    return
+  }
   savingLesson.value = true
   try {
     const payload: Record<string, unknown> = {
@@ -751,8 +862,8 @@ async function saveLesson() {
       })
     }
 
-    if (['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)) {
-      const provider = lessonForm.type === 'meet' || liveConfig.provider === 'meet'
+    if (['zoom', 'meet', 'virtual_class', 'live'].includes(lessonForm.type)) {
+      const provider = lessonForm.type === 'meet' || lessonForm.type === 'live' || liveConfig.provider === 'meet'
         ? 'google_meet'
         : 'zoom'
       await useApi(`/courses/${courseId.value}/lessons/${lessonId}/virtual-class`, {
@@ -765,6 +876,26 @@ async function saveLesson() {
           start_url: null,
           start_at: liveConfig.start_at || null,
           duration: liveConfig.duration || 60,
+        },
+      })
+    }
+
+    if (lessonForm.type === 'offline') {
+      await useApi(`/courses/${courseId.value}/lessons/${lessonId}/offline-session`, {
+        method: 'POST',
+        body: {
+          title: lessonForm.title,
+          location: offlineConfig.location,
+          room: offlineConfig.room || null,
+          start_at: offlineConfig.start_at,
+          duration: offlineConfig.duration || 120,
+          max_participants: offlineConfig.max_participants || null,
+          latitude: offlineConfig.latitude,
+          longitude: offlineConfig.longitude,
+          check_in_radius_meters: offlineConfig.check_in_radius_meters || 15,
+          qr_enabled: offlineConfig.qr_enabled,
+          qr_mode: offlineConfig.qr_mode,
+          qr_rotate_seconds: offlineConfig.qr_rotate_seconds || 60,
         },
       })
     }
@@ -1411,7 +1542,7 @@ onMounted(async () => {
           </div>
         </template>
 
-        <template v-if="['zoom', 'meet', 'virtual_class'].includes(lessonForm.type)">
+        <template v-if="['zoom', 'meet', 'virtual_class', 'live'].includes(lessonForm.type)">
           <label class="field">
             <span>{{ t('admin.builder.fields.joinUrl') }}</span>
             <InputText v-model="liveConfig.join_url" class="w-full" placeholder="https://..." />
@@ -1435,6 +1566,88 @@ onMounted(async () => {
               <span>{{ t('admin.builder.fields.liveDuration') }}</span>
               <InputNumber v-model="liveConfig.duration" :min="15" :step="15" class="w-full" />
             </label>
+          </div>
+        </template>
+
+        <template v-if="lessonForm.type === 'offline'">
+          <label class="field">
+            <span>{{ t('admin.builder.fields.offlineLocation') }}</span>
+            <InputText v-model="offlineConfig.location" class="w-full" :placeholder="t('admin.builder.fields.offlineLocationPh')" />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.builder.fields.offlineRoom') }}</span>
+            <InputText v-model="offlineConfig.room" class="w-full" />
+          </label>
+          <div class="form-row">
+            <label class="field">
+              <span>{{ t('admin.builder.fields.startAt') }}</span>
+              <InputText v-model="offlineConfig.start_at" type="datetime-local" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('admin.builder.fields.liveDuration') }}</span>
+              <InputNumber v-model="offlineConfig.duration" :min="30" :step="15" class="w-full" />
+            </label>
+          </div>
+          <label class="field">
+            <span>{{ t('admin.builder.fields.maxParticipants') }}</span>
+            <InputNumber v-model="offlineConfig.max_participants" :min="1" class="w-full" />
+          </label>
+
+          <div class="offline-qr-panel">
+            <div class="offline-qr-head">
+              <div>
+                <strong>{{ t('admin.builder.fields.qrAttendance') }}</strong>
+                <p class="hint">{{ t('admin.builder.fields.qrAttendanceHint') }}</p>
+              </div>
+              <InputSwitch v-model="offlineConfig.qr_enabled" />
+            </div>
+
+            <template v-if="offlineConfig.qr_enabled">
+              <div class="form-row">
+                <label class="field">
+                  <span>{{ t('admin.attendance.fieldLat') }}</span>
+                  <InputNumber v-model="offlineConfig.latitude" :max-fraction-digits="7" class="w-full" />
+                </label>
+                <label class="field">
+                  <span>{{ t('admin.attendance.fieldLng') }}</span>
+                  <InputNumber v-model="offlineConfig.longitude" :max-fraction-digits="7" class="w-full" />
+                </label>
+              </div>
+              <div class="form-row">
+                <label class="field">
+                  <span>{{ t('admin.attendance.fieldRadius') }}</span>
+                  <InputNumber v-model="offlineConfig.check_in_radius_meters" :min="5" :max="500" suffix=" m" class="w-full" />
+                </label>
+                <div class="field geo-actions">
+                  <Button
+                    type="button"
+                    :label="t('admin.attendance.useMyLocation')"
+                    icon="pi pi-map-marker"
+                    severity="secondary"
+                    outlined
+                    @click="useDeviceLocationForOffline"
+                  />
+                </div>
+              </div>
+              <label class="field">
+                <span>{{ t('admin.builder.fields.qrMode') }}</span>
+                <Select v-model="offlineConfig.qr_mode" :options="qrModeOptions" option-label="label" option-value="value" class="w-full" />
+                <small class="hint">{{ t('admin.builder.fields.qrModeHelp') }}</small>
+              </label>
+              <label v-if="offlineConfig.qr_mode === 'rotating'" class="field">
+                <span>{{ t('admin.builder.fields.qrRotateSeconds') }}</span>
+                <InputNumber v-model="offlineConfig.qr_rotate_seconds" :min="15" :max="600" :step="15" suffix=" s" class="w-full" />
+              </label>
+              <Button
+                v-if="lessonForm.id"
+                type="button"
+                :label="t('admin.attendance.showQr')"
+                icon="pi pi-qrcode"
+                severity="help"
+                outlined
+                @click="qrDialogOpen = true"
+              />
+            </template>
           </div>
         </template>
 
@@ -1471,6 +1684,14 @@ onMounted(async () => {
         <Button :label="t('common.save')" icon="pi pi-save" :loading="savingLesson || videoUploading" @click="saveLesson" />
       </template>
     </Dialog>
+
+    <CommonOfflineSessionQrDialog
+      v-model:visible="qrDialogOpen"
+      :refresh-url="offlineQrUrl"
+      :title="lessonForm.title || t('admin.attendance.qrTitle')"
+      :mode="offlineConfig.qr_mode"
+      :rotate-seconds="offlineConfig.qr_rotate_seconds"
+    />
 
     <Dialog
       v-model:visible="sectionDialogOpen"
@@ -1621,6 +1842,26 @@ onMounted(async () => {
 .tab-lead { margin: 0; color: var(--text-muted); font-weight: 500; font-size: .9rem; }
 .form-grid { display: grid; gap: 12px; padding: 14px; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.offline-qr-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--p-surface-border));
+  background: color-mix(in srgb, var(--brand) 6%, var(--p-surface-card));
+}
+.offline-qr-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.offline-qr-head .hint { margin: 4px 0 0; }
+.geo-actions {
+  display: flex;
+  align-items: flex-end;
+}
 .list-field { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; }
 .list-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .list-head > span { font-size: .8rem; font-weight: 700; color: var(--brand); }

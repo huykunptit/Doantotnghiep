@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import QRCode from 'qrcode'
 
 definePageMeta({
   layout: 'admin',
@@ -32,6 +31,9 @@ interface OfflineSession {
   attendances_count?: number
   qr_token?: string | null
   qr_expires_at?: string | null
+  qr_enabled?: boolean
+  qr_mode?: 'manual' | 'rotating' | 'static' | string
+  qr_rotate_seconds?: number
 }
 
 interface AttendanceRow {
@@ -68,16 +70,22 @@ const form = reactive({
   latitude: null as number | null,
   longitude: null as number | null,
   check_in_radius_meters: 15,
+  qr_enabled: true,
+  qr_mode: 'manual' as 'manual' | 'rotating' | 'static',
+  qr_rotate_seconds: 60,
 })
+
+const qrModeOptions = computed(() => [
+  { label: t('admin.builder.fields.qrModeManual'), value: 'manual' },
+  { label: t('admin.builder.fields.qrModeRotating'), value: 'rotating' },
+  { label: t('admin.builder.fields.qrModeStatic'), value: 'static' },
+])
 
 const qrOpen = ref(false)
 const qrSession = ref<OfflineSession | null>(null)
-const qrPayload = ref('')
-const qrDataUrl = ref('')
-const qrExpiresAt = ref<string | null>(null)
-const qrRefreshing = ref(false)
-const qrCountdown = ref('')
-let qrTimer: ReturnType<typeof setInterval> | null = null
+const qrRefreshUrl = computed(() =>
+  qrSession.value ? `${apiBase.value}/sessions/${qrSession.value.id}/qr` : '',
+)
 
 const reportOpen = ref(false)
 const reportRows = ref<AttendanceRow[]>([])
@@ -97,7 +105,7 @@ async function loadSections() {
       query: { per_page: 200 },
     })
     const rows: ClassSection[] = res.data || res.class_sections || res || []
-    sectionOptions.value = rows.map((s) => ({
+    sectionOptions.value = rows.map(s => ({
       value: s.id,
       label: `${s.code}${s.name ? ` — ${s.name}` : ''}${s.course?.title ? ` (${s.course.title})` : ''}`,
     }))
@@ -141,6 +149,9 @@ function openCreate() {
     latitude: null,
     longitude: null,
     check_in_radius_meters: 15,
+    qr_enabled: true,
+    qr_mode: 'manual',
+    qr_rotate_seconds: 60,
   })
   modalOpen.value = true
 }
@@ -156,12 +167,15 @@ function openEdit(session: OfflineSession) {
     latitude: session.latitude,
     longitude: session.longitude,
     check_in_radius_meters: session.check_in_radius_meters || 15,
+    qr_enabled: session.qr_enabled !== false,
+    qr_mode: (session.qr_mode as any) || 'manual',
+    qr_rotate_seconds: session.qr_rotate_seconds || 60,
   })
   modalOpen.value = true
 }
 
-async function useMyLocation() {
-  if (!navigator.geolocation) {
+function useMyLocation() {
+  if (!import.meta.client || !navigator.geolocation) {
     toast.add({ severity: 'warn', summary: t('admin.attendance.geoUnsupported'), life: 3000 })
     return
   }
@@ -193,6 +207,9 @@ async function saveSession() {
       latitude: form.latitude,
       longitude: form.longitude,
       check_in_radius_meters: form.check_in_radius_meters || 15,
+      qr_enabled: form.qr_enabled,
+      qr_mode: form.qr_mode,
+      qr_rotate_seconds: form.qr_rotate_seconds || 60,
     }
     if (editing.value) {
       await useApi(`${apiBase.value}/sessions/${editing.value.id}`, { method: 'PUT', body })
@@ -244,70 +261,9 @@ function askDelete(session: OfflineSession) {
   })
 }
 
-function stopQrTimer() {
-  if (qrTimer) {
-    clearInterval(qrTimer)
-    qrTimer = null
-  }
-}
-
-function startQrTimer() {
-  stopQrTimer()
-  const tick = () => {
-    if (!qrExpiresAt.value) {
-      qrCountdown.value = ''
-      return
-    }
-    const ms = new Date(qrExpiresAt.value).getTime() - Date.now()
-    if (ms <= 0) {
-      qrCountdown.value = t('admin.attendance.qrExpired')
-      return
-    }
-    const sec = Math.ceil(ms / 1000)
-    const m = Math.floor(sec / 60)
-    const s = sec % 60
-    qrCountdown.value = `${m}:${String(s).padStart(2, '0')}`
-  }
-  tick()
-  qrTimer = setInterval(tick, 1000)
-}
-
-async function renderQr(payload: string) {
-  qrDataUrl.value = await QRCode.toDataURL(payload, {
-    width: 320,
-    margin: 2,
-    color: { dark: '#0f172a', light: '#ffffff' },
-  })
-}
-
-async function openQr(session: OfflineSession) {
+function openQr(session: OfflineSession) {
   qrSession.value = session
   qrOpen.value = true
-  await refreshQr()
-}
-
-async function refreshQr() {
-  if (!qrSession.value) return
-  qrRefreshing.value = true
-  try {
-    const res = await useApi<{
-      qr_payload: string
-      qr_expires_at: string
-      session: OfflineSession
-    }>(`${apiBase.value}/sessions/${qrSession.value.id}/qr`, { method: 'POST', body: { ttl_minutes: 5 } })
-    qrPayload.value = res.qr_payload
-    qrExpiresAt.value = res.qr_expires_at
-    qrSession.value = res.session
-    await renderQr(res.qr_payload)
-    startQrTimer()
-    await loadSessions()
-  }
-  catch (e: any) {
-    toast.add({ severity: 'error', summary: t('admin.attendance.qrError'), detail: e?.data?.message, life: 4000 })
-  }
-  finally {
-    qrRefreshing.value = false
-  }
 }
 
 async function openReport(session: OfflineSession) {
@@ -338,10 +294,7 @@ function statusLabel(status: string) {
 }
 
 watch(selectedSectionId, () => { loadSessions() })
-watch(qrOpen, (open) => { if (!open) stopQrTimer() })
-
 onMounted(loadSections)
-onBeforeUnmount(stopQrTimer)
 </script>
 
 <template>
@@ -369,10 +322,9 @@ onBeforeUnmount(stopQrTimer)
           :options="sectionOptions"
           option-label="label"
           option-value="value"
-          :loading="loadingSections"
           :placeholder="t('admin.attendance.selectSectionPh')"
+          :loading="loadingSections"
           filter
-          show-clear
           class="w-full"
         />
       </label>
@@ -380,18 +332,22 @@ onBeforeUnmount(stopQrTimer)
     </section>
 
     <section class="surface panel">
-      <DataTable :value="sessions" :loading="loadingSessions" data-key="id" striped-rows>
-        <template #empty>
-          <div class="empty">{{ selectedSectionId ? t('admin.attendance.empty') : t('admin.attendance.pickSectionFirst') }}</div>
-        </template>
+      <div v-if="!selectedSectionId" class="empty">{{ t('admin.attendance.pickSectionFirst') }}</div>
+      <DataTable
+        v-else
+        :value="sessions"
+        :loading="loadingSessions"
+        data-key="id"
+        size="small"
+        :empty-message="t('admin.attendance.empty')"
+      >
         <Column field="title" :header="t('admin.attendance.colTitle')" />
         <Column field="location" :header="t('admin.attendance.colLocation')" />
-        <Column :header="t('admin.attendance.colRoom')">
-          <template #body="{ data }">{{ data.room || '—' }}</template>
-        </Column>
+        <Column field="room" :header="t('admin.attendance.colRoom')" />
         <Column :header="t('admin.attendance.colTime')">
           <template #body="{ data }">
-            {{ new Date(data.start_at).toLocaleString() }} · {{ data.duration }}'
+            {{ data.start_at ? new Date(data.start_at).toLocaleString() : '—' }}
+            <small v-if="data.duration"> · {{ data.duration }}p</small>
           </template>
         </Column>
         <Column :header="t('admin.attendance.colRadius')">
@@ -460,6 +416,22 @@ onBeforeUnmount(stopQrTimer)
           <span>&nbsp;</span>
           <Button :label="t('admin.attendance.useMyLocation')" icon="pi pi-map-marker" severity="secondary" outlined class="w-full" @click="useMyLocation" />
         </div>
+        <div class="field full qr-toggle">
+          <div>
+            <strong>{{ t('admin.builder.fields.qrAttendance') }}</strong>
+            <p class="hint">{{ t('admin.builder.fields.qrAttendanceHint') }}</p>
+          </div>
+          <InputSwitch v-model="form.qr_enabled" />
+        </div>
+        <label v-if="form.qr_enabled" class="field full">
+          <span>{{ t('admin.builder.fields.qrMode') }}</span>
+          <Select v-model="form.qr_mode" :options="qrModeOptions" option-label="label" option-value="value" class="w-full" />
+          <small class="hint">{{ t('admin.builder.fields.qrModeHelp') }}</small>
+        </label>
+        <label v-if="form.qr_enabled && form.qr_mode === 'rotating'" class="field">
+          <span>{{ t('admin.builder.fields.qrRotateSeconds') }}</span>
+          <InputNumber v-model="form.qr_rotate_seconds" :min="15" :max="600" :step="15" suffix=" s" class="w-full" />
+        </label>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" text severity="secondary" @click="modalOpen = false" />
@@ -467,15 +439,13 @@ onBeforeUnmount(stopQrTimer)
       </template>
     </Dialog>
 
-    <Dialog v-model:visible="qrOpen" modal :header="t('admin.attendance.qrTitle')" class="qr-dialog">
-      <div class="qr-box">
-        <p class="qr-meta">{{ qrSession?.title }} · {{ qrSession?.location }}<template v-if="qrSession?.room"> · {{ t('admin.attendance.fieldRoom') }}: {{ qrSession.room }}</template></p>
-        <p class="qr-radius">{{ t('admin.attendance.qrRadius', { n: qrSession?.check_in_radius_meters || 15 }) }}</p>
-        <img v-if="qrDataUrl" :src="qrDataUrl" alt="QR attendance" class="qr-img">
-        <p class="qr-count">{{ t('admin.attendance.qrCountdown') }}: <strong>{{ qrCountdown }}</strong></p>
-        <Button :label="t('admin.attendance.refreshQr')" icon="pi pi-refresh" :loading="qrRefreshing" @click="refreshQr" />
-      </div>
-    </Dialog>
+    <CommonOfflineSessionQrDialog
+      v-model:visible="qrOpen"
+      :refresh-url="qrRefreshUrl"
+      :title="qrSession?.title || t('admin.attendance.qrTitle')"
+      :mode="qrSession?.qr_mode || form.qr_mode"
+      :rotate-seconds="qrSession?.qr_rotate_seconds || 60"
+    />
 
     <Dialog v-model:visible="reportOpen" modal :header="t('admin.attendance.reportTitle')" class="report-dialog">
       <div v-if="reportSummary" class="summary">
@@ -509,13 +479,16 @@ onBeforeUnmount(stopQrTimer)
 .empty { padding: 24px; text-align: center; color: var(--text-muted); }
 .row-actions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: min(560px, 80vw); }
-.qr-box { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 12px 4px; }
-.qr-img { width: 280px; height: 280px; border-radius: 12px; border: 1px solid var(--border); }
-.qr-meta { margin: 0; font-weight: 700; }
-.qr-radius, .qr-count { margin: 0; color: var(--text-muted); font-size: .9rem; }
+.qr-toggle {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+.qr-toggle .hint { margin: 4px 0 0; }
 .summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .att-dialog :deep(.p-dialog-content),
-.qr-dialog :deep(.p-dialog-content),
 .report-dialog :deep(.p-dialog-content) { overflow: auto; }
 @media (max-width: 720px) {
   .form-grid { grid-template-columns: 1fr; min-width: 0; }

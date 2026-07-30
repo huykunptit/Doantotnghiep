@@ -290,8 +290,11 @@ onMounted(async () => {
             </span>
           </template>
         </Column>
-        <Column :header="t('admin.users.actions')" style="width:10rem">
+        <Column :header="t('admin.users.actions')" style="width:12rem">
           <template #body="{ data }">
+            <a :href="`/courses/${data.id}`" target="_blank" rel="noopener" :title="t('admin.manageCourses.preview')">
+              <Button icon="pi pi-eye" text rounded severity="secondary" :aria-label="t('admin.manageCourses.preview')" />
+            </a>
             <NuxtLink :to="`/admin/manage-courses/${data.id}`">
               <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.manageCourses.builder')" />
             </NuxtLink>

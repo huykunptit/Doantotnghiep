@@ -61,8 +61,9 @@ class VirtualClassController extends Controller
             $validated
         );
 
-        // Update lesson type to ensure front-end renders correctly
-        if ($lesson->type !== 'virtual_class') {
+        // Keep live/zoom/meet types from the builder; only normalize unknown types.
+        $liveTypes = ['virtual_class', 'zoom', 'meet', 'live'];
+        if (! in_array($lesson->type, $liveTypes, true)) {
             $lesson->update(['type' => 'virtual_class']);
         }
 

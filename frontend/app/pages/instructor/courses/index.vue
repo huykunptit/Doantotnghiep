@@ -205,8 +205,11 @@ onMounted(async () => {
         <Column :header="t('instructor.courses.learners')">
           <template #body="{ data }">{{ data.enrollments_count || 0 }}</template>
         </Column>
-        <Column style="width:10rem">
+        <Column style="width:14rem">
           <template #body="{ data }">
+            <a :href="`/courses/${data.id}`" target="_blank" rel="noopener">
+              <Button :label="t('instructor.courses.preview')" icon="pi pi-eye" size="small" text severity="secondary" />
+            </a>
             <Button :label="t('instructor.courses.edit')" size="small" text @click="navigateTo(`/instructor/courses/${data.id}/edit`)" />
             <Button icon="pi pi-users" text rounded severity="secondary" @click="navigateTo(`/instructor/courses/${data.id}/students`)" />
             <Button icon="pi pi-wallet" text rounded severity="secondary" @click="navigateTo(`/instructor/courses/${data.id}/revenue`)" />
