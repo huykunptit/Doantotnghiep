@@ -14,7 +14,7 @@ class CertificatesScreen extends ConsumerWidget {
   static const routeName = '/certificates';
 
   Future<void> _openVerifyUrl(BuildContext context, String credentialId) async {
-    final url = Uri.parse('https://sylvalms.wetech.vn/certificates/verify/$credentialId');
+    final url = Uri.parse('https://eriptlms.wetech.vn/certificates/verify/$credentialId');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
@@ -31,7 +31,7 @@ class CertificatesScreen extends ConsumerWidget {
   }
 
   Future<void> _copyLink(BuildContext context, String credentialId) async {
-    final url = 'https://sylvalms.wetech.vn/certificates/verify/$credentialId';
+    final url = 'https://eriptlms.wetech.vn/certificates/verify/$credentialId';
     await Clipboard.setData(ClipboardData(text: url));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

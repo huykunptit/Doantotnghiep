@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary — Sylva teal (aligned with web --brand #0f766e)
+  // Primary — Eript teal (aligned with web --brand #0f766e)
   static const Color primary50 = Color(0xFFE6F4F2);
   static const Color primary100 = Color(0xFFB8E0DA);
   static const Color primary200 = Color(0xFF7FC4BA);

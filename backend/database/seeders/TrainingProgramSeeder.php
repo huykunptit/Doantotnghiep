@@ -58,6 +58,12 @@ class TrainingProgramSeeder extends Seeder
 
         $loaiLabels = $data['mo_ta_loai'] ?? [];
 
+        $categoryByProgram = [
+            'CNTT' => \App\Models\Category::query()->where('slug', 'cong-nghe-thong-tin')->value('id'),
+            'QTKD' => \App\Models\Category::query()->where('slug', 'quan-tri-kinh-doanh')->value('id'),
+            'DTVT' => \App\Models\Category::query()->where('slug', 'dien-tu-vien-thong')->value('id'),
+        ];
+
         $courseCache = []; // [normalized title] => Course
         $stats = ['courses_created' => 0, 'courses_reused' => 0, 'curriculum_courses' => 0, 'electives' => 0, 'curricula_missing' => 0];
 
@@ -79,6 +85,8 @@ class TrainingProgramSeeder extends Seeder
                 $stats['curricula_missing']++;
                 continue;
             }
+
+            $categoryId = $categoryByProgram[$progCode] ?? null;
 
             // Lấy chuyên ngành đầu tiên trong JSON làm CTĐT đại diện cho cả chương trình
             $chuyenNganh = ($progEntry['chuyen_nganh'] ?? [])[0] ?? null;
@@ -109,6 +117,9 @@ class TrainingProgramSeeder extends Seeder
                                 $loaiLabels[$loai] ?? $loai,
                                 $courseCache,
                                 $stats,
+                                $program?->id,
+                                $categoryId,
+                                $curriculum->id,
                             );
 
                             $notes = json_encode([
@@ -127,6 +138,9 @@ class TrainingProgramSeeder extends Seeder
                                 $loaiLabels[$loai] ?? $loai,
                                 $courseCache,
                                 $stats,
+                                $program?->id,
+                                $categoryId,
+                                $curriculum->id,
                             );
 
                             $notes = json_encode([
@@ -173,16 +187,54 @@ class TrainingProgramSeeder extends Seeder
         int $ownerId,
         ?string $loaiLabel,
         array &$cache,
-        array &$stats
+        array &$stats,
+        ?int $programId = null,
+        ?int $categoryId = null,
+        ?int $curriculumId = null,
     ): Course {
         $key = $this->normalizeTitle($title);
         if (isset($cache[$key])) {
+            $course = $cache[$key];
+            $patch = [];
+            if (empty($course->thumbnail)) {
+                $patch['thumbnail'] = $this->fakeThumbnail($title, (int) $course->id);
+            }
+            if ($programId && !$course->program_id) {
+                $patch['program_id'] = $programId;
+            }
+            if ($categoryId && !$course->category_id) {
+                $patch['category_id'] = $categoryId;
+            }
+            if ($curriculumId && !$course->curriculum_id) {
+                $patch['curriculum_id'] = $curriculumId;
+            }
+            if ($patch !== []) {
+                $course->update($patch);
+                $course->refresh();
+            }
             $stats['courses_reused']++;
-            return $cache[$key];
+            return $course;
         }
 
         $existing = Course::query()->where('title', $title)->first();
         if ($existing) {
+            $patch = [];
+            if (empty($existing->thumbnail)) {
+                $patch['thumbnail'] = $this->fakeThumbnail($title, (int) $existing->id);
+            }
+            if ($programId && !$existing->program_id) {
+                $patch['program_id'] = $programId;
+            }
+            if ($categoryId && !$existing->category_id) {
+                $patch['category_id'] = $categoryId;
+            }
+            if ($curriculumId && !$existing->curriculum_id) {
+                $patch['curriculum_id'] = $curriculumId;
+            }
+            if ($patch !== []) {
+                $existing->update($patch);
+                $existing->refresh();
+            }
             $cache[$key] = $existing;
             $stats['courses_reused']++;
             return $existing;
@@ -197,7 +249,9 @@ class TrainingProgramSeeder extends Seeder
 
         $course = Course::query()->create([
             'user_id' => $ownerId,
-            'category_id' => null,
+            'category_id' => $categoryId,
+            'program_id' => $programId,
+            'curriculum_id' => $curriculumId,
             'title' => $title,
             'slug' => $slug,
             'description' => $loaiLabel ? "Học phần thuộc nhóm: {$loaiLabel}" : null,
@@ -206,12 +260,72 @@ class TrainingProgramSeeder extends Seeder
             'course_mode' => 'core',
             'is_credit_bearing' => true,
             'credit_value' => $credits > 0 ? $credits : null,
+            'thumbnail' => $this->fakeThumbnail($title, 0),
             'published_at' => now(),
         ]);
 
-        $cache[$key] = $course;
+        // Re-pick with stable id so siblings look different
+        $course->update(['thumbnail' => $this->fakeThumbnail($title, (int) $course->id)]);
+
+        $cache[$key] = $course->fresh();
         $stats['courses_created']++;
-        return $course;
+        return $cache[$key];
+    }
+
+    private function fakeThumbnail(string $title, int $seed): string
+    {
+        $t = mb_strtolower($title);
+        $pools = [
+            'ai' => [
+                'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&q=80',
+                'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1200&q=80',
+            ],
+            'network' => [
+                'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&q=80',
+                'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&q=80',
+            ],
+            'software' => [
+                'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&q=80',
+                'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&q=80',
+            ],
+            'db' => [
+                'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&q=80',
+                'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80',
+            ],
+            'web' => [
+                'https://images.unsplash.com/photo-1547658719-da2b51169166?w=1200&q=80',
+                'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&q=80',
+            ],
+            'english' => [
+                'https://images.unsplash.com/photo-1543109740-4bdb38fda756?w=1200&q=80',
+                'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=1200&q=80',
+            ],
+            'math' => [
+                'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1200&q=80',
+                'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=1200&q=80',
+            ],
+            'default' => [
+                'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&q=80',
+                'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?w=1200&q=80',
+                'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=1200&q=80',
+                'https://images.unsplash.com/photo-1536148935331-408321065b18?w=1200&q=80',
+                'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=1200&q=80',
+                'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&q=80',
+            ],
+        ];
+
+        $pool = match (true) {
+            str_contains($t, 'trí tuệ') || str_contains($t, ' ai') || str_contains($t, 'học máy') => $pools['ai'],
+            str_contains($t, 'mạng') || str_contains($t, 'iot') || str_contains($t, 'an ninh') => $pools['network'],
+            str_contains($t, 'cơ sở dữ liệu') || str_contains($t, 'dữ liệu') || str_contains($t, 'database') => $pools['db'],
+            str_contains($t, 'web') || str_contains($t, 'nuxt') || str_contains($t, 'frontend') => $pools['web'],
+            str_contains($t, 'phần mềm') || str_contains($t, 'lập trình') || str_contains($t, 'python') || str_contains($t, 'java') => $pools['software'],
+            str_contains($t, 'tiếng anh') || str_contains($t, 'english') => $pools['english'],
+            str_contains($t, 'toán') || str_contains($t, 'giải tích') || str_contains($t, 'đại số') || str_contains($t, 'xác suất') => $pools['math'],
+            default => $pools['default'],
+        };
+
+        return $pool[abs($seed) % count($pool)];
     }
 
     private function normalizeTitle(string $title): string

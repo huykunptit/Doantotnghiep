@@ -7,8 +7,31 @@ const { settings } = useSiteSettings()
 const { t } = useI18n()
 const mobileOpen = ref(false)
 
-const brand = computed(() => settings.value.site_name || 'Sylva LMS')
+const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const dashboardPath = computed(() => dashboardFor(auth.user))
+const userInitials = computed(() =>
+  (auth.user?.name || 'SV').split(' ').filter(Boolean).slice(-2).map(p => p[0]).join('').toUpperCase(),
+)
+
+/** Thông tin liên hệ / địa chỉ — fallback theo Viện Kinh tế Bưu điện (ERIPT). */
+const footerContact = computed(() => ({
+  org: settings.value.legal_company_name || 'Viện Kinh tế Bưu điện',
+  phone: settings.value.contact_phone || '024-35746799',
+  fax: '024-37339432',
+  email: settings.value.contact_email || 'namtd@ptit.edu.vn',
+  address: settings.value.contact_address
+    || settings.value.address
+    || 'Số 122 Hoàng Quốc Việt, phường Nghĩa Đô, thành phố Hà Nội',
+  addressExtra: 'Cơ sở Đào tạo Hà Đông: Số 96A Trần Phú, phường Hà Đông, thành phố Hà Nội',
+  director: 'TS. Trần Đình Nam',
+  directorEmail: 'namtd@ptit.edu.vn',
+}))
+
+const footerMajors = [
+  { name: 'Công nghệ thông tin', slug: 'cong-nghe-thong-tin' },
+  { name: 'Quản trị kinh doanh', slug: 'quan-tri-kinh-doanh' },
+  { name: 'Điện tử viễn thông', slug: 'dien-tu-vien-thong' },
+]
 
 onMounted(() => {
   if (!auth.ready) auth.hydrate()
@@ -20,7 +43,7 @@ onMounted(() => {
     <header class="public-header">
       <div class="header-inner">
         <NuxtLink to="/" class="brand" @click="mobileOpen = false">
-          <span class="brand-mark"><i class="pi pi-sparkles" /></span>
+          <CommonBrandMark size="sm" />
           <strong>{{ brand }}</strong>
         </NuxtLink>
 
@@ -41,7 +64,16 @@ onMounted(() => {
             @click="toggle"
           />
           <template v-if="auth.isAuthenticated">
-            <Button :label="auth.user?.name || t('common.dashboard')" icon="pi pi-user" severity="secondary" outlined @click="navigateTo(dashboardPath)" />
+            <button
+              type="button"
+              class="user-chip"
+              :title="auth.user?.name || t('common.dashboard')"
+              :aria-label="auth.user?.name || t('common.dashboard')"
+              @click="navigateTo(dashboardPath)"
+            >
+              <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
+              <Avatar v-else :label="userInitials" shape="circle" class="user-avatar" />
+            </button>
           </template>
           <template v-else>
             <NuxtLink to="/login" class="ghost-link">{{ t('common.login') }}</NuxtLink>
@@ -77,27 +109,51 @@ onMounted(() => {
       <slot />
     </main>
 
+    <CommonPublicAiChatbot v-if="!auth.isAuthenticated" />
+
     <footer class="public-footer">
       <div class="footer-inner">
-        <div>
+        <div class="footer-brand">
           <strong>{{ brand }}</strong>
-          <p>{{ settings.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.' }}</p>
+          <p>{{ settings.site_description || 'Nền tảng học tập trực tuyến.' }}</p>
         </div>
-        <div>
+        <div class="footer-nav">
           <span>{{ t('common.courses') }}</span>
-          <NuxtLink to="/courses">{{ t('common.courses') }}</NuxtLink>
-          <NuxtLink to="/paths">{{ t('common.paths') }}</NuxtLink>
-          <NuxtLink to="/register">{{ t('common.register') }}</NuxtLink>
-          <NuxtLink to="/login">{{ t('common.login') }}</NuxtLink>
+          <NuxtLink
+            v-for="major in footerMajors"
+            :key="major.slug"
+            :to="`/courses?category=${major.slug}`"
+          >
+            {{ major.name }}
+          </NuxtLink>
         </div>
-        <div>
-          <span>Contact</span>
-          <a v-if="settings.contact_email" :href="`mailto:${settings.contact_email}`">{{ settings.contact_email }}</a>
-          <span v-if="settings.contact_phone">{{ settings.contact_phone }}</span>
-          <span v-if="settings.address">{{ settings.address }}</span>
+        <div class="footer-contact">
+          <span>{{ t('common.contact') }}</span>
+          <p class="footer-line">
+            <i class="pi pi-phone" />
+            <a :href="`tel:${footerContact.phone.replace(/\s|-/g, '')}`">Hotline: {{ footerContact.phone }}</a>
+          </p>
+          <p class="footer-line">
+            <i class="pi pi-print" />
+            <span>Fax: {{ footerContact.fax }}</span>
+          </p>
+          <p class="footer-line">
+            <i class="pi pi-envelope" />
+            <a :href="`mailto:${footerContact.directorEmail}`">
+              Viện trưởng {{ footerContact.director }} — {{ footerContact.directorEmail }}
+            </a>
+          </p>
+          <p class="footer-line">
+            <i class="pi pi-map-marker" />
+            <span>{{ footerContact.address }}</span>
+          </p>
+          <p class="footer-line muted-extra">
+            <i class="pi pi-map-marker" />
+            <span>{{ footerContact.addressExtra }}</span>
+          </p>
         </div>
       </div>
-      <div class="footer-bottom">© {{ new Date().getFullYear() }} {{ brand }}.</div>
+      <div class="footer-bottom">© {{ new Date().getFullYear() }} {{ brand }} — {{ footerContact.org }}.</div>
     </footer>
   </div>
 </template>
@@ -135,16 +191,6 @@ onMounted(() => {
   color: var(--text);
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--brand);
-  color: white;
-}
-
 .brand strong {
   font-size: .95rem;
   letter-spacing: -.02em;
@@ -172,6 +218,29 @@ onMounted(() => {
   gap: 8px;
 }
 
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.user-chip :deep(.p-avatar) {
+  width: 2.1rem;
+  height: 2.1rem;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: .78rem;
+  font-weight: 800;
+}
+.user-chip:hover :deep(.p-avatar) {
+  outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent);
+  outline-offset: 2px;
+}
+
 .ghost-link {
   color: var(--text);
   font-size: .8rem;
@@ -195,11 +264,27 @@ onMounted(() => {
 
 .footer-inner {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 28px;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  justify-content: start;
+  align-items: start;
+  column-gap: 160px;
+  row-gap: 24px;
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 36px 0 24px;
+}
+
+.footer-brand {
+  max-width: 200px;
+}
+
+.footer-nav {
+  min-width: 170px;
+}
+
+.footer-contact {
+  min-width: 0;
+  max-width: none;
 }
 
 .footer-inner strong {
@@ -220,7 +305,7 @@ onMounted(() => {
 .footer-inner > div {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .footer-inner > div > span:first-child {
@@ -230,6 +315,24 @@ onMounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .08em;
+}
+
+.footer-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+
+.footer-line i {
+  margin-top: 3px;
+  color: var(--brand);
+  font-size: .78rem;
+  flex: 0 0 auto;
+}
+
+.footer-line.muted-extra {
+  opacity: .9;
 }
 
 .footer-bottom {

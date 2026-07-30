@@ -14,6 +14,7 @@ interface ExamRow {
   pass_score?: number | null
   starts_at?: string | null
   ends_at?: string | null
+  room?: string | null
   attempts_count: number
   best_score?: number | null
   attempt_id?: number | null
@@ -80,6 +81,7 @@ onMounted(load)
           <div class="meta">
             <span><i class="pi pi-calendar" /> {{ fmt(ex.starts_at) }} → {{ fmt(ex.ends_at) }}</span>
             <span v-if="ex.duration"><i class="pi pi-clock" /> {{ ex.duration }}'</span>
+            <span v-if="ex.room"><i class="pi pi-map-marker" /> {{ ex.room }}</span>
             <span v-if="ex.attempts_count"><i class="pi pi-check-circle" /> {{ t('student.exams.attempts', { n: ex.attempts_count }) }}</span>
             <span v-if="ex.best_score !== null && ex.best_score !== undefined" class="score"><i class="pi pi-star" /> {{ ex.best_score }}</span>
           </div>

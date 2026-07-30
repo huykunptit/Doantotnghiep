@@ -9,6 +9,7 @@ export const studentMenu: StudentMenuItem[] = [
   { key: 'dashboard', labelKey: 'student.menu.dashboard', icon: 'pi pi-home', to: '/student' },
   { key: 'idCard', labelKey: 'student.menu.idCard', icon: 'pi pi-id-card', to: '/student/profile' },
   { key: 'courses', labelKey: 'student.menu.myCourses', icon: 'pi pi-book', to: '/student/courses' },
+  { key: 'curriculum', labelKey: 'student.menu.curriculum', icon: 'pi pi-sitemap', to: '/student/curriculum' },
   { key: 'timetable', labelKey: 'student.menu.timetable', icon: 'pi pi-calendar', to: '/student/timetable' },
   { key: 'exams', labelKey: 'student.menu.exams', icon: 'pi pi-file-edit', to: '/student/exams' },
   { key: 'transcript', labelKey: 'student.menu.transcript', icon: 'pi pi-list-check', to: '/student/transcript' },
@@ -18,7 +19,6 @@ export const studentMenu: StudentMenuItem[] = [
   { key: 'leaderboard', labelKey: 'student.menu.leaderboard', icon: 'pi pi-chart-bar', to: '/student/leaderboard' },
   { key: 'certificates', labelKey: 'student.menu.certificates', icon: 'pi pi-verified', to: '/student/certificates' },
   { key: 'news', labelKey: 'student.menu.news', icon: 'pi pi-megaphone', to: '/news' },
-  { key: 'catalog', labelKey: 'student.menu.catalog', icon: 'pi pi-shop', to: '/courses' },
   { key: 'career', labelKey: 'student.menu.career', icon: 'pi pi-briefcase', to: '/career' },
   { key: 'studyAdvisor', labelKey: 'student.menu.studyAdvisor', icon: 'pi pi-sparkles', to: '/student/study-advisor' },
 ]
@@ -38,7 +38,8 @@ export function resolveStudentTitle(path: string, t: TranslateFn) {
 }
 
 export function resolveStudentBreadcrumb(path: string, t: TranslateFn) {
-  if (path === '/student') return [{ label: t('student.menu.dashboard'), to: '/student' }]
+  // Trang gốc: chỉ giữ title, tránh trùng "Tổng quan" với breadcrumb.
+  if (path === '/student') return []
   if (path.startsWith('/paths')) {
     return [
       { label: t('student.menu.dashboard'), to: '/student' },

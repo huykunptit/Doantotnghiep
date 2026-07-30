@@ -26,6 +26,12 @@
   --p-font-family: var(--font-sans);
   --p-text-font-size: 16.5px;
   --body-bg-image: url('/body-bg.jpg');
+
+  /* Keep PrimeVue primary tokens in sync with brand teal */
+  --p-primary-color: var(--brand);
+  --p-primary-contrast-color: #ffffff;
+  --p-primary-hover-color: var(--brand-hover);
+  --p-primary-active-color: #115e59;
 }
 
 .dark {
@@ -204,6 +210,36 @@ p {
 
 .p-datatable-tbody > tr > td {
   border-color: var(--border);
+}
+
+/* Primary buttons → brand teal (#0f766e) */
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-link):not(.p-button-secondary):not(.p-button-success):not(.p-button-info):not(.p-button-warn):not(.p-button-help):not(.p-button-danger):not(.p-button-contrast) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-link):not(.p-button-secondary):not(.p-button-success):not(.p-button-info):not(.p-button-warn):not(.p-button-help):not(.p-button-danger):not(.p-button-contrast):not(:disabled):hover {
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
+  color: #fff;
+}
+
+.p-button.p-button-outlined:not(.p-button-secondary):not(.p-button-success):not(.p-button-info):not(.p-button-warn):not(.p-button-help):not(.p-button-danger):not(.p-button-contrast) {
+  background: transparent;
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.p-button.p-button-text:not(.p-button-secondary):not(.p-button-success):not(.p-button-info):not(.p-button-warn):not(.p-button-help):not(.p-button-danger):not(.p-button-contrast) {
+  color: var(--brand);
+}
+
+.p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider,
+.p-selectbutton .p-togglebutton.p-togglebutton-checked,
+.p-togglebutton.p-togglebutton-checked {
+  background: var(--brand);
+  border-color: var(--brand);
 }
 
 ::-webkit-scrollbar {

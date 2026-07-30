@@ -36,7 +36,7 @@ class SystemNotificationMail extends Mailable
     {
         $title = e($this->notificationTitle);
         $message = nl2br(e($this->notificationMessage));
-        $brand = e(config('mail.from.name', 'Sylva LMS'));
+        $brand = e(config('mail.from.name', 'Eript LMS'));
         $button = '';
         if ($this->actionUrl) {
             $url = e($this->actionUrl);

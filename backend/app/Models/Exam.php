@@ -26,6 +26,7 @@ class Exam extends Model
         'review_options',
         'starts_at',
         'ends_at',
+        'room',
         'proctoring_enabled',
         'proctoring_settings',
         'created_by',

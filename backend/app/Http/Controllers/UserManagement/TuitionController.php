@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\UserManagement;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\Tuition;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,25 +22,79 @@ class TuitionController extends Controller
 
         $rows = Tuition::query()
             ->where('user_id', $user->id)
-            ->with('term:id,name,code')
+            ->with(['term.academicYear'])
             ->orderBy('term_id')
             ->get()
-            ->map(fn (Tuition $t) => [
-                'id'      => $t->id,
-                'term'    => $t->term,
-                'amount'  => (float) $t->amount,
-                'status'  => $t->status,
-                'paid_at' => $t->paid_at?->toIso8601String(),
-                'note'    => $t->note,
-            ]);
+            ->map(function (Tuition $t) {
+                $term = $t->term;
+                $label = $term?->displayName() ?? 'Học phí';
+
+                return [
+                    'id'      => $t->id,
+                    'term'    => $term ? [
+                        'id' => $term->id,
+                        'name' => $term->name,
+                        'code' => $term->code,
+                        'label' => $label,
+                        'academic_year' => $term->academicYear?->name,
+                    ] : null,
+                    'amount'  => (float) $t->amount,
+                    'status'  => $t->status,
+                    'paid_at' => $t->paid_at?->toIso8601String(),
+                    'note'    => $t->note,
+                ];
+            });
 
         $totalDue = $rows->where('status', 'unpaid')->sum('amount');
         $totalPaid = $rows->where('status', 'paid')->sum('amount');
+
+        $tuitionHistory = $rows
+            ->where('status', 'paid')
+            ->map(fn (array $row) => [
+                'id' => 'tuition-' . $row['id'],
+                'type' => 'tuition',
+                'title' => $row['term']['label'] ?? $row['term']['name'] ?? 'Học phí',
+                'description' => null,
+                'amount' => $row['amount'],
+                'status' => 'paid',
+                'payment_method' => 'bank_transfer',
+                'payment_ref' => null,
+                'paid_at' => $row['paid_at'],
+            ]);
+
+        $marketplaceHistory = Order::query()
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['paid', 'completed'])
+            ->with([
+                'course:id,title,course_mode',
+                'careerPath:id,title',
+            ])
+            ->latest('paid_at')
+            ->get()
+            ->map(fn (Order $order) => [
+                'id' => 'order-' . $order->id,
+                'type' => $order->career_path_id ? 'career_path' : 'extension_course',
+                'title' => $order->careerPath?->title ?? $order->course?->title ?? ('Đơn hàng #' . $order->id),
+                'description' => $order->career_path_id
+                    ? 'Lộ trình nghề nghiệp'
+                    : 'Khóa học ngoài chương trình đào tạo',
+                'amount' => (float) $order->amount,
+                'status' => $order->status,
+                'payment_method' => $order->payment_method,
+                'payment_ref' => $order->payment_ref,
+                'paid_at' => $order->paid_at?->toIso8601String(),
+            ]);
+
+        $paymentHistory = $tuitionHistory
+            ->concat($marketplaceHistory)
+            ->sortByDesc('paid_at')
+            ->values();
 
         return response()->json([
             'items'      => $rows->values(),
             'total_due'  => $totalDue,
             'total_paid' => $totalPaid,
+            'payment_history' => $paymentHistory,
         ]);
     }
 

@@ -9,9 +9,9 @@ import os
 class Settings:
     """Cấu hình chung cho AI Service."""
 
-    APP_TITLE: str = "Sylva LMS AI Service"
+    APP_TITLE: str = "Eript LMS AI Service"
     APP_VERSION: str = "2.0.0"
-    APP_DESCRIPTION: str = "AI Service cho hệ thống quản lý học tập Sylva LMS"
+    APP_DESCRIPTION: str = "AI Service cho hệ thống quản lý học tập Eript LMS"
 
     # --- Provider defaults ---
     DEFAULT_OPENAI_MODEL: str = "gpt-4o-mini"

@@ -4,9 +4,12 @@ export interface SiteSettings {
   logo?: string | null
   favicon?: string | null
   primary_color?: string
+  theme_color_primary?: string
   contact_email?: string
   contact_phone?: string
+  contact_address?: string
   address?: string
+  legal_company_name?: string
 }
 
 function darken(hex: string, amount = 18) {
@@ -22,10 +25,13 @@ export function useSiteSettings() {
 
   function applyBranding() {
     if (!import.meta.client) return
-    const primary = settings.value.primary_color
+    const primary = settings.value.theme_color_primary || settings.value.primary_color
     if (primary) {
       document.documentElement.style.setProperty('--brand', primary)
       document.documentElement.style.setProperty('--brand-hover', darken(primary))
+      document.documentElement.style.setProperty('--p-primary-color', primary)
+      document.documentElement.style.setProperty('--p-primary-hover-color', darken(primary))
+      document.documentElement.style.setProperty('--p-primary-active-color', darken(primary, 28))
     }
     if (settings.value.site_name) document.title = settings.value.site_name
     if (settings.value.favicon) {

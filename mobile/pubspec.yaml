@@ -1,5 +1,5 @@
-name: sylva_lms
-description: "Sylva LMS - Mobile app for students"
+name: eript_lms
+description: "Eript LMS - Mobile app for students"
 publish_to: 'none'
 
 version: 1.0.0+1

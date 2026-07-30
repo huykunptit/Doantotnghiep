@@ -60,7 +60,7 @@ watch(() => route.params.slug, load)
         :style="{ backgroundImage: `url(${post.cover_image_url})` }"
       />
       <header>
-        <small>{{ formatDate(post.published_at) }} · {{ post.author?.name || 'Sylva' }}</small>
+        <small>{{ formatDate(post.published_at) }} · {{ post.author?.name || 'Eript' }}</small>
         <h1>{{ post.title }}</h1>
         <p v-if="post.excerpt" class="excerpt">{{ post.excerpt }}</p>
       </header>

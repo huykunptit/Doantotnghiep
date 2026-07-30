@@ -83,7 +83,7 @@ watch(() => route.query, () => {
 
     <p class="result-count"><strong>{{ total }}</strong> {{ t('student.catalog.result', { n: total }).replace(/^\d+\s*/, '') }}</p>
 
-    <StudentCourseRecommendations v-if="auth.isAuthenticated" :limit="4" compact class="rec-block" />
+    <StudentCourseRecommendations v-if="auth.isAuthenticated" :limit="4" compact :show-more="false" class="rec-block" />
 
     <div class="course-grid">
       <NuxtLink v-for="course in courses" :key="course.id" :to="`/courses/${course.id}`" class="course-item">

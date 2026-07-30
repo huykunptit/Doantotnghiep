@@ -1,5 +1,5 @@
 """
-Sylva LMS AI Service — Entry Point.
+Eript LMS AI Service — Entry Point.
 
 FastAPI application gom tất cả routers.
 Mỗi router xử lý 1 nhóm tính năng riêng biệt.

@@ -22,33 +22,34 @@ interface Category {
 }
 
 const { settings } = useSiteSettings()
-const brand = computed(() => settings.value.site_name || 'Sylva LMS')
+const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const tagline = computed(() => settings.value.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.')
 
-const { data: coursesData } = await useAsyncData('home-courses', () =>
-  useApi<{ data?: Course[] }>('/courses', {
+const { data: coursesData } = await useAsyncData('home-courses', async () => {
+  const featured = await useApi<{ data?: Course[] }>('/courses', {
+    query: { per_page: 8, status: 'published', featured: 1 },
+    token: null,
+  }).catch(() => ({ data: [] as Course[] }))
+
+  if (featured.data?.length) return featured
+
+  // Chưa có khóa đánh dấu nổi bật → hiện khóa published mới nhất
+  return await useApi<{ data?: Course[] }>('/courses', {
     query: { per_page: 8, status: 'published' },
     token: null,
-  }).catch(() => ({ data: [] as Course[] })),
-)
+  }).catch(() => ({ data: [] as Course[] }))
+}, { getCachedData: () => undefined })
 
 const { data: categoriesData } = await useAsyncData('home-categories', () =>
   useApi<Category[]>('/courses/categories', { token: null }).catch(() => [] as Category[]),
 )
 
 const featuredCourses = computed(() => coursesData.value?.data ?? [])
-const categories = computed(() => (categoriesData.value ?? []).slice(0, 8))
+const categories = computed(() => (categoriesData.value ?? []).slice(0, 3))
 
-const stats = computed(() => {
-  const students = featuredCourses.value.reduce((sum, course) => sum + (course.enrollments_count || 0), 0)
-  const lessons = featuredCourses.value.reduce((sum, course) => sum + (course.lessons_count || 0), 0)
-  return [
-    { label: 'Khóa học nổi bật', value: featuredCourses.value.length || '—' },
-    { label: 'Lượt ghi danh', value: students || '—' },
-    { label: 'Bài học', value: lessons || '—' },
-    { label: 'Lĩnh vực', value: categories.value.length || '—' },
-  ]
-})
+const heroLead = computed(() =>
+  'Công nghệ thông tin, Quản trị kinh doanh và Điện tử viễn thông',
+)
 
 function formatPrice(price?: number) {
   if (!price) return 'Miễn phí'
@@ -73,32 +74,19 @@ useSeoMeta({
 <template>
   <div class="home">
     <section class="hero">
-      <div class="hero-copy">
+      <div class="hero-media" aria-hidden="true" />
+      <div class="hero-shade" aria-hidden="true" />
+      <div class="hero-inner">
         <p class="hero-brand">{{ brand }}</p>
-        <h1>Học tập thích nghi cho hành trình tri thức bền vững.</h1>
-        <p class="hero-lead">{{ tagline }}</p>
+        <h1>
+          Học tập thích nghi cho<br>
+          hành trình tri thức bền vững
+        </h1>
+        <p class="hero-lead">{{ heroLead }}</p>
         <div class="hero-actions">
           <Button label="Bắt đầu học ngay" icon="pi pi-arrow-right" icon-pos="right" size="large" @click="navigateTo('/register')" />
-          <Button label="Khám phá khóa học" severity="secondary" outlined size="large" @click="navigateTo('/courses')" />
+          <Button label="Khám phá khóa học" class="hero-secondary" outlined size="large" @click="navigateTo('/courses')" />
         </div>
-      </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="hero-orb" />
-        <div class="hero-panel">
-          <span>Học kỳ đang diễn ra</span>
-          <strong>Tiến độ trung bình 78%</strong>
-          <div class="hero-bars">
-            <i style="--w:72%" /><i style="--w:88%" /><i style="--w:64%" /><i style="--w:91%" />
-          </div>
-          <small>Theo dõi lớp học, kỳ thi và chứng chỉ trong một không gian.</small>
-        </div>
-      </div>
-    </section>
-
-    <section class="stats-band" aria-label="Thống kê">
-      <div v-for="item in stats" :key="item.label" class="stat-item">
-        <strong>{{ item.value }}</strong>
-        <span>{{ item.label }}</span>
       </div>
     </section>
 
@@ -106,19 +94,19 @@ useSeoMeta({
       <div class="section-head">
         <div>
           <h2>Lĩnh vực đào tạo</h2>
-          <p>Chọn hướng đi phù hợp với lộ trình nghề nghiệp của bạn.</p>
+          <p>Ba ngành chính quy — chọn hướng đi phù hợp với lộ trình nghề nghiệp của bạn.</p>
         </div>
-        <NuxtLink to="/courses" class="section-link">Xem tất cả <i class="pi pi-arrow-right" /></NuxtLink>
       </div>
       <div class="category-grid">
         <NuxtLink
-          v-for="category in categories"
+          v-for="(category, index) in categories"
           :key="category.id"
           :to="`/courses?category=${category.slug || category.id}`"
           class="category-item"
         >
+          <span class="cat-index">0{{ index + 1 }}</span>
           <strong>{{ category.name }}</strong>
-          <span>{{ category.courses_count || 0 }} khóa học</span>
+          <span>{{ category.courses_count || 0 }} học phần / khóa học</span>
         </NuxtLink>
         <div v-if="!categories.length" class="empty-note">Danh mục sẽ xuất hiện khi hệ thống có dữ liệu công khai.</div>
       </div>
@@ -130,7 +118,7 @@ useSeoMeta({
           <h2>Khóa học nổi bật</h2>
           <p>Nội dung được tuyển chọn để bắt đầu nhanh và học sâu.</p>
         </div>
-        <NuxtLink to="/courses" class="section-link">Duyệt khoá học <i class="pi pi-arrow-right" /></NuxtLink>
+        <NuxtLink to="/courses" class="section-link">Tất cả khóa học <i class="pi pi-arrow-right" /></NuxtLink>
       </div>
       <div class="course-grid">
         <NuxtLink
@@ -145,14 +133,14 @@ useSeoMeta({
           <div class="course-body">
             <small>{{ course.category?.name || 'Khóa học' }}</small>
             <strong>{{ course.title }}</strong>
-            <p>{{ course.instructor?.name || 'Giảng viên Sylva' }}</p>
+            <p>{{ course.instructor?.name || 'Giảng viên Eript' }}</p>
             <div class="course-meta">
               <span><i class="pi pi-star-fill" /> {{ formatRating(course.reviews_avg_rating) }}</span>
               <span>{{ formatPrice(course.price) }}</span>
             </div>
           </div>
         </NuxtLink>
-        <div v-if="!featuredCourses.length" class="empty-note">Chưa có khóa học công khai. Hãy quay lại sau.</div>
+        <div v-if="!featuredCourses.length" class="empty-note">Chưa có khóa học nổi bật hoặc công khai. Hãy quay lại sau.</div>
       </div>
     </section>
 
@@ -177,7 +165,7 @@ useSeoMeta({
       </div>
       <div class="cta-actions">
         <Button label="Đăng ký miễn phí" icon="pi pi-user-plus" @click="navigateTo('/register')" />
-        <Button label="Tôi đã có tài khoản" severity="secondary" outlined @click="navigateTo('/login')" />
+        <Button label="Tôi đã có tài khoản" class="cta-secondary" outlined @click="navigateTo('/login')" />
       </div>
     </section>
   </div>
@@ -189,41 +177,71 @@ useSeoMeta({
 }
 
 .hero {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, .95fr);
-  gap: 28px;
-  align-items: end;
-  width: min(1180px, calc(100% - 32px));
+  align-items: center;
   min-height: calc(100dvh - 68px);
+  margin: 0 0 56px;
+  padding: 0;
+  overflow: hidden;
+  color: #f4faf8;
+}
+
+.hero-media {
+  position: absolute;
+  inset: 0;
+  background-color: #0a1a3a;
+  background-image: url('/images/hero-campus.png?v=7');
+  background-position: center center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.hero-shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(6, 14, 36, .88) 0%, rgba(6, 14, 36, .62) 36%, rgba(8, 20, 48, .22) 58%, transparent 78%),
+    linear-gradient(180deg, rgba(4, 10, 28, .1) 0%, rgba(4, 10, 28, .28) 100%);
+}
+
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 48px 0 36px;
+  padding: 48px 0;
+  animation: hero-rise .7s ease both;
 }
 
 .hero-brand {
   margin: 0 0 14px;
-  color: var(--brand);
-  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  color: #9fd4ff;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5.2vw, 3.75rem);
   font-weight: 800;
-  letter-spacing: -.06em;
+  letter-spacing: -.05em;
   line-height: 1;
 }
 
 .hero h1 {
-  max-width: 14ch;
-  margin: 0 0 16px;
-  color: var(--text);
-  font-size: clamp(1.55rem, 3vw, 2.35rem);
-  line-height: 1.2;
-  letter-spacing: -.035em;
-  font-weight: 650;
+  max-width: 18em;
+  margin: 0 0 14px;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.8vw, 2.15rem);
+  line-height: 1.28;
+  letter-spacing: -.03em;
+  font-weight: 500;
 }
 
 .hero-lead {
-  max-width: 42ch;
-  margin: 0 0 28px;
-  color: var(--text-muted);
-  font-size: 1rem;
-  line-height: 1.7;
+  max-width: 36em;
+  margin: 0 0 26px;
+  color: rgba(244, 250, 248, .82);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  font-weight: 400;
 }
 
 .hero-actions {
@@ -232,93 +250,26 @@ useSeoMeta({
   gap: 10px;
 }
 
-.hero-visual {
-  position: relative;
-  min-height: 420px;
+.hero-actions :deep(.hero-secondary.p-button),
+.hero-actions :deep(.p-button.hero-secondary) {
+  color: #fff !important;
+  border: 1.5px solid rgba(255, 255, 255, .72) !important;
+  background: rgba(255, 255, 255, .08) !important;
 }
 
-.hero-orb {
-  position: absolute;
-  inset: 8% 4% auto auto;
-  width: min(420px, 100%);
-  aspect-ratio: 1;
-  border-radius: 40% 60% 55% 45%;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .28), transparent 40%),
-    linear-gradient(145deg, #0f766e, #134e4a 55%, #0b3d39);
-  filter: saturate(1.05);
+.hero-actions :deep(.hero-secondary.p-button:hover),
+.hero-actions :deep(.p-button.hero-secondary:hover) {
+  background: rgba(255, 255, 255, .16) !important;
+  border-color: #fff !important;
 }
 
-.hero-panel {
-  position: absolute;
-  right: 0;
-  bottom: 28px;
-  left: 12%;
-  display: grid;
-  gap: 8px;
-  padding: 22px;
-  border: 1px solid color-mix(in srgb, white 18%, transparent);
-  border-radius: 18px;
-  background: color-mix(in srgb, #0b3d39 72%, transparent);
-  color: white;
-  backdrop-filter: blur(18px);
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.hero-panel span,
-.hero-panel small {
-  color: rgba(255, 255, 255, .72);
-  font-size: .72rem;
-}
-
-.hero-panel strong {
-  font-size: 1.35rem;
-  letter-spacing: -.03em;
-}
-
-.hero-bars {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  height: 72px;
-  margin: 8px 0;
-}
-
-.hero-bars i {
-  display: block;
-  align-self: end;
-  height: var(--w);
-  border-radius: 8px 8px 4px 4px;
-  background: linear-gradient(180deg, #7dd3c7, #2dd4bf);
-}
-
-.stats-band {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto 56px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--border);
-}
-
-.stat-item {
-  display: grid;
-  gap: 4px;
-  padding: 22px;
-  background: var(--surface);
-}
-
-.stat-item strong {
-  color: var(--text);
-  font-size: 1.4rem;
-  letter-spacing: -.03em;
-}
-
-.stat-item span {
-  color: var(--text-muted);
-  font-size: .72rem;
+@media (prefers-reduced-motion: reduce) {
+  .hero-inner { animation: none; }
 }
 
 .section,
@@ -365,31 +316,46 @@ useSeoMeta({
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .category-item {
-  padding: 18px;
-  border-bottom: 1px solid var(--border);
-  transition: .16s ease;
+  display: grid;
+  gap: 8px;
+  padding: 22px 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
 }
 
 .category-item:hover {
-  border-color: var(--brand);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
   background: var(--brand-soft);
+  transform: translateY(-2px);
+}
+
+.cat-index {
+  color: var(--brand);
+  font-family: var(--font-display);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .08em;
 }
 
 .category-item strong {
   display: block;
-  margin-bottom: 4px;
   color: var(--text);
-  font-size: .9rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: -.02em;
 }
 
 .category-item span {
   color: var(--text-muted);
-  font-size: .72rem;
+  font-size: .8rem;
+  font-weight: 600;
 }
 
 .course-grid {
@@ -525,6 +491,20 @@ useSeoMeta({
   gap: 10px;
 }
 
+.cta-actions :deep(.cta-secondary.p-button),
+.cta-actions :deep(.p-button.cta-secondary) {
+  color: #fff !important;
+  border: 1.5px solid rgba(255, 255, 255, .75) !important;
+  background: rgba(255, 255, 255, .08) !important;
+}
+
+.cta-actions :deep(.cta-secondary.p-button:hover),
+.cta-actions :deep(.p-button.cta-secondary:hover) {
+  color: #fff !important;
+  border-color: #fff !important;
+  background: rgba(255, 255, 255, .18) !important;
+}
+
 .empty-note {
   grid-column: 1 / -1;
   padding: 28px;
@@ -535,43 +515,38 @@ useSeoMeta({
 }
 
 @media (max-width: 980px) {
-  .hero,
   .course-grid,
   .category-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero {
-    min-height: auto;
-    align-items: start;
+    min-height: min(72dvh, 640px);
   }
 
-  .hero-visual {
-    min-height: 320px;
+  .hero-inner {
+    padding: 56px 0 48px;
   }
 
-  .stats-band,
   .process-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 700px) {
-  .hero,
   .course-grid,
   .category-grid,
-  .stats-band,
   .process-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero-visual {
-    order: -1;
-    min-height: 280px;
+  .hero {
+    min-height: 70dvh;
   }
 
-  .hero-panel {
-    left: 0;
+  .hero-shade {
+    background:
+      linear-gradient(180deg, rgba(6, 14, 36, .45) 0%, rgba(6, 14, 36, .72) 55%, rgba(4, 10, 28, .88) 100%);
   }
 
   .section-head,

@@ -15,7 +15,15 @@ interface PathRec {
   matched_skills?: string[]
 }
 
-const props = withDefaults(defineProps<{ limit?: number }>(), { limit: 4 })
+const props = withDefaults(defineProps<{
+  limit?: number
+  showMore?: boolean
+  compact?: boolean
+}>(), {
+  limit: 4,
+  showMore: true,
+  compact: false,
+})
 
 const { t, locale } = useI18n()
 const items = ref<PathRec[]>([])
@@ -49,14 +57,14 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="rec">
+  <section class="rec" :class="{ compact }">
     <header class="rec-head">
       <div>
         <span class="eyebrow">{{ t('student.ai.recEyebrow') }}</span>
         <h2>{{ t('student.paths.recTitle') }}</h2>
         <p>{{ t('student.paths.recSubtitle') }}</p>
       </div>
-      <NuxtLink to="/paths" class="more">{{ t('student.paths.recMore') }}</NuxtLink>
+      <NuxtLink v-if="showMore" to="/paths" class="more">{{ t('student.paths.recMore') }} <i class="pi pi-arrow-right" /></NuxtLink>
     </header>
 
     <div v-if="loading" class="skeleton">
@@ -91,29 +99,39 @@ onMounted(load)
 
 <style scoped>
 .rec {
-  border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
 }
 .rec-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-end; }
 .eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .rec-head h2 { margin: 0 0 4px; font-size: 1.15rem; }
 .rec-head p { margin: 0; color: var(--text-muted); font-weight: 500; font-size: .9rem; }
-.more { color: var(--brand); font-weight: 700; text-decoration: none; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.more { display: inline-flex; align-items: center; gap: 6px; color: var(--brand); font-weight: 700; text-decoration: none; }
+.more i { font-size: .85em; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.compact .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .card {
+  min-width: 0;
   border: 1px solid var(--border); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit;
   background: var(--surface-subtle);
 }
 .card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .cover {
-  min-height: 88px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 40%, #1e293b), #0f172a);
-  background-size: cover; background-position: center; position: relative;
+  height: 132px;
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 40%, #1e293b), #0f172a);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  flex-shrink: 0;
 }
 .cover span {
   position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px;
   background: rgba(0,0,0,.45); color: #fff; font-size: .72rem; font-weight: 700;
 }
-.body { padding: 10px 12px 12px; display: grid; gap: 4px; }
+.body { padding: 10px 12px 12px; display: grid; gap: 4px; min-width: 0; }
 .body p { margin: 0; color: var(--text-muted); font-size: .82rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .foot { display: flex; justify-content: space-between; margin-top: 4px; font-weight: 700; font-size: .85rem; }
 .foot em { font-style: normal; color: var(--brand); }
@@ -121,5 +139,12 @@ onMounted(load)
 .skeleton { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .sk { height: 140px; border-radius: 12px; background: color-mix(in srgb, var(--border) 55%, transparent); animation: pulse 1.2s ease infinite; }
 @keyframes pulse { 50% { opacity: .55; } }
+@media (max-width: 960px) {
+  .compact .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .compact .grid,
+  .skeleton { grid-template-columns: 1fr; }
+}
 @media (max-width: 700px) { .skeleton { grid-template-columns: 1fr; } }
 </style>

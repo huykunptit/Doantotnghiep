@@ -4,6 +4,7 @@ definePageMeta({ layout: 'auth' })
 const auth = useAuthStore()
 const loading = ref(false)
 const error = ref('')
+const agreed = ref(false)
 const form = reactive({
   name: '',
   email: '',
@@ -23,6 +24,10 @@ async function submit() {
   }
   if (form.password !== form.password_confirmation) {
     error.value = 'Mật khẩu xác nhận không khớp.'
+    return
+  }
+  if (!agreed.value) {
+    error.value = 'Vui lòng đồng ý điều khoản trước khi tạo tài khoản.'
     return
   }
 
@@ -45,11 +50,11 @@ async function submit() {
     <section class="auth-story">
       <span class="story-label">Bắt đầu hành trình</span>
       <h1>Tạo tài khoản và mở khóa lộ trình học tập của bạn.</h1>
-      <p>Một tài khoản để truy cập khóa học, bài kiểm tra, tiến độ và chứng chỉ trên Sylva LMS.</p>
+      <p>Một tài khoản để truy cập khóa học, bài kiểm tra, tiến độ và chứng chỉ trên Eript LMS.</p>
     </section>
 
-    <Card class="auth-card">
-      <template #content>
+    <AuthPanelCard>
+        <AuthSideHeader />
         <div class="auth-heading">
           <span>Đăng ký</span>
           <h2>Tạo tài khoản mới</h2>
@@ -78,14 +83,41 @@ async function submit() {
             <span>Xác nhận mật khẩu</span>
             <Password v-model="form.password_confirmation" placeholder="Nhập lại mật khẩu" :feedback="false" toggle-mask autocomplete="new-password" fluid />
           </label>
-          <p class="notice">Bằng việc tạo tài khoản, bạn đồng ý sử dụng hệ thống học tập và theo dõi tiến độ của mình.</p>
+          <label class="notice agree">
+            <input v-model="agreed" type="checkbox">
+            <span>Bằng việc tạo tài khoản, bạn đồng ý sử dụng hệ thống học tập và theo dõi tiến độ của mình.</span>
+          </label>
           <Button type="submit" label="Tạo tài khoản" icon="pi pi-user-plus" :loading="loading" fluid />
         </form>
 
         <AuthGoogleButton label="Đăng ký / Đăng nhập bằng Google" @error="error = $event" />
 
         <p class="auth-foot">Đã có tài khoản? <NuxtLink to="/login">Đăng nhập</NuxtLink></p>
-      </template>
-    </Card>
+    </AuthPanelCard>
   </div>
 </template>
+
+<style scoped>
+.agree {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.agree input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.agree span {
+  color: var(--text-muted);
+  font-size: .86rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+</style>

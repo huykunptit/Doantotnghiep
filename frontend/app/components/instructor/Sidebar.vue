@@ -10,7 +10,7 @@ const { settings } = useSiteSettings()
 const { t } = useI18n()
 const loggingOut = ref(false)
 
-const brand = computed(() => settings.value.site_name || 'Sylva LMS')
+const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const userName = computed(() => auth.user?.name || t('instructor.roleLabel'))
 const userInitials = computed(() =>
   userName.value
@@ -56,7 +56,7 @@ onMounted(() => {
 <template>
   <aside class="sidebar" :class="{ mobile }">
     <NuxtLink to="/instructor" class="brand" @click="emit('navigate')">
-      <span class="brand-mark"><i class="pi pi-graduation-cap" /></span>
+      <CommonBrandMark />
       <span class="brand-copy">
         <strong>{{ brand }}</strong>
         <small>{{ t('instructor.console') }}</small>
@@ -117,17 +117,6 @@ onMounted(() => {
   min-height: var(--topbar-height);
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  background: linear-gradient(145deg, var(--brand), var(--brand-hover));
-  color: white;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--brand) 28%, transparent);
 }
 
 .brand-copy {

@@ -6,6 +6,7 @@ use App\Helpers\GpaCalculator;
 use App\Models\Curriculum;
 use App\Models\Enrollment;
 use App\Models\User;
+use App\Support\StudyAdvisorScoreRule;
 use Illuminate\Support\Collection;
 
 /**
@@ -47,18 +48,22 @@ class CurriculumEvaluationService
             ];
         }
 
-        // Lưu ý: vòng lặp bên dưới duyệt theo curriculumCourses (danh sách môn của CTĐT),
-        // không duyệt theo enrollments, nên GPA/tiến độ ở đây LUÔN chỉ tính trên các môn
-        // thuộc CTĐT — bất kể enrollment_source — tức đã tự động loại các khóa marketplace
-        // không nằm trong chương trình đào tạo.
-        $enrollments = Enrollment::where('user_id', $user->id)->get()->keyBy('course_id');
+        // Chỉ lấy ghi danh CTĐT (không marketplace) — cùng nguồn với /me/transcript.
+        $enrollments = Enrollment::where('user_id', $user->id)
+            ->where('enrollment_source', '!=', 'marketplace')
+            ->get()
+            ->keyBy('course_id');
         $profile = $this->profiles->build($user);
+
+        // Kỳ đang học = kỳ có ghi danh cao nhất (cùng quy ước bảng điểm PTIT).
+        $currentTermNumber = $curriculum->curriculumCourses
+            ->filter(fn ($cc) => $cc->course_id && $enrollments->has($cc->course_id))
+            ->max(fn ($cc) => (int) $cc->term_number);
 
         $requiredTotal = 0;
         $requiredDone = 0;
         $creditsRequired = 0;
-        $creditsEarned = 0;
-        $scoredCourses = [];
+        $scoredCourses = []; // dùng cho CPA — loại kỳ đang học
         $termStats = [];
 
         foreach ($curriculum->curriculumCourses as $cc) {
@@ -68,6 +73,8 @@ class CurriculumEvaluationService
             }
 
             $term = max(1, min(8, (int) $cc->term_number));
+            $isCurrentTerm = $currentTermNumber !== null && $term === (int) $currentTermNumber;
+
             if (!isset($termStats[$term])) {
                 $termStats[$term] = [
                     'term_number' => $term,
@@ -100,11 +107,8 @@ class CurriculumEvaluationService
                 $termStats[$term]['completed']++;
             }
 
-            if ($done && $course->is_credit_bearing) {
-                $creditsEarned += $credits;
-            }
-
-            if ($enrollment?->final_score !== null) {
+            // CPA / tín chỉ tích lũy: chỉ môn đã có điểm ở kỳ đã kết thúc (không tính kỳ đang học).
+            if (!$isCurrentTerm && $enrollment?->final_score !== null && $credits > 0) {
                 $score = (float) $enrollment->final_score;
                 $scoredCourses[] = [
                     'final_score' => $score,
@@ -132,6 +136,8 @@ class CurriculumEvaluationService
         ksort($termStats);
 
         $overallGpa = GpaCalculator::cumulativeGpa($scoredCourses);
+        $overallScore10 = GpaCalculator::cumulativeScore10($scoredCourses);
+        $creditsEarned = GpaCalculator::earnedCredits($scoredCourses);
         $completionRatio = $requiredTotal > 0 ? $requiredDone / $requiredTotal : 0;
         $creditRatio = $creditsRequired > 0 ? $creditsEarned / $creditsRequired : 0;
 
@@ -145,8 +151,9 @@ class CurriculumEvaluationService
             ->values()
             ->all();
 
+        // Điểm thấp: tuyệt đối < 6.5 HOẶC < GPA10 − 1.0 (cùng rule với gợi ý khóa)
         $weaknesses = collect($scoredCourses)
-            ->filter(fn ($c) => $c['final_score'] < 5.5)
+            ->filter(fn ($c) => StudyAdvisorScoreRule::classify((float) $c['final_score'], $overallScore10)['is_weak'])
             ->sortBy('final_score')
             ->take(5)
             ->values()
@@ -169,9 +176,7 @@ class CurriculumEvaluationService
             $ready
         );
 
-        $recs = $ready
-            ? $this->recommendations->recommend($user, 6, 4)
-            : ['courses' => [], 'paths' => [], 'context' => []];
+        $recs = $this->recommendations->recommendForStudyAdvisor($user, 8);
 
         return [
             'has_curriculum' => true,
@@ -197,8 +202,8 @@ class CurriculumEvaluationService
             'target_roles' => $profile['goal']['target_roles'] ?? [],
             'top_skills' => $profile['skills']['top'] ?? [],
             'narrative' => $narrative,
-            'suggested_paths' => $recs['paths'] ?? [],
-            'suggested_courses' => $recs['courses'] ?? [],
+            'suggested_paths' => [],
+            'suggested_courses' => $recs,
             // Payload sẵn sàng gửi AI Career Advisor (Phase AI)
             'career_advisor_context' => [
                 'student' => $profile['user'],
@@ -230,7 +235,7 @@ class CurriculumEvaluationService
         $gpaText = $gpa !== null ? number_format($gpa, 2) : 'chưa đủ điểm';
 
         $parts = [
-            "Bạn đã hoàn thành khoảng {$pct}% môn bắt buộc trong CTĐT {$major}, GPA tích lũy ~{$gpaText}.",
+            "Bạn đã hoàn thành khoảng {$pct}% môn bắt buộc trong CTĐT {$major}, CPA tích lũy ~{$gpaText}.",
         ];
 
         if ($strengths) {
@@ -244,7 +249,7 @@ class CurriculumEvaluationService
         }
 
         $parts[] = $ready
-            ? 'Hồ sơ đã đủ để nhận gợi ý lộ trình nghề / khóa marketplace. AI Career Advisor sẽ diễn giải chi tiết ở bước tiếp theo.'
+            ? 'Hồ sơ đã đủ để nhận gợi ý lộ trình nghề / khóa học. AI Career Advisor sẽ diễn giải chi tiết ở bước tiếp theo.'
             : 'Hãy hoàn thành thêm các môn CTĐT trong kỳ hiện tại trước khi nhận tư vấn nghề sâu.';
 
         if ($level === 'excellent') {

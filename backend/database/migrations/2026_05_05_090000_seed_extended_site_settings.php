@@ -9,7 +9,7 @@ return new class extends Migration {
         $now = now();
         $defaults = [
             // Theme Colors
-            'theme_color_primary' => '#0F6E8C',
+            'theme_color_primary' => '#0f766e',
             'theme_color_deep'    => '#0b5167',
 
             // Branding
@@ -29,7 +29,7 @@ return new class extends Migration {
             'social_zalo'        => null,
 
             // Legal / Footer
-            'footer_copyright'   => '© ' . date('Y') . ' Sylva LMS. All rights reserved.',
+            'footer_copyright'   => '© ' . date('Y') . ' Eript LMS. All rights reserved.',
             'legal_company_name' => null,
             'legal_tax_code'     => null,
             'terms_url'          => null,

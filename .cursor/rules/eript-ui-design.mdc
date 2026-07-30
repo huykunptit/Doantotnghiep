@@ -1,10 +1,10 @@
 ---
-description: Sylva LMS UI design system — background, typography, surfaces, bilingual
+description: Eript LMS UI design system — background, typography, surfaces, bilingual
 globs: frontend/app/**/*.{vue,css,ts}
 alwaysApply: false
 ---
 
-# Sylva LMS UI Design Rule
+# Eript LMS UI Design Rule
 
 Use this when building or restyling any page in `frontend/`.
 
@@ -34,7 +34,7 @@ Use this when building or restyling any page in `frontend/`.
 - All user-facing strings go through `@nuxtjs/i18n` (`$t` / `t()`). Default locale: `vi`.
 - Add keys to both `frontend/i18n/locales/vi.json` and `en.json` in the same PR/change.
 - Menu labels use `admin.menu.*` keys from `admin-menu.ts` (`labelKey`), not hardcoded Vietnamese.
-- Language switcher lives in admin topbar; locale persisted via cookie `sylva_locale`.
+- Language switcher lives in admin topbar; locale persisted via cookie `eript_locale`.
 
 ## Do / Don't
 

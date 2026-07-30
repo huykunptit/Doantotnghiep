@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 
 use App\Models\Category;
 use App\Models\Course;
+use App\Models\Curriculum;
+use App\Models\CurriculumCourse;
 use App\Models\Enrollment;
 use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
@@ -47,13 +49,19 @@ class CourseController extends Controller
             });
         }
 
+        if ($request->filled('featured')) {
+            $query->where('is_featured', $request->boolean('featured'));
+        }
+
         if ($request->filled('instructor_id')) {
             $query->where('user_id', $request->instructor_id);
         }
 
         $perPage = max(1, min(100, $request->integer('per_page', 12)));
 
-        $courses = $query->orderByDesc('created_at')
+        $courses = $query
+            ->orderByDesc('is_featured')
+            ->orderByDesc('created_at')
             ->paginate($perPage);
 
         return response()->json($courses);
@@ -91,6 +99,7 @@ class CourseController extends Controller
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
+            'is_featured' => ['nullable', 'boolean'],
         ]);
 
         // Auto-generate unique slug from title
@@ -116,6 +125,7 @@ class CourseController extends Controller
             'category_id' => $validated['category_id'] ?? null,
             'thumbnail'   => $thumbnailPath,
             'status'      => 'draft',
+            'is_featured' => (bool) ($validated['is_featured'] ?? false),
         ]);
 
         $course->load('instructor:id,name,avatar');
@@ -200,6 +210,7 @@ class CourseController extends Controller
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
             'status'      => ['sometimes', 'in:draft,published,closed,pending_review,rejected'],
+            'is_featured' => ['nullable', 'boolean'],
         ]);
 
         if ($request->hasFile('thumbnail_file')) {
@@ -209,8 +220,12 @@ class CourseController extends Controller
 
         unset($validated['thumbnail_file']);
 
+        if ($request->exists('is_featured')) {
+            $validated['is_featured'] = $request->boolean('is_featured');
+        }
+
         $course->fill($validated)->save();
-        $course->load('instructor:id,name,avatar');
+        $course->load('instructor:id,name,avatar', 'category:id,name,slug');
         $course->loadCount('lessons', 'enrollments');
 
         return response()->json([
@@ -258,10 +273,50 @@ class CourseController extends Controller
 
     public function categories(): JsonResponse
     {
+        // Map danh mục ngành → mã chương trình CTĐT (đếm đúng số học phần theo khung).
+        $programByCategorySlug = [
+            'cong-nghe-thong-tin' => 'CNTT',
+            'quan-tri-kinh-doanh' => 'QTKD',
+            'dien-tu-vien-thong' => 'DTVT',
+        ];
+
         $categories = Category::with('children')
             ->whereNull('parent_id')
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            ->map(function (Category $category) use ($programByCategorySlug) {
+                $programCode = $programByCategorySlug[$category->slug] ?? null;
+                $curriculumCount = 0;
+
+                if ($programCode) {
+                    $curriculumIds = Curriculum::query()
+                        ->whereHas('program', fn ($q) => $q->where('code', $programCode))
+                        ->pluck('id');
+
+                    if ($curriculumIds->isNotEmpty()) {
+                        $curriculumCount = CurriculumCourse::query()
+                            ->whereIn('curriculum_id', $curriculumIds)
+                            ->whereHas('course', fn ($q) => $q->where('status', 'published'))
+                            ->pluck('course_id')
+                            ->unique()
+                            ->count();
+                    }
+                }
+
+                // Cộng thêm khóa marketplace/extension gắn đúng ngành (không nằm trong CTĐT).
+                $childIds = $category->children->pluck('id')->push($category->id);
+                $extensionCount = Course::query()
+                    ->whereIn('category_id', $childIds)
+                    ->where('status', 'published')
+                    ->where('course_mode', 'extension')
+                    ->count();
+
+                $category->setAttribute('courses_count', $curriculumCount + $extensionCount);
+                $category->setAttribute('curriculum_courses_count', $curriculumCount);
+                $category->setAttribute('extension_courses_count', $extensionCount);
+
+                return $category;
+            });
 
         return response()->json($categories);
     }

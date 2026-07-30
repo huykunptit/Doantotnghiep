@@ -35,8 +35,8 @@ async function loginViaFetch(email: string, password: string) {
   }
   // Persist the same cookies the Pinia store uses
   const maxAge = 60 * 60 * 24 * 7
-  document.cookie = `sylva-token=${encodeURIComponent(data.access_token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
-  document.cookie = `sylva-user=${encodeURIComponent(JSON.stringify(data.user))}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
+  document.cookie = `eript-token=${encodeURIComponent(data.access_token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
+  document.cookie = `eript-user=${encodeURIComponent(JSON.stringify(data.user))}; Path=/; Max-Age=${maxAge}; SameSite=Lax`
   return data
 }
 
@@ -45,7 +45,7 @@ async function submit(event?: Event) {
   error.value = ''
 
   // Prefer Vue-bound values; fall back to native DOM if hydration failed
-  const formEl = document.getElementById('sylva-login-form') as HTMLFormElement | null
+  const formEl = document.getElementById('eript-login-form') as HTMLFormElement | null
   const email
     = form.email
       || (formEl?.querySelector<HTMLInputElement>('input[name="email"]')?.value ?? '')
@@ -95,9 +95,9 @@ async function submit(event?: Event) {
 
 // Attach native listener ASAP so login works before/without Vue hydration
 onMounted(() => {
-  const formEl = document.getElementById('sylva-login-form')
-  if (!formEl || (formEl as any)._sylvaBound) return
-  ;(formEl as any)._sylvaBound = true
+  const formEl = document.getElementById('eript-login-form')
+  if (!formEl || (formEl as any)._eriptBound) return
+  ;(formEl as any)._eriptBound = true
   formEl.addEventListener('submit', (e) => {
     e.preventDefault()
     void submit(e)
@@ -108,18 +108,18 @@ onMounted(() => {
 useHead({
   script: [
     {
-      key: 'sylva-login-boot',
+      key: 'eript-login-boot',
       // Runs on every login page render; no-op once Vue takes over
       children: `
 (function () {
-  if (window.__sylvaLoginBoot) return;
-  window.__sylvaLoginBoot = true;
+  if (window.__eriptLoginBoot) return;
+  window.__eriptLoginBoot = true;
   function boot() {
-    var form = document.getElementById('sylva-login-form');
-    if (!form || form._sylvaBound) return;
-    form._sylvaBound = true;
+    var form = document.getElementById('eript-login-form');
+    if (!form || form._eriptBound) return;
+    form._eriptBound = true;
     var btn = form.querySelector('[data-login-btn]');
-    var errEl = document.getElementById('sylva-login-error');
+    var errEl = document.getElementById('eript-login-error');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -146,8 +146,8 @@ useHead({
           throw new Error((r.data && r.data.message) || 'Email hoặc mật khẩu không chính xác.');
         }
         var maxAge = 60 * 60 * 24 * 7;
-        document.cookie = 'sylva-token=' + encodeURIComponent(r.data.access_token) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
-        document.cookie = 'sylva-user=' + encodeURIComponent(JSON.stringify(r.data.user)) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
+        document.cookie = 'eript-token=' + encodeURIComponent(r.data.access_token) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
+        document.cookie = 'eript-user=' + encodeURIComponent(JSON.stringify(r.data.user)) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
         var roles = (r.data.user && r.data.user.roles) || [];
         var dest = '/student';
         if (roles.indexOf('admin') !== -1) dest = '/admin';
@@ -171,8 +171,11 @@ useHead({
 <template>
   <div class="auth-panel">
     <section class="auth-story">
-      <span class="story-label">Sylva Learning Ecosystem</span>
-      <h1>Một không gian học tập được thiết kế để phát triển lâu dài.</h1>
+      <span class="story-label">Eript Learning Ecosystem</span>
+      <h1>
+        Một không gian học tập<br>
+        được thiết kế để phát triển lâu dài
+      </h1>
       <p>Quản trị đào tạo, nội dung, khảo thí và dữ liệu học tập trên cùng một nền tảng.</p>
       <div class="story-points">
         <div><i class="pi pi-chart-line" /><span><strong>Dữ liệu tập trung</strong><small>Theo dõi hiệu quả đào tạo theo thời gian thực.</small></span></div>
@@ -181,19 +184,19 @@ useHead({
       </div>
     </section>
 
-    <Card class="auth-card">
-      <template #content>
+    <AuthPanelCard>
+        <AuthSideHeader />
         <div class="auth-heading">
           <span>Chào mừng trở lại</span>
           <h2>Đăng nhập hệ thống</h2>
-          <p>Sử dụng tài khoản Sylva LMS của bạn.</p>
+          <p>Sử dụng tài khoản Eript LMS của bạn.</p>
         </div>
 
         <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
-        <div id="sylva-login-error" class="boot-error" hidden />
+        <div id="eript-login-error" class="boot-error" hidden />
 
         <!-- Native controls so login works before PrimeVue/Vue hydrate -->
-        <form id="sylva-login-form" class="auth-form" method="post" action="#" onsubmit="return false;" @submit.prevent="submit">
+        <form id="eript-login-form" class="auth-form" method="post" action="#" onsubmit="return false;" @submit.prevent="submit">
           <label>
             <span>Email</span>
             <input
@@ -240,45 +243,52 @@ useHead({
         <AuthGoogleButton label="Đăng nhập bằng Google" @error="error = $event" />
 
         <p class="auth-foot">Chưa có tài khoản? <a href="/register">Đăng ký ngay</a></p>
-      </template>
-    </Card>
+    </AuthPanelCard>
   </div>
 </template>
 
 <style scoped>
 .story-points {
   display: grid;
-  gap: 16px;
-  margin-top: 32px;
+  gap: 18px;
+  margin-top: 36px;
 }
 
 .story-points > div {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 14px;
 }
 
 .story-points > div > i {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, .12);
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  margin-top: 1px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .14);
+  font-size: 1rem;
 }
 
 .story-points span {
   display: flex;
   flex-direction: column;
+  gap: 5px;
 }
 
-.story-points strong { font-size: .78rem; }
+.story-points strong {
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+}
 
 .story-points small {
-  margin-top: 3px;
-  color: rgba(255, 255, 255, .62);
-  font-size: .67rem;
+  margin: 0;
+  color: rgba(255, 255, 255, .8);
+  font-size: .9rem;
   line-height: 1.5;
 }
 
@@ -287,7 +297,7 @@ useHead({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: .7rem;
+  font-size: .88rem;
 }
 
 .remember {
@@ -305,7 +315,7 @@ useHead({
 
 .native-input {
   width: 100%;
-  height: 42px;
+  height: 38px;
   padding: 0 12px;
   border: 1px solid var(--border, #d4d4d8);
   border-radius: 10px;
@@ -315,8 +325,8 @@ useHead({
 }
 
 .native-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--brand, #2f6b4f) 35%, transparent);
-  border-color: var(--brand, #2f6b4f);
+  outline: 2px solid color-mix(in srgb, var(--brand, #0f766e) 35%, transparent);
+  border-color: var(--brand, #0f766e);
 }
 
 .native-submit {
@@ -325,10 +335,10 @@ useHead({
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 44px;
+  height: 40px;
   border: 0;
   border-radius: 10px;
-  background: var(--brand, #2f6b4f);
+  background: var(--brand, #0f766e);
   color: #fff;
   font: inherit;
   font-weight: 700;

@@ -66,11 +66,11 @@ async function resend() {
     <section class="auth-story">
       <span class="story-label">Xác minh tài khoản</span>
       <h1>Chỉ còn một bước để kích hoạt tài khoản học tập.</h1>
-      <p>Kiểm tra hộp thư và mở liên kết xác minh để bắt đầu sử dụng Sylva LMS.</p>
+      <p>Kiểm tra hộp thư và mở liên kết xác minh để bắt đầu sử dụng Eript LMS.</p>
     </section>
 
-    <Card class="auth-card">
-      <template #content>
+    <AuthPanelCard>
+        <AuthSideHeader />
         <div class="auth-heading">
           <span>Email</span>
           <h2>Xác minh email</h2>
@@ -113,7 +113,6 @@ async function resend() {
             <Button label="Quay lại đăng nhập" severity="secondary" outlined @click="navigateTo('/login')" />
           </div>
         </template>
-      </template>
-    </Card>
+    </AuthPanelCard>
   </div>
 </template>

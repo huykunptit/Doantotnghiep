@@ -145,7 +145,7 @@ class NotificationController extends Controller
 
         try {
             Mail::to($to)->send(new SystemNotificationMail(
-                'Kiểm tra email Sylva LMS',
+                'Kiểm tra email Eript LMS',
                 "Đây là email thử từ admin.\nNếu bạn nhận được thư này, SMTP đã hoạt động.",
                 rtrim((string) env('FRONTEND_URL', 'http://localhost:3000'), '/') . '/student/notifications',
             ));

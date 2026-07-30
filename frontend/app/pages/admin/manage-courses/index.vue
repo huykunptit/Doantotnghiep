@@ -14,6 +14,7 @@ interface AdminCourse {
   description?: string | null
   thumbnail?: string | null
   status: string
+  is_featured?: boolean
   price?: number
   lessons_count?: number
   enrollments_count?: number
@@ -32,6 +33,7 @@ const confirm = useConfirm()
 
 const loading = ref(false)
 const saving = ref(false)
+const featuringId = ref<number | null>(null)
 const rows = ref<AdminCourse[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -173,6 +175,40 @@ async function createCourse() {
   }
 }
 
+async function toggleFeatured(course: AdminCourse) {
+  if (featuringId.value) return
+  const next = !course.is_featured
+  featuringId.value = course.id
+  const prev = Boolean(course.is_featured)
+  course.is_featured = next
+  try {
+    const res = await useApi<{ course: AdminCourse }>(`/courses/${course.id}`, {
+      method: 'PUT',
+      body: { is_featured: next },
+    })
+    course.is_featured = Boolean(res.course?.is_featured ?? next)
+    toast.add({
+      severity: 'success',
+      summary: course.is_featured
+        ? t('admin.manageCourses.featuredOn')
+        : t('admin.manageCourses.featuredOff'),
+      life: 2000,
+    })
+  }
+  catch (error: any) {
+    course.is_featured = prev
+    toast.add({
+      severity: 'error',
+      summary: t('admin.manageCourses.featuredError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    featuringId.value = null
+  }
+}
+
 function askDelete(course: AdminCourse) {
   confirm.require({
     message: t('admin.manageCourses.deleteConfirm', { title: course.title }),
@@ -292,9 +328,24 @@ onMounted(async () => {
         </Column>
         <Column :header="t('admin.users.actions')" style="width:12rem">
           <template #body="{ data }">
+<<<<<<< HEAD
             <a :href="`/courses/${data.id}`" target="_blank" rel="noopener" :title="t('admin.manageCourses.preview')">
               <Button icon="pi pi-eye" text rounded severity="secondary" :aria-label="t('admin.manageCourses.preview')" />
             </a>
+=======
+            <Button
+              :icon="data.is_featured ? 'pi pi-star-fill' : 'pi pi-star'"
+              text
+              rounded
+              class="featured-btn"
+              :class="{ on: data.is_featured }"
+              :loading="featuringId === data.id"
+              :aria-label="t('admin.manageCourses.toggleFeatured')"
+              :aria-pressed="Boolean(data.is_featured)"
+              :title="data.is_featured ? t('admin.manageCourses.featuredOnHint') : t('admin.manageCourses.featuredOffHint')"
+              @click="toggleFeatured(data)"
+            />
+>>>>>>> 793f25b7d2fb39d421a1c793c3bc545583b3880d
             <NuxtLink :to="`/admin/manage-courses/${data.id}`">
               <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.manageCourses.builder')" />
             </NuxtLink>
@@ -394,6 +445,9 @@ onMounted(async () => {
 .tone-rejected { background: #fee2e2; color: #b91c1c; }
 .tone-draft { background: #e2e8f0; color: #475569; }
 .tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
+
+.featured-btn { color: var(--text-muted) !important; }
+.featured-btn.on { color: #d97706 !important; }
 
 .empty { padding: 36px; text-align: center; color: var(--text-muted); }
 

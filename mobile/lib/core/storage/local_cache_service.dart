@@ -14,7 +14,7 @@ class LocalCacheService {
 
   final SecureStorageService storage;
 
-  static const _prefix = 'sylva_cache_';
+  static const _prefix = 'eript_cache_';
 
   Future<void> cacheData(String key, dynamic data) async {
     final wrapper = {

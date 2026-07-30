@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
   <div class="cb">
     <Transition name="cb-fade">
       <button v-if="!isOpen" type="button" class="fab" :title="t('student.ai.chatTitle')" @click="openChat">
-        <i class="pi pi-sparkles" />
+        <img src="/images/chatbot-icon.png" alt="" class="fab-img">
       </button>
     </Transition>
 
@@ -118,7 +118,9 @@ onBeforeUnmount(() => {
       <div v-if="isOpen" class="window">
         <header class="head">
           <div class="head-left">
-            <span class="avatar"><i class="pi pi-sparkles" /></span>
+            <span class="avatar">
+              <img src="/images/chatbot-icon.png" alt="" class="avatar-img">
+            </span>
             <div>
               <strong>{{ t('student.ai.chatTitle') }}</strong>
               <span>{{ courseId ? t('student.ai.chatContextOn') : t('student.ai.chatStatus') }}</span>
@@ -170,13 +172,14 @@ onBeforeUnmount(() => {
 <style scoped>
 .cb { position: fixed; bottom: 22px; right: 22px; z-index: 9999; }
 .fab {
-  width: 54px; height: 54px; border: 0; border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand) 0%, color-mix(in srgb, var(--brand) 55%, #0a3d36) 100%);
-  color: #fff; font-size: 1.25rem; cursor: pointer;
-  box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--brand) 65%, transparent);
+  width: 64px; height: 64px; border: 0; border-radius: 0;
+  padding: 0; overflow: visible; cursor: pointer;
+  background: transparent;
+  filter: drop-shadow(0 10px 18px rgba(0, 150, 180, .35));
   transition: transform .15s ease;
 }
-.fab:hover { transform: translateY(-2px) scale(1.04); }
+.fab:hover { transform: translateY(-2px) scale(1.05); }
+.fab-img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .window {
   width: min(380px, calc(100vw - 28px));
   height: min(560px, calc(100dvh - 100px));
@@ -194,8 +197,9 @@ onBeforeUnmount(() => {
 .head-left { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .avatar {
   width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
-  background: var(--brand); color: #fff;
+  background: transparent; overflow: hidden; flex-shrink: 0;
 }
+.avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .head strong { display: block; font-size: .92rem; }
 .head span { color: var(--text-muted); font-size: .75rem; font-weight: 600; }
 .actions { display: flex; gap: 2px; }

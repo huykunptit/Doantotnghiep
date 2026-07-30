@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 
 export function useTheme() {
-  const preference = useCookie<'light' | 'dark'>('sylva-theme', {
+  const preference = useCookie<'light' | 'dark'>('eript-theme', {
     default: () => 'light',
     sameSite: 'lax',
   })

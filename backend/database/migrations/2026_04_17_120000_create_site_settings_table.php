@@ -16,7 +16,7 @@ return new class extends Migration {
 
         // Seed default settings
         DB::table('site_settings')->insert([
-            ['key' => 'site_name', 'value' => 'Sylva LMS', 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'site_name', 'value' => 'Eript LMS', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'site_description', 'value' => 'Nền tảng học tập trực tuyến', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'site_logo', 'value' => null, 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'site_favicon', 'value' => null, 'created_at' => now(), 'updated_at' => now()],
@@ -26,7 +26,7 @@ return new class extends Migration {
             ['key' => 'smtp_password', 'value' => null, 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'smtp_encryption', 'value' => 'tls', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'smtp_from_address', 'value' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'smtp_from_name', 'value' => 'Sylva LMS', 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'smtp_from_name', 'value' => 'Eript LMS', 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 

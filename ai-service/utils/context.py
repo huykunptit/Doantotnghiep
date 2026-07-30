@@ -13,6 +13,11 @@ def build_context_summary(context: ChatContext) -> str:
     """Tạo text tóm tắt context cho system prompt."""
     lines: list[str] = []
 
+    if context.guest_mode:
+        lines.append("CHE_DO: Khách chưa đăng nhập — chỉ tư vấn sơ lược.")
+    if context.hint:
+        lines.append(f"HUONG_DAN: {context.hint}")
+
     if context.current_course:
         lines.append("KHOA_HOC_DANG_XEM:")
         lines.append(format_course_line(context.current_course))
@@ -33,5 +38,11 @@ def build_context_summary(context: ChatContext) -> str:
         lines.append("KHOA_HOC_NOI_BAT:")
         for course in context.courses[: settings.MAX_COURSES_IN_CONTEXT]:
             lines.append(format_course_line(course))
+
+    if getattr(context, "career_paths", None):
+        lines.append("LO_TRINH_NGHE:")
+        for path in context.career_paths[:12]:
+            role = f" | vai trò: {path.target_role}" if path.target_role else ""
+            lines.append(f"- {path.title}{role}")
 
     return "\n".join(lines).strip()

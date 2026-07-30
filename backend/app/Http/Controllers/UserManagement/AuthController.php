@@ -355,7 +355,11 @@ class AuthController extends Controller
             'student_code' => $user->student_code,
             'staff_code' => $user->staff_code,
             'phone' => $user->phone,
+            'gender' => $user->gender,
             'date_of_birth' => $user->date_of_birth?->format('Y-m-d'),
+            'hometown' => $user->hometown,
+            'permanent_address' => $user->permanent_address,
+            'nationality' => $user->nationality,
             'organization' => [
                 'institution_id' => $user->institution_id,
                 'institution_name' => $user->institution?->name,
