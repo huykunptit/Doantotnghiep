@@ -5,15 +5,14 @@ namespace App\Http\Controllers\AIManagement;
 use App\Http\Controllers\Controller;
 
 use App\Models\AiRequestLog;
-use App\Models\AiSetting;
 use App\Models\UserCV;
 use App\Models\CareerRecommendation;
 use App\Models\Course;
+use App\Services\AiServiceClient;
 use App\Services\CVAnalysisService;
 use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -23,8 +22,11 @@ class CareerAdvisorController extends Controller
     protected $mediaService;
     protected $cvAnalysisService;
 
-    public function __construct(MediaService $mediaService, CVAnalysisService $cvAnalysisService)
-    {
+    public function __construct(
+        MediaService $mediaService,
+        CVAnalysisService $cvAnalysisService,
+        protected AiServiceClient $ai,
+    ) {
         $this->mediaService = $mediaService;
         $this->cvAnalysisService = $cvAnalysisService;
     }
@@ -45,9 +47,14 @@ class CareerAdvisorController extends Controller
             ->get()
             ->map(fn (CareerRecommendation $recommendation) => $this->serializeRecommendation($recommendation));
 
+        $usable = $latestCV ? $this->cvIsUsable($latestCV) : false;
+
         return response()->json([
-            'cv' => $latestCV,
-            'recommendations' => $recommendations
+            'cv' => $usable ? $latestCV : null,
+            'has_unparsed_cv' => $latestCV && !$usable,
+            'unparsed_file_name' => ($latestCV && !$usable) ? $latestCV->file_name : null,
+            'recommendations' => $recommendations,
+            'usable' => $usable,
         ]);
     }
 
@@ -73,28 +80,52 @@ class CareerAdvisorController extends Controller
                 (string) $file->getClientOriginalName()
             );
 
+            $profile = array_filter([
+                'email' => $analysis['profile']['email'] ?? null,
+                'phone' => $analysis['profile']['phone'] ?? null,
+                'summary' => $analysis['profile']['summary'] ?? null,
+                'has_education' => $analysis['profile']['has_education'] ?? false,
+                'has_projects' => $analysis['profile']['has_projects'] ?? false,
+                'has_experience' => $analysis['profile']['has_experience'] ?? false,
+            ], fn ($v) => $v !== null && $v !== false);
+
             $userCv = UserCV::create([
                 'user_id' => $user->id,
                 'file_path' => $uploadResult['path'],
                 'file_name' => $uploadResult['name'],
+                'source' => 'upload',
                 'parsed_text' => $analysis['text'],
                 'skills' => $analysis['skills'],
+                'profile_json' => $profile ?: null,
             ]);
+
+            $usable = $this->cvIsUsable($userCv);
+            $evaluation = null;
+            if ($usable) {
+                $evaluation = $this->evaluateCvLocally($userCv, $user);
+                $userCv->update(['evaluation_json' => $evaluation]);
+            }
 
             AiRequestLog::create([
                 'user_id' => $user->id,
                 'endpoint' => '/parse-cv',
                 'provider' => 'local-pipeline',
-                'model' => 'document-analysis-v1',
+                'model' => (string) ($analysis['pipeline']['text_extraction_method'] ?? 'document-analysis-v1'),
                 'tokens_used' => mb_strlen((string) $analysis['text']),
                 'response_time_ms' => 0,
-                'status' => 'success',
+                'status' => $usable ? 'success' : 'error',
+                'error_message' => $usable ? null : 'Could not extract enough text from CV file',
             ]);
 
             return response()->json([
-                'message' => 'CV uploaded and analyzed successfully',
-                'cv' => $userCv,
+                'message' => $usable
+                    ? 'CV uploaded and analyzed successfully'
+                    : 'Đã nhận file nhưng chưa đọc được nội dung. Thử PDF/DOCX có chữ chọn được, hoặc điền form CV.',
+                'cv' => $userCv->fresh(),
                 'pipeline' => $analysis['pipeline'],
+                'usable' => $usable,
+                'evaluation' => $evaluation,
+                'parse_failed' => !$usable,
             ]);
 
         } catch (\Exception $e) {
@@ -142,14 +173,31 @@ class CareerAdvisorController extends Controller
             ->values()
             ->all();
 
+        $education = collect($validated['education'] ?? [])
+            ->filter(fn ($e) => filled($e['school'] ?? null) || filled($e['degree'] ?? null))
+            ->values()
+            ->all();
+        $experience = collect($validated['experience'] ?? [])
+            ->filter(fn ($e) => filled($e['company'] ?? null) || filled($e['role'] ?? null) || filled($e['description'] ?? null))
+            ->values()
+            ->all();
+        $projects = collect($validated['projects'] ?? [])
+            ->filter(fn ($p) => filled($p['name'] ?? null) || filled(strip_tags((string) ($p['description'] ?? ''))))
+            ->values()
+            ->all();
+
+        $summaryPlain = trim(html_entity_decode(strip_tags((string) ($validated['summary'] ?? '')), ENT_QUOTES, 'UTF-8'));
+
         $parsedParts = [
             'Họ tên: ' . $validated['full_name'],
+            'Email: ' . ($validated['email'] ?? $user->email ?? ''),
+            'SĐT: ' . ($validated['phone'] ?? ''),
             'Vị trí: ' . ($validated['headline'] ?? ''),
-            'Tóm tắt: ' . ($validated['summary'] ?? ''),
+            'Tóm tắt: ' . $summaryPlain,
             'Kỹ năng: ' . implode(', ', $skills),
         ];
 
-        foreach ($validated['education'] ?? [] as $edu) {
+        foreach ($education as $edu) {
             $parsedParts[] = sprintf(
                 'Học vấn: %s — %s (%s)',
                 $edu['school'] ?? '',
@@ -157,19 +205,19 @@ class CareerAdvisorController extends Controller
                 $edu['year'] ?? ''
             );
         }
-        foreach ($validated['experience'] ?? [] as $exp) {
+        foreach ($experience as $exp) {
             $parsedParts[] = sprintf(
                 'Kinh nghiệm: %s tại %s. %s',
                 $exp['role'] ?? '',
                 $exp['company'] ?? '',
-                $exp['description'] ?? ''
+                strip_tags((string) ($exp['description'] ?? ''))
             );
         }
-        foreach ($validated['projects'] ?? [] as $proj) {
+        foreach ($projects as $proj) {
             $parsedParts[] = sprintf(
                 'Dự án: %s. %s',
                 $proj['name'] ?? '',
-                $proj['description'] ?? ''
+                strip_tags((string) ($proj['description'] ?? ''))
             );
         }
 
@@ -178,10 +226,10 @@ class CareerAdvisorController extends Controller
             'email' => $validated['email'] ?? $user->email,
             'phone' => $validated['phone'] ?? null,
             'headline' => $validated['headline'] ?? null,
-            'summary' => $validated['summary'] ?? null,
-            'education' => $validated['education'] ?? [],
-            'experience' => $validated['experience'] ?? [],
-            'projects' => $validated['projects'] ?? [],
+            'summary' => $summaryPlain ?: null,
+            'education' => $education,
+            'experience' => $experience,
+            'projects' => $projects,
             'skills' => $skills,
         ];
 
@@ -201,13 +249,14 @@ class CareerAdvisorController extends Controller
             ]
         );
 
-        $evaluation = $this->evaluateCvLocally($cv);
+        $evaluation = $this->evaluateCvLocally($cv, $user);
         $cv->update(['evaluation_json' => $evaluation]);
 
         return response()->json([
             'message' => 'Đã lưu CV từ form.',
             'cv' => $cv->fresh(),
             'evaluation' => $evaluation,
+            'usable' => true,
         ], 201);
     }
 
@@ -224,53 +273,110 @@ class CareerAdvisorController extends Controller
             return response()->json(['message' => 'Chưa có CV để đánh giá. Hãy upload hoặc tạo form CV.'], 400);
         }
 
+        if (!$this->cvIsUsable($cv)) {
+            return response()->json([
+                'message' => 'CV hiện tại chưa có đủ nội dung để đánh giá (file PDF có thể không đọc được). Hãy điền form CV hoặc tải lại file DOCX.',
+                'parse_failed' => true,
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'target_role' => ['nullable', 'string', 'max:255'],
+            'target_role' => ['required', 'string', 'max:255'],
             'expected_salary' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        if (!empty($validated)) {
-            $cv->update([
-                'target_role' => $validated['target_role'] ?? $cv->target_role,
-                'expected_salary' => $validated['expected_salary'] ?? $cv->expected_salary,
-            ]);
-            $cv->refresh();
-        }
+        $cv->update([
+            'target_role' => $validated['target_role'],
+            'expected_salary' => $validated['expected_salary'] ?? $cv->expected_salary,
+        ]);
+        $cv->refresh();
 
-        $evaluation = $this->evaluateCvLocally($cv);
+        $role = trim((string) $cv->target_role);
+        $local = $this->evaluateCvLocally($cv, $user);
+        $aiReview = $this->getEvaluationPayload($cv, $role);
+        $evaluation = $this->mergeRecruiterEvaluation($local, $aiReview, $role);
         $cv->update(['evaluation_json' => $evaluation]);
 
-        $courses = [];
-        if ($cv->target_role) {
-            $data = $this->getRecommendationPayload($cv, $cv->target_role);
-            $courseIds = $this->resolveSuggestedCourses($data);
-            $courses = Course::query()
-                ->with('instructor:id,name', 'category:id,name')
-                ->whereIn('id', $courseIds)
-                ->where('status', 'published')
-                ->get(['id', 'title', 'slug', 'price', 'thumbnail', 'level', 'user_id', 'category_id']);
-        }
+        $courseIds = $this->resolveSuggestedCourses([
+            'skill_gaps' => $evaluation['skill_gaps'] ?? [],
+            'recommended_keyword_topics' => $evaluation['recommended_keyword_topics'] ?? ($evaluation['skill_gaps'] ?? []),
+            'target_role' => $role,
+        ]);
+        $courses = Course::query()
+            ->with('instructor:id,name', 'category:id,name')
+            ->whereIn('id', $courseIds)
+            ->where('status', 'published')
+            ->get(['id', 'title', 'slug', 'price', 'thumbnail', 'level', 'user_id', 'category_id'])
+            ->map(fn (Course $c) => [
+                'id' => $c->id,
+                'title' => $c->title,
+                'slug' => $c->slug,
+                'price' => (int) ($c->price ?? 0),
+                'thumbnail' => $c->thumbnail,
+                'level' => $c->level,
+                'instructor' => $c->instructor,
+                'category' => $c->category,
+            ])
+            ->values()
+            ->all();
 
         return response()->json([
             'cv' => $cv->fresh(),
             'evaluation' => $evaluation,
             'suggested_courses' => $courses,
+            'usable' => true,
         ]);
     }
 
-    private function evaluateCvLocally(UserCV $cv): array
+    private function cvIsUsable(UserCV $cv): bool
+    {
+        $text = trim((string) ($cv->parsed_text ?? ''));
+        if ($this->textLooksMeaningful($text)) {
+            return true;
+        }
+        if (count(array_filter($cv->skills ?? [])) >= 1) {
+            return true;
+        }
+        $profile = $cv->profile_json ?? [];
+        if (filled($profile['summary'] ?? null) || filled($profile['full_name'] ?? null)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function textLooksMeaningful(string $text): bool
+    {
+        if (mb_strlen($text) < 40) {
+            return false;
+        }
+        if (!preg_match_all('/[A-Za-zÀ-ỹ0-9]/u', $text, $m)) {
+            return false;
+        }
+        $letters = count($m[0]);
+
+        return $letters >= 40 && ($letters / max(mb_strlen($text), 1)) >= 0.35;
+    }
+
+    private function evaluateCvLocally(UserCV $cv, ?\App\Models\User $user = null): array
     {
         $text = mb_strtolower(trim((string) ($cv->parsed_text ?? '')));
-        $skills = collect($cv->skills ?? [])->filter()->values();
+        $skills = collect($cv->skills ?? [])->filter(fn ($s) => filled($s))->values();
         $profile = $cv->profile_json ?? [];
+        $user = $user ?: $cv->user;
 
         $checks = [];
         $warnings = [];
         $fixes = [];
 
-        $hasContact = Str::contains($text, ['@', 'email', 'phone', 'sđt', 'điện thoại'])
-            || filled($profile['email'] ?? null)
-            || filled($profile['phone'] ?? null);
+        $email = $profile['email'] ?? null;
+        $phone = $profile['phone'] ?? null;
+        $hasContact = filled($email)
+            || filled($phone)
+            || filled($user?->email)
+            || (bool) preg_match('/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i', $text)
+            || (bool) preg_match('/(?:\+?84|0)(?:[\s.\-]?\d){8,11}/', $text)
+            || Str::contains($text, ['email', 'sđt', 'điện thoại', 'phone']);
         $checks[] = [
             'key' => 'contact',
             'ok' => $hasContact,
@@ -281,7 +387,9 @@ class CareerAdvisorController extends Controller
             $warnings[] = 'Nhà tuyển dụng khó liên hệ nếu thiếu thông tin liên lạc.';
         }
 
-        $hasSummary = filled($profile['summary'] ?? null) || mb_strlen($text) > 200;
+        $hasSummary = filled($profile['summary'] ?? null)
+            || filled($profile['headline'] ?? null)
+            || mb_strlen($text) >= 160;
         $checks[] = [
             'key' => 'summary',
             'ok' => $hasSummary,
@@ -295,15 +403,20 @@ class CareerAdvisorController extends Controller
         $checks[] = [
             'key' => 'skills',
             'ok' => $hasSkills,
-            'label' => $hasSkills ? 'Đã liệt kê kỹ năng' : 'Kỹ năng còn mỏng',
+            'label' => $hasSkills
+                ? ('Đã liệt kê ' . $skills->count() . ' kỹ năng')
+                : 'Kỹ năng còn mỏng',
         ];
         if (!$hasSkills) {
             $fixes[] = 'Bổ sung ít nhất 5 kỹ năng liên quan vị trí mục tiêu.';
             $warnings[] = 'Danh sách kỹ năng quá ít sẽ làm giảm điểm matching.';
         }
 
-        $hasProjects = Str::contains($text, ['project', 'dự án', 'portfolio'])
-            || !empty($profile['projects']);
+        $projects = collect($profile['projects'] ?? [])
+            ->filter(fn ($p) => filled($p['name'] ?? null) || filled($p['description'] ?? null));
+        $hasProjects = $projects->isNotEmpty()
+            || !empty($profile['has_projects'])
+            || (bool) preg_match('/dự án|project|portfolio|đồ án|github/iu', $text);
         $checks[] = [
             'key' => 'projects',
             'ok' => $hasProjects,
@@ -314,8 +427,11 @@ class CareerAdvisorController extends Controller
             $warnings[] = 'Thiếu dự án khiến CV khó chứng minh năng lực thực chiến.';
         }
 
-        $hasEducation = Str::contains($text, ['học', 'university', 'đại học', 'ptit', 'education'])
-            || !empty($profile['education']);
+        $education = collect($profile['education'] ?? [])
+            ->filter(fn ($e) => filled($e['school'] ?? null) || filled($e['degree'] ?? null));
+        $hasEducation = $education->isNotEmpty()
+            || !empty($profile['has_education'])
+            || (bool) preg_match('/học vấn|education|university|đại học|cao đẳng|ptit|học viện|cử nhân/iu', $text);
         $checks[] = [
             'key' => 'education',
             'ok' => $hasEducation,
@@ -326,7 +442,7 @@ class CareerAdvisorController extends Controller
         }
 
         $okCount = collect($checks)->where('ok', true)->count();
-        $score = (int) round(($okCount / max(count($checks), 1)) * 100);
+        $completeness = (int) round(($okCount / max(count($checks), 1)) * 100);
 
         $salaryNote = null;
         if ($cv->expected_salary) {
@@ -336,17 +452,84 @@ class CareerAdvisorController extends Controller
         }
 
         return [
-            'score' => $score,
+            'score' => $completeness,
+            'completeness_score' => $completeness,
             'checks' => $checks,
             'warnings' => $warnings,
             'fixes' => $fixes,
             'target_role' => $cv->target_role,
             'expected_salary' => $cv->expected_salary,
             'salary_note' => $salaryNote,
-            'summary' => $score >= 80
-                ? 'CV khá đầy đủ. Tiếp tục tinh chỉnh theo vị trí mục tiêu và bổ sung số liệu dự án.'
-                : 'CV còn thiếu một số phần quan trọng. Hãy sửa theo danh sách gợi ý trước khi ứng tuyển.',
+            'summary' => 'Đã kiểm tra cấu trúc CV. Nhập vị trí mục tiêu và bấm Đánh giá để nhận nhận xét từ góc nhìn nhà tuyển dụng.',
+            'skills_found' => $skills->values()->all(),
+            'reviewed' => false,
         ];
+    }
+
+    private function getEvaluationPayload(UserCV $cv, string $jobTitle): array
+    {
+        $result = $this->ai->postWithFallback('evaluate-cv', [
+            'skills' => $cv->skills ?? [],
+            'cv_text' => $cv->parsed_text,
+            'target_job' => $jobTitle,
+            'expected_salary' => $cv->expected_salary ? (int) $cv->expected_salary : null,
+        ], auth()->id(), '/evaluate-cv', timeout: 90);
+
+        if ($result['ok'] && is_array($result['data']) && filled($result['data']['overview'] ?? null)) {
+            return $result['data'];
+        }
+
+        // Fallback: expert analysis + recommend gaps
+        $recommend = $this->getRecommendationPayload($cv, $jobTitle);
+        $expert = $this->buildExpertAnalysis($cv, $jobTitle, $recommend);
+        $score = (int) ($expert['match_score_hint'] ?? $recommend['match_score'] ?? 60);
+
+        return [
+            'match_score' => $score,
+            'verdict' => $score < 55
+                ? 'Chưa sẵn sàng gọi phỏng vấn — cần chỉnh CV/stack'
+                : 'Cần chỉnh sửa hồ sơ trước khi ứng tuyển',
+            'overview' => $expert['overview'] ?? ($recommend['summary'] ?? ''),
+            'strengths' => $expert['strengths'] ?? [],
+            'weaknesses' => $expert['weaknesses'] ?? [],
+            'improvements' => $expert['cv_improvements'] ?? [],
+            'missing_items' => $expert['cv_additions'] ?? [],
+            'skill_gaps' => $expert['skill_gaps'] ?? ($recommend['skill_gaps'] ?? []),
+            'interview_focus' => $expert['learning_priorities'] ?? [],
+            'recommended_keyword_topics' => $recommend['recommended_keyword_topics'] ?? [],
+            'salary_comment' => null,
+        ];
+    }
+
+    private function mergeRecruiterEvaluation(array $local, array $ai, string $role): array
+    {
+        $score = (int) ($ai['match_score'] ?? $local['completeness_score'] ?? 0);
+        $score = max(0, min(100, $score));
+        $overview = trim((string) ($ai['overview'] ?? ''));
+        $verdict = trim((string) ($ai['verdict'] ?? ''));
+
+        return array_merge($local, [
+            'score' => $score,
+            'fit_score' => $score,
+            'verdict' => $verdict,
+            'overview' => $overview,
+            'summary' => $verdict !== ''
+                ? $verdict
+                : ("Đánh giá mức phù hợp với {$role}: {$score}/100"),
+            'strengths' => array_values(array_filter($ai['strengths'] ?? [])),
+            'weaknesses' => array_values(array_filter($ai['weaknesses'] ?? [])),
+            'improvements' => array_values(array_filter($ai['improvements'] ?? [])),
+            'missing_items' => array_values(array_filter($ai['missing_items'] ?? [])),
+            'skill_gaps' => array_values(array_filter($ai['skill_gaps'] ?? [])),
+            'interview_focus' => array_values(array_filter($ai['interview_focus'] ?? [])),
+            'recommended_keyword_topics' => array_values(array_filter(
+                $ai['recommended_keyword_topics'] ?? ($ai['skill_gaps'] ?? [])
+            )),
+            'salary_note' => $ai['salary_comment'] ?? ($local['salary_note'] ?? null),
+            'target_role' => $role,
+            'reviewed' => true,
+            'review_style' => 'recruiter',
+        ]);
     }
 
     /**
@@ -362,6 +545,13 @@ class CareerAdvisorController extends Controller
             return response()->json(['message' => 'Please upload a CV first'], 400);
         }
 
+        if (!$this->cvIsUsable($cv)) {
+            return response()->json([
+                'message' => 'CV chưa đọc được nội dung. Hãy điền form CV trước khi nhận gợi ý.',
+                'parse_failed' => true,
+            ], 422);
+        }
+
         $request->validate([
             'job_title' => 'required|string|max:255',
             'expected_salary' => 'nullable|integer|min:0',
@@ -375,6 +565,7 @@ class CareerAdvisorController extends Controller
         }
 
         $data = $this->getRecommendationPayload($cv, $request->job_title);
+        $data['target_role'] = $request->job_title;
 
         // Find relevant courses in our database based on AI suggestions
         $suggestedCourseIds = $this->resolveSuggestedCourses($data)->values();
@@ -388,46 +579,36 @@ class CareerAdvisorController extends Controller
             'ai_summary' => json_encode($expertAnalysis, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
 
+        $local = $this->evaluateCvLocally($cv->fresh(), $user);
+        $aiReview = $this->getEvaluationPayload($cv->fresh(), $request->job_title);
+        $evaluation = $this->mergeRecruiterEvaluation($local, $aiReview, $request->job_title);
+        $cv->update(['evaluation_json' => $evaluation]);
+
+        $courses = Course::query()
+            ->whereIn('id', $suggestedCourseIds)
+            ->where('status', 'published')
+            ->get(['id', 'title', 'slug', 'price', 'thumbnail', 'level']);
+
         return response()->json([
-            'recommendation' => $this->serializeRecommendation($recommendation->load('job'))
+            'recommendation' => $this->serializeRecommendation($recommendation->load('job')),
+            'evaluation' => $evaluation,
+            'suggested_courses' => $courses,
+            'cv' => $cv->fresh(),
         ]);
     }
 
     private function getRecommendationPayload(UserCV $cv, string $jobTitle): array
     {
         $skills = $cv->skills ?? [];
-        $aiSettings = AiSetting::current();
-        $aiServiceUrl = rtrim((string) config('services.ai_service.url'), '/');
 
-        if ($aiServiceUrl !== '') {
-            try {
-                $startTime = microtime(true);
-                $response = Http::timeout(8)->post($aiServiceUrl . '/recommend', [
-                    'skills' => $skills,
-                    'cv_text' => $cv->parsed_text,
-                    'target_job' => $jobTitle,
-                    'provider' => $aiSettings->provider,
-                    'model' => $aiSettings->model,
-                    'api_key' => $aiSettings->api_key,
-                ]);
-                $elapsed = (int) ((microtime(true) - $startTime) * 1000);
+        $result = $this->ai->postWithFallback('recommend', [
+            'skills' => $skills,
+            'cv_text' => $cv->parsed_text,
+            'target_job' => $jobTitle,
+        ], auth()->id(), '/recommend', timeout: 60);
 
-                AiRequestLog::create([
-                    'user_id' => auth()->id(),
-                    'endpoint' => '/recommend',
-                    'provider' => $aiSettings->provider,
-                    'model' => $aiSettings->model,
-                    'tokens_used' => mb_strlen($response->body()),
-                    'response_time_ms' => $elapsed,
-                    'status' => $response->successful() ? 'success' : 'error',
-                ]);
-
-                if ($response->successful()) {
-                    return $response->json();
-                }
-            } catch (\Throwable $e) {
-                // Fallback to local recommendation heuristics below.
-            }
+        if ($result['ok'] && is_array($result['data'])) {
+            return $result['data'];
         }
 
         $normalizedSkills = collect($skills)->map(fn ($skill) => mb_strtolower((string) $skill));
@@ -556,48 +737,271 @@ class CareerAdvisorController extends Controller
             $overview = 'Nhìn tổng thể, hồ sơ của bạn có nền tảng phù hợp để phát triển theo hướng ' . $jobTitle . ', nhưng cần làm rõ hơn năng lực thực chiến, kết quả đạt được và các kỹ năng còn thiếu để tăng sức cạnh tranh khi ứng tuyển.';
         }
 
+        $jobLower = mb_strtolower($jobTitle);
+        $wantsJava = str_contains($jobLower, 'java') || str_contains($jobLower, 'spring');
+        $hasJava = $normalizedSkills->contains(fn ($s) => (bool) preg_match('/(?<![a-z])java(?![a-z])|spring/', $s));
+        if ($wantsJava && !$hasJava) {
+            $weaknesses->prepend(
+                'Stack trên CV (ví dụ PHP/Laravel/Vue) lệch so với vị trí ' . $jobTitle . ' — nhà tuyển dụng Java thường loại ngay nếu không thấy Java/Spring và dự án liên quan.'
+            );
+            $cvImprovements->prepend(
+                'Nếu quyết theo Java Fullstack: bổ sung dự án Java/Spring (hoặc đang học) và giảm nhấn mạnh stack không liên quan ở phần đầu CV.'
+            );
+            $skillGaps = collect(['Java', 'Spring Boot', 'JPA/Hibernate', 'REST API'])
+                ->merge($skillGaps)
+                ->unique()
+                ->values();
+            $overview = 'Với góc nhìn tuyển dụng cho ' . $jobTitle . ', hồ sơ hiện tại chưa thuyết phục vì lệch stack. '
+                . 'CV đang mạnh ở hướng web PHP/JS hơn là Java. '
+                . 'Cần chỉnh CV và lộ trình kỹ năng trước khi nộp — điểm khớp JD sẽ thấp cho đến khi có minh chứng Java thực tế.';
+        }
+
         return [
             'overview' => $overview,
             'strengths' => $strengths->take(4)->values()->all(),
-            'weaknesses' => $weaknesses->take(4)->values()->all(),
+            'weaknesses' => $weaknesses->take(5)->values()->all(),
             'cv_additions' => $cvAdditions->take(4)->values()->all(),
-            'cv_improvements' => $cvImprovements->take(5)->values()->all(),
+            'cv_improvements' => $cvImprovements->take(6)->values()->all(),
             'learning_priorities' => $learningPriorities->take(5)->values()->all(),
+            'skill_gaps' => $skillGaps->take(8)->values()->all(),
+            'match_score_hint' => ($wantsJava && !$hasJava) ? 38 : null,
         ];
     }
 
     private function resolveSuggestedCourses(array $data): Collection
     {
-        $topics = collect($data['recommended_keyword_topics'] ?? [])
+        $rawTopics = collect($data['recommended_keyword_topics'] ?? [])
+            ->merge($data['skill_gaps'] ?? [])
+            ->map(fn ($t) => trim((string) $t))
             ->filter()
-            ->unique()
+            ->unique(fn ($t) => mb_strtolower($t))
             ->values();
 
-        $query = Course::query()->where('status', 'published');
+        $topics = $this->expandCourseSearchTopics($rawTopics);
+        if ($topics->isEmpty()) {
+            return collect();
+        }
 
-        if ($topics->isNotEmpty()) {
-            $query->where(function ($builder) use ($topics) {
-                foreach ($topics as $topic) {
-                    $builder->orWhere('title', 'like', "%{$topic}%")
-                        ->orWhere('description', 'like', "%{$topic}%");
+        $targetRole = mb_strtolower(trim((string) ($data['target_role'] ?? $data['target_job'] ?? '')));
+
+        $courses = Course::query()
+            ->with(['category:id,name', 'skills:id,name'])
+            ->where('status', 'published')
+            ->get(['id', 'title', 'description', 'category_id', 'published_at', 'created_at']);
+
+        $ranked = $courses
+            ->map(function (Course $course) use ($topics, $targetRole) {
+                $score = $this->scoreCourseAgainstTopics($course, $topics, $targetRole);
+
+                return [
+                    'id' => $course->id,
+                    'score' => $score,
+                    'published_at' => $course->published_at,
+                    'created_at' => $course->created_at,
+                ];
+            })
+            // Cần khớp thật sự (title/skill/category), không lấy khóa chỉ vì mô tả chung chung
+            ->filter(fn (array $row) => $row['score'] >= 4)
+            ->sort(function (array $a, array $b) {
+                if ($a['score'] !== $b['score']) {
+                    return $b['score'] <=> $a['score'];
                 }
-            });
+                $aTime = (string) ($a['published_at'] ?? $a['created_at'] ?? '');
+                $bTime = (string) ($b['published_at'] ?? $b['created_at'] ?? '');
+
+                return strcmp($bTime, $aTime);
+            })
+            ->take(5)
+            ->pluck('id')
+            ->values();
+
+        return $ranked;
+    }
+
+    /**
+     * Mở rộng từ khóa tìm khóa + loại topic quá chung (tránh gợi ý lệch).
+     *
+     * @param  \Illuminate\Support\Collection<int, string>  $rawTopics
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    private function expandCourseSearchTopics(Collection $rawTopics): Collection
+    {
+        $aliases = [
+            'java' => ['java', 'spring', 'spring boot', 'jpa', 'hibernate'],
+            'spring boot' => ['spring boot', 'spring', 'java'],
+            'spring' => ['spring', 'spring boot', 'java'],
+            'javascript' => ['javascript', 'frontend'],
+            'typescript' => ['typescript', 'javascript'],
+            'vue.js' => ['vue.js', 'vue', 'nuxt'],
+            'vue' => ['vue', 'vue.js', 'nuxt'],
+            'nuxt' => ['nuxt', 'vue', 'vue.js'],
+            'react' => ['react', 'next.js', 'frontend'],
+            'php' => ['php', 'laravel'],
+            'laravel' => ['laravel', 'php'],
+            'python' => ['python', 'django', 'fastapi'],
+            'docker' => ['docker', 'devops'],
+            'mysql' => ['mysql', 'sql', 'cơ sở dữ liệu', 'database'],
+            'sql' => ['sql', 'mysql', 'database', 'cơ sở dữ liệu'],
+            'rest api' => ['rest api', 'backend'],
+            'node.js' => ['node.js', 'nodejs'],
+            'machine learning' => ['machine learning', 'trí tuệ nhân tạo', 'python'],
+            'fullstack' => ['fullstack', 'full stack', 'full-stack'],
+            'full stack' => ['full stack', 'fullstack', 'full-stack'],
+        ];
+
+        // Topic quá chung → dễ match nhầm mọi khóa (đặc biệt skill gắn lung tung trên seed)
+        $stop = [
+            'api', 'git', 'testing', 'communication', 'teamwork', 'js', 'ts',
+            'làm việc nhóm', 'giao tiếp', 'giao tiếp kỹ thuật',
+            'soft skills', 'kỹ năng mềm', 'html', 'css', 'html/css',
+        ];
+
+        $expanded = collect();
+        foreach ($rawTopics as $topic) {
+            $key = mb_strtolower(trim($topic));
+            if ($key === '' || in_array($key, $stop, true)) {
+                continue;
+            }
+            if (isset($aliases[$key])) {
+                foreach ($aliases[$key] as $alias) {
+                    $expanded->push($alias);
+                }
+            } else {
+                $expanded->push($key);
+            }
         }
 
-        $ids = $query->orderByDesc('published_at')
-            ->orderByDesc('created_at')
-            ->limit(5)
-            ->pluck('id');
+        return $expanded
+            ->map(fn ($t) => mb_strtolower(trim((string) $t)))
+            ->filter(fn ($t) => mb_strlen($t) >= 2 && !in_array($t, $stop, true))
+            ->unique()
+            ->values();
+    }
 
-        if ($ids->isEmpty()) {
-            $ids = Course::query()
-                ->where('status', 'published')
-                ->orderByDesc('created_at')
-                ->limit(5)
-                ->pluck('id');
+    /**
+     * @param  \Illuminate\Support\Collection<int, string>  $topics
+     */
+    private function scoreCourseAgainstTopics(Course $course, Collection $topics, string $targetRole = ''): int
+    {
+        $title = (string) ($course->title ?? '');
+        $description = (string) ($course->description ?? '');
+        $category = (string) ($course->category?->name ?? '');
+        $skillNames = $course->relationLoaded('skills')
+            ? $course->skills->pluck('name')->filter()->implode(' ')
+            : '';
+
+        $titleHits = 0;
+        $categoryHits = 0;
+        $skillHits = 0;
+        $descriptionHits = 0;
+        $matchedTopics = [];
+
+        foreach ($topics as $topic) {
+            $hit = false;
+            if ($this->textHasTopic($title, $topic)) {
+                $titleHits++;
+                $hit = true;
+            }
+            if ($this->textHasTopic($category, $topic)) {
+                $categoryHits++;
+                $hit = true;
+            }
+            if ($this->textHasTopic($skillNames, $topic)) {
+                $skillHits++;
+                $hit = true;
+            }
+            if ($this->textHasTopic($description, $topic)) {
+                $descriptionHits++;
+                $hit = true;
+            }
+            if ($hit) {
+                $matchedTopics[mb_strtolower((string) $topic)] = true;
+            }
         }
 
-        return $ids;
+        $distinctTopics = count($matchedTopics);
+        if ($distinctTopics === 0) {
+            return 0;
+        }
+
+        $blob = mb_strtolower($title . ' ' . $category);
+        $isGeneralEducation = (bool) preg_match(
+            '/tư tưởng|pháp luật|xác suất|thống kê|toán rời rạc|giáo dục thể chất|triết học|chính trị|kỹ năng mềm|mác[- ]lênin|học kỳ quân sự/u',
+            $blob
+        );
+        $isTelecomCourse = (bool) preg_match('/viễn thông|điện tử|vô tuyến|truyền thông quang|mạng truyền thông|anten|sóng/u', $blob);
+        $isBusinessCourse = (bool) preg_match('/quản trị kinh doanh|marketing|thương mại|kinh tế vi mô|kinh tế vĩ mô/u', $blob);
+        $isItCourse = (bool) preg_match(
+            '/công nghệ thông tin|lập trình|phần mềm|cơ sở dữ liệu|trí tuệ nhân tạo|backend|frontend|java|php|laravel|python|docker|thuật toán|cấu trúc dữ liệu|web|mobile|devops|database/u',
+            $blob
+        );
+
+        $isItRole = (bool) preg_match(
+            '/java|php|laravel|frontend|backend|fullstack|full.?stack|devops|software|lập trình|cntt|công nghệ thông tin|developer|react|vue|python|ai|data|spring|mobile/u',
+            $targetRole
+        );
+
+        // Với JD IT: loại môn đại cương / lệch ngành trừ khi title/category khớp topic rõ
+        if ($isItRole && $titleHits === 0 && $categoryHits === 0) {
+            if ($isGeneralEducation || $isTelecomCourse || $isBusinessCourse) {
+                return 0;
+            }
+            // Skill gắn lung tung trên seed — cần ≥2 topic khác nhau mới nhận
+            if ($skillHits > 0 && $distinctTopics < 2 && !$isItCourse) {
+                return 0;
+            }
+            if (!$isItCourse && $skillHits > 0 && $titleHits === 0) {
+                return 0;
+            }
+        }
+
+        $score = ($titleHits * 5) + ($categoryHits * 4) + ($skillHits * 2) + min($descriptionHits, 2);
+
+        if ($isItRole) {
+            if ($isItCourse) {
+                $score += 3;
+            }
+            if ($isTelecomCourse || $isBusinessCourse) {
+                $score -= 6;
+            }
+            if ($isGeneralEducation) {
+                $score -= 10;
+            }
+        }
+
+        // Bắt buộc có tín hiệu title/category hoặc (IT course + skill)
+        if ($titleHits === 0 && $categoryHits === 0 && !($isItCourse && $skillHits >= 1)) {
+            return 0;
+        }
+
+        return max(0, $score);
+    }
+
+    private function textHasTopic(string $haystack, string $topic): bool
+    {
+        $hay = mb_strtolower($haystack);
+        $topic = mb_strtolower(trim($topic));
+        if ($hay === '' || $topic === '') {
+            return false;
+        }
+
+        // Alias quá ngắn dễ nhiễu
+        if (in_array($topic, ['js', 'ts', 'go', 'c'], true)) {
+            return false;
+        }
+
+        // Cụm từ: match nguyên cụm
+        if (str_contains($topic, ' ') || str_contains($topic, '/') || str_contains($topic, '.')) {
+            $normalizedHay = str_replace(['-', '_'], ' ', $hay);
+            $normalizedTopic = str_replace(['-', '_'], ' ', $topic);
+
+            return str_contains($normalizedHay, $normalizedTopic);
+        }
+
+        // Token đơn: biên từ Unicode — tránh "java" khớp "javascript"
+        $pattern = '/(?<![\p{L}\p{N}_])' . preg_quote($topic, '/') . '(?![\p{L}\p{N}_])/iu';
+
+        return (bool) preg_match($pattern, $hay);
     }
 
     private function serializeRecommendation(CareerRecommendation $recommendation): array

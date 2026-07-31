@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
+import { FEATURE_ATTENDANCE_ENABLED } from '~/config/feature-flags'
 
 definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'admin'],
 })
+
+if (!FEATURE_ATTENDANCE_ENABLED) {
+  await navigateTo('/admin')
+}
 
 interface NamedRef { id: number, code?: string, name?: string, title?: string }
 interface ClassSection {

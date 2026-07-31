@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { FEATURE_ATTENDANCE_ENABLED } from '~/config/feature-flags'
 
 definePageMeta({
   layout: 'admin',
@@ -1621,7 +1622,7 @@ onMounted(async () => {
             <InputNumber v-model="offlineConfig.max_participants" :min="1" class="w-full" />
           </label>
 
-          <div class="offline-qr-panel">
+          <div v-if="FEATURE_ATTENDANCE_ENABLED" class="offline-qr-panel">
             <div class="offline-qr-head">
               <div>
                 <strong>{{ t('admin.builder.fields.qrAttendance') }}</strong>
