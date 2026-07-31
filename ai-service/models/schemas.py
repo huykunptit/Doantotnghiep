@@ -92,8 +92,10 @@ class ChatRequest(BaseModel):
 
 class ParseCVRequest(BaseModel):
     """Request body cho endpoint /parse-cv."""
-    file_path: str
-    user_id: int
+    file_path: str | None = None
+    file_base64: str | None = None
+    file_name: str | None = None
+    user_id: int = 0
     provider: str | None = "chatgpt"
     model: str | None = "gpt-4o-mini"
     api_key: str | None = None
@@ -103,6 +105,8 @@ class ParseCVResponse(BaseModel):
     """Response cho endpoint /parse-cv."""
     text: str = ""
     skills: list[str] = Field(default_factory=list)
+    method: str = "none"
+    ocr_used: bool = False
 
 
 class RecommendRequest(BaseModel):
@@ -121,6 +125,32 @@ class RecommendResponse(BaseModel):
     skill_gaps: list[str] = Field(default_factory=list)
     recommended_keyword_topics: list[str] = Field(default_factory=list)
     summary: str = ""
+
+
+class EvaluateCVRequest(BaseModel):
+    """Đánh giá CV theo góc nhìn nhà tuyển dụng."""
+    skills: list[str] = Field(default_factory=list)
+    target_job: str
+    cv_text: str | None = None
+    expected_salary: int | None = None
+    provider: str | None = "chatgpt"
+    model: str | None = "gpt-4o-mini"
+    api_key: str | None = None
+
+
+class EvaluateCVResponse(BaseModel):
+    """Bài đánh giá CV chi tiết."""
+    match_score: int = 0
+    verdict: str = ""
+    overview: str = ""
+    strengths: list[str] = Field(default_factory=list)
+    weaknesses: list[str] = Field(default_factory=list)
+    improvements: list[str] = Field(default_factory=list)
+    missing_items: list[str] = Field(default_factory=list)
+    skill_gaps: list[str] = Field(default_factory=list)
+    interview_focus: list[str] = Field(default_factory=list)
+    recommended_keyword_topics: list[str] = Field(default_factory=list)
+    salary_comment: str | None = None
 
 
 # =============================================================================

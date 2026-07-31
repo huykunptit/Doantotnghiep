@@ -141,7 +141,23 @@ class CourseController extends Controller
 
     public function show(Request $request, Course $course): JsonResponse
     {
-        $course->load('instructor:id,name,avatar', 'category:id,name,slug', 'lessons');
+        $course->load([
+            'instructor:id,name,avatar',
+            'category:id,name,slug',
+            'lessons',
+            'sections' => fn ($q) => $q->orderBy('position')->with([
+                'lessons' => fn ($lq) => $lq->orderBy('order')->select(
+                    'id',
+                    'section_id',
+                    'course_id',
+                    'title',
+                    'type',
+                    'duration',
+                    'is_preview',
+                    'order'
+                ),
+            ]),
+        ]);
         $course->loadCount('enrollments', 'reviews');
 
         $isEnrolled = false;

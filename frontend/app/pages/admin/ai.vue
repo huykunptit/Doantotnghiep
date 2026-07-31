@@ -319,6 +319,8 @@ onMounted(load)
             </span>
           </div>
 
+          <p class="fallback-hint">{{ t('admin.ai.fallbackHint') }}</p>
+
           <div class="form-grid">
             <label class="field">
               <span>{{ t('admin.ai.provider') }}</span>
@@ -521,6 +523,17 @@ onMounted(load)
   display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px;
 }
 .panel-head h2 { margin: 0; }
+
+.fallback-hint {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary, #1d9e75) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary, #1d9e75) 22%, transparent);
+  color: var(--text-muted);
+  font-size: .8rem;
+  line-height: 1.45;
+}
 
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 5px; }

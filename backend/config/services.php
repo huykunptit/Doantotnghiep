@@ -56,6 +56,10 @@ return [
         'gemini_api_key' => env('GEMINI_API_KEY'),
         'gemini_model' => env('GEMINI_MODEL', 'gemini-2.0-flash'),
         'openrouter_api_key' => env('OPENROUTER_API_KEY'),
+        'openrouter_model' => env('OPENROUTER_MODEL', 'deepseek/deepseek-chat:free'),
+        'claude_api_key' => env('CLAUDE_API_KEY'),
+        'claude_model' => env('CLAUDE_MODEL', 'nghi/claude-haiku-4.5'),
+        'ollama_model' => env('OLLAMA_MODEL', 'qwen2.5:latest'),
     ],
 
 ];

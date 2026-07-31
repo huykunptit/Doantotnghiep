@@ -7,6 +7,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from models.schemas import (
+    EvaluateCVRequest,
+    EvaluateCVResponse,
     ParseCVRequest,
     ParseCVResponse,
     RecommendRequest,
@@ -18,20 +20,21 @@ router = APIRouter(tags=["Career"])
 
 
 @router.post("/parse-cv", response_model=ParseCVResponse)
-def parse_cv(payload: ParseCVRequest) -> ParseCVResponse:
-    """
-    Parse CV và trích xuất kỹ năng.
-    Hiện tại: stub (Laravel parse local).
-    Phase 5: sẽ dùng AI để parse thông minh hơn.
-    """
-    return career_service.parse_cv(payload)
+async def parse_cv(payload: ParseCVRequest) -> ParseCVResponse:
+    """Parse CV: pdfminer/pypdf/docx; PDF scan → OCR AI nếu có api_key."""
+    return await career_service.parse_cv(payload)
+
+
+@router.post("/evaluate-cv", response_model=EvaluateCVResponse)
+async def evaluate_cv(payload: EvaluateCVRequest) -> EvaluateCVResponse:
+    """Đánh giá CV kiểu nhà tuyển dụng: điểm mạnh/yếu, cần cải thiện."""
+    return await career_service.evaluate_cv(payload)
 
 
 @router.post("/recommend", response_model=RecommendResponse)
-def recommend(payload: RecommendRequest) -> RecommendResponse:
+async def recommend(payload: RecommendRequest) -> RecommendResponse:
     """
     Gợi ý nghề nghiệp dựa trên skills và target job.
-    Hiện tại: rule-based matching.
-    Phase 5: sẽ nâng lên AI-powered.
+    Có api_key → AI; không có / lỗi → rule-based.
     """
-    return career_service.recommend(payload)
+    return await career_service.recommend(payload)

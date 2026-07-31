@@ -148,4 +148,18 @@ class Course extends Model
     {
         return $this->belongsToMany(Skill::class, 'course_skills')->withPivot('weight')->withTimestamps();
     }
+
+    /**
+     * Cho phép /courses/{id} và /courses/{slug} cùng hoạt động.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?: $this->getRouteKeyName();
+
+        if (is_string($value) && !ctype_digit($value)) {
+            return $this->newQuery()->where('slug', $value)->firstOrFail();
+        }
+
+        return $this->newQuery()->where($field, $value)->firstOrFail();
+    }
 }

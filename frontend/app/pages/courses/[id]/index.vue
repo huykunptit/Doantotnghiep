@@ -17,6 +17,7 @@ interface SectionItem {
 }
 interface CourseDetail {
   id: number
+  slug?: string
   title: string
   description?: string | null
   thumbnail?: string | null
@@ -41,13 +42,16 @@ interface CourseDetail {
   instructor?: { id?: number, name?: string, avatar?: string | null } | null
   category?: { name?: string } | null
   lessons?: LessonItem[]
+  sections?: SectionItem[]
 }
 
 const route = useRoute()
 const auth = useAuthStore()
 const toast = useToast()
 const { t, locale } = useI18n()
-const courseId = computed(() => Number(route.params.id))
+/** URL param có thể là id số hoặc slug SEO */
+const courseParam = computed(() => String(route.params.id || ''))
+const courseNumericId = computed(() => course.value?.id || (Number.isFinite(Number(courseParam.value)) ? Number(courseParam.value) : 0))
 const loading = ref(true)
 const course = ref<CourseDetail | null>(null)
 const sections = ref<SectionItem[]>([])
@@ -91,11 +95,13 @@ async function load() {
   loading.value = true
   try {
     const [detail, sectionRes] = await Promise.all([
-      useApi<CourseDetail>(`/courses/${courseId.value}`),
-      useApi<{ data?: SectionItem[] }>(`/courses/${courseId.value}/sections`).catch(() => ({ data: [] })),
+      useApi<CourseDetail>(`/courses/${courseParam.value}`),
+      useApi<{ data?: SectionItem[] }>(`/courses/${courseParam.value}/sections`).catch(() => ({ data: [] as SectionItem[] })),
     ])
     course.value = detail
-    sections.value = sectionRes.data || []
+    sections.value = (sectionRes.data && sectionRes.data.length)
+      ? sectionRes.data
+      : (detail.sections || [])
     openSections.value = sections.value.slice(0, 1).map(s => s.id)
   }
   catch (error: any) {
@@ -112,10 +118,42 @@ function toggleSection(id: number) {
     : [...openSections.value, id]
 }
 
-function primaryAction() {
-  if (!auth.isAuthenticated) return navigateTo(`/login?redirect=${encodeURIComponent(`/courses/${courseId.value}`)}`)
-  if (course.value?.is_enrolled) return navigateTo(`/learn/${courseId.value}`)
-  return navigateTo(`/checkout/${courseId.value}`)
+function coursePath() {
+  return `/courses/${course.value?.slug || courseParam.value}`
+}
+
+async function primaryAction() {
+  const id = courseNumericId.value
+  if (!auth.isAuthenticated) return navigateTo(`/login?redirect=${encodeURIComponent(coursePath())}`)
+  if (!id) return
+  if (course.value?.is_enrolled) return navigateTo(`/learn/${id}`)
+
+  // Khóa miễn phí: ghi danh ngay, không qua trang thanh toán
+  if ((course.value?.price || 0) <= 0) {
+    try {
+      const res = await useApi<{ enrolled?: boolean, message?: string }>('/orders', {
+        method: 'POST',
+        body: { course_id: id, payment_method: 'payos' },
+      })
+      if (res.enrolled) {
+        course.value.is_enrolled = true
+        toast.add({ severity: 'success', summary: t('student.checkout.success'), life: 2500 })
+        return navigateTo(`/learn/${id}`)
+      }
+      toast.add({ severity: 'warn', summary: t('student.checkout.error'), detail: res.message, life: 4000 })
+    }
+    catch (error: any) {
+      const msg = error?.data?.message || ''
+      if (String(msg).toLowerCase().includes('already enrolled')) {
+        course.value.is_enrolled = true
+        return navigateTo(`/learn/${id}`)
+      }
+      toast.add({ severity: 'error', summary: t('student.checkout.error'), detail: msg, life: 4500 })
+    }
+    return
+  }
+
+  return navigateTo(`/checkout/${id}`)
 }
 
 const ctaLabel = computed(() => {

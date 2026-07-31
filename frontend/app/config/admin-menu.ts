@@ -1,3 +1,5 @@
+import { FEATURE_ATTENDANCE_ENABLED } from './feature-flags'
+
 export interface AdminMenuChild {
   labelKey: string
   to: string
@@ -12,7 +14,7 @@ export interface AdminMenuItem {
 }
 
 /** Thứ tự giữ nguyên từ giao diện admin cũ. labelKey → i18n `admin.menu.*` */
-export const adminMenu: AdminMenuItem[] = [
+const adminMenuRaw: AdminMenuItem[] = [
   {
     key: 'dashboard',
     labelKey: 'admin.menu.dashboard',
@@ -101,6 +103,19 @@ export const adminMenu: AdminMenuItem[] = [
     ],
   },
 ]
+
+function filterMenu(items: AdminMenuItem[]): AdminMenuItem[] {
+  return items.map((item) => {
+    if (!item.children?.length) return item
+    const children = item.children.filter((child) => {
+      if (!FEATURE_ATTENDANCE_ENABLED && child.to === '/admin/lnd/attendance') return false
+      return true
+    })
+    return { ...item, children }
+  })
+}
+
+export const adminMenu: AdminMenuItem[] = filterMenu(adminMenuRaw)
 
 type TranslateFn = (key: string) => string
 

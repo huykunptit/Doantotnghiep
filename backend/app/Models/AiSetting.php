@@ -51,7 +51,7 @@ class AiSetting extends Model
     }
 
     /**
-     * Check if API key is configured.
+     * Check if API key is configured (DB row or matching env fallback).
      */
     public function getHasApiKeyAttribute(): bool
     {
@@ -60,6 +60,77 @@ class AiSetting extends Model
             return true;
         }
 
-        return !empty($this->api_key);
+        if (!empty($this->api_key)) {
+            return true;
+        }
+
+        return match ($this->provider) {
+            'gemini' => filled(config('services.ai_service.gemini_api_key')),
+            'openrouter' => filled(config('services.ai_service.openrouter_api_key')),
+            'claude' => filled(config('services.ai_service.claude_api_key')),
+            default => filled(config('services.ai_service.openai_api_key')),
+        };
+    }
+
+    /**
+     * Resolve API key for a provider (settings key only applies to active provider).
+     */
+    public function resolveApiKey(string $provider): ?string
+    {
+        $provider = strtolower(trim($provider));
+
+        if ($provider === 'ollama') {
+            return 'local';
+        }
+
+        $primary = strtolower((string) ($this->provider ?: 'chatgpt'));
+        if ($provider === $primary && filled($this->api_key)) {
+            return (string) $this->api_key;
+        }
+
+        $fromEnv = match ($provider) {
+            'gemini' => config('services.ai_service.gemini_api_key'),
+            'openrouter' => config('services.ai_service.openrouter_api_key'),
+            'claude' => config('services.ai_service.claude_api_key'),
+            default => config('services.ai_service.openai_api_key'),
+        };
+
+        return filled($fromEnv) ? (string) $fromEnv : null;
+    }
+
+    public function resolveModel(string $provider): ?string
+    {
+        $provider = strtolower(trim($provider));
+        $primary = strtolower((string) ($this->provider ?: 'chatgpt'));
+
+        if ($provider === $primary && filled($this->model)) {
+            return (string) $this->model;
+        }
+
+        return match ($provider) {
+            'gemini' => (string) config('services.ai_service.gemini_model', 'gemini-2.0-flash'),
+            'openrouter' => (string) config('services.ai_service.openrouter_model', 'deepseek/deepseek-chat:free'),
+            'claude' => (string) config('services.ai_service.claude_model', 'nghi/claude-haiku-4.5'),
+            'ollama' => (string) config('services.ai_service.ollama_model', 'qwen2.5:latest'),
+            default => 'gpt-4o-mini',
+        };
+    }
+
+    /**
+     * Primary provider first, then cloud backups, Ollama last.
+     *
+     * @return list<string>
+     */
+    public function providerFallbackChain(): array
+    {
+        $primary = strtolower((string) ($this->provider ?: 'chatgpt'));
+        $chain = [$primary];
+        foreach (['gemini', 'claude', 'openrouter', 'ollama'] as $candidate) {
+            if ($candidate !== $primary) {
+                $chain[] = $candidate;
+            }
+        }
+
+        return $chain;
     }
 }

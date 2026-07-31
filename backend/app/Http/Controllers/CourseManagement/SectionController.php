@@ -12,17 +12,40 @@ use Illuminate\Support\Facades\Gate;
 class SectionController extends Controller
 {
     /**
-     * Get all sections of a course
+     * Sections of a course.
+     * - Owner / admin / manage_courses: full payload for builder
+     * - Public: outline of published courses only
      */
     public function index(Course $course)
     {
-        $sections = $course->sections()
-            ->with(['lessons' => function ($query) {
-                $query->with(['attachments', 'virtualClass', 'scormPackage', 'assignment'])
-                    ->orderBy('order');
-            }])
-            ->ordered()
-            ->get();
+        $user = auth('sanctum')->user();
+        $canManage = $user && (
+            \App\Support\Authorize::isAdmin($user)
+            || (int) $user->id === (int) $course->user_id
+            || $user->can('manage_courses')
+        );
+
+        if (!$canManage && $course->status !== 'published') {
+            return response()->json(['message' => 'Course not found'], 404);
+        }
+
+        if ($canManage) {
+            $sections = $course->sections()
+                ->with(['lessons' => function ($query) {
+                    $query->with(['attachments', 'virtualClass', 'scormPackage', 'assignment'])
+                        ->orderBy('order');
+                }])
+                ->ordered()
+                ->get();
+        } else {
+            $sections = $course->sections()
+                ->with(['lessons' => function ($query) {
+                    $query->orderBy('order')
+                        ->select('id', 'section_id', 'course_id', 'title', 'type', 'duration', 'is_preview', 'order');
+                }])
+                ->ordered()
+                ->get();
+        }
 
         return response()->json([
             'data' => $sections,

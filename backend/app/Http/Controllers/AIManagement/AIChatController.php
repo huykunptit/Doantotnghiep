@@ -4,20 +4,23 @@ namespace App\Http\Controllers\AIManagement;
 
 use App\Http\Controllers\Controller;
 
-use App\Models\AiRequestLog;
 use App\Models\AiSetting;
 use App\Models\CareerPath;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\LessonProgress;
+use App\Services\AiServiceClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class AIChatController extends Controller
 {
+    public function __construct(protected AiServiceClient $ai)
+    {
+    }
+
     /**
      * Send message to AI service and return response.
      */
@@ -31,8 +34,6 @@ class AIChatController extends Controller
             'history.*.content' => 'required_with:history|string|max:2000',
         ]);
 
-        $aiSettings = AiSetting::current();
-        $aiServiceUrl = config('services.ai_service.url') . '/chat';
         $startTime = microtime(true);
 
         $user = $request->user();
@@ -43,83 +44,28 @@ class AIChatController extends Controller
             $role = 'instructor';
         }
 
-        $provider = $aiSettings->provider ?: 'chatgpt';
-        $apiKey = $aiSettings->api_key;
-        if (!$apiKey) {
-            $apiKey = match ($provider) {
-                'gemini' => config('services.ai_service.gemini_api_key'),
-                'openrouter' => config('services.ai_service.openrouter_api_key'),
-                'ollama' => 'local',
-                default => config('services.ai_service.openai_api_key'),
-            };
-        }
-        $model = $aiSettings->model
-            ?: ($provider === 'gemini' ? config('services.ai_service.gemini_model') : null);
+        $result = $this->ai->postWithFallback('chat', [
+            'message' => $request->message,
+            'user_id' => $user->id,
+            'course_id' => $request->course_id,
+            'role' => $role,
+            'history' => $request->input('history', []),
+            'context' => $this->buildChatContext($request),
+        ], $user->id, '/chat');
 
-        try {
-            $timeout = $provider === 'ollama' ? 180 : 60;
-            $response = Http::timeout($timeout)->post($aiServiceUrl, [
-                'message' => $request->message,
-                'user_id' => $user->id,
-                'course_id' => $request->course_id,
-                'provider' => $provider,
-                'model' => $model,
-                'api_key' => $apiKey,
-                'role' => $role,
-                'history' => $request->input('history', []),
-                'context' => $this->buildChatContext($request),
-            ]);
-
-            $elapsed = (int) ((microtime(true) - $startTime) * 1000);
-            $responseData = $response->json();
-            $tokensUsed = $response->successful()
-                ? (int) ($responseData['tokens_used']['total'] ?? 0)
-                : 0;
-
-            AiRequestLog::create([
-                'user_id' => $user->id,
-                'endpoint' => '/chat',
-                'provider' => $provider,
-                'model' => $model,
-                'tokens_used' => $tokensUsed,
+        $elapsed = (int) ((microtime(true) - $startTime) * 1000);
+        if ($result['ok']) {
+            return response()->json(array_merge($result['data'], [
+                'provider_used' => $result['provider'],
+                'fallback' => $result['fallback'],
                 'response_time_ms' => $elapsed,
-                'status' => $response->successful() ? 'success' : 'error',
-                'error_message' => $response->successful()
-                    ? null
-                    : ('HTTP ' . $response->status() . ' ' . ($responseData['detail'] ?? $response->body())),
-            ]);
-
-            if ($tokensUsed > 0) {
-                $aiSettings->increment('tokens_used', $tokensUsed);
-            }
-
-            if ($response->successful()) {
-                return response()->json($responseData);
-            }
-
-            return response()->json([
-                'reply' => 'Tôi đang gặp khó khăn trong việc kết nối với máy chủ AI. Bạn hãy thử lại sau nhé!',
-                'detail' => is_array($responseData) ? ($responseData['detail'] ?? null) : null,
-            ], 503);
-
-        } catch (\Exception $e) {
-            $elapsed = (int) ((microtime(true) - $startTime) * 1000);
-
-            AiRequestLog::create([
-                'user_id' => $user->id,
-                'endpoint' => '/chat',
-                'provider' => $provider,
-                'model' => $model,
-                'tokens_used' => 0,
-                'response_time_ms' => $elapsed,
-                'status' => 'error',
-                'error_message' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'reply' => 'Hệ thống AI hiện không khả dụng. Xin lỗi vì sự bất tiện này.'
-            ], 500);
+            ]));
         }
+
+        return response()->json([
+            'reply' => 'Tôi đang gặp khó khăn trong việc kết nối với máy chủ AI. Bạn hãy thử lại sau nhé!',
+            'detail' => $result['error'],
+        ], 503);
     }
 
     /**
@@ -153,75 +99,20 @@ class AIChatController extends Controller
             ]);
         }
 
-        $aiServiceUrl = rtrim((string) config('services.ai_service.url'), '/') . '/chat';
-        $startTime = microtime(true);
+        $result = $this->ai->postWithFallback('chat', [
+            'message' => $message,
+            'user_id' => null,
+            'course_id' => null,
+            'role' => 'guest',
+            'history' => $request->input('history', []),
+            'context' => $this->buildGuestChatContext(),
+        ], null, '/chat/guest', connectTimeout: 2, timeout: 18);
 
-        $provider = $aiSettings->provider ?: 'chatgpt';
-        $apiKey = $aiSettings->api_key;
-        if (!$apiKey) {
-            $apiKey = match ($provider) {
-                'gemini' => config('services.ai_service.gemini_api_key'),
-                'openrouter' => config('services.ai_service.openrouter_api_key'),
-                'ollama' => 'local',
-                default => config('services.ai_service.openai_api_key'),
-            };
-        }
-        $model = $aiSettings->model
-            ?: ($provider === 'gemini' ? config('services.ai_service.gemini_model') : null);
-
-        try {
-            // Timeout ngắn: guest chat phải phản hồi nhanh; DNS/host sai sẽ fallback heuristic
-            $response = Http::connectTimeout(2)->timeout(12)->post($aiServiceUrl, [
-                'message' => $message,
-                'user_id' => null,
-                'course_id' => null,
-                'provider' => $provider,
-                'model' => $model,
-                'api_key' => $apiKey,
-                'role' => 'guest',
-                'history' => $request->input('history', []),
-                'context' => $this->buildGuestChatContext(),
-            ]);
-
-            $elapsed = (int) ((microtime(true) - $startTime) * 1000);
-            $responseData = $response->json();
-            $tokensUsed = $response->successful()
-                ? (int) ($responseData['tokens_used']['total'] ?? 0)
-                : 0;
-
-            AiRequestLog::create([
-                'user_id' => null,
-                'endpoint' => '/chat/guest',
-                'provider' => $provider,
-                'model' => $model,
-                'tokens_used' => $tokensUsed,
-                'response_time_ms' => $elapsed,
-                'status' => $response->successful() ? 'success' : 'error',
-                'error_message' => $response->successful()
-                    ? null
-                    : ('HTTP ' . $response->status() . ' ' . ($responseData['detail'] ?? $response->body())),
-            ]);
-
-            if ($tokensUsed > 0) {
-                $aiSettings->increment('tokens_used', $tokensUsed);
-            }
-
-            if ($response->successful() && is_string($responseData['reply'] ?? null) && $responseData['reply'] !== '') {
-                return response()->json($responseData);
-            }
-        } catch (\Throwable $e) {
-            $elapsed = (int) ((microtime(true) - $startTime) * 1000);
-
-            AiRequestLog::create([
-                'user_id' => null,
-                'endpoint' => '/chat/guest',
-                'provider' => $provider,
-                'model' => $model,
-                'tokens_used' => 0,
-                'response_time_ms' => $elapsed,
-                'status' => 'error',
-                'error_message' => $e->getMessage(),
-            ]);
+        if ($result['ok'] && is_string($result['data']['reply'] ?? null) && $result['data']['reply'] !== '') {
+            return response()->json(array_merge($result['data'], [
+                'provider_used' => $result['provider'],
+                'fallback' => $result['fallback'],
+            ]));
         }
 
         return response()->json([
@@ -276,8 +167,7 @@ class AIChatController extends Controller
             ->values()
             ->all();
 
-        $aiSettings = AiSetting::current();
-        $payload = [
+        $result = $this->ai->postWithFallback('tutoring/recommend', [
             'user_id' => $user->id,
             'enrolled_courses' => $enrollments,
             'quiz_scores' => [],
@@ -288,47 +178,14 @@ class AIChatController extends Controller
                 'lesson_type' => $request->input('lesson_type'),
                 'progress_percent' => $request->input('progress_percent'),
             ],
-            'provider' => $aiSettings->provider,
-            'model' => $aiSettings->model,
-            'api_key' => $aiSettings->api_key ?: ($aiSettings->provider === 'ollama' ? 'local' : null),
-        ];
+        ], $user->id, '/tutoring/recommend', timeout: 90);
 
-        $startTime = microtime(true);
-        $aiServiceUrl = rtrim((string) config('services.ai_service.url'), '/') . '/tutoring/recommend';
-
-        try {
-            if ($aiSettings->has_api_key) {
-                $timeout = $aiSettings->provider === 'ollama' ? 180 : 45;
-                $response = Http::timeout($timeout)->post($aiServiceUrl, $payload);
-                $elapsed = (int) ((microtime(true) - $startTime) * 1000);
-                $data = $response->json() ?: [];
-
-                AiRequestLog::create([
-                    'user_id' => $user->id,
-                    'endpoint' => '/tutoring/recommend',
-                    'provider' => $aiSettings->provider,
-                    'model' => $aiSettings->model,
-                    'tokens_used' => 0,
-                    'response_time_ms' => $elapsed,
-                    'status' => $response->successful() ? 'success' : 'error',
-                    'error_message' => $response->successful() ? null : 'HTTP ' . $response->status(),
-                ]);
-
-                if ($response->successful()) {
-                    return response()->json(array_merge($data, ['source' => 'ai']));
-                }
-            }
-        } catch (\Throwable $e) {
-            AiRequestLog::create([
-                'user_id' => $user->id,
-                'endpoint' => '/tutoring/recommend',
-                'provider' => $aiSettings->provider,
-                'model' => $aiSettings->model,
-                'tokens_used' => 0,
-                'response_time_ms' => (int) ((microtime(true) - $startTime) * 1000),
-                'status' => 'error',
-                'error_message' => $e->getMessage(),
-            ]);
+        if ($result['ok']) {
+            return response()->json(array_merge($result['data'], [
+                'source' => 'ai',
+                'provider_used' => $result['provider'],
+                'fallback' => $result['fallback'],
+            ]));
         }
 
         return response()->json(array_merge(
