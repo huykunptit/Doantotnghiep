@@ -10,7 +10,13 @@ const input = ref('')
 const messageBox = ref<HTMLElement | null>(null)
 const chatInput = ref<HTMLInputElement | null>(null)
 
-interface ChatMsg { role: 'user' | 'assistant', text: string }
+interface RagSource { source?: string, subject?: string | null, score?: number | null }
+interface ChatMsg {
+  role: 'user' | 'assistant'
+  text: string
+  sources?: RagSource[]
+  ragUsed?: boolean
+}
 
 const welcome = computed(() =>
   props.courseId
@@ -66,17 +72,24 @@ async function sendMessage() {
       .slice(-10)
       .map(m => ({ role: m.role, content: m.text }))
 
-    const res = await useApi<{ reply?: string }>('/ai/chat', {
+    const res = await useApi<{
+      reply?: string
+      rag_used?: boolean
+      sources?: RagSource[]
+    }>('/ai/chat', {
       method: 'POST',
       body: {
         message: text,
         course_id: props.courseId || undefined,
         history,
+        use_rag: true,
       },
     })
     messages.value.push({
       role: 'assistant',
       text: res.reply || t('student.ai.chatEmptyReply'),
+      ragUsed: !!res.rag_used,
+      sources: res.sources || [],
     })
   }
   catch {
@@ -139,7 +152,18 @@ onBeforeUnmount(() => {
             class="row"
             :class="msg.role === 'user' ? 'user' : 'bot'"
           >
-            <div class="bubble">{{ msg.text }}</div>
+            <div class="bubble">
+              <p class="bubble-text">{{ msg.text }}</p>
+              <div v-if="msg.ragUsed && msg.sources?.length" class="sources">
+                <span class="sources-label">{{ t('student.ai.ragSources') }}</span>
+                <ul>
+                  <li v-for="(src, sIdx) in msg.sources" :key="`${src.source}-${sIdx}`">
+                    {{ src.subject || src.source }}
+                    <small v-if="src.source && src.subject">· {{ src.source }}</small>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
           <div v-if="loading" class="row bot">
             <div class="bubble typing">
@@ -162,7 +186,6 @@ onBeforeUnmount(() => {
             >
             <button type="submit" :disabled="!input.trim() || loading"><i class="pi pi-arrow-up" /></button>
           </form>
-          <p>{{ t('student.ai.chatDisclaimer') }}</p>
         </footer>
       </div>
     </Transition>
@@ -213,8 +236,16 @@ onBeforeUnmount(() => {
 .row.user { justify-content: flex-end; }
 .bubble {
   max-width: 88%; padding: 10px 12px; border-radius: 14px;
-  font-size: .9rem; font-weight: 500; line-height: 1.45; white-space: pre-wrap;
+  font-size: .9rem; font-weight: 500; line-height: 1.45;
 }
+.bubble-text { margin: 0; white-space: pre-wrap; }
+.sources {
+  margin-top: 8px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+  font-size: .74rem;
+}
+.sources-label { display: block; font-weight: 700; color: var(--brand); margin-bottom: 4px; }
+.sources ul { margin: 0; padding-left: 1.1rem; color: var(--text-muted); }
+.sources small { opacity: .85; }
 .bot .bubble {
   background: var(--surface-subtle); border: 1px solid var(--border); border-bottom-left-radius: 4px;
 }
@@ -247,7 +278,6 @@ onBeforeUnmount(() => {
   background: var(--brand); color: #fff; cursor: pointer;
 }
 .foot button:disabled { opacity: .45; cursor: not-allowed; }
-.foot p { margin: 8px 0 0; color: var(--text-muted); font-size: .72rem; font-weight: 500; }
 .cb-fade-enter-active, .cb-fade-leave-active { transition: opacity .18s ease, transform .18s ease; }
 .cb-fade-enter-from, .cb-fade-leave-to { opacity: 0; transform: translateY(8px); }
 .cb-slide-enter-active, .cb-slide-leave-active { transition: opacity .2s ease, transform .2s ease; }

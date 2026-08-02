@@ -1,12 +1,25 @@
 """
-Chat Service — xử lý logic chatbot tư vấn.
+Chat Service — xử lý logic chatbot tư vấn + RAG giáo trình.
 """
 
 from __future__ import annotations
 
-from models.schemas import ChatContext, ChatRequest, TokenUsage
+from models.schemas import AIResponse, ChatContext, ChatRequest, RagSource, TokenUsage
 from services.provider import call_provider
 from utils.context import build_context_summary
+
+try:
+    from rag.retrieve import format_rag_context, retrieve_chunks
+    from rag.store import is_rag_ready
+except Exception:  # pragma: no cover - rag deps chưa cài
+    def format_rag_context(*_a, **_k):  # type: ignore
+        return ""
+
+    def retrieve_chunks(*_a, **_k):  # type: ignore
+        return []
+
+    def is_rag_ready() -> bool:  # type: ignore
+        return False
 
 
 # =============================================================================
@@ -49,9 +62,14 @@ SYSTEM_PROMPTS = {
     ),
     "student": (
         "Bạn là trợ lý AI của Eript LMS, đang hỗ trợ sinh viên. "
-        "Nhiệm vụ là tư vấn khóa học phù hợp, giải đáp thắc mắc về bài học, và gợi ý lộ trình học tập. "
+        "Nhiệm vụ: (1) tư vấn khóa học/lộ trình trong catalog, (2) giải đáp kiến thức môn học dựa trên "
+        "TAI_LIEU_GIAO_TRINH_LIEN_QUAN nếu có, (3) hướng dẫn dùng hệ thống. "
         "Trả lời thân thiện, dễ hiểu bằng tiếng Việt. "
-        "Ưu tiên gợi ý từ các khóa học có trong hệ thống."
+        "Khi có đoạn giáo trình retrieved: ưu tiên bám sát tài liệu, trích ý chính, "
+        "và nêu tên nguồn PDF / môn ở cuối nếu đã dùng. "
+        "Không bịa công thức/định nghĩa ngoài tài liệu. "
+        "Không lấy kiến thức từ giáo trình môn khác ngoài các đoạn đã cung cấp. "
+        "Nếu tài liệu không đủ, hãy nói chưa đủ căn cứ và gợi ý hỏi cụ thể hơn."
     ),
 }
 
@@ -61,9 +79,40 @@ def get_system_prompt(role: str | None = None) -> str:
     return SYSTEM_PROMPTS.get(role or "default", SYSTEM_PROMPTS["default"])
 
 
+def _should_use_rag(payload: ChatRequest, role: str | None) -> bool:
+    if payload.use_rag is False:
+        return False
+    if payload.use_rag is True:
+        return True
+    # Mặc định: bật RAG cho student (và default)
+    return (role or "student") in {"student", "default", "instructor"}
+
+
+def _rag_scope_and_subject(payload: ChatRequest) -> tuple[str, str | None]:
+    """
+    - Có course_id / current_course / rag_scope=course → chỉ giáo trình môn đó.
+    - Còn lại → global (mọi giáo trình; chọn 1 môn theo điểm / hòa thì random).
+    """
+    scope_raw = (payload.rag_scope or "").strip().lower()
+    ctx = payload.context
+    in_course = bool(
+        payload.course_id
+        or (ctx and ctx.current_course and ctx.current_course.id)
+        or scope_raw == "course"
+    )
+    if not in_course:
+        return "global", None
+
+    hint = (payload.subject_hint or "").strip() or None
+    if not hint and ctx and ctx.current_course and ctx.current_course.title:
+        hint = ctx.current_course.title.strip() or None
+    return "course", hint
+
+
 def build_ai_messages(
     payload: ChatRequest,
     role: str | None = None,
+    rag_block: str = "",
 ) -> list[dict[str, str]]:
     """
     Xây dựng danh sách messages cho AI provider.
@@ -87,30 +136,59 @@ def build_ai_messages(
                 "content": msg["content"],
             })
 
-    # User message hiện tại + context
-    user_content = (
-        f"Câu hỏi người dùng: {payload.message.strip()}\n\n"
-        f"Context hệ thống:\n{context_summary or 'Không có dữ liệu ngữ cảnh.'}"
-    )
-    messages.append({"role": "user", "content": user_content})
+    parts = [
+        f"Câu hỏi người dùng: {payload.message.strip()}",
+        f"Context hệ thống:\n{context_summary or 'Không có dữ liệu ngữ cảnh.'}",
+    ]
+    if rag_block:
+        parts.append(rag_block)
 
+    messages.append({"role": "user", "content": "\n\n".join(parts)})
     return messages
 
 
 async def chat(
     payload: ChatRequest,
     role: str | None = None,
-) -> tuple[str | None, TokenUsage]:
+) -> tuple[str | None, TokenUsage, bool, list[RagSource]]:
     """
-    Xử lý chat request — build messages và gọi AI provider.
+    Xử lý chat request — build messages (có RAG nếu sẵn sàng) và gọi AI provider.
 
     Returns:
-        (reply_text, token_usage)
+        (reply_text, token_usage, rag_used, sources)
     """
-    messages = build_ai_messages(payload, role=role)
-    return await call_provider(
+    rag_used = False
+    sources: list[RagSource] = []
+    rag_block = ""
+
+    if _should_use_rag(payload, role) and is_rag_ready():
+        scope, subject_hint = _rag_scope_and_subject(payload)
+        chunks = retrieve_chunks(
+            payload.message,
+            top_k=payload.rag_top_k or 5,
+            subject_hint=subject_hint,
+            scope=scope,  # type: ignore[arg-type]
+        )
+        if chunks:
+            rag_used = True
+            rag_block = format_rag_context(chunks, scope=scope)  # type: ignore[arg-type]
+            # unique sources
+            seen: set[str] = set()
+            for ch in chunks:
+                key = ch.get("source") or ""
+                if key and key not in seen:
+                    seen.add(key)
+                    sources.append(RagSource(
+                        source=key,
+                        subject=ch.get("subject") or None,
+                        score=ch.get("score"),
+                    ))
+
+    messages = build_ai_messages(payload, role=role, rag_block=rag_block)
+    reply, tokens = await call_provider(
         provider=payload.provider or "chatgpt",
         api_key=payload.api_key or "",
         messages=messages,
         model=payload.model,
     )
+    return reply, tokens, rag_used, sources

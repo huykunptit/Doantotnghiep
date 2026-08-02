@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import chat, career, generate, analyze, tutoring
+from routers import chat, career, generate, analyze, tutoring, rag
 
 # =============================================================================
 # Khởi tạo FastAPI app
@@ -41,6 +41,7 @@ app.include_router(career.router)     # POST /parse-cv, /recommend
 app.include_router(generate.router)   # POST /generate/course-title, /generate/quiz, ...
 app.include_router(analyze.router)    # POST /analyze/exam
 app.include_router(tutoring.router)   # POST /tutoring/recommend
+app.include_router(rag.router)        # GET /rag/status, POST /rag/query
 
 
 # =============================================================================

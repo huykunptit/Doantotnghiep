@@ -29,6 +29,8 @@ class AIChatController extends Controller
             'history' => 'nullable|array|max:20',
             'history.*.role' => 'required_with:history|string|in:user,assistant',
             'history.*.content' => 'required_with:history|string|max:2000',
+            'use_rag' => 'nullable|boolean',
+            'subject_hint' => 'nullable|string|max:255',
         ]);
 
         $aiSettings = AiSetting::current();
@@ -58,16 +60,33 @@ class AIChatController extends Controller
 
         try {
             $timeout = $provider === 'ollama' ? 180 : 60;
+            // Sinh viên/GV: bật RAG hỏi đáp theo giáo trình (ai-service tự retrieve nếu đã ingest).
+            $useRag = $request->has('use_rag')
+                ? $request->boolean('use_rag')
+                : in_array($role, ['student', 'instructor'], true);
+
+            // Trong khóa học → chỉ RAG giáo trình môn đó; chat ngoài → mọi giáo trình.
+            $courseId = $request->filled('course_id') ? $request->integer('course_id') : null;
+            $ragScope = $courseId ? 'course' : 'global';
+            $subjectHint = $request->input('subject_hint');
+            if ($ragScope === 'course' && !$subjectHint) {
+                $subjectHint = Course::query()->whereKey($courseId)->value('title');
+            }
+
             $response = Http::timeout($timeout)->post($aiServiceUrl, [
                 'message' => $request->message,
                 'user_id' => $user->id,
-                'course_id' => $request->course_id,
+                'course_id' => $courseId,
                 'provider' => $provider,
                 'model' => $model,
                 'api_key' => $apiKey,
                 'role' => $role,
                 'history' => $request->input('history', []),
                 'context' => $this->buildChatContext($request),
+                'use_rag' => $useRag,
+                'rag_top_k' => 5,
+                'rag_scope' => $ragScope,
+                'subject_hint' => $subjectHint,
             ]);
 
             $elapsed = (int) ((microtime(true) - $startTime) * 1000);
