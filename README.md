@@ -18,6 +18,7 @@
 - **Marketplace**: khám phá khóa học nổi bật, lộ trình nghề (career paths), thanh toán online (PayOS), đơn hàng & chứng chỉ.
 - **Gamification**: điểm thưởng, bảng xếp hạng, chứng chỉ số.
 - **AI hỗ trợ**: Study Advisor (gợi ý CTĐT / cảnh báo điểm thấp), Career Advisor (phân tích CV & lộ trình nghề), chatbot (kể cả guest).
+- **Chatbot RAG giáo trình**: sinh viên hỏi đáp kiến thức theo giáo trình PTIT đã index (ChromaDB). Chat ngoài khóa tìm trên mọi giáo trình; trong trang học khóa chỉ lấy giáo trình đúng môn. Hiển thị nguồn PDF khi dùng RAG.
 
 ### Giảng viên
 - **Course Builder**: chương / bài học đa loại (video, file, trang, SCORM, quiz, assignment, forum, survey, buổi offline).
@@ -43,7 +44,7 @@
 |---|---|
 | **Backend** | Laravel 13 (PHP 8.3), Sanctum, Spatie Permission, PayOS |
 | **Frontend** | Nuxt 4, Vue 3, TypeScript, Pinia, PrimeVue 4, i18n |
-| **AI Service** | FastAPI (Python), OpenAI / Gemini / OpenRouter |
+| **AI Service** | FastAPI (Python), OpenAI / Gemini / OpenRouter / Claude / Ollama, **RAG** (ChromaDB + giáo trình PTIT) |
 | **DB & cache** | MySQL 8, MongoDB 7, Redis 7 |
 | **Storage** | MinIO (S3-compatible) |
 | **Hạ tầng** | Docker Compose, Nginx, Cloudflare Tunnel, n8n, phpMyAdmin |
@@ -164,6 +165,34 @@ Cấu hình tại **Admin → Quản lý AI**:
 | Google Gemini | https://aistudio.google.com/app/apikey |
 | OpenRouter | https://openrouter.ai/keys |
 
+Backend gọi `ai-service` qua `AiServiceClient` (fallback chuỗi provider nếu primary lỗi).  
+Local dev: `AI_SERVICE_URL=http://127.0.0.1:8001` trong `backend/.env` và **bật** FastAPI (`uvicorn` / container `lms_ai_service`).
+
+### RAG giáo trình (chatbot sinh viên)
+
+Nguồn PDF: [Giao-Trinh-PTIT](https://github.com/0xl4p/Giao-Trinh-PTIT). Vector store: ChromaDB (`ai-service/data/chroma`, không commit lên git).
+
+```bash
+cd ai-service
+pip install -r requirements.txt
+
+# Demo vài môn (hoặc chỉ định file cụ thể)
+python -m rag.ingest --download --limit 8
+# python -m rag.ingest --download --files "Cấu trúc dữ liệu" "Java" "trí tuệ nhân tạo" --reset
+
+# Kiểm tra
+# GET  http://127.0.0.1:8001/rag/status
+# POST http://127.0.0.1:8001/rag/query
+```
+
+Chi tiết lệnh: [`ai-service/rag/INGEST.txt`](ai-service/rag/INGEST.txt).
+
+| Ngữ cảnh chat | Hành vi RAG |
+|---|---|
+| Chat toàn cục (layout sinh viên) | Tìm mọi giáo trình đã ingest; chọn 1 môn phù hợp (điểm cao / hòa thì random) |
+| Trong khóa học (`/learn/...`) | Chỉ giáo trình khớp tên môn/khóa |
+| Guest (chưa đăng nhập) | Không dùng RAG |
+
 ---
 
 ## Docker thường dùng
@@ -193,7 +222,7 @@ docker compose down -v
 ├── backend/          # Laravel API
 ├── frontend/         # Nuxt 4 (admin + instructor + student + public)
 ├── admin-ui/         # Legacy admin UI (tham chiếu / migration)
-├── ai-service/       # FastAPI AI
+├── ai-service/       # FastAPI AI (+ rag/ ingest giáo trình → ChromaDB)
 ├── mobile/           # Flutter app
 ├── docker/           # Nginx & Docker configs
 ├── docs/             # Tài liệu (tunnel, báo cáo, checklist)
