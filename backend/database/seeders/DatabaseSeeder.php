@@ -47,6 +47,7 @@ class DatabaseSeeder extends Seeder
             CertificateTemplateSeeder::class,
             CareerPathSeeder::class,
             NewsSeeder::class,
+            ExperienceSurveySeeder::class,
         ]);
     }
 }

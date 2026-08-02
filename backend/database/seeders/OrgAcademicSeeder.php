@@ -421,8 +421,9 @@ class OrgAcademicSeeder extends Seeder
             'dtvt' => array_values($programContext['majors']['dtvt']),
         ];
         $progMajorCounter = ['cntt' => 0, 'qtkd' => 0, 'dtvt' => 0];
+        $usedStudentCodes = [];
 
-        User::query()->where('email', 'like', 'student%@lms.com')->orderBy('id')->get()->each(function (User $user, int $index) use ($institutionId, $units, $positions, $programContext, $allAdminClasses, $advisorPool, $hometowns, $progMajorRotation, &$progMajorCounter) {
+        User::role('student')->orderBy('id')->get()->each(function (User $user, int $index) use ($institutionId, $units, $positions, $programContext, $allAdminClasses, $advisorPool, $hometowns, $progMajorRotation, &$progMajorCounter, &$usedStudentCodes) {
             $entry = $allAdminClasses[$index % $allAdminClasses->count()];
             $progKey = $entry['prog'];
             $startYear = $entry['year'];
@@ -432,17 +433,26 @@ class OrgAcademicSeeder extends Seeder
             $major = $majorList[$progMajorCounter[$progKey]++ % count($majorList)];
             $cohort = $programContext['cohorts'][$progKey][$startYear];
 
+            // Mã SV: B + khóa (từ năm nhập học / lớp D23…) + DV + CN|QT|DT + 3 số ngẫu nhiên unique
             $shortYear = substr((string) $startYear, 2);
-            $codePrefix = match ($progKey) {
-                'cntt' => 'B' . $shortYear . 'DCCN',
-                'qtkd' => 'B' . $shortYear . 'DCQT',
-                'dtvt' => 'B' . $shortYear . 'DCDT',
-                default => 'B' . $shortYear . 'DC',
+            $majorAbbrev = match ($progKey) {
+                'cntt' => 'CN',
+                'qtkd' => 'QT',
+                'dtvt' => 'DT',
+                default => 'CN',
             };
-            $studentCode = $codePrefix . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+            $codePrefix = 'B' . $shortYear . 'DV' . $majorAbbrev;
+            $studentCode = $this->generateUniqueStudentCode($codePrefix, $usedStudentCodes, $user->id);
+            // Giữ student1@lms.com … student16@lms.com cho 16 SV demo gốc (theo tên trong UserSeeder)
+            $demoNames = array_slice(\Database\Seeders\UserSeeder::studentNames(), 0, \Database\Seeders\UserSeeder::DEMO_LMS_STUDENT_COUNT);
+            $demoIndex = array_search($user->name, $demoNames, true);
+            $studentEmail = $demoIndex !== false
+                ? ('student' . ($demoIndex + 1) . '@lms.com')
+                : (strtolower($studentCode) . '@stu.ptit.edu.vn');
             $advisor = $advisorPool->isEmpty() ? null : $advisorPool[$index % $advisorPool->count()];
 
             $user->update([
+                'email' => $studentEmail,
                 'institution_id' => $institutionId,
                 'unit_id' => $adminClass->unit_id,
                 'program_id' => $program->id,
@@ -464,6 +474,34 @@ class OrgAcademicSeeder extends Seeder
             ]);
             $this->upsertAssignment($user->id, $adminClass->unit_id, $positions['student']->id, true);
         });
+    }
+
+    /**
+     * Sinh mã SV không trùng: {prefix}{000-999}, ví dụ B23DVCN847.
+     *
+     * @param  array<string, true>  $used
+     */
+    private function generateUniqueStudentCode(string $prefix, array &$used, ?int $exceptUserId = null): string
+    {
+        for ($attempt = 0; $attempt < 2000; $attempt++) {
+            $suffix = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+            $code = $prefix . $suffix;
+            if (isset($used[$code])) {
+                continue;
+            }
+            $query = User::query()->where('student_code', $code);
+            if ($exceptUserId) {
+                $query->where('id', '!=', $exceptUserId);
+            }
+            if ($query->exists()) {
+                continue;
+            }
+            $used[$code] = true;
+
+            return $code;
+        }
+
+        throw new \RuntimeException("Không sinh được mã sinh viên unique cho prefix {$prefix}");
     }
 
     /**

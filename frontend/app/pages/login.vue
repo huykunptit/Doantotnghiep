@@ -4,9 +4,11 @@ import { dashboardFor } from '~/types/auth'
 definePageMeta({ layout: 'auth' })
 
 const auth = useAuthStore()
+const { t, locale } = useI18n()
 const loading = ref(false)
 const error = ref('')
 const remember = ref(true)
+const showPassword = ref(false)
 const form = reactive({ email: '', password: '' })
 
 /**
@@ -20,6 +22,27 @@ function dashboardPath(user: { roles?: string[], role?: string | null }) {
   return '/student'
 }
 
+/** Không bao giờ hiện lỗi kỹ thuật kiểu POST /api/... 502 ra UI. */
+function friendlyLoginError(err: any): string {
+  const status = Number(err?.statusCode || err?.status || err?.response?.status || 0)
+  const raw = String(err?.data?.message || err?.message || '')
+  const looksTechnical = /POST\s+\/api|GET\s+\/api|\/api\/|status code|Failed to fetch|NetworkError|ECONNREFUSED|\b502\b|\b503\b|\b500\b|\b504\b|FetchError|ofetch/i.test(raw)
+
+  if (status === 401 || status === 422) {
+    return t('auth.login.errors.invalid')
+  }
+  if (status === 429) {
+    return t('auth.login.errors.tooMany')
+  }
+  if (status >= 500 || status === 0 || looksTechnical || !raw) {
+    return t('auth.login.errors.generic')
+  }
+  if (raw.length > 140) {
+    return t('auth.login.errors.generic')
+  }
+  return raw
+}
+
 async function loginViaFetch(email: string, password: string) {
   const res = await fetch('/api/auth/login', {
     method: 'POST',
@@ -28,7 +51,7 @@ async function loginViaFetch(email: string, password: string) {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const err: any = new Error(data?.message || 'Đăng nhập thất bại')
+    const err: any = new Error(data?.message || t('auth.login.errors.failed'))
     err.statusCode = res.status
     err.data = data
     throw err
@@ -54,7 +77,7 @@ async function submit(event?: Event) {
       || (formEl?.querySelector<HTMLInputElement>('input[name="password"]')?.value ?? '')
 
   if (!email || !password) {
-    error.value = 'Vui lòng nhập email và mật khẩu.'
+    error.value = t('auth.login.errors.required')
     return
   }
 
@@ -86,11 +109,15 @@ async function submit(event?: Event) {
       window.location.assign(`/verify-email?email=${encodeURIComponent(email)}`)
       return
     }
-    error.value = requestError?.data?.message || requestError?.message || 'Email hoặc mật khẩu không chính xác.'
+    error.value = friendlyLoginError(requestError)
   }
   finally {
     loading.value = false
   }
+}
+
+function onGoogleError(msg: string) {
+  error.value = friendlyLoginError({ message: msg })
 }
 
 // Attach native listener ASAP so login works before/without Vue hydration
@@ -104,16 +131,36 @@ onMounted(() => {
   })
 })
 
+const bootMessages = computed(() => ({
+  required: t('auth.login.errors.required'),
+  invalid: t('auth.login.errors.invalid'),
+  generic: t('auth.login.errors.generic'),
+}))
+
 // Inline bootstrap: runs even if Vue never mounts (hydration hang)
-useHead({
+useHead(() => ({
   script: [
     {
       key: 'eript-login-boot',
       // Runs on every login page render; no-op once Vue takes over
       children: `
 (function () {
+  var MSG = ${JSON.stringify(bootMessages.value)};
+  window.__eriptLoginMsg = MSG;
   if (window.__eriptLoginBoot) return;
   window.__eriptLoginBoot = true;
+  function msgs() { return window.__eriptLoginMsg || MSG; }
+  function friendly(msg, status) {
+    var s = String(msg || '');
+    var st = Number(status || 0);
+    var m = msgs();
+    if (st === 401 || st === 422) return m.invalid;
+    if (/POST\\s+\\/api|\\/api\\/|status code|Failed to fetch|NetworkError|\\b502\\b|\\b503\\b|\\b500\\b|FetchError/i.test(s) || st >= 500 || !s) {
+      return m.generic;
+    }
+    if (s.length > 140) return m.generic;
+    return s;
+  }
   function boot() {
     var form = document.getElementById('eript-login-form');
     if (!form || form._eriptBound) return;
@@ -126,7 +173,7 @@ useHead({
       var email = (form.querySelector('input[name="email"]') || {}).value || '';
       var password = (form.querySelector('input[name="password"]') || {}).value || '';
       if (!email || !password) {
-        if (errEl) { errEl.hidden = false; errEl.textContent = 'Vui lòng nhập email và mật khẩu.'; }
+        if (errEl) { errEl.hidden = false; errEl.textContent = msgs().required; }
         return;
       }
       if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); }
@@ -136,14 +183,16 @@ useHead({
         headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email, password: password })
       }).then(function (res) {
-        return res.json().then(function (data) { return { res: res, data: data }; });
+        return res.json().then(function (data) { return { res: res, data: data }; }).catch(function () {
+          return { res: res, data: {} };
+        });
       }).then(function (r) {
         if (!r.res.ok) {
           if (r.res.status === 403 && r.data && r.data.requires_verification) {
             location.assign('/verify-email?email=' + encodeURIComponent(email));
             return;
           }
-          throw new Error((r.data && r.data.message) || 'Email hoặc mật khẩu không chính xác.');
+          throw { status: r.res.status, message: (r.data && r.data.message) || '' };
         }
         var maxAge = 60 * 60 * 24 * 7;
         document.cookie = 'eript-token=' + encodeURIComponent(r.data.access_token) + '; Path=/; Max-Age=' + maxAge + '; SameSite=Lax';
@@ -154,7 +203,7 @@ useHead({
         else if (roles.indexOf('instructor') !== -1) dest = '/instructor';
         location.assign(dest);
       }).catch(function (err) {
-        if (errEl) { errEl.hidden = false; errEl.textContent = err.message || 'Đăng nhập thất bại.'; }
+        if (errEl) { errEl.hidden = false; errEl.textContent = friendly(err && err.message, err && err.status); }
         if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); }
       });
     });
@@ -165,31 +214,37 @@ useHead({
       `,
     },
   ],
+}))
+
+watch(locale, () => {
+  if (import.meta.client) {
+    ;(window as any).__eriptLoginMsg = bootMessages.value
+  }
 })
 </script>
 
 <template>
   <div class="auth-panel">
     <section class="auth-story">
-      <span class="story-label">Eript Learning Ecosystem</span>
+      <span class="story-label">{{ t('auth.login.storyLabel') }}</span>
       <h1>
-        Một không gian học tập<br>
-        được thiết kế để phát triển lâu dài
+        {{ t('auth.login.storyTitle1') }}<br>
+        {{ t('auth.login.storyTitle2') }}
       </h1>
-      <p>Quản trị đào tạo, nội dung, khảo thí và dữ liệu học tập trên cùng một nền tảng.</p>
+      <p>{{ t('auth.login.storyDesc') }}</p>
       <div class="story-points">
-        <div><i class="pi pi-chart-line" /><span><strong>Dữ liệu tập trung</strong><small>Theo dõi hiệu quả đào tạo theo thời gian thực.</small></span></div>
-        <div><i class="pi pi-shield" /><span><strong>Vận hành an toàn</strong><small>Vai trò và phân quyền rõ ràng cho từng bộ phận.</small></span></div>
-        <div><i class="pi pi-sparkles" /><span><strong>Trải nghiệm hiện đại</strong><small>Gọn gàng, nhanh và nhất quán trên mọi thiết bị.</small></span></div>
+        <div><i class="pi pi-chart-line" /><span><strong>{{ t('auth.login.point1Title') }}</strong><small>{{ t('auth.login.point1Desc') }}</small></span></div>
+        <div><i class="pi pi-shield" /><span><strong>{{ t('auth.login.point2Title') }}</strong><small>{{ t('auth.login.point2Desc') }}</small></span></div>
+        <div><i class="pi pi-sparkles" /><span><strong>{{ t('auth.login.point3Title') }}</strong><small>{{ t('auth.login.point3Desc') }}</small></span></div>
       </div>
     </section>
 
     <AuthPanelCard>
         <AuthSideHeader />
         <div class="auth-heading">
-          <span>Chào mừng trở lại</span>
-          <h2>Đăng nhập hệ thống</h2>
-          <p>Sử dụng tài khoản Eript LMS của bạn.</p>
+          <span>{{ t('auth.login.welcome') }}</span>
+          <h2>{{ t('auth.login.title') }}</h2>
+          <p>{{ t('auth.login.subtitle') }}</p>
         </div>
 
         <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
@@ -198,7 +253,7 @@ useHead({
         <!-- Native controls so login works before PrimeVue/Vue hydrate -->
         <form id="eript-login-form" class="auth-form" method="post" action="#" onsubmit="return false;" @submit.prevent="submit">
           <label>
-            <span>Email</span>
+            <span>{{ t('auth.login.email') }}</span>
             <input
               v-model="form.email"
               class="native-input"
@@ -210,23 +265,33 @@ useHead({
             >
           </label>
           <label>
-            <span>Mật khẩu</span>
-            <input
-              v-model="form.password"
-              class="native-input"
-              name="password"
-              type="password"
-              placeholder="Nhập mật khẩu"
-              autocomplete="current-password"
-              required
-            >
+            <span>{{ t('auth.login.password') }}</span>
+            <div class="password-wrap">
+              <input
+                v-model="form.password"
+                class="native-input"
+                name="password"
+                :type="showPassword ? 'text' : 'password'"
+                :placeholder="t('auth.login.passwordPlaceholder')"
+                autocomplete="current-password"
+                required
+              >
+              <button
+                type="button"
+                class="toggle-password"
+                :aria-label="showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')"
+                @click="showPassword = !showPassword"
+              >
+                <i :class="showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'" />
+              </button>
+            </div>
           </label>
           <div class="form-row">
             <label class="remember">
               <input v-model="remember" type="checkbox">
-              <span>Ghi nhớ đăng nhập</span>
+              <span>{{ t('auth.login.remember') }}</span>
             </label>
-            <a href="/forgot-password">Quên mật khẩu?</a>
+            <a href="/forgot-password">{{ t('auth.login.forgot') }}</a>
           </div>
           <button
             data-login-btn
@@ -236,13 +301,13 @@ useHead({
             :aria-busy="loading ? 'true' : 'false'"
           >
             <span v-if="loading" class="spin" aria-hidden="true" />
-            Đăng nhập
+            {{ t('auth.login.submit') }}
           </button>
         </form>
 
-        <AuthGoogleButton label="Đăng nhập bằng Google" @error="error = $event" />
+        <AuthGoogleButton :label="t('auth.login.google')" @error="onGoogleError" />
 
-        <p class="auth-foot">Chưa có tài khoản? <a href="/register">Đăng ký ngay</a></p>
+        <p class="auth-foot">{{ t('auth.login.noAccount') }} <a href="/register">{{ t('auth.login.register') }}</a></p>
     </AuthPanelCard>
   </div>
 </template>
@@ -269,6 +334,7 @@ useHead({
   margin-top: 1px;
   border-radius: 10px;
   background: rgba(255, 255, 255, .14);
+  font: inherit;
   font-size: 1rem;
 }
 
@@ -371,4 +437,33 @@ useHead({
 }
 
 .boot-error[hidden] { display: none !important; }
+
+.password-wrap {
+  position: relative;
+  display: block;
+}
+.password-wrap .native-input {
+  width: 100%;
+  padding-right: 44px;
+  box-sizing: border-box;
+}
+.toggle-password {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+.toggle-password:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, .06);
+}
 </style>

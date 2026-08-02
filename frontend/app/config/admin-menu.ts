@@ -76,6 +76,7 @@ const adminMenuRaw: AdminMenuItem[] = [
       { labelKey: 'admin.menu.courseReports', to: '/admin/reports/courses' },
       { labelKey: 'admin.menu.examReports', to: '/admin/reports/exams' },
       { labelKey: 'admin.menu.progressReports', to: '/admin/reports/progress' },
+      { labelKey: 'admin.menu.experienceSurvey', to: '/admin/reports/experience-survey' },
       { labelKey: 'admin.menu.activityLogs', to: '/admin/reports/activity' },
     ],
   },

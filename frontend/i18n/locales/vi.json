@@ -117,6 +117,13 @@
     "formHint": "Điền thông tin — đánh giá chính xác hơn upload PDF scan",
     "formRecommended": "Khuyến nghị",
     "pickFile": "Chọn tệp CV",
+    "dropTitle": "Kéo thả CV vào đây",
+    "dropHint": "hoặc bấm để chọn file PDF / DOC / DOCX",
+    "uploading": "Đang tải và phân tích…",
+    "deleteCv": "Xóa CV",
+    "uploadAgain": "Tải CV khác",
+    "deleteOk": "Đã xóa CV",
+    "deleteError": "Không xóa được CV",
     "fullName": "Họ và tên",
     "phone": "Số điện thoại",
     "headline": "Vị trí mong muốn",
@@ -251,6 +258,7 @@
       "examReports": "Báo cáo kỳ thi",
       "progressReports": "Tiến độ học tập",
       "activityLogs": "Nhật ký hoạt động",
+      "experienceSurvey": "Khảo sát trải nghiệm LMS",
       "errorLogs": "Lịch sử báo lỗi",
       "finance": "Tài chính",
       "orders": "Đơn hàng",
@@ -1299,6 +1307,35 @@
         "advanced": "Nâng cao"
       }
     },
+    "experienceSurvey": {
+      "title": "Khảo sát trải nghiệm LMS",
+      "subtitle": "Thống kê phản hồi sinh viên về cá nhân hoá học tập và AI.",
+      "loadError": "Không tải được báo cáo khảo sát",
+      "refresh": "Làm mới",
+      "export": "Xuất Excel (CSV)",
+      "exportHtml": "Xuất báo cáo + chart (HTML)",
+      "exportOk": "Đã tải file xuất",
+      "exportHtmlOk": "Đã tải báo cáo HTML (mở file để xem chart, có thể In → PDF)",
+      "exportError": "Xuất file thất bại",
+      "total": "Số phản hồi",
+      "avgScore": "Điểm TB",
+      "compareAvg": "So với LMS khác",
+      "sectionAvgChart": "Điểm trung bình theo nhóm",
+      "personalizationLikertChart": "Cảm nhận cá nhân hoá (B/C/E)",
+      "compareChart": "So sánh với LMS khác (đã bỏ)",
+      "aiUsage": "AI đã sử dụng (D0)",
+      "mostUseful": "AI hữu ích nhất (D4)",
+      "personalizationChart": "Hỗ trợ cá nhân hoá (C1)",
+      "satisfactionChart": "Phân bố mức hài lòng (E1)",
+      "npsChart": "Phân bố NPS (E4)",
+      "recent": "Phản hồi gần đây",
+      "noData": "Chưa có dữ liệu",
+      "studentCode": "Mã SV",
+      "studentName": "Họ tên",
+      "major": "Ngành",
+      "satisfaction": "Hài lòng (E1)",
+      "submittedAt": "Thời gian gửi"
+    },
     "reports": {
       "common": {
         "loadError": "Không tải được báo cáo",
@@ -1983,7 +2020,8 @@
       "catalog": "Khám phá khóa",
       "learn": "Học tập",
       "career": "AI Career",
-      "studyAdvisor": "Cố vấn học tập"
+      "studyAdvisor": "Cố vấn học tập",
+      "experienceSurvey": "Khảo sát trải nghiệm"
     },
     "news": {
       "title": "Tin tức",
@@ -2023,6 +2061,24 @@
       "coursesHint": "Điểm thấp khi < 6.5/10 hoặc thấp hơn GPA của bạn từ 1.0 điểm trở lên; kèm môn sắp học trong CTĐT.",
       "noCourses": "Chưa có gợi ý khóa học.",
       "buyHint": "Có thể học / củng cố trên hệ thống"
+    },
+    "experienceSurvey": {
+      "title": "Khảo sát trải nghiệm LMS",
+      "subtitle": "Góp ý về cá nhân hoá học tập và các tính năng AI — phục vụ nghiên cứu đồ án tốt nghiệp.",
+      "loadError": "Không tải được khảo sát",
+      "submit": "Gửi khảo sát",
+      "update": "Cập nhật đánh giá",
+      "submitOk": "Đã gửi khảo sát thành công",
+      "submitError": "Không gửi được khảo sát",
+      "alreadyDone": "Bạn đã hoàn thành khảo sát này",
+      "submittedAt": "Thời gian gửi: {at}",
+      "reRate": "Đánh giá lại",
+      "reRateHint": "Bạn có thể bấm \"Đánh giá lại\" để cập nhật câu trả lời.",
+      "editing": "Đang chỉnh sửa đánh giá",
+      "editingHint": "Sau khi sửa, bấm Cập nhật đánh giá để lưu.",
+      "likertHint": "Thang đo Likert 1–5: 1 = Hoàn toàn không đồng ý → 5 = Hoàn toàn đồng ý",
+      "textPlaceholder": "Nhập câu trả lời ngắn…",
+      "openPlaceholder": "Nhập ý kiến của bạn…"
     },
     "idCard": {
       "title": "Thẻ sinh viên",
@@ -2544,6 +2600,41 @@
       "assignmentUpload": "Tải tệp nộp bài",
       "assignmentEmpty": "Bài học chưa cấu hình bài tập",
       "assignmentDone": "Bạn đã nộp bài tập này"
+    }
+  },
+  "auth": {
+    "login": {
+      "storyLabel": "Hệ sinh thái học tập Eript",
+      "storyDesc": "Quản trị đào tạo, nội dung, khảo thí và dữ liệu học tập trên cùng một nền tảng.",
+      "point1Title": "Dữ liệu tập trung",
+      "point1Desc": "Theo dõi hiệu quả đào tạo theo thời gian thực.",
+      "point2Title": "Vận hành an toàn",
+      "point2Desc": "Vai trò và phân quyền rõ ràng cho từng bộ phận.",
+      "point3Title": "Trải nghiệm hiện đại",
+      "point3Desc": "Gọn gàng, nhanh và nhất quán trên mọi thiết bị.",
+      "welcome": "Chào mừng trở lại",
+      "title": "Đăng nhập hệ thống",
+      "subtitle": "Sử dụng tài khoản Eript LMS của bạn.",
+      "email": "Email",
+      "password": "Mật khẩu",
+      "passwordPlaceholder": "Nhập mật khẩu",
+      "showPassword": "Hiện mật khẩu",
+      "hidePassword": "Ẩn mật khẩu",
+      "remember": "Ghi nhớ đăng nhập",
+      "forgot": "Quên mật khẩu?",
+      "submit": "Đăng nhập",
+      "google": "Đăng nhập bằng Google",
+      "noAccount": "Chưa có tài khoản?",
+      "register": "Đăng ký ngay",
+      "errors": {
+        "required": "Vui lòng nhập email và mật khẩu.",
+        "invalid": "Email hoặc mật khẩu không chính xác.",
+        "tooMany": "Bạn thao tác quá nhanh. Vui lòng thử lại sau.",
+        "generic": "Không thể đăng nhập lúc này. Vui lòng thử lại sau.",
+        "failed": "Đăng nhập thất bại"
+      },
+      "storyTitle1": "Một không gian học tập",
+      "storyTitle2": "được thiết kế để phát triển lâu dài"
     }
   }
 }

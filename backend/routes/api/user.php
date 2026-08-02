@@ -19,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\PointsController;
+use App\Http\Controllers\Survey\ExperienceSurveyController;
 
 // ─── Auth ───
 Route::prefix('auth')->group(function () {
@@ -125,6 +126,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me/attendance', [StudentDashboardController::class, 'attendanceHistory']);
     Route::post('/me/attendance/check-in', [StudentDashboardController::class, 'checkIn']);
 
+    // ─── Experience survey (đồ án) ───
+    Route::get('/me/experience-survey', [ExperienceSurveyController::class, 'definition']);
+    Route::post('/me/experience-survey', [ExperienceSurveyController::class, 'submit']);
+
     // ─── Admin (2B — role admin only via ensureAdmin inside controller) ───
     Route::prefix('admin')->middleware('role:admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
@@ -150,6 +155,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{user}', [AdminController::class, 'updateUser']);
         Route::put('/users/{user}/role', [AdminController::class, 'updateUserRole']);
         Route::delete('/users/{user}', [AdminController::class, 'destroyUser']);
+
+        // Experience survey (đồ án)
+        Route::get('/experience-survey/summary', [ExperienceSurveyController::class, 'adminSummary']);
+        Route::get('/experience-survey/responses', [ExperienceSurveyController::class, 'adminIndex']);
+        Route::get('/experience-survey/export', [ExperienceSurveyController::class, 'adminExport']);
 
         // Courses
         Route::get('/courses', [AdminController::class, 'courses']);

@@ -13,6 +13,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Career Advisor ───
     Route::get('/career/advisor', [CareerAdvisorController::class, 'index']);
     Route::post('/career/upload-cv', [CareerAdvisorController::class, 'uploadCV']);
+    Route::delete('/career/cv', [CareerAdvisorController::class, 'deleteCV']);
     Route::post('/career/cv-form', [CareerAdvisorController::class, 'saveForm']);
     Route::post('/career/evaluate', [CareerAdvisorController::class, 'evaluate']);
     Route::post('/career/recommend', [CareerAdvisorController::class, 'recommend']);
