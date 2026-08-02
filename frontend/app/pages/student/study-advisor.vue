@@ -50,6 +50,28 @@ const tipLoading = ref(false)
 const evaluation = ref<EvalSummary | null>(null)
 const recCourses = ref<CourseRec[]>([])
 
+const completionPercent = computed(() =>
+  Math.round((evaluation.value?.summary?.completion_ratio || 0) * 100),
+)
+
+const lowCompletion = computed(() =>
+  !!evaluation.value?.has_curriculum && completionPercent.value < 40,
+)
+
+const midCompletion = computed(() =>
+  !!evaluation.value?.has_curriculum
+  && completionPercent.value >= 40
+  && completionPercent.value < 60,
+)
+
+const hasWeakScores = computed(() =>
+  (evaluation.value?.weaknesses?.length || 0) > 0,
+)
+
+const hasAlerts = computed(() =>
+  lowCompletion.value || midCompletion.value || hasWeakScores.value,
+)
+
 /** Phân loại theo thang GPA 4.0 (PTIT-style). */
 function classifyGpa(gpa?: number | null) {
   if (gpa == null || Number.isNaN(gpa)) return 'none'
@@ -88,6 +110,7 @@ async function load() {
     recCourses.value = (evalRes.suggested_courses || [])
       .map(normalizeCourseRec)
       .filter((c): c is CourseRec => !!c)
+    tip.value = evalRes.narrative || t('student.studyAdvisor.tipFallback')
   }
   catch (e: any) {
     toast.add({ severity: 'error', summary: t('student.studyAdvisor.loadError'), detail: e?.data?.message, life: 3500 })
@@ -100,14 +123,15 @@ async function load() {
 async function askTip() {
   tipLoading.value = true
   try {
-    const res = await useApi<{ tip?: string, message?: string, reply?: string }>('/ai/tutoring', {
+    const res = await useApi<{ tip?: string, message?: string, reply?: string, summary?: string }>('/ai/tutoring', {
       method: 'POST',
       body: {
         context: 'study_roadmap',
         prompt: evaluation.value?.narrative || 'Gợi ý lộ trình học cải thiện dựa trên kết quả học tập.',
+        progress_percent: completionPercent.value,
       },
     })
-    tip.value = res.tip || res.message || res.reply || t('student.studyAdvisor.tipFallback')
+    tip.value = res.tip || res.summary || res.message || res.reply || evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
   }
   catch {
     tip.value = evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
@@ -117,10 +141,7 @@ async function askTip() {
   }
 }
 
-onMounted(async () => {
-  await load()
-  await askTip()
-})
+onMounted(load)
 </script>
 
 <template>
@@ -136,6 +157,34 @@ onMounted(async () => {
 
     <div v-if="loading" class="empty">…</div>
     <template v-else>
+      <section v-if="hasAlerts" class="panel alerts">
+        <h2>{{ t('student.studyAdvisor.alerts') }}</h2>
+        <div v-if="lowCompletion" class="alert alert-danger">
+          <i class="pi pi-exclamation-triangle" />
+          <div>
+            <strong>{{ t('student.studyAdvisor.lowCompletionTitle') }}</strong>
+            <p>{{ t('student.studyAdvisor.lowCompletionBody', { percent: completionPercent }) }}</p>
+          </div>
+        </div>
+        <div v-else-if="midCompletion" class="alert alert-warn">
+          <i class="pi pi-info-circle" />
+          <div>
+            <strong>{{ t('student.studyAdvisor.midCompletionTitle') }}</strong>
+            <p>{{ t('student.studyAdvisor.midCompletionBody', { percent: completionPercent }) }}</p>
+          </div>
+        </div>
+        <div v-if="hasWeakScores" class="alert alert-warn">
+          <i class="pi pi-exclamation-circle" />
+          <div>
+            <strong>{{ t('student.studyAdvisor.weakScoreTitle') }}</strong>
+            <p>{{ t('student.studyAdvisor.weakScoreBody') }}</p>
+            <ul>
+              <li v-for="(w, i) in evaluation?.weaknesses" :key="i">{{ w.title }} ({{ w.final_score }})</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       <section class="panel">
         <h2>{{ t('student.studyAdvisor.aiTip') }}</h2>
         <p>{{ tip || '…' }}</p>
@@ -146,7 +195,7 @@ onMounted(async () => {
         <h2>{{ t('student.studyAdvisor.progress') }}</h2>
         <p>{{ evaluation.narrative }}</p>
         <div class="stats">
-          <div><span>{{ t('student.studyAdvisor.completion') }}</span><strong>{{ Math.round((evaluation.summary?.completion_ratio || 0) * 100) }}%</strong></div>
+          <div><span>{{ t('student.studyAdvisor.completion') }}</span><strong>{{ completionPercent }}%</strong></div>
           <div><span>GPA</span><strong>{{ evaluation.summary?.overall_gpa ?? '—' }}</strong></div>
           <div><span>{{ t('student.studyAdvisor.level') }}</span><strong>{{ gpaClassLabel }}</strong></div>
         </div>
@@ -183,6 +232,25 @@ onMounted(async () => {
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .panel { border: 1px solid var(--border); border-radius: 16px; padding: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); }
+.alerts { display: grid; gap: 10px; }
+.alert {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+  border-radius: 12px; border: 1px solid var(--border);
+}
+.alert i { margin-top: 2px; font-size: 1.1rem; }
+.alert strong { display: block; margin-bottom: 4px; }
+.alert p { margin: 0; color: var(--text-muted); font-weight: 500; line-height: 1.45; }
+.alert ul { margin: 8px 0 0; padding-left: 18px; }
+.alert-danger {
+  background: color-mix(in srgb, #dc2626 10%, var(--surface));
+  border-color: color-mix(in srgb, #dc2626 35%, var(--border));
+}
+.alert-danger i { color: #dc2626; }
+.alert-warn {
+  background: color-mix(in srgb, #d97706 10%, var(--surface));
+  border-color: color-mix(in srgb, #d97706 35%, var(--border));
+}
+.alert-warn i { color: #d97706; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
 .stats div { padding: 12px; border-radius: 12px; border: 1px solid var(--border); }
 .stats span { display: block; color: var(--text-muted); font-size: .78rem; font-weight: 600; }

@@ -69,6 +69,10 @@ class _StudyAdvisorScreenState extends ConsumerState<StudyAdvisorScreen> {
               evaluation['message']?.toString() ??
               '';
 
+          final lowCompletion = hasCurriculum && completion < 40;
+          final midCompletion = hasCurriculum && completion >= 40 && completion < 60;
+          final hasWeakScores = weaknesses.isNotEmpty;
+
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(studentCurriculumEvaluationProvider);
@@ -77,6 +81,46 @@ class _StudyAdvisorScreenState extends ConsumerState<StudyAdvisorScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
+                if (lowCompletion || midCompletion || hasWeakScores) ...[
+                  _Card(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Cảnh báo học tập', style: TextStyle(fontWeight: FontWeight.w800)),
+                        if (lowCompletion) ...[
+                          AppSpacing.h8,
+                          _AlertBanner(
+                            tone: _AlertTone.danger,
+                            title: 'Tỉ lệ hoàn thành CTĐT thấp',
+                            body:
+                                'Bạn mới hoàn thành ${completion.round()}% môn bắt buộc. Hãy ưu tiên các môn kỳ hiện tại để không bị chậm tiến độ.',
+                          ),
+                        ] else if (midCompletion) ...[
+                          AppSpacing.h8,
+                          _AlertBanner(
+                            tone: _AlertTone.warn,
+                            title: 'Tiến độ CTĐT cần theo dõi',
+                            body:
+                                'Hoàn thành ${completion.round()}% môn bắt buộc. Nên duy trì nhịp học đều và hoàn tất các môn còn dang dở.',
+                          ),
+                        ],
+                        if (hasWeakScores) ...[
+                          AppSpacing.h8,
+                          _AlertBanner(
+                            tone: _AlertTone.warn,
+                            title: 'Có môn điểm thấp cần củng cố',
+                            body:
+                                'Một số môn dưới ngưỡng an toàn. Hãy ôn lại hoặc học khóa bổ trợ trước khi thi kỳ tới.',
+                            items: weaknesses
+                                .map((w) => '${w['title']} (${w['final_score']})')
+                                .toList(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  AppSpacing.h12,
+                ],
                 _Card(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,6 +220,70 @@ class _StudyAdvisorScreenState extends ConsumerState<StudyAdvisorScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _AlertTone { static const danger = 0; static const warn = 1; }
+
+class _AlertBanner extends StatelessWidget {
+  const _AlertBanner({
+    required this.tone,
+    required this.title,
+    required this.body,
+    this.items = const [],
+  });
+
+  final int tone;
+  final String title;
+  final String body;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDanger = tone == _AlertTone.danger;
+    final color = isDanger ? const Color(0xFFDC2626) : const Color(0xFFD97706);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                isDanger ? Icons.warning_amber_rounded : Icons.info_outline,
+                color: color,
+                size: 18,
+              ),
+              AppSpacing.w8,
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(fontWeight: FontWeight.w700, color: color),
+                ),
+              ),
+            ],
+          ),
+          AppSpacing.h8,
+          Text(body),
+          if (items.isNotEmpty) ...[
+            AppSpacing.h8,
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text('• $item'),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
