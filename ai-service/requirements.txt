@@ -6,3 +6,6 @@ pypdf[image]>=5.0.0
 pdfminer.six>=20240706
 python-docx>=1.1.0
 Pillow>=10.0.0
+
+# RAG (giáo trình PTIT → ChromaDB)
+chromadb>=0.5.23

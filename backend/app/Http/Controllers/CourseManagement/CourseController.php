@@ -100,6 +100,7 @@ class CourseController extends Controller
             'thumbnail'   => ['nullable', 'url', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
             'is_featured' => ['nullable', 'boolean'],
+            'certificate_template_id' => ['nullable', 'integer', 'exists:certificate_templates,id'],
         ]);
 
         // Auto-generate unique slug from title
@@ -126,6 +127,7 @@ class CourseController extends Controller
             'thumbnail'   => $thumbnailPath,
             'status'      => 'draft',
             'is_featured' => (bool) ($validated['is_featured'] ?? false),
+            'certificate_template_id' => $validated['certificate_template_id'] ?? null,
         ]);
 
         $course->load('instructor:id,name,avatar');
@@ -210,6 +212,10 @@ class CourseController extends Controller
             }
         }
 
+        if ($request->exists('certificate_template_id') && $request->input('certificate_template_id') === '') {
+            $request->merge(['certificate_template_id' => null]);
+        }
+
         $validated = $request->validate([
             'title'       => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -227,6 +233,7 @@ class CourseController extends Controller
             'thumbnail_file' => ['nullable', 'image', 'max:5120'],
             'status'      => ['sometimes', 'in:draft,published,closed,pending_review,rejected'],
             'is_featured' => ['nullable', 'boolean'],
+            'certificate_template_id' => ['nullable', 'integer', 'exists:certificate_templates,id'],
         ]);
 
         if ($request->hasFile('thumbnail_file')) {
@@ -238,6 +245,11 @@ class CourseController extends Controller
 
         if ($request->exists('is_featured')) {
             $validated['is_featured'] = $request->boolean('is_featured');
+        }
+
+        if ($request->exists('certificate_template_id')) {
+            $rawCert = $request->input('certificate_template_id');
+            $validated['certificate_template_id'] = ($rawCert === '' || $rawCert === null) ? null : (int) $rawCert;
         }
 
         $course->fill($validated)->save();

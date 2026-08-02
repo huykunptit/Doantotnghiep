@@ -8,6 +8,7 @@ definePageMeta({
 })
 
 interface CourseItem { id: number, title: string }
+interface AdminClass { id: number, code: string, name: string }
 interface ExamItem {
   id: number
   title: string
@@ -27,6 +28,15 @@ interface ExamItem {
 const { t, locale } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
+
+const classes = ref<AdminClass[]>([])
+const enrollExamId = ref<number | null>(null)
+const enrollClassId = ref<number | null>(null)
+const enrolling = ref(false)
+const enrollDialog = computed({
+  get: () => enrollExamId.value !== null,
+  set: (v: boolean) => { if (!v) enrollExamId.value = null },
+})
 
 const activeScope = ref<'standalone' | 'course'>('standalone')
 const courses = ref<CourseItem[]>([])
@@ -281,8 +291,49 @@ function goCreatePage() {
   navigateTo(`/admin/quiz/create?type=${activeScope.value === 'standalone' ? 'standalone' : 'course_final'}`)
 }
 
+async function loadClasses() {
+  try {
+    const res = await useApi<any>('/admin/academic/administrative-classes', { query: { per_page: 100 } })
+    classes.value = Array.isArray(res) ? res : (res.data || [])
+  }
+  catch {
+    classes.value = []
+  }
+}
+
+function openEnroll(exam: ExamItem) {
+  enrollExamId.value = exam.id
+  enrollClassId.value = null
+}
+
+async function enrollClass() {
+  if (!enrollExamId.value || !enrollClassId.value) return
+  enrolling.value = true
+  try {
+    const res = await useApi<{ message?: string }>(`/exams/${enrollExamId.value}/enroll-class`, {
+      method: 'POST',
+      body: { administrative_class_id: enrollClassId.value },
+    })
+    toast.add({ severity: 'success', summary: res.message || t('admin.quiz.enrollOk'), life: 3000 })
+    enrollExamId.value = null
+    enrollClassId.value = null
+    await loadExams()
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.quiz.enrollError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    enrolling.value = false
+  }
+}
+
 onMounted(async () => {
-  await loadCourses()
+  await Promise.all([loadCourses(), loadClasses()])
   await loadExams()
 })
 </script>
@@ -420,8 +471,17 @@ onMounted(async () => {
         <Column :header="t('admin.quiz.schedule')" style="min-width:140px">
           <template #body="{ data }">{{ fmtDate(data.starts_at) }} – {{ fmtDate(data.ends_at) }}</template>
         </Column>
-        <Column :header="t('admin.users.actions')" style="width:9rem">
+        <Column :header="t('admin.users.actions')" style="width:12rem">
           <template #body="{ data }">
+            <Button
+              icon="pi pi-users"
+              text
+              rounded
+              severity="help"
+              :aria-label="t('admin.quiz.enrollClass')"
+              :title="t('admin.quiz.enrollClass')"
+              @click="openEnroll(data)"
+            />
             <Button icon="pi pi-pencil" text rounded severity="secondary" :aria-label="t('admin.quiz.edit')" @click="openEdit(data)" />
             <Button icon="pi pi-trash" text rounded severity="danger" :aria-label="t('admin.quiz.deleteTitle')" @click="askDelete(data)" />
           </template>
@@ -495,6 +555,30 @@ onMounted(async () => {
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
         <Button :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="saveExam" />
+      </template>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="enrollDialog"
+      modal
+      :header="t('admin.quiz.enrollClass')"
+      :style="{ width: 'min(420px, 95vw)' }"
+    >
+      <label class="field">
+        <span>{{ t('admin.quiz.adminClass') }}</span>
+        <Select
+          v-model="enrollClassId"
+          :options="classes"
+          option-label="code"
+          option-value="id"
+          filter
+          class="w-full"
+          :placeholder="t('admin.quiz.selectClass')"
+        />
+      </label>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="enrollExamId = null" />
+        <Button :label="t('admin.quiz.enroll')" icon="pi pi-users" :loading="enrolling" @click="enrollClass" />
       </template>
     </Dialog>
   </div>

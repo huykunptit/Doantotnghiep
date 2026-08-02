@@ -38,6 +38,13 @@ export const instructorMenu: InstructorMenuItem[] = [
     permission: ['manage_courses', 'manage_grades'],
   },
   {
+    key: 'grades',
+    labelKey: 'instructor.menu.grades',
+    icon: 'pi pi-list-check',
+    to: '/instructor/sections',
+    permission: ['manage_grades', 'view_grades'],
+  },
+  {
     key: 'exams',
     labelKey: 'instructor.menu.exams',
     icon: 'pi pi-file-edit',
@@ -55,6 +62,9 @@ export function resolveInstructorTitle(path: string, t: TranslateFn) {
   }
   if (path.includes('/revenue') && path !== '/instructor/revenue') {
     return t('instructor.menu.courseRevenue')
+  }
+  if (/^\/instructor\/sections\/\d+\/grades/.test(path)) {
+    return t('instructor.menu.gradebook')
   }
   const match = instructorMenu.find(item => item.to === path || path.startsWith(`${item.to}/`))
   return match ? t(match.labelKey) : t('instructor.console')
@@ -79,6 +89,12 @@ export function resolveInstructorBreadcrumb(path: string, t: TranslateFn) {
     return [
       { label: t('instructor.menu.courses'), to: '/instructor/courses' },
       { label: t('instructor.menu.courseRevenue') },
+    ]
+  }
+  if (/^\/instructor\/sections\/\d+\/grades/.test(path)) {
+    return [
+      { label: t('instructor.menu.grades'), to: '/instructor/sections' },
+      { label: t('instructor.menu.gradebook') },
     ]
   }
 

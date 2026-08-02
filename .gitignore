@@ -20,3 +20,9 @@
 **/.nuxt/
 **/.output/
 **/dist/
+
+# AI RAG local data (PDF textbooks + ChromaDB)
+ai-service/data/textbooks/
+ai-service/data/chroma/
+ai-service/**/__pycache__/
+ai-service/_repo_probe*.txt

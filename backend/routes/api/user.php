@@ -157,6 +157,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/courses/{course}/approve', [AdminController::class, 'approveCourse']);
         Route::put('/courses/{course}/reject', [AdminController::class, 'rejectCourse']);
 
+        // Tuition (học phí chính quy)
+        Route::get('/tuitions', [\App\Http\Controllers\UserManagement\TuitionController::class, 'adminIndex']);
+        Route::post('/tuitions', [\App\Http\Controllers\UserManagement\TuitionController::class, 'adminStore']);
+        Route::put('/tuitions/{tuition}', [\App\Http\Controllers\UserManagement\TuitionController::class, 'adminUpdate']);
+        Route::post('/tuitions/{tuition}/mark-paid', [\App\Http\Controllers\UserManagement\TuitionController::class, 'adminMarkPaid']);
+        Route::delete('/tuitions/{tuition}', [\App\Http\Controllers\UserManagement\TuitionController::class, 'adminDestroy']);
+
         // Categories
         Route::get('/categories', [AdminController::class, 'categories']);
         Route::post('/categories', [AdminController::class, 'storeCategory']);
