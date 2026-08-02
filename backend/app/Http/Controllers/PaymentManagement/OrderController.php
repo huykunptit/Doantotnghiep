@@ -86,9 +86,11 @@ class OrderController extends Controller
             return response()->json(['message' => 'Course is not available'], 422);
         }
 
-        if ($course->course_mode === 'core') {
+        // CTĐT (core) không bán qua marketplace khi có phí — do phòng đào tạo ghi danh.
+        // Khóa miễn phí vẫn cho tự đăng ký trên web (enrollment_source=marketplace, không tính GPA CTĐT).
+        if ($course->course_mode === 'core' && (int) $course->price > 0) {
             return response()->json([
-                'message' => 'Core curriculum courses cannot be purchased. Enrollment is handled by academic affairs.',
+                'message' => 'Khóa thuộc chương trình đào tạo (có phí học vụ) không mua trên web. Liên hệ phòng đào tạo để được ghi danh.',
             ], 422);
         }
 

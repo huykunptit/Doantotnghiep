@@ -190,14 +190,15 @@ class AiManagementController extends Controller
                 ],
                 [
                     'id' => 'claude',
-                    'name' => 'Claude (Anthropic)',
+                    'name' => 'Claude (via proxy)',
                     'icon' => 'psychology',
                     'color' => '#d97706',
                     'models' => [
-                        ['id' => 'claude-3-7-sonnet-20250219', 'name' => 'Claude 3.7 Sonnet', 'tier' => 'premium'],
-                        ['id' => 'claude-3-5-sonnet-20241022', 'name' => 'Claude 3.5 Sonnet', 'tier' => 'standard'],
-                        ['id' => 'claude-3-5-haiku-20241022', 'name' => 'Claude 3.5 Haiku', 'tier' => 'economy'],
-                        ['id' => 'claude-3-opus-20240229', 'name' => 'Claude 3 Opus', 'tier' => 'premium'],
+                        ['id' => 'nghi/claude-haiku-4.5', 'name' => 'Claude Haiku 4.5 (nghimmo)', 'tier' => 'economy'],
+                        ['id' => 'nghi/claude-sonnet-4.6', 'name' => 'Claude Sonnet 4.6 (nghimmo)', 'tier' => 'standard'],
+                        ['id' => 'nghi/claude-sonnet-5', 'name' => 'Claude Sonnet 5 (nghimmo)', 'tier' => 'premium'],
+                        ['id' => 'nghi/claude-opus-5', 'name' => 'Claude Opus 5 (nghimmo)', 'tier' => 'premium'],
+                        ['id' => 'claude-3-5-haiku-20241022', 'name' => 'Claude 3.5 Haiku (official)', 'tier' => 'economy'],
                     ],
                 ],
                 [

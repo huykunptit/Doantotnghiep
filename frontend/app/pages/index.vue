@@ -3,6 +3,7 @@ definePageMeta({ layout: 'default' })
 
 interface Course {
   id: number
+  slug?: string
   title: string
   description?: string
   thumbnail?: string | null
@@ -124,7 +125,7 @@ useSeoMeta({
         <NuxtLink
           v-for="course in featuredCourses"
           :key="course.id"
-          :to="`/courses/${course.id}`"
+          :to="`/courses/${course.slug || course.id}`"
           class="course-item"
         >
           <div class="course-media" :style="course.thumbnail ? { backgroundImage: `url(${course.thumbnail})` } : undefined">

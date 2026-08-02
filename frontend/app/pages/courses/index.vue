@@ -3,6 +3,7 @@ definePageMeta({ layout: 'default' })
 
 interface Course {
   id: number
+  slug?: string
   title: string
   description?: string
   thumbnail?: string | null
@@ -86,7 +87,7 @@ watch(() => route.query, () => {
     <StudentCourseRecommendations v-if="auth.isAuthenticated" :limit="4" compact :show-more="false" class="rec-block" />
 
     <div class="course-grid">
-      <NuxtLink v-for="course in courses" :key="course.id" :to="`/courses/${course.id}`" class="course-item">
+      <NuxtLink v-for="course in courses" :key="course.id" :to="`/courses/${course.slug || course.id}`" class="course-item">
         <div class="course-media" :style="course.thumbnail ? { backgroundImage: `url(${course.thumbnail})` } : undefined">
           <span v-if="!course.thumbnail"><i class="pi pi-book" /></span>
         </div>

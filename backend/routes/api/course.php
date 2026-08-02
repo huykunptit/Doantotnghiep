@@ -28,6 +28,7 @@ Route::get('/courses/{course}/lessons', [LessonController::class, 'index']);
 Route::get('/courses/{course}/lessons/{lesson}', [LessonController::class, 'show']);
 Route::get('/courses/{course}/lessons/{lesson}/video-url', [LessonController::class, 'videoUrl']);
 Route::get('/courses/{course}/reviews', [ReviewController::class, 'index']);
+Route::get('/courses/{course}/sections', [SectionController::class, 'index']);
 
 // ─── Protected Course Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -40,7 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/courses/{course}', [CourseController::class, 'destroy']);
         Route::post('/courses/{course}/publish', [CourseController::class, 'publish']);
 
-        Route::get('/courses/{course}/sections', [SectionController::class, 'index']);
         Route::post('/courses/{course}/sections', [SectionController::class, 'store']);
         Route::get('/sections/{section}', [SectionController::class, 'show']);
         Route::put('/sections/{section}', [SectionController::class, 'update']);

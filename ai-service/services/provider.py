@@ -227,7 +227,7 @@ async def _call_claude(
     model: str | None,
     temperature: float,
 ) -> tuple[str | None, TokenUsage]:
-    """Gọi Anthropic Claude Messages API."""
+    """Gọi Claude Messages API (Anthropic official hoặc proxy như nghimmo)."""
     system_text = ""
     claude_messages: list[dict[str, str]] = []
     for msg in messages:
@@ -235,6 +235,10 @@ async def _call_claude(
             system_text += msg["content"] + "\n"
         else:
             claude_messages.append({"role": msg["role"], "content": msg["content"]})
+
+    # Một số gateway yêu cầu ít nhất 1 user message
+    if not claude_messages:
+        claude_messages = [{"role": "user", "content": "Hello"}]
 
     body: dict = {
         "model": model or settings.DEFAULT_CLAUDE_MODEL,
@@ -245,34 +249,52 @@ async def _call_claude(
     if system_text.strip():
         body["system"] = system_text.strip()
 
+    headers = {
+        "Content-Type": "application/json",
+        "anthropic-version": settings.CLAUDE_API_VERSION,
+    }
+    auth_mode = (settings.CLAUDE_AUTH_MODE or "bearer").strip().lower()
+    if auth_mode == "x-api-key":
+        headers["x-api-key"] = api_key
+    else:
+        # Gateway bên thứ 3 (nghimmo, …) thường dùng Bearer
+        headers["Authorization"] = f"Bearer {api_key}"
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             settings.CLAUDE_API_URL,
             json=body,
-            headers={
-                "Content-Type": "application/json",
-                "x-api-key": api_key,
-                "anthropic-version": settings.CLAUDE_API_VERSION,
-            },
+            headers=headers,
             timeout=settings.CLAUDE_TIMEOUT,
         )
         response.raise_for_status()
         data = response.json()
 
+    # Anthropic format
     content_blocks = data.get("content") or []
-    reply = "\n".join(
-        block.get("text", "").strip()
-        for block in content_blocks
-        if block.get("type") == "text"
-    ).strip()
+    if content_blocks:
+        reply = "\n".join(
+            block.get("text", "").strip()
+            for block in content_blocks
+            if block.get("type") == "text"
+        ).strip()
+        usage = data.get("usage", {})
+        prompt_tokens = usage.get("input_tokens", 0)
+        completion_tokens = usage.get("output_tokens", 0)
+    else:
+        # Một số proxy trả OpenAI-compatible envelope
+        choices = data.get("choices") or []
+        reply = ""
+        if choices:
+            reply = ((choices[0].get("message") or {}).get("content") or "").strip()
+        usage = data.get("usage") or {}
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
 
-    usage = data.get("usage", {})
-    prompt_tokens = usage.get("input_tokens", 0)
-    completion_tokens = usage.get("output_tokens", 0)
     tokens: TokenUsage = {
-        "prompt": prompt_tokens,
-        "completion": completion_tokens,
-        "total": prompt_tokens + completion_tokens,
+        "prompt": int(prompt_tokens or 0),
+        "completion": int(completion_tokens or 0),
+        "total": int(prompt_tokens or 0) + int(completion_tokens or 0),
     }
     return reply or None, tokens
 

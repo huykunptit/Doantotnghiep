@@ -17,14 +17,14 @@ class Settings:
     DEFAULT_OPENAI_MODEL: str = "gpt-4o-mini"
     DEFAULT_GEMINI_MODEL: str = "gemini-2.0-flash"
     DEFAULT_OPENROUTER_MODEL: str = "deepseek/deepseek-chat:free"
-    DEFAULT_CLAUDE_MODEL: str = "claude-3-5-haiku-20241022"
+    DEFAULT_CLAUDE_MODEL: str = "nghi/claude-haiku-4.5"
     DEFAULT_OLLAMA_MODEL: str = "qwen2.5:latest"
 
     # --- Timeouts (seconds) ---
     OPENAI_TIMEOUT: int = 60
     GEMINI_TIMEOUT: int = 60
     OPENROUTER_TIMEOUT: int = 60
-    CLAUDE_TIMEOUT: int = 60
+    CLAUDE_TIMEOUT: int = 90
     OLLAMA_TIMEOUT: int = 180  # local CPU có thể chậm
 
     # --- Generation defaults ---
@@ -45,8 +45,11 @@ class Settings:
     OPENAI_API_URL: str = "https://api.openai.com/v1/chat/completions"
     GEMINI_API_URL: str = "https://generativelanguage.googleapis.com/v1beta/models"
     OPENROUTER_API_URL: str = "https://openrouter.ai/api/v1/chat/completions"
-    CLAUDE_API_URL: str = "https://api.anthropic.com/v1/messages"
+    # Claude qua proxy bên thứ 3 (nghimmo) — Anthropic Messages API
+    CLAUDE_API_URL: str = "https://api.nghimmo.com/v1/messages"
     CLAUDE_API_VERSION: str = "2023-06-01"
+    # bearer = Authorization: Bearer (gateway); x-api-key = official Anthropic
+    CLAUDE_AUTH_MODE: str = "bearer"
     # Docker → Ollama trên Windows host
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
 
@@ -61,6 +64,9 @@ class Settings:
             "DEFAULT_CLAUDE_MODEL",
             "DEFAULT_OLLAMA_MODEL",
             "OLLAMA_BASE_URL",
+            "CLAUDE_API_URL",
+            "CLAUDE_AUTH_MODE",
+            "CLAUDE_API_VERSION",
         ]:
             env_val = os.getenv(key)
             if env_val:
