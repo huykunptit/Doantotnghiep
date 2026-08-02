@@ -36,6 +36,11 @@ class Settings:
     MAX_CATEGORIES_IN_CONTEXT: int = 8
     MAX_CATEGORY_CHILDREN: int = 4
 
+    # --- RAG ---
+    RAG_ENABLED: bool = True
+    RAG_TOP_K: int = 5
+    RAG_SOURCE_REPO: str = "https://github.com/0xl4p/Giao-Trinh-PTIT"
+
     # --- Provider API URLs ---
     OPENAI_API_URL: str = "https://api.openai.com/v1/chat/completions"
     GEMINI_API_URL: str = "https://generativelanguage.googleapis.com/v1beta/models"

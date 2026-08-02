@@ -1,0 +1,23 @@
+RAG — Ingest giáo trình PTIT vào ChromaDB
+========================================
+
+Nguồn: https://github.com/0xl4p/Giao-Trinh-PTIT (~193 PDF)
+
+1) Cài dependency (trong thư mục ai-service):
+   pip install -r requirements.txt
+
+2) Tải + index vài môn demo (khuyến nghị lần đầu):
+   python -m rag.ingest --download --limit 8
+
+3) Index toàn bộ PDF đã có trong data/textbooks:
+   python -m rag.ingest --limit 0
+
+4) Reset vector store rồi ingest lại:
+   python -m rag.ingest --reset --download --limit 8
+
+5) Kiểm tra:
+   GET http://127.0.0.1:8001/rag/status
+   POST http://127.0.0.1:8001/rag/query  {"query":"cây nhị phân tìm kiếm","top_k":3}
+
+Chatbot sinh viên (POST /ai/chat) sẽ tự retrieve khi collection đã có dữ liệu.
+Guest chatbot không dùng RAG (chỉ catalog/heuristic).

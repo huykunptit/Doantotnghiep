@@ -18,10 +18,19 @@ TokenUsage = dict[str, int]  # {"prompt": x, "completion": y, "total": z}
 EMPTY_TOKENS: TokenUsage = {"prompt": 0, "completion": 0, "total": 0}
 
 
+class RagSource(BaseModel):
+    """Nguồn giáo trình được retrieve cho câu trả lời."""
+    source: str
+    subject: str | None = None
+    score: float | None = None
+
+
 class AIResponse(BaseModel):
     """Response wrapper chuẩn cho các endpoint trả về kết quả AI."""
     reply: str
     tokens_used: TokenUsage = Field(default_factory=lambda: {**EMPTY_TOKENS})
+    rag_used: bool = False
+    sources: list[RagSource] = Field(default_factory=list)
 
 
 # =============================================================================
@@ -84,6 +93,12 @@ class ChatRequest(BaseModel):
     role: str | None = None
     context: ChatContext | None = None
     history: list[dict[str, str]] = Field(default_factory=list)
+    # RAG: hỏi đáp theo giáo trình (mặc định bật cho student)
+    use_rag: bool | None = None
+    rag_top_k: int = Field(default=5, ge=1, le=12)
+    # global = mọi giáo trình; course = chỉ môn của khóa đang học
+    rag_scope: str | None = None
+    subject_hint: str | None = None
 
 
 # =============================================================================
