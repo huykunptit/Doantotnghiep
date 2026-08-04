@@ -18,7 +18,7 @@ class NotificationSeeder extends Seeder
     {
         $admin      = User::query()->where('email', 'admin@lms.com')->first();
         $instructors = User::query()->where('email', 'like', 'instructor%@lms.com')->orderBy('id')->get();
-        $students    = User::query()->where('email', 'like', 'student%@lms.com')->orderBy('id')->get();
+        $students    = User::role('student')->orderBy('id')->get();
 
         if (!$admin || $instructors->isEmpty() || $students->isEmpty()) {
             $this->command?->warn('NotificationSeeder: thiếu user, bỏ qua.');

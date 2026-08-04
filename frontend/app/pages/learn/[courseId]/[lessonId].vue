@@ -175,14 +175,6 @@ watch([courseId, lessonId], load, { immediate: true })
             <a v-if="lesson.video_url" :href="lesson.video_url" target="_blank">{{ t('student.learn.openFile') }}</a>
           </section>
 
-          <StudentLearnTip
-            :course-id="courseId"
-            :lesson-id="lessonId"
-            :lesson-title="lesson.title"
-            :lesson-type="lesson.type"
-            :progress-percent="percent"
-          />
-
           <footer class="actions">
             <Button
               v-if="lesson.type !== 'quiz' && lesson.type !== 'assignment'"

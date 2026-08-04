@@ -22,6 +22,7 @@ export const studentMenu: StudentMenuItem[] = [
   { key: 'news', labelKey: 'student.menu.news', icon: 'pi pi-megaphone', to: '/news' },
   { key: 'career', labelKey: 'student.menu.career', icon: 'pi pi-briefcase', to: '/career' },
   { key: 'studyAdvisor', labelKey: 'student.menu.studyAdvisor', icon: 'pi pi-sparkles', to: '/student/study-advisor' },
+  { key: 'experienceSurvey', labelKey: 'student.menu.experienceSurvey', icon: 'pi pi-comments', to: '/student/experience-survey' },
 ]
 
 type TranslateFn = (key: string) => string
@@ -31,6 +32,7 @@ export function resolveStudentTitle(path: string, t: TranslateFn) {
   if (path.startsWith('/paths')) return t('student.menu.paths')
   if (path.startsWith('/career')) return t('student.menu.career')
   if (path.startsWith('/student/study-advisor')) return t('student.menu.studyAdvisor')
+  if (path.startsWith('/student/experience-survey')) return t('student.menu.experienceSurvey')
   if (path.startsWith('/student/points')) return t('student.menu.points')
   if (path.startsWith('/student/notifications')) return t('student.notif.title')
   if (path.startsWith('/news')) return t('student.menu.news')

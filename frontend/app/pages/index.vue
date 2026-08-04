@@ -22,6 +22,13 @@ interface Category {
   courses_count?: number
 }
 
+/** Ba ngành chính quy — luôn public trên trang chủ (kể cả khi API lỗi SSR). */
+const PUBLIC_MAJORS: Category[] = [
+  { id: 15, name: 'Công nghệ thông tin', slug: 'cong-nghe-thong-tin', courses_count: 0 },
+  { id: 19, name: 'Quản trị kinh doanh', slug: 'quan-tri-kinh-doanh', courses_count: 0 },
+  { id: 21, name: 'Điện tử viễn thông', slug: 'dien-tu-vien-thong', courses_count: 0 },
+]
+
 const { settings } = useSiteSettings()
 const brand = computed(() => settings.value.site_name || 'Eript LMS')
 const tagline = computed(() => settings.value.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.')
@@ -41,12 +48,27 @@ const { data: coursesData } = await useAsyncData('home-courses', async () => {
   }).catch(() => ({ data: [] as Course[] }))
 }, { getCachedData: () => undefined })
 
-const { data: categoriesData } = await useAsyncData('home-categories', () =>
-  useApi<Category[]>('/courses/categories', { token: null }).catch(() => [] as Category[]),
-)
+const { data: categoriesData } = await useAsyncData('home-categories', async () => {
+  const list = await useApi<Category[]>('/courses/categories', { token: null }).catch(() => [] as Category[])
+  return Array.isArray(list) ? list : []
+}, { getCachedData: () => undefined })
 
 const featuredCourses = computed(() => coursesData.value?.data ?? [])
-const categories = computed(() => (categoriesData.value ?? []).slice(0, 3))
+
+const categories = computed(() => {
+  const fromApi = categoriesData.value ?? []
+  return PUBLIC_MAJORS.map((major) => {
+    const hit = fromApi.find(c => c.slug === major.slug)
+    return hit
+      ? {
+          id: hit.id,
+          name: hit.name || major.name,
+          slug: hit.slug || major.slug,
+          courses_count: hit.courses_count ?? major.courses_count,
+        }
+      : { ...major }
+  })
+})
 
 const heroLead = computed(() =>
   'Công nghệ thông tin, Quản trị kinh doanh và Điện tử viễn thông',
@@ -109,7 +131,6 @@ useSeoMeta({
           <strong>{{ category.name }}</strong>
           <span>{{ category.courses_count || 0 }} học phần / khóa học</span>
         </NuxtLink>
-        <div v-if="!categories.length" class="empty-note">Danh mục sẽ xuất hiện khi hệ thống có dữ liệu công khai.</div>
       </div>
     </section>
 

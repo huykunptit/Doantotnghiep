@@ -14,8 +14,6 @@ import '../../data/repositories/learning_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/loading_overlay.dart';
-import '../../../ai/presentation/widgets/learn_tip_card.dart';
-
 class LessonPlayerScreen extends ConsumerStatefulWidget {
   const LessonPlayerScreen({
     super.key,
@@ -367,13 +365,6 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                     ],
                   ],
                 ),
-              ),
-
-              LearnTipCard(
-                courseId: widget.courseId,
-                lessonId: widget.lessonId,
-                lessonTitle: lesson.title,
-                lessonType: lesson.type,
               ),
 
               // Tabs

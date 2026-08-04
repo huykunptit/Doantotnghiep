@@ -130,10 +130,37 @@ class CareerAdvisorController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to process CV',
-                'error' => $e->getMessage()
+                'message' => 'Không xử lý được file CV. Vui lòng thử lại hoặc dùng form.',
             ], 500);
         }
+    }
+
+    /**
+     * Xóa toàn bộ CV của user để upload/tạo lại.
+     */
+    public function deleteCV(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $cvs = UserCV::query()->where('user_id', $user->id)->get();
+        foreach ($cvs as $cv) {
+            if ($cv->file_path) {
+                try {
+                    $disk = $this->mediaService->getDisk();
+                    if (Storage::disk($disk)->exists($cv->file_path)) {
+                        Storage::disk($disk)->delete($cv->file_path);
+                    }
+                } catch (\Throwable) {
+                    // ignore storage cleanup errors
+                }
+            }
+            $cv->delete();
+        }
+
+        return response()->json([
+            'message' => 'Đã xóa CV. Bạn có thể tải lên hoặc tạo lại.',
+        ]);
     }
 
     /**

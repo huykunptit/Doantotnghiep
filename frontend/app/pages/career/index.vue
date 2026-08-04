@@ -53,12 +53,14 @@ const loading = ref(true)
 const saving = ref(false)
 const evaluating = ref(false)
 const uploading = ref(false)
+const deleting = ref(false)
 const mode = ref<'choose' | 'upload' | 'form' | 'result'>('choose')
 const cv = ref<CvRow | null>(null)
 const evaluation = ref<Evaluation | null>(null)
 const courses = ref<CourseCard[]>([])
 const parseWarning = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const dragOver = ref(false)
 
 const form = reactive({
   full_name: auth.user?.name || '',
@@ -225,6 +227,42 @@ function onFileChange(ev: Event) {
   input.value = ''
 }
 
+function onDrop(ev: DragEvent) {
+  ev.preventDefault()
+  dragOver.value = false
+  const file = ev.dataTransfer?.files?.[0]
+  if (file) uploadFile(file)
+}
+
+function onDragOver(ev: DragEvent) {
+  ev.preventDefault()
+  dragOver.value = true
+}
+
+function onDragLeave(ev: DragEvent) {
+  ev.preventDefault()
+  dragOver.value = false
+}
+
+async function deleteCv() {
+  deleting.value = true
+  try {
+    await useApi('/career/cv', { method: 'DELETE' })
+    cv.value = null
+    evaluation.value = null
+    courses.value = []
+    parseWarning.value = ''
+    mode.value = 'upload'
+    toast.add({ severity: 'success', summary: t('career.deleteOk'), life: 2500 })
+  }
+  catch (e: any) {
+    toast.add({ severity: 'error', summary: t('career.deleteError'), detail: e?.data?.message, life: 3500 })
+  }
+  finally {
+    deleting.value = false
+  }
+}
+
 async function runEvaluate() {
   if (!cv.value) return
   if (!form.target_role.trim()) {
@@ -268,13 +306,6 @@ async function recommend() {
   await runEvaluate()
 }
 
-function resetCv() {
-  mode.value = 'choose'
-  evaluation.value = null
-  courses.value = []
-  parseWarning.value = ''
-}
-
 onMounted(load)
 </script>
 
@@ -292,9 +323,13 @@ onMounted(load)
 
     <div v-else-if="parseWarning" class="banner warn">
       <i class="pi pi-exclamation-triangle" />
-      <div>
+      <div class="banner-body">
         <strong>{{ t('career.parseFailed') }}</strong>
         <p>{{ parseWarning }}</p>
+        <div class="actions">
+          <Button :label="t('career.deleteCv')" icon="pi pi-trash" severity="danger" outlined size="small" :loading="deleting" @click="deleteCv" />
+          <Button :label="t('career.uploadAgain')" icon="pi pi-upload" size="small" @click="parseWarning = ''; mode = 'upload'" />
+        </div>
       </div>
     </div>
 
@@ -313,9 +348,23 @@ onMounted(load)
     </section>
 
     <section v-else-if="mode === 'upload'" class="panel">
-      <input ref="fileInput" type="file" accept=".pdf,.doc,.docx" class="hidden" @change="onFileChange">
+      <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" @change="onFileChange">
       <p>{{ t('career.uploadHint') }}</p>
       <p class="muted">{{ t('career.uploadFormats') }}</p>
+      <button
+        type="button"
+        class="dropzone"
+        :class="{ over: dragOver, busy: uploading }"
+        :disabled="uploading"
+        @click="fileInput?.click()"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
+      >
+        <i class="pi pi-cloud-upload" />
+        <strong>{{ uploading ? t('career.uploading') : t('career.dropTitle') }}</strong>
+        <span>{{ t('career.dropHint') }}</span>
+      </button>
       <div class="actions">
         <Button :label="t('career.pickFile')" icon="pi pi-upload" :loading="uploading" @click="fileInput?.click()" />
         <Button :label="t('common.cancel')" severity="secondary" text @click="mode = 'choose'" />
@@ -353,7 +402,10 @@ onMounted(load)
             <span v-for="s in skillsPreview.slice(0, 10)" :key="s">{{ s }}</span>
           </div>
         </div>
-        <Button :label="t('career.newCv')" severity="secondary" outlined @click="resetCv" />
+        <div class="cv-actions">
+          <Button :label="t('career.deleteCv')" icon="pi pi-trash" severity="danger" outlined :loading="deleting" @click="deleteCv" />
+          <Button :label="t('career.uploadAgain')" icon="pi pi-upload" severity="secondary" outlined @click="mode = 'upload'" />
+        </div>
       </section>
 
       <section class="panel goal">
@@ -500,8 +552,25 @@ onMounted(load)
 .choice span { color: var(--text-muted); font-size: .9rem; }
 .choice em { font-style: normal; font-size: .78rem; font-weight: 700; color: var(--brand); }
 .panel { border: 1px solid var(--border); border-radius: 16px; padding: 16px; background: color-mix(in srgb, var(--surface) 92%, transparent); }
-.cv-card { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.cv-card { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
 .cv-card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+.cv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.banner-body { flex: 1; min-width: 0; }
+.dropzone {
+  display: grid; gap: 6px; justify-items: center; text-align: center;
+  width: 100%; margin-top: 12px; padding: 28px 16px;
+  border: 2px dashed color-mix(in srgb, var(--brand) 40%, var(--border));
+  border-radius: 16px; background: color-mix(in srgb, var(--brand-soft, #ecfdf5) 55%, var(--surface));
+  cursor: pointer; font: inherit; color: inherit; transition: border-color .15s ease, background .15s ease;
+}
+.dropzone:hover, .dropzone.over {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 10%, var(--surface));
+}
+.dropzone.busy { opacity: .7; cursor: wait; }
+.dropzone i { font-size: 1.8rem; color: var(--brand); }
+.dropzone strong { font-size: 1rem; }
+.dropzone span { color: var(--text-muted); font-size: .88rem; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .tags span {
   padding: 4px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600;

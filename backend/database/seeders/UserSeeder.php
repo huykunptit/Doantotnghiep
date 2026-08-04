@@ -11,9 +11,8 @@ use Illuminate\Support\Facades\Hash;
  * Seed tài khoản người dùng:
  *  - 1 admin
  *  - 8 instructor (instructor1@lms.com … instructor8@lms.com)
- *  - 18 student  (student1@lms.com  … student18@lms.com)
- *
- * Email giữ dạng demo để các seeder khác tra cứu ổn định; tên là họ-tên Việt.
+ *  - student1@lms.com … student16@lms.com  (tài khoản demo gốc, giữ nguyên email)
+ *  - student17@… trở đi: tạm @stu.ptit.edu.vn → OrgAcademic đổi thành {mã SV}@stu.ptit.edu.vn
  *
  * Chạy độc lập: php artisan db:seed --class=UserSeeder
  */
@@ -55,8 +54,14 @@ class UserSeeder extends Seeder
         ],
     ];
 
-    /** @var list<string> */
+    /**
+     * Danh sách SV gốc (18) + bổ sung thêm để đủ phân bổ ~10 SV/lớp hành chính (demo khảo sát).
+     * Email tạm: student{n}@stu.ptit.edu.vn → OrgAcademicSeeder đổi sang {mã SV}@stu.ptit.edu.vn.
+     *
+     * @var list<string>
+     */
     private const STUDENTS = [
+        // —— 18 tài khoản gốc ——
         'Nguyễn Minh Anh',
         'Trần Hoàng Long',
         'Lê Thị Thu Trang',
@@ -75,6 +80,109 @@ class UserSeeder extends Seeder
         'Lương Nhật Minh',
         'Hồ Gia Bảo',
         'Đinh Thị Quỳnh Nga',
+        // —— Bổ sung SV chuẩn cùng form ——
+        'Nguyễn Thị Mai Chi',
+        'Trần Văn Đức',
+        'Lê Hoàng Nam',
+        'Phạm Thị Hồng Nhung',
+        'Hoàng Minh Tuấn',
+        'Vũ Thị Thanh Hà',
+        'Đặng Quốc Huy',
+        'Bùi Thị Ngọc Anh',
+        'Đỗ Văn Phúc',
+        'Ngô Thị Kim Oanh',
+        'Lý Minh Châu',
+        'Mai Thị Thuỳ Dung',
+        'Phan Văn Hưng',
+        'Chu Thị Lan',
+        'Tạ Minh Khôi',
+        'Lương Thị Bảo Trân',
+        'Hồ Văn Thành',
+        'Đinh Thị Thuý',
+        'Nguyễn Văn An',
+        'Trần Thị Bình',
+        'Lê Minh Cường',
+        'Phạm Thị Duyên',
+        'Hoàng Văn Em',
+        'Vũ Thị Phương',
+        'Đặng Minh Giang',
+        'Bùi Thị Hạnh',
+        'Đỗ Văn Ích',
+        'Ngô Thị Kim',
+        'Lý Văn Lâm',
+        'Mai Thị My',
+        'Phan Văn Ninh',
+        'Chu Thị Oanh',
+        'Tạ Văn Phát',
+        'Lương Thị Quyên',
+        'Hồ Văn Sơn',
+        'Đinh Thị Trinh',
+        'Nguyễn Hoàng Uyên',
+        'Trần Minh Vũ',
+        'Lê Thị Xuân',
+        'Phạm Văn Yên',
+        'Hoàng Thị Ánh',
+        'Vũ Minh Bảo',
+        'Đặng Thị Cẩm',
+        'Bùi Văn Đạt',
+        'Đỗ Thị Hằng',
+        'Ngô Minh Kiên',
+        'Lý Thị Loan',
+        'Mai Văn Nhật',
+        'Phan Thị Phương Anh',
+        'Chu Văn Quang',
+        'Tạ Thị Sen',
+        'Lương Văn Thái',
+        'Hồ Thị Uyển',
+        'Đinh Văn Vinh',
+        'Nguyễn Thị Yến Nhi',
+        'Trần Quốc Bảo',
+        'Lê Thị Diệu',
+        'Phạm Minh Đức',
+        'Hoàng Thị Hảo',
+        'Vũ Văn Khải',
+        'Đặng Thị Linh Chi',
+        'Bùi Minh Nhật',
+        'Đỗ Thị Phương Thảo',
+        'Ngô Văn Quý',
+        'Lý Thị Sương',
+        'Mai Hoàng Tâm',
+        'Phan Thị Út',
+        'Chu Minh Vương',
+        'Tạ Thị Xuân Mai',
+        'Lương Minh Ý',
+        'Hồ Thị Ái',
+        'Đinh Minh Bách',
+        'Nguyễn Thị Cúc',
+        'Trần Văn Duy',
+        'Lê Thị Hạnh Nguyên',
+        'Phạm Hoàng Khoa',
+        'Hoàng Thị Lệ',
+        'Vũ Văn Mạnh',
+        'Đặng Thị Nga',
+        'Bùi Hoàng Phú',
+        'Đỗ Thị Quế',
+        'Ngô Văn Rạng',
+        'Lý Thị Sáng',
+        'Mai Văn Tài',
+        'Phan Thị Vân',
+        'Chu Hoàng Việt',
+        'Tạ Thị Xuân',
+        'Lương Văn Yên',
+        'Hồ Thị Anh Thư',
+        'Đinh Hoàng Bình',
+        'Nguyễn Văn Cảnh',
+        'Trần Thị Đào',
+        'Lê Hoàng Phong',
+        'Phạm Thị Giang',
+        'Hoàng Văn Hải',
+        'Vũ Thị Khánh',
+        'Đặng Hoàng Long',
+        'Bùi Thị Minh',
+        'Đỗ Hoàng Nam',
+        'Ngô Thị Phương',
+        'Lý Hoàng Quân',
+        'Mai Thị Thuý Hằng',
     ];
 
     public function run(): void
@@ -116,22 +224,61 @@ class UserSeeder extends Seeder
         }
     }
 
+    /** Số SV demo gốc giữ email studentN@lms.com (không đổi sang mã SV). */
+    public const DEMO_LMS_STUDENT_COUNT = 16;
+
     private function seedStudents(): void
     {
         foreach (self::STUDENTS as $i => $fullName) {
             $n = $i + 1;
-            $user = User::query()->updateOrCreate(
-                ['email' => "student{$n}@lms.com"],
-                [
-                    'name' => $fullName,
-                    'password' => Hash::make('password'),
-                    'email_verified_at' => now(),
-                    'avatar' => 'https://i.pravatar.cc/300?img=' . (40 + $n),
-                    'bio' => "Sinh viên ngành đào tạo tại Học viện, tham gia học tập trên Eript LMS.",
-                ]
-            );
+            $isDemoLms = $n <= self::DEMO_LMS_STUDENT_COUNT;
+            $email = $isDemoLms
+                ? "student{$n}@lms.com"
+                : "student{$n}@stu.ptit.edu.vn";
+
+            // Tìm theo email demo / tạm, hoặc theo họ tên (sau khi OrgAcademic đổi sang mã SV)
+            $user = User::query()
+                ->whereIn('email', [
+                    $email,
+                    "student{$n}@lms.com",
+                    "student{$n}@stu.ptit.edu.vn",
+                ])
+                ->first()
+                ?? User::query()
+                    ->where('name', $fullName)
+                    ->where(function ($q) {
+                        $q->where('user_type', 'student')
+                            ->orWhere('email', 'like', '%@stu.ptit.edu.vn')
+                            ->orWhere('email', 'like', 'student%@lms.com');
+                    })
+                    ->orderBy('id')
+                    ->first();
+
+            $payload = [
+                'name' => $fullName,
+                'email' => $email,
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'avatar' => 'https://i.pravatar.cc/300?img=' . (40 + ($n % 70)),
+                'bio' => 'Sinh viên Học viện Công nghệ Bưu chính Viễn thông, học tập trên Eript LMS.',
+            ];
+
+            // SV 17+: nếu đã có mã SV (@stu.ptit.edu.vn dạng mã) thì giữ email mã, chỉ cập nhật profile
+            if ($user && !$isDemoLms && preg_match('/^[a-z0-9]+@stu\.ptit\.edu\.vn$/i', (string) $user->email)
+                && !str_starts_with(strtolower((string) $user->email), 'student')) {
+                unset($payload['email']);
+            }
+
+            if ($user) {
+                $user->fill($payload)->save();
+            } else {
+                $user = User::query()->create($payload);
+            }
+
             $user->syncRoles(['student']);
         }
+
+        $this->command?->info('UserSeeder: ' . count(self::STUDENTS) . ' students upserted (student1–16@lms.com demo).');
     }
 
     // ── Helpers cho các seeder khác cần collection ───────────────────────────
@@ -151,9 +298,14 @@ class UserSeeder extends Seeder
 
     public static function getStudents(): EloquentCollection
     {
-        return User::query()
-            ->where('email', 'like', 'student%@lms.com')
+        return User::role('student')
             ->orderBy('id')
             ->get();
+    }
+
+    /** @return list<string> */
+    public static function studentNames(): array
+    {
+        return self::STUDENTS;
     }
 }

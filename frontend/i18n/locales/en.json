@@ -117,6 +117,13 @@
     "formHint": "Fill details — more accurate than scanned PDF uploads",
     "formRecommended": "Recommended",
     "pickFile": "Choose CV file",
+    "dropTitle": "Drag & drop your CV here",
+    "dropHint": "or click to choose a PDF / DOC / DOCX file",
+    "uploading": "Uploading and analyzing…",
+    "deleteCv": "Delete CV",
+    "uploadAgain": "Upload another CV",
+    "deleteOk": "CV deleted",
+    "deleteError": "Could not delete CV",
     "fullName": "Full name",
     "phone": "Phone",
     "headline": "Desired role",
@@ -251,6 +258,7 @@
       "examReports": "Exam reports",
       "progressReports": "Learning progress",
       "activityLogs": "Activity logs",
+      "experienceSurvey": "LMS experience survey",
       "errorLogs": "Error reports",
       "finance": "Finance",
       "orders": "Orders",
@@ -1299,6 +1307,35 @@
         "advanced": "Advanced"
       }
     },
+    "experienceSurvey": {
+      "title": "LMS experience survey",
+      "subtitle": "Student feedback on personalized learning and AI features.",
+      "loadError": "Could not load survey report",
+      "refresh": "Refresh",
+      "export": "Export Excel (CSV)",
+      "exportHtml": "Export report + charts (HTML)",
+      "exportOk": "Export downloaded",
+      "exportHtmlOk": "HTML report downloaded (open to view charts; Print → PDF)",
+      "exportError": "Export failed",
+      "total": "Responses",
+      "avgScore": "Average",
+      "compareAvg": "Vs other LMS",
+      "sectionAvgChart": "Average score by section",
+      "personalizationLikertChart": "Personalization perception (B/C/E)",
+      "compareChart": "Comparison with other LMS (removed)",
+      "aiUsage": "AI features used (D0)",
+      "mostUseful": "Most useful AI (D4)",
+      "personalizationChart": "Personalization support (C1)",
+      "satisfactionChart": "Satisfaction distribution (E1)",
+      "npsChart": "NPS distribution (E4)",
+      "recent": "Recent responses",
+      "noData": "No data yet",
+      "studentCode": "Student ID",
+      "studentName": "Name",
+      "major": "Major",
+      "satisfaction": "Satisfaction (E1)",
+      "submittedAt": "Submitted at"
+    },
     "reports": {
       "common": {
         "loadError": "Could not load report",
@@ -1983,7 +2020,8 @@
       "catalog": "Browse courses",
       "learn": "Learning",
       "career": "AI Career",
-      "studyAdvisor": "Study advisor"
+      "studyAdvisor": "Study advisor",
+      "experienceSurvey": "Experience survey"
     },
     "news": {
       "title": "News",
@@ -1999,6 +2037,13 @@
       "aiTip": "Roadmap tip",
       "refreshTip": "Refresh tip",
       "tipFallback": "Finish current-term curriculum courses and strengthen weak subjects with marketplace boost courses.",
+      "alerts": "Study alerts",
+      "lowCompletionTitle": "Low curriculum completion",
+      "lowCompletionBody": "You have completed only {percent}% of required courses. Prioritize current-term subjects to avoid falling behind.",
+      "midCompletionTitle": "Curriculum progress needs attention",
+      "midCompletionBody": "You have completed {percent}% of required courses. Keep a steady pace and finish incomplete subjects.",
+      "weakScoreTitle": "Low-scoring subjects need review",
+      "weakScoreBody": "Some subjects are below the safe threshold. Review them or take boost courses before the next exams.",
       "progress": "Curriculum progress",
       "completion": "Completion",
       "level": "Classification",
@@ -2016,6 +2061,24 @@
       "coursesHint": "A score counts as low when below 6.5/10 or at least 1.0 below your personal GPA; plus upcoming curriculum courses.",
       "noCourses": "No course suggestions yet.",
       "buyHint": "Available to study or strengthen on the platform"
+    },
+    "experienceSurvey": {
+      "title": "LMS experience survey",
+      "subtitle": "Feedback on personalized learning and AI features — for graduation thesis research.",
+      "loadError": "Could not load the survey",
+      "submit": "Submit survey",
+      "update": "Update response",
+      "submitOk": "Survey submitted successfully",
+      "submitError": "Could not submit the survey",
+      "alreadyDone": "You have already completed this survey",
+      "submittedAt": "Submitted at: {at}",
+      "reRate": "Re-rate",
+      "reRateHint": "You can click \"Re-rate\" to update your answers.",
+      "editing": "Editing your response",
+      "editingHint": "After editing, click Update response to save.",
+      "likertHint": "Likert scale 1–5: 1 = Strongly disagree → 5 = Strongly agree",
+      "textPlaceholder": "Short answer…",
+      "openPlaceholder": "Share your thoughts…"
     },
     "idCard": {
       "title": "Student ID card",
@@ -2537,6 +2600,41 @@
       "assignmentUpload": "Upload submission",
       "assignmentEmpty": "No assignment configured for this lesson",
       "assignmentDone": "You already submitted this assignment"
+    }
+  },
+  "auth": {
+    "login": {
+      "storyLabel": "Eript Learning Ecosystem",
+      "storyDesc": "Manage training, content, assessment, and learning data on one platform.",
+      "point1Title": "Centralized data",
+      "point1Desc": "Track training effectiveness in real time.",
+      "point2Title": "Secure operations",
+      "point2Desc": "Clear roles and permissions for every team.",
+      "point3Title": "Modern experience",
+      "point3Desc": "Clean, fast, and consistent on every device.",
+      "welcome": "Welcome back",
+      "title": "Sign in",
+      "subtitle": "Use your Eript LMS account.",
+      "email": "Email",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "remember": "Remember me",
+      "forgot": "Forgot password?",
+      "submit": "Sign in",
+      "google": "Sign in with Google",
+      "noAccount": "No account yet?",
+      "register": "Register now",
+      "errors": {
+        "required": "Please enter your email and password.",
+        "invalid": "Incorrect email or password.",
+        "tooMany": "Too many attempts. Please try again later.",
+        "generic": "Unable to sign in right now. Please try again later.",
+        "failed": "Sign-in failed"
+      },
+      "storyTitle1": "A learning space",
+      "storyTitle2": "built for lasting growth"
     }
   }
 }

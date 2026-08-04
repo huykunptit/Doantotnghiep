@@ -146,6 +146,7 @@ services:
     restart: unless-stopped
     environment:
       NUXT_PUBLIC_API_BASE: /api
+      NUXT_API_INTERNAL: http://nginx/api
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000

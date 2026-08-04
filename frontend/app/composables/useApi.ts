@@ -28,17 +28,28 @@ function buildQuery(query?: ApiQuery) {
   return params
 }
 
+function resolveApiBase() {
+  const config = useRuntimeConfig()
+  const publicBase = String(config.public.apiBase || '/api')
+  if (import.meta.server) {
+    const internal = String(config.apiInternal || '').trim()
+    if (internal) return internal.replace(/\/$/, '')
+    // Relative public base cannot be fetched from Node SSR.
+    if (publicBase.startsWith('/')) return 'http://nginx/api'
+  }
+  return publicBase.replace(/\/$/, '') || '/api'
+}
+
 export async function useApi<TResponse = unknown, TBody extends ApiBody = ApiBody>(
   path: string,
   options: ApiOptions<TBody> = {},
 ) {
-  const config = useRuntimeConfig()
   const tokenCookie = useCookie<string | null>('eript-token')
   const token = options.token === undefined ? tokenCookie.value : options.token
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
   return await $fetch<TResponse>(path, {
-    baseURL: config.public.apiBase,
+    baseURL: resolveApiBase(),
     method: options.method || 'GET',
     body: options.body as TBody,
     query: options.query,
@@ -61,11 +72,10 @@ export async function useApiDownload(
     method?: ApiMethod
   } = {},
 ) {
-  const config = useRuntimeConfig()
   const tokenCookie = useCookie<string | null>('eript-token')
   const params = buildQuery(options.query)
   const qs = params.toString()
-  const url = `${config.public.apiBase}${path.startsWith('/') ? path : `/${path}`}${qs ? `?${qs}` : ''}`
+  const url = `${resolveApiBase()}${path.startsWith('/') ? path : `/${path}`}${qs ? `?${qs}` : ''}`
 
   const response = await fetch(url, {
     method: options.method || 'GET',
