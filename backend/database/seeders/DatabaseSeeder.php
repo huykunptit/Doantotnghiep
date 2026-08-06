@@ -22,6 +22,8 @@ use Illuminate\Database\Seeder;
  * 13. Notifications
  * 14. Certificate templates + gán cho courses
  * 15. Career paths (lộ trình nghề marketplace)
+ * 16. Dữ liệu học riêng từng học viên (điểm, progress, chuyên cần, points…)
+ * 17. News
  */
 class DatabaseSeeder extends Seeder
 {
@@ -46,8 +48,8 @@ class DatabaseSeeder extends Seeder
             NotificationSeeder::class,
             CertificateTemplateSeeder::class,
             CareerPathSeeder::class,
+            StudentLearningSeeder::class,
             NewsSeeder::class,
-            ExperienceSurveySeeder::class,
         ]);
     }
 }
