@@ -9,6 +9,7 @@ Route::get('/career-paths/{slug}', [CareerPathController::class, 'publicShow']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/career-paths/{careerPath}/follow', [CareerPathController::class, 'follow']);
+    Route::delete('/career-paths/{careerPath}/follow', [CareerPathController::class, 'unfollow']);
     Route::get('/me/career-paths', [CareerPathController::class, 'myPaths']);
 
     Route::prefix('admin')->middleware('role:admin')->group(function () {

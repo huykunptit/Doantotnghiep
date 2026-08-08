@@ -113,13 +113,6 @@ onMounted(load)
 <template>
   <div class="page">
     <ConfirmDialog />
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.tuition.title') }}</h1>
-        <p>{{ t('student.tuition.subtitle') }}</p>
-      </div>
-    </header>
 
     <div class="tabs" role="tablist">
       <button
@@ -145,7 +138,7 @@ onMounted(load)
     </div>
 
     <p v-if="!loading" class="tab-sum">
-      {{ tabTotalLabel }}:
+      <span>{{ tabTotalLabel }}</span>
       <strong :class="tab === 'unpaid' ? 'due' : 'paid'">{{ money(tabTotalValue) }}</strong>
     </p>
 
@@ -219,9 +212,6 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .due { color: var(--red-500, #dc2626); }
 .paid { color: var(--green-600, #16a34a); }
 .tabs {
@@ -248,6 +238,10 @@ onMounted(load)
   color: #fff;
 }
 .tab-sum {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
   margin: 0;
   color: var(--text-muted);
   font-size: .92rem;

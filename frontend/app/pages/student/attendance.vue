@@ -137,13 +137,6 @@ onMounted(() => {
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <h1>{{ t('student.attendance.title') }}</h1>
-        <p>{{ t('student.attendance.subtitle') }}</p>
-      </div>
-    </header>
-
     <section class="panel checkin">
       <h2>{{ t('student.attendance.checkInTitle') }}</h2>
       <p class="hint">{{ t('student.attendance.checkInHint') }}</p>
@@ -213,8 +206,6 @@ onMounted(() => {
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 1rem; }
-.workspace-head h1 { margin: 0; font-size: 1.55rem; }
-.workspace-head p { margin: .25rem 0 0; color: var(--p-text-muted-color); }
 .panel { border: 1px solid var(--p-content-border-color); border-radius: 12px; background: var(--p-content-background); padding: 1rem; }
 .panel h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
 .hint { margin: 0 0 .85rem; color: var(--p-text-muted-color); font-size: .9rem; }

@@ -1,6 +1,11 @@
 export interface SiteSettings {
   site_name?: string
   site_description?: string
+  /** Actual keys returned by GET /site-settings — resolved, absolute media URLs. */
+  site_logo?: string | null
+  brand_logo?: string | null
+  site_favicon?: string | null
+  auth_page_image?: string | null
   logo?: string | null
   favicon?: string | null
   primary_color?: string
@@ -34,14 +39,15 @@ export function useSiteSettings() {
       document.documentElement.style.setProperty('--p-primary-active-color', darken(primary, 28))
     }
     if (settings.value.site_name) document.title = settings.value.site_name
-    if (settings.value.favicon) {
+    const favicon = settings.value.site_favicon || settings.value.favicon
+    if (favicon) {
       let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
       if (!link) {
         link = document.createElement('link')
         link.rel = 'icon'
         document.head.appendChild(link)
       }
-      link.href = settings.value.favicon
+      link.href = favicon
     }
   }
 

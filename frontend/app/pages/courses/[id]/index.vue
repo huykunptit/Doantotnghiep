@@ -46,6 +46,7 @@ interface CourseDetail {
 }
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const toast = useToast()
 const { t, locale } = useI18n()
@@ -122,6 +123,11 @@ function coursePath() {
   return `/courses/${course.value?.slug || courseParam.value}`
 }
 
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else navigateTo('/courses')
+}
+
 async function primaryAction() {
   const id = courseNumericId.value
   if (!auth.isAuthenticated) return navigateTo(`/login?redirect=${encodeURIComponent(coursePath())}`)
@@ -174,9 +180,17 @@ onMounted(load)
     <header
       class="hero"
       :style="course.thumbnail
-        ? { backgroundImage: `linear-gradient(105deg, rgba(8,20,18,.92) 0%, rgba(8,20,18,.72) 48%, rgba(8,20,18,.35) 100%), url(${course.thumbnail})` }
+        ? { backgroundImage: `linear-gradient(105deg, rgba(8,20,18,.94) 0%, rgba(8,20,18,.85) 48%, rgba(8,20,18,.55) 100%), url(${course.thumbnail})` }
         : undefined"
     >
+      <Button
+        icon="pi pi-arrow-left"
+        text
+        rounded
+        class="hero-back"
+        :aria-label="t('student.detail.back')"
+        @click="goBack"
+      />
       <div class="hero-inner">
         <div class="hero-main">
           <p class="kicker">{{ course.category?.name || t('student.catalog.title') }}</p>
@@ -196,7 +210,12 @@ onMounted(load)
           />
           <div class="offer-body">
             <p class="offer-price">{{ formatPrice(course.price || 0) }}</p>
-            <Button :label="ctaLabel" class="offer-cta" @click="primaryAction" />
+            <Button
+              :label="ctaLabel"
+              class="offer-cta"
+              :disabled="Boolean(course.is_enrolled) && lessonCount === 0"
+              @click="primaryAction"
+            />
             <ul>
               <li>{{ t('student.detail.includesLessons', { n: lessonCount }) }}</li>
               <li v-if="levelLabel">{{ t('student.detail.includesLevel', { level: levelLabel }) }}</li>
@@ -274,11 +293,24 @@ onMounted(load)
 .state { padding: 64px 24px; text-align: center; color: var(--text-muted); }
 
 .hero {
+  position: relative;
   background: #0b1f1c;
   background-size: cover;
   background-position: center;
   color: #f4faf8;
   padding: 48px 24px 64px;
+}
+.hero-back {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  color: #f4faf8 !important;
+  background: rgba(8, 20, 18, .45) !important;
+  z-index: 1;
+}
+.hero-back:hover { background: rgba(8, 20, 18, .65) !important; }
+.hero-main h1 {
+  text-shadow: 0 1px 12px rgba(0, 0, 0, .35);
 }
 .hero-inner {
   width: min(1120px, 100%);

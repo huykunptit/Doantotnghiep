@@ -2373,7 +2373,9 @@
       "buy": "Buy path",
       "enrollFree": "Join for free",
       "follow": "Follow",
+      "unfollow": "Unfollow",
       "followed": "Now following this path",
+      "unfollowed": "Unfollowed this path",
       "followError": "Could not follow path",
       "continue": "Continue learning",
       "roadmap": "Path steps",
@@ -2389,7 +2391,7 @@
       "alreadyOwned": "You already own this path.",
       "recTitle": "Suggested career paths",
       "recSubtitle": "Based on your major, skills, and career goals.",
-      "recMore": "Browse all paths →",
+      "recMore": "Browse all paths",
       "recEmpty": "No matching paths yet. Complete more curriculum courses or update your goals."
     },
     "evaluation": {
@@ -2521,6 +2523,7 @@
       "loadError": "Could not load course"
     },
     "detail": {
+      "back": "Back",
       "about": "About this course",
       "outcomes": "What you will learn",
       "benefits": "What you get",
@@ -2631,7 +2634,8 @@
         "invalid": "Incorrect email or password.",
         "tooMany": "Too many attempts. Please try again later.",
         "generic": "Unable to sign in right now. Please try again later.",
-        "failed": "Sign-in failed"
+        "failed": "Sign-in failed",
+        "expired": "Your session has expired. Please sign in again."
       },
       "storyTitle1": "A learning space",
       "storyTitle2": "built for lasting growth"

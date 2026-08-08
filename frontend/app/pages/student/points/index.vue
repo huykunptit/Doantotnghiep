@@ -95,11 +95,6 @@ onMounted(load)
 <template>
   <div class="page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.points.title') }}</h1>
-        <p>{{ t('student.points.subtitle') }}</p>
-      </div>
       <div class="head-actions">
         <Button :label="t('student.points.openShop')" icon="pi pi-gift" @click="navigateTo('/student/points/shop')" />
       </div>
@@ -166,10 +161,7 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.workspace-head { display: flex; justify-content: flex-end; gap: 16px; flex-wrap: wrap; }
 .head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .kpi-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .kpi {

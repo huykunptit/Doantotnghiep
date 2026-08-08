@@ -103,6 +103,17 @@ class CareerPathController extends Controller
         return response()->json(['message' => 'Following path', 'user_career_path' => $ucp]);
     }
 
+    public function unfollow(Request $request, CareerPath $careerPath): JsonResponse
+    {
+        UserCareerPath::query()
+            ->where('user_id', $request->user()->id)
+            ->where('career_path_id', $careerPath->id)
+            ->where('status', 'following')
+            ->delete();
+
+        return response()->json(['message' => 'Unfollowed path']);
+    }
+
     public function myPaths(Request $request): JsonResponse
     {
         $rows = UserCareerPath::query()

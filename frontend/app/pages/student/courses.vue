@@ -33,11 +33,6 @@ onMounted(load)
 <template>
   <div class="page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.courses.title') }}</h1>
-        <p>{{ t('student.courses.subtitle') }}</p>
-      </div>
       <Button :label="t('student.dashboard.browse')" icon="pi pi-shop" @click="navigateTo('/courses')" />
     </header>
 
@@ -65,10 +60,7 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.workspace-head { display: flex; justify-content: flex-end; gap: 12px; }
 .grid { display: grid; gap: 10px; }
 .card {
   display: grid; grid-template-columns: 72px 1fr auto; gap: 14px; align-items: center;

@@ -7,7 +7,9 @@ withDefaults(defineProps<{
 
 const { settings, load } = useSiteSettings()
 
-const src = computed(() => settings.value.logo || '/images/eript-logo.png')
+const src = computed(() =>
+  settings.value.site_logo || settings.value.brand_logo || settings.value.logo || '/images/eript-logo.png',
+)
 
 onMounted(() => {
   load()

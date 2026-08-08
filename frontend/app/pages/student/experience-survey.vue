@@ -187,7 +187,6 @@ onMounted(load)
   <div class="page">
     <header class="workspace-head">
       <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
         <h1>{{ survey?.title || t('student.experienceSurvey.title') }}</h1>
         <p>{{ survey?.intro || t('student.experienceSurvey.subtitle') }}</p>
       </div>
@@ -316,7 +315,6 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .workspace-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
 .workspace-head h1 { margin: 0 0 6px; font-size: clamp(1.25rem, 2vw, 1.65rem); line-height: 1.3; }
 .workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; line-height: 1.55; max-width: 70ch; }

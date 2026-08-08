@@ -147,14 +147,8 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.transcript.title') }}</h1>
-        <p>{{ t('student.transcript.subtitleFull') }}</p>
-      </div>
+    <header v-if="tab === 'curriculum'" class="workspace-head">
       <Button
-        v-if="tab === 'curriculum'"
         :label="t('student.transcript.print')"
         icon="pi pi-print"
         class="print-btn"
@@ -418,11 +412,17 @@ onMounted(load)
 </template>
 
 <style scoped>
+:deep(.p-dialog-header-actions .p-dialog-close-button) {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:deep(.p-dialog-footer) {
+  display: flex;
+  justify-content: center;
+}
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: flex-end; gap: 12px; }
 
 .tabs {
   display: inline-flex;
@@ -592,7 +592,7 @@ onMounted(load)
 }
 
 @media print {
-  .tabs, .print-btn, .eyebrow, .detail-btn, :global(.sv-topbar), :global(.desktop-sidebar), :global(.ai-fab) { display: none !important; }
+  .tabs, .print-btn, .detail-btn, :global(.sv-topbar), :global(.desktop-sidebar), :global(.ai-fab) { display: none !important; }
   .page { gap: 10px; }
   .semester-block { break-inside: avoid; }
 }

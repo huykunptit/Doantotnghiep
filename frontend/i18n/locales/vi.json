@@ -2373,7 +2373,9 @@
       "buy": "Mua lộ trình",
       "enrollFree": "Tham gia miễn phí",
       "follow": "Theo dõi",
+      "unfollow": "Bỏ theo dõi",
       "followed": "Đã theo dõi lộ trình",
+      "unfollowed": "Đã bỏ theo dõi lộ trình",
       "followError": "Không theo dõi được",
       "continue": "Tiếp tục học",
       "roadmap": "Các bước trong lộ trình",
@@ -2389,7 +2391,7 @@
       "alreadyOwned": "Bạn đã sở hữu lộ trình này.",
       "recTitle": "Lộ trình nghề gợi ý",
       "recSubtitle": "Dựa trên ngành, kỹ năng và mục tiêu nghề nghiệp.",
-      "recMore": "Xem tất cả lộ trình →",
+      "recMore": "Xem tất cả lộ trình",
       "recEmpty": "Chưa có lộ trình phù hợp. Hãy hoàn thành thêm môn CTĐT hoặc cập nhật mục tiêu."
     },
     "evaluation": {
@@ -2521,6 +2523,7 @@
       "loadError": "Không tải được khóa học"
     },
     "detail": {
+      "back": "Quay lại",
       "about": "Giới thiệu khóa học",
       "outcomes": "Bạn sẽ học được gì",
       "benefits": "Nhận được gì sau khóa học",
@@ -2631,7 +2634,8 @@
         "invalid": "Email hoặc mật khẩu không chính xác.",
         "tooMany": "Bạn thao tác quá nhanh. Vui lòng thử lại sau.",
         "generic": "Không thể đăng nhập lúc này. Vui lòng thử lại sau.",
-        "failed": "Đăng nhập thất bại"
+        "failed": "Đăng nhập thất bại",
+        "expired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
       },
       "storyTitle1": "Một không gian học tập",
       "storyTitle2": "được thiết kế để phát triển lâu dài"

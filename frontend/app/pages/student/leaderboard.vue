@@ -41,13 +41,6 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.points.boardTitle') }}</h1>
-        <p>{{ t('student.points.boardSubtitle') }}</p>
-      </div>
-    </header>
 
     <section class="me">
       <div>
@@ -79,10 +72,6 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .me {
   padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border);
   background: color-mix(in srgb, var(--brand) 10%, var(--surface));

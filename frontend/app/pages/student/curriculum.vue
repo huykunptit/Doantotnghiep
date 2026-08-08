@@ -74,17 +74,6 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="workspace-head no-print">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>
-          <i class="pi pi-cog title-icon" aria-hidden="true" />
-          {{ t('student.curriculum.title') }}
-        </h1>
-        <p>{{ t('student.curriculum.subtitle') }}</p>
-      </div>
-    </header>
-
     <div v-if="loading" class="empty">…</div>
 
     <div v-else-if="!data?.has_curriculum" class="empty-card">
@@ -156,17 +145,6 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head h1 {
-  margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem);
-  display: flex; align-items: center; gap: 8px; color: var(--brand);
-}
-.title-icon { font-size: .9em; }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
-
 .toolbar {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
 }
@@ -200,7 +178,7 @@ onMounted(load)
   border-bottom: 1px solid var(--border);
   font-weight: 800; font-size: .92rem;
 }
-.term-credits { color: var(--brand); font-size: 1rem; }
+.term-credits { color: var(--brand); font-size: 1rem; font-weight: 800; }
 
 .table-wrap { overflow-x: auto; }
 .ctdt-table {
@@ -216,7 +194,7 @@ onMounted(load)
   color: var(--text-muted); font-size: .72rem; font-weight: 750; text-transform: uppercase; letter-spacing: .04em;
 }
 .ctdt-table .left { text-align: left; }
-.ctdt-table .title { font-weight: 650; }
+.ctdt-table .title { font-weight: 700; }
 .ctdt-table .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .8rem; letter-spacing: .02em; }
 .course-link { color: inherit; text-decoration: none; font-weight: 700; }
 .course-link:hover { color: var(--brand); text-decoration: underline; }

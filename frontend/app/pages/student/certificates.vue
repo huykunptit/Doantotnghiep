@@ -47,14 +47,6 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.certs.title') }}</h1>
-        <p>{{ t('student.certs.subtitle') }}</p>
-      </div>
-    </header>
-
     <div v-if="loading" class="empty">…</div>
     <div v-else-if="!items.length" class="empty">{{ t('student.certs.empty') }}</div>
     <div v-else class="list">
@@ -80,9 +72,6 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .empty { color: var(--text-muted); }
 .list { display: grid; gap: 10px; }
 .card {

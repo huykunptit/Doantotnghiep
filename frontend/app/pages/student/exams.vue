@@ -26,6 +26,14 @@ const toast = useToast()
 const loading = ref(true)
 const exams = ref<ExamRow[]>([])
 
+// Chưa thi lên trước, đã thi/đóng đẩy xuống dưới; trong mỗi nhóm sắp theo thời gian bắt đầu.
+const STATUS_RANK: Record<string, number> = { active: 0, scheduled: 1, closed: 2, completed: 3 }
+const sortedExams = computed(() => [...exams.value].sort((a, b) => {
+  const rankDiff = (STATUS_RANK[a.status] ?? 1) - (STATUS_RANK[b.status] ?? 1)
+  if (rankDiff !== 0) return rankDiff
+  return new Date(a.starts_at || 0).getTime() - new Date(b.starts_at || 0).getTime()
+}))
+
 async function load() {
   loading.value = true
   try {
@@ -60,18 +68,11 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.exams.title') }}</h1>
-        <p>{{ t('student.exams.subtitle') }}</p>
-      </div>
-    </header>
 
     <div v-if="loading" class="empty">…</div>
     <div v-else-if="!exams.length" class="empty">{{ t('student.exams.empty') }}</div>
     <div v-else class="list">
-      <article v-for="ex in exams" :key="ex.id" class="card">
+      <article v-for="ex in sortedExams" :key="ex.id" class="card">
         <div class="main">
           <div class="title-row">
             <strong>{{ ex.title }}</strong>
@@ -110,9 +111,6 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .list { display: grid; gap: 10px; }
 .card {
   display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center;
@@ -122,7 +120,8 @@ onMounted(load)
 .title-row { display: flex; align-items: center; gap: 10px; }
 .title-row strong { font-size: 1.05rem; }
 .desc { margin: 6px 0; color: var(--text-muted); font-size: .88rem; }
-.meta { display: flex; flex-wrap: wrap; gap: 14px; color: var(--text-muted); font-size: .82rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 10px 22px; color: var(--text-muted); font-size: .82rem; }
+.meta span { display: inline-flex; align-items: center; gap: 7px; }
 .meta .score { color: var(--brand); font-weight: 700; }
 .muted { color: var(--text-muted); }
 .empty { padding: 36px; text-align: center; color: var(--text-muted); }

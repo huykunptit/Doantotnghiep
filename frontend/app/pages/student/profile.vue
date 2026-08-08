@@ -133,11 +133,6 @@ onMounted(async () => {
 <template>
   <div class="page id-card-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.idCard.title') }}</h1>
-        <p>{{ t('student.idCard.subtitle') }}</p>
-      </div>
       <Button
         :label="t('student.idCard.print')"
         icon="pi pi-print"
@@ -156,8 +151,8 @@ onMounted(async () => {
 
         <div class="card-header">
           <Avatar
-            v-if="settings.logo"
-            :image="settings.logo"
+            v-if="settings.site_logo || settings.brand_logo || settings.logo"
+            :image="settings.site_logo || settings.brand_logo || settings.logo"
             shape="square"
             class="inst-logo"
           />
@@ -242,10 +237,7 @@ onMounted(async () => {
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 18px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.workspace-head { display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; }
 .empty { padding: 36px; text-align: center; color: var(--text-muted); }
 
 .card-stage { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 10px 0 30px; }

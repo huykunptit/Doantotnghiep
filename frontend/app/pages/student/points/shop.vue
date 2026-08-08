@@ -81,11 +81,7 @@ onMounted(load)
 <template>
   <div class="page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('student.console') }}</span>
-        <h1>{{ t('student.points.shopTitle') }}</h1>
-        <p>{{ t('student.points.shopSubtitle', { n: balance }) }}</p>
-      </div>
+      <p class="balance-note">{{ t('student.points.shopSubtitle', { n: balance }) }}</p>
       <Button :label="t('student.points.backPoints')" icon="pi pi-arrow-left" text @click="navigateTo('/student/points')" />
     </header>
 
@@ -130,10 +126,8 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+.workspace-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.balance-note { margin: 0; color: var(--text-muted); font-weight: 600; }
 .tabs { display: flex; gap: 8px; }
 .tabs button {
   border: 1px solid var(--border); background: transparent; border-radius: 999px;

@@ -40,6 +40,9 @@ function resolveApiBase() {
   return publicBase.replace(/\/$/, '') || '/api'
 }
 
+/** /auth/* endpoints handle their own 401s on-page; never force-redirect from those. */
+const AUTH_ENDPOINT_RE = /^\/auth\//
+
 export async function useApi<TResponse = unknown, TBody extends ApiBody = ApiBody>(
   path: string,
   options: ApiOptions<TBody> = {},
@@ -48,19 +51,34 @@ export async function useApi<TResponse = unknown, TBody extends ApiBody = ApiBod
   const token = options.token === undefined ? tokenCookie.value : options.token
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
 
-  return await $fetch<TResponse>(path, {
-    baseURL: resolveApiBase(),
-    method: options.method || 'GET',
-    body: options.body as TBody,
-    query: options.query,
-    timeout: options.timeout,
-    headers: {
-      Accept: 'application/json',
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
+  try {
+    return await $fetch<TResponse>(path, {
+      baseURL: resolveApiBase(),
+      method: options.method || 'GET',
+      body: options.body as TBody,
+      query: options.query,
+      timeout: options.timeout,
+      headers: {
+        Accept: 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+  }
+  catch (error: any) {
+    const status = Number(error?.statusCode || error?.response?.status || 0)
+    // Session expired mid-use: had a token, server no longer accepts it.
+    if (status === 401 && token && !AUTH_ENDPOINT_RE.test(path)) {
+      const route = useRoute()
+      if (!route.path.startsWith('/login')) {
+        tokenCookie.value = null
+        useCookie('eript-user').value = null
+        await navigateTo(`/login?expired=1&redirect=${encodeURIComponent(route.fullPath)}`)
+      }
+    }
+    throw error
+  }
 }
 
 /** Download CSV/binary from API with native fetch (avoids ofetch JSON parsing). */

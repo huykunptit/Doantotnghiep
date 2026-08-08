@@ -4,9 +4,10 @@ import { dashboardFor } from '~/types/auth'
 definePageMeta({ layout: 'auth' })
 
 const auth = useAuthStore()
+const route = useRoute()
 const { t, locale } = useI18n()
 const loading = ref(false)
-const error = ref('')
+const error = ref(route.query.expired ? t('auth.login.errors.expired') : '')
 const remember = ref(true)
 const showPassword = ref(false)
 const form = reactive({ email: '', password: '' })
@@ -20,6 +21,14 @@ function dashboardPath(user: { roles?: string[], role?: string | null }) {
   if (roles.includes('admin')) return '/admin'
   if (roles.includes('instructor')) return '/instructor'
   return '/student'
+}
+
+function postLoginTarget(user: { roles?: string[], role?: string | null }) {
+  const redirect = route.query.redirect
+  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
+    return redirect
+  }
+  return dashboardFor(user)
 }
 
 /** Không bao giờ hiện lỗi kỹ thuật kiểu POST /api/... 502 ra UI. */
@@ -87,7 +96,7 @@ async function submit(event?: Event) {
     if (auth && typeof auth.login === 'function' && auth.ready !== false) {
       try {
         const response = await auth.login({ email, password })
-        await navigateTo(dashboardFor(response.user))
+        await navigateTo(postLoginTarget(response.user))
         return
       }
       catch (piniaErr: any) {
@@ -102,7 +111,11 @@ async function submit(event?: Event) {
     }
 
     const data = await loginViaFetch(email, password)
-    window.location.assign(dashboardPath(data.user))
+    const redirect = route.query.redirect
+    const target = typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+      ? redirect
+      : dashboardPath(data.user)
+    window.location.assign(target)
   }
   catch (requestError: any) {
     if (requestError?.statusCode === 403 && requestError?.data?.requires_verification) {

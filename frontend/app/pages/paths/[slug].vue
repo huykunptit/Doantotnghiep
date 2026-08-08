@@ -90,6 +90,22 @@ async function follow() {
   }
 }
 
+async function unfollow() {
+  if (!path.value) return
+  following.value = true
+  try {
+    await useApi(`/career-paths/${path.value.id}/follow`, { method: 'DELETE' })
+    toast.add({ severity: 'success', summary: t('student.paths.unfollowed'), life: 2200 })
+    await load()
+  }
+  catch (error: any) {
+    toast.add({ severity: 'error', summary: t('student.paths.followError'), detail: error?.data?.message, life: 3500 })
+  }
+  finally {
+    following.value = false
+  }
+}
+
 function buy() {
   if (!auth.user) {
     navigateTo('/login')
@@ -106,7 +122,7 @@ onMounted(load)
   <div class="path-detail">
     <div v-if="loading" class="empty">…</div>
     <template v-else-if="path">
-      <header class="hero" :style="path.cover_url ? { backgroundImage: `linear-gradient(rgba(15,23,42,.72), rgba(15,23,42,.85)), url(${path.cover_url})` } : undefined">
+      <header class="hero" :style="path.cover_url ? { backgroundImage: `linear-gradient(rgba(15,23,42,.82), rgba(15,23,42,.92)), url(${path.cover_url})` } : undefined">
         <NuxtLink to="/paths" class="back">← {{ t('student.paths.back') }}</NuxtLink>
         <span v-if="path.target_role" class="role">{{ path.target_role }}</span>
         <h1>{{ path.title }}</h1>
@@ -131,6 +147,14 @@ onMounted(load)
               outlined
               :loading="following"
               @click="follow"
+            />
+            <Button
+              v-else
+              :label="t('student.paths.unfollow')"
+              severity="secondary"
+              outlined
+              :loading="following"
+              @click="unfollow"
             />
           </template>
         </div>
@@ -182,7 +206,7 @@ onMounted(load)
   display: inline-block; margin-top: 14px; padding: 4px 10px; border-radius: 999px;
   background: rgba(255,255,255,.16); font-size: .78rem; font-weight: 700; letter-spacing: .04em;
 }
-.hero h1 { margin: 10px 0 8px; font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.hero h1 { margin: 10px 0 8px; font-size: clamp(1.6rem, 3vw, 2.2rem); text-shadow: 0 1px 12px rgba(0, 0, 0, .4); }
 .hero p { margin: 0; max-width: 52ch; color: rgba(255,255,255,.86); font-weight: 500; }
 .hero-meta { display: flex; gap: 16px; margin-top: 16px; align-items: baseline; font-weight: 650; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }

@@ -184,7 +184,9 @@
 @media (max-width: 900px) {
   .auth-panel {
     grid-template-columns: 1fr;
-    height: 100dvh;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
   }
 
   .auth-story {
@@ -194,7 +196,16 @@
   .auth-card {
     width: calc(100% - 24px);
     margin: 12px;
-    height: calc(100dvh - 24px);
-    max-height: calc(100dvh - 24px);
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* Below ~900px, trade the split-screen inner-scroll trick for plain
+     page scroll — fixed 100dvh regions can strand content (e.g. the
+     submit button) below the fold once the mobile keyboard opens. */
+  .auth-card-scroll {
+    height: auto;
+    overflow: visible;
   }
 }

@@ -13,10 +13,18 @@ interface Lesson {
 }
 
 const route = useRoute()
+const router = useRouter()
 const toast = useToast()
 const { t } = useI18n()
 const courseId = computed(() => Number(route.params.courseId))
 const lessonId = computed(() => Number(route.params.lessonId))
+
+function goBack() {
+  // `/learn/[courseId]` redirects here with `replace: true`, so the real
+  // previous entry (e.g. student dashboard) is still one step back in history.
+  if (window.history.length > 1) router.back()
+  else navigateTo('/student')
+}
 
 const loading = ref(true)
 const saving = ref(false)
@@ -112,7 +120,7 @@ watch([courseId, lessonId], load, { immediate: true })
   <div class="learn">
     <header class="topbar">
       <div class="left">
-        <Button icon="pi pi-arrow-left" text rounded @click="navigateTo(`/courses/${courseId}`)" />
+        <Button icon="pi pi-arrow-left" text rounded @click="goBack" />
         <div>
           <strong>{{ courseTitle }}</strong>
           <span>{{ t('student.learn.progress', { n: percent }) }}</span>
