@@ -233,9 +233,17 @@ services:
       # /var/www/storage/app/public — that only resolves inside the backend
       # container. Nginx is a separate container that never mounted
       # ./backend/storage, so the link dangled and every uploaded file
-      # (site logo, favicon, login background, etc.) 404'd. Mount the real
-      # directory over that same path so nginx can actually read it.
-      - ./backend/storage/app/public:/var/www/public/storage:ro
+      # (site logo, favicon, login background, etc.) 404'd.
+      #
+      # Mounted at a path OUTSIDE the read-only /var/www/public mount above
+      # (not nested inside it) — nesting a mount inside an already read-only
+      # bind mount makes the container runtime create the mountpoint
+      # directory on a read-only filesystem, which fails on native Linux
+      # Docker (e.g. a fresh Ubuntu deploy): "read-only file system" /
+      # "failed to create shim task". This exact layout worked on Windows
+      # Docker Desktop only because that mountpoint directory happened to
+      # already exist from earlier manual testing.
+      - ./backend/storage/app/public:/var/www/storage-app-public:ro
     depends_on:
       - backend
       - frontend
