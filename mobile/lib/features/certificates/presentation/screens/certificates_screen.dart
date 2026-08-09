@@ -8,6 +8,7 @@ import '../../providers/certificate_providers.dart';
 import '../../data/models/certificate_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class CertificatesScreen extends ConsumerWidget {
   const CertificatesScreen({super.key});
@@ -69,7 +70,7 @@ class CertificatesScreen extends ConsumerWidget {
               children: [
                 Icon(Icons.error_outline, size: 48, color: AppColors.error),
                 AppSpacing.h12,
-                Text('Lỗi: $e', textAlign: TextAlign.center),
+                Text('Lỗi: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
                 AppSpacing.h16,
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(myCertificatesProvider),

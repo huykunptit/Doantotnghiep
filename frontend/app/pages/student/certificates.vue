@@ -48,7 +48,7 @@ onMounted(load)
 <template>
   <div class="page">
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!items.length" class="empty">{{ t('student.certs.empty') }}</div>
+    <CommonEmptyState v-else-if="!items.length" :description="t('student.certs.empty')" />
     <div v-else class="list">
       <article v-for="item in items" :key="item.id" class="card">
         <div>

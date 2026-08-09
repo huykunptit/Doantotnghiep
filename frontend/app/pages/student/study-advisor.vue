@@ -208,7 +208,7 @@ onMounted(load)
       <section class="panel">
         <h2>{{ t('student.studyAdvisor.courses') }}</h2>
         <p class="muted">{{ t('student.studyAdvisor.coursesHint') }}</p>
-        <div v-if="!recCourses.length" class="empty">{{ t('student.studyAdvisor.noCourses') }}</div>
+        <CommonEmptyState v-if="!recCourses.length" :description="t('student.studyAdvisor.noCourses')" />
         <div v-else class="courses">
           <button v-for="c in recCourses" :key="c.id" type="button" class="course" @click="navigateTo(`/courses/${c.id}`)">
             <strong>{{ c.title }}</strong>

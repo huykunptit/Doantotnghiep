@@ -405,11 +405,6 @@ onMounted(load)
 <template>
   <div class="page qb-detail">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.assessment') }}</span>
-        <h1>{{ bankName || t('admin.questionBank.detailTitle') }}</h1>
-        <p>{{ t('admin.questionBank.detailSubtitle') }}</p>
-      </div>
       <div class="page-actions">
         <Button :label="t('admin.questionBank.back')" icon="pi pi-arrow-left" severity="secondary" outlined @click="navigateTo('/admin/question-bank')" />
         <Button :label="t('admin.questionBank.addQuestion')" icon="pi pi-plus" @click="openCreate" />
@@ -495,7 +490,7 @@ onMounted(load)
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('common.noData') }}</div>
+          <CommonEmptyState :description="t('common.noData')" />
         </template>
       </DataTable>
     </section>
@@ -610,12 +605,9 @@ onMounted(load)
 <style scoped>
 .qb-detail { gap: 14px; }
 .workspace-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
 }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -649,7 +641,6 @@ onMounted(load)
   font-size: .74rem; font-weight: 700;
 }
 .tone-info { background: #e0f2fe; color: #0369a1; }
-.empty { padding: 40px; color: var(--text-muted); text-align: center; }
 
 .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 5px; }

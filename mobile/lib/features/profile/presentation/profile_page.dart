@@ -7,6 +7,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../app/theme/theme_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../core/error/friendly_error.dart';
 
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
@@ -20,7 +21,7 @@ class ProfilePage extends ConsumerWidget {
     return Scaffold(
       body: authState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e.toString())),
+        error: (e, _) => Center(child: Text(friendlyErrorMessage(e))),
         data: (user) {
           if (user == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/login'));

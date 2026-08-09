@@ -92,7 +92,7 @@ onMounted(load)
 
     <div v-if="loading" class="empty">…</div>
     <template v-else-if="tab === 'shop'">
-      <div v-if="!shop.length" class="empty">{{ t('student.points.shopEmpty') }}</div>
+      <CommonEmptyState v-if="!shop.length" :description="t('student.points.shopEmpty')" />
       <div v-else class="grid">
         <article v-for="item in shop" :key="item.id" class="card">
           <strong>{{ item.name }}</strong>
@@ -111,7 +111,7 @@ onMounted(load)
       </div>
     </template>
     <template v-else>
-      <div v-if="!mine.length" class="empty">{{ t('student.points.mineEmpty') }}</div>
+      <CommonEmptyState v-if="!mine.length" :description="t('student.points.mineEmpty')" />
       <div v-else class="grid">
         <article v-for="item in mine" :key="item.id" class="card">
           <strong>{{ item.voucher?.name || t('student.points.voucherGeneric') }}</strong>

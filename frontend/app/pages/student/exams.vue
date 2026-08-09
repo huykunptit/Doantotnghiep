@@ -70,7 +70,7 @@ onMounted(load)
   <div class="page">
 
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!exams.length" class="empty">{{ t('student.exams.empty') }}</div>
+    <CommonEmptyState v-else-if="!exams.length" :description="t('student.exams.empty')" />
     <div v-else class="list">
       <article v-for="ex in sortedExams" :key="ex.id" class="card">
         <div class="main">

@@ -88,11 +88,6 @@ onMounted(load)
 <template>
   <div class="page report-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.reports') }}</span>
-        <h1>{{ t('admin.reports.activity.title') }}</h1>
-        <p>{{ t('admin.reports.activity.subtitle') }}</p>
-      </div>
       <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
     </header>
 
@@ -115,7 +110,7 @@ onMounted(load)
           <Column :header="t('admin.orders.createdAt')" style="width:130px">
             <template #body="{ data }">{{ fmtDate(data.created_at) }}</template>
           </Column>
-          <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('common.noData')" /></template>
         </DataTable>
       </section>
 
@@ -136,7 +131,7 @@ onMounted(load)
           <Column :header="t('admin.orders.createdAt')" style="width:130px">
             <template #body="{ data }">{{ fmtDate(data.created_at) }}</template>
           </Column>
-          <template #empty><div class="empty">{{ t('admin.dashboard.noNotifications') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('admin.dashboard.noNotifications')" /></template>
         </DataTable>
       </section>
     </div>
@@ -150,7 +145,7 @@ onMounted(load)
         <DataTable :value="dailyEnrollments" :loading="loading" size="small" striped-rows>
           <Column field="label" :header="t('admin.reports.activity.day')" />
           <Column field="value" :header="t('admin.dashboard.enrollments')" style="width:6rem" />
-          <template #empty><div class="empty">{{ t('admin.dashboard.noTraffic') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('admin.dashboard.noTraffic')" /></template>
         </DataTable>
       </section>
 
@@ -170,7 +165,7 @@ onMounted(load)
           <Column :header="t('admin.sections.enrolled')" style="width:90px">
             <template #body="{ data }">{{ data.enrolled_count ?? 0 }}/{{ data.capacity ?? '—' }}</template>
           </Column>
-          <template #empty><div class="empty">{{ t('admin.dashboard.noOpenClasses') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('admin.dashboard.noOpenClasses')" /></template>
         </DataTable>
       </section>
     </div>
@@ -179,11 +174,8 @@ onMounted(load)
 
 <style scoped>
 .report-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+.workspace-head { display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; }
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
@@ -199,7 +191,6 @@ onMounted(load)
 
 .cell-stack small { display: block; color: var(--text-muted); font-size: .78rem; }
 .money { font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; }
-.empty { padding: 28px; text-align: center; color: var(--text-muted); }
 
 @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
 </style>

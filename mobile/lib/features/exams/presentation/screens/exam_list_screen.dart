@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/error/friendly_error.dart';
 import '../../data/models/exam_list_model.dart';
 import '../../providers/exam_providers.dart';
 
@@ -69,7 +70,7 @@ class _ExamListScreenState extends ConsumerState<ExamListScreen>
       body: examsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _ErrorState(
-          message: e.toString(),
+          message: friendlyErrorMessage(e),
           onRetry: () => ref.invalidate(myExamsProvider(tab: tab)),
         ),
         data: (exams) {

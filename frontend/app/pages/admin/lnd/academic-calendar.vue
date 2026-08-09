@@ -399,13 +399,6 @@ onMounted(async () => {
 
 <template>
   <div class="page calendar-page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.academic') }}</span>
-        <h1>{{ t('admin.calendar.title') }}</h1>
-        <p>{{ t('admin.calendar.subtitle') }}</p>
-      </div>
-    </header>
 
     <section class="table-panel">
       <div class="table-toolbar">
@@ -421,10 +414,9 @@ onMounted(async () => {
       </div>
 
       <div v-if="loading" class="empty">{{ t('common.loading') }}</div>
-      <div v-else-if="!academicYears.length" class="empty">
-        <p>{{ t('admin.calendar.noYears') }}</p>
+      <CommonEmptyState v-else-if="!academicYears.length" :description="t('admin.calendar.noYears')">
         <Button :label="t('admin.calendar.addYear')" icon="pi pi-plus" size="small" @click="openCreateYear" />
-      </div>
+      </CommonEmptyState>
 
       <div v-else class="years-list">
         <article
@@ -609,13 +601,6 @@ onMounted(async () => {
 
 <style scoped>
 .calendar-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
 .table-panel {
   border: 1px solid var(--border); border-radius: 16px;

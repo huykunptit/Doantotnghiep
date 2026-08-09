@@ -117,11 +117,6 @@ onMounted(loadCourses)
 <template>
   <div class="page chat-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.system') }}</span>
-        <h1>{{ t('admin.chat.title') }}</h1>
-        <p>{{ t('admin.chat.subtitle') }}</p>
-      </div>
       <Button
         :label="t('admin.chat.clear')"
         icon="pi pi-trash"
@@ -223,12 +218,9 @@ onMounted(loadCourses)
 <style scoped>
 .chat-page { gap: 14px; min-height: calc(100vh - 8rem); display: flex; flex-direction: column; }
 .workspace-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
 }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 

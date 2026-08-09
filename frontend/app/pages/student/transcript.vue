@@ -329,7 +329,7 @@ onMounted(load)
         </div>
       </section>
 
-      <div v-if="!external?.courses?.length" class="empty">{{ t('student.transcript.emptyExternal') }}</div>
+      <CommonEmptyState v-if="!external?.courses?.length" :description="t('student.transcript.emptyExternal')" />
       <div v-else class="table-wrap card-table">
         <table class="grade-table external">
           <thead>

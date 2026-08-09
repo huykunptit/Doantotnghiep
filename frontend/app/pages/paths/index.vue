@@ -85,7 +85,7 @@ onMounted(load)
     />
 
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!paths.length" class="empty">{{ t('student.paths.empty') }}</div>
+    <CommonEmptyState v-else-if="!paths.length" :description="t('student.paths.empty')" />
     <div v-else class="grid">
       <NuxtLink
         v-for="path in paths"

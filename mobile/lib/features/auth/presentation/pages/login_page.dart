@@ -6,6 +6,7 @@ import '../../../../core/error/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../widgets/auth_brand_header.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -47,7 +48,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString()),
+              content: Text(friendlyErrorMessage(e)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

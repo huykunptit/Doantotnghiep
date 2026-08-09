@@ -13,6 +13,7 @@ import '../../../courses/data/models/course_model.dart';
 import '../../data/repositories/learning_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/error/friendly_error.dart';
 import '../../../../core/widgets/loading_overlay.dart';
 class LessonPlayerScreen extends ConsumerStatefulWidget {
   const LessonPlayerScreen({
@@ -211,7 +212,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
           if (!mounted) return;
           setState(() {
             _videoHasError = true;
-            _videoErrorMessage = 'Không thể tải video YouTube: $e';
+            _videoErrorMessage = 'Không thể tải video YouTube: ${friendlyErrorMessage(e)}';
             _isVideoLoading = false;
           });
         },
@@ -230,7 +231,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
       if (!mounted) return;
       setState(() {
         _videoHasError = true;
-        _videoErrorMessage = 'Không thể khởi tạo video YouTube: $e';
+        _videoErrorMessage = 'Không thể khởi tạo video YouTube: ${friendlyErrorMessage(e)}';
         _isVideoLoading = false;
       });
     }
@@ -322,7 +323,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               AppSpacing.h12,
-              Text('Lỗi tải bài học: $e'),
+              Text('Lỗi tải bài học: ${friendlyErrorMessage(e)}'),
               AppSpacing.h16,
               ElevatedButton(
                 onPressed: () => ref.invalidate(lessonDetailProvider(widget.courseId, widget.lessonId)),
@@ -614,7 +615,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+                            SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
                           );
                         }
                       }
@@ -665,7 +666,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+                        SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
                       );
                     }
                   }
@@ -679,7 +680,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
         Expanded(
           child: notesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('Lỗi: $e')),
+            error: (e, _) => Center(child: Text('Lỗi: ${friendlyErrorMessage(e)}')),
             data: (notes) {
               if (notes.isEmpty) {
                 return const Center(child: Text('Chưa có ghi chú nào.'));
@@ -709,7 +710,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+                              SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
                             );
                           }
                         }
@@ -730,7 +731,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
 
     return attachmentsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Lỗi tải tài liệu: $e')),
+      error: (e, _) => Center(child: Text('Lỗi tải tài liệu: ${friendlyErrorMessage(e)}')),
       data: (attachments) {
         if (attachments.isEmpty) {
           return const Center(child: Text('Không có tài liệu đính kèm cho bài học này.'));

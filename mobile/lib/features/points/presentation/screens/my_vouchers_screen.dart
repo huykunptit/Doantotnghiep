@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/points_providers.dart';
 import '../../data/models/points_model.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class MyVouchersScreen extends ConsumerStatefulWidget {
   const MyVouchersScreen({super.key});
@@ -98,7 +99,7 @@ class _VoucherTab extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.grey),
               const SizedBox(height: 12),
-              Text('Lỗi: $e', textAlign: TextAlign.center),
+              Text('Lỗi: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => ref.invalidate(myVouchersProvider),

@@ -129,7 +129,7 @@ onMounted(load)
         <Column :header="t('instructor.students.lastWatched')">
           <template #body="{ data }">{{ fmtDate(data.last_watched_at) }}</template>
         </Column>
-        <template #empty><div class="empty">{{ t('instructor.students.empty') }}</div></template>
+        <template #empty><CommonEmptyState :description="t('instructor.students.empty')" /></template>
       </DataTable>
     </section>
   </div>
@@ -149,5 +149,5 @@ onMounted(load)
 .user-cell small { display: block; color: var(--text-muted); font-size: .78rem; }
 .progress { display: grid; gap: 4px; min-width: 140px; }
 .progress span { color: var(--text-muted); font-size: .78rem; font-weight: 500; }
-.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+
 </style>

@@ -94,20 +94,7 @@ const formatVnd = (value = 0) =>
 
 const formatNumber = (value = 0) => value.toLocaleString(numberLocale.value)
 
-function chartColors() {
-  const dark = import.meta.client && document.documentElement.classList.contains('dark')
-  return {
-    text: dark ? '#a8b8b4' : '#4a5a57',
-    grid: dark ? 'rgba(168, 184, 180, .12)' : 'rgba(74, 90, 87, .12)',
-    brand: '#0f766e',
-    brandSoft: 'rgba(15, 118, 110, .16)',
-    blue: '#2563eb',
-    amber: '#d97706',
-    violet: '#7c3aed',
-    rose: '#e11d48',
-    slate: '#64748b',
-  }
-}
+const { colors: chartColors } = useChartColors()
 
 const primaryMetrics = computed(() => [
   {
@@ -473,7 +460,7 @@ onMounted(loadDashboard)
         </div>
         <div v-if="loading" class="chart-box"><Skeleton height="220px" /></div>
         <ChartsUiChart v-else-if="hasTraffic" type="line" :data="trafficChartData" :options="trafficChartOptions" height="220px" />
-        <div v-else class="empty">{{ t('admin.dashboard.noTraffic') }}</div>
+        <CommonEmptyState v-else :description="t('admin.dashboard.noTraffic')" />
       </article>
 
       <article class="panel">
@@ -485,7 +472,7 @@ onMounted(loadDashboard)
         </div>
         <div v-if="loading" class="chart-box"><Skeleton height="220px" /></div>
         <ChartsUiChart v-else-if="hasStatus" type="doughnut" :data="statusChartData" :options="statusChartOptions" height="220px" />
-        <div v-else class="empty">{{ t('admin.dashboard.noStatus') }}</div>
+        <CommonEmptyState v-else :description="t('admin.dashboard.noStatus')" />
       </article>
     </section>
 
@@ -499,7 +486,7 @@ onMounted(loadDashboard)
         </div>
         <div v-if="loading" class="chart-box"><Skeleton height="240px" /></div>
         <ChartsUiChart v-else-if="hasRevenue" type="line" :data="revenueChartData" :options="revenueChartOptions" height="240px" />
-        <div v-else class="empty">{{ t('admin.dashboard.noRevenue') }}</div>
+        <CommonEmptyState v-else :description="t('admin.dashboard.noRevenue')" />
       </article>
 
       <article class="panel">
@@ -511,7 +498,7 @@ onMounted(loadDashboard)
         </div>
         <div v-if="loading" class="chart-box"><Skeleton height="240px" /></div>
         <ChartsUiChart v-else-if="hasComposition" type="polarArea" :data="compositionChartData" :options="compositionChartOptions" height="240px" />
-        <div v-else class="empty">{{ t('admin.dashboard.noComposition') }}</div>
+        <CommonEmptyState v-else :description="t('admin.dashboard.noComposition')" />
       </article>
     </section>
 
@@ -525,7 +512,7 @@ onMounted(loadDashboard)
         </div>
         <div v-if="loading" class="chart-box"><Skeleton height="210px" /></div>
         <ChartsUiChart v-else-if="hasProgress" type="bar" :data="progressChartData" :options="progressChartOptions" height="210px" />
-        <div v-else class="empty">{{ t('admin.dashboard.noProgress') }}</div>
+        <CommonEmptyState v-else :description="t('admin.dashboard.noProgress')" />
       </article>
 
       <article class="panel">
@@ -537,7 +524,7 @@ onMounted(loadDashboard)
         </div>
         <div v-if="loading" class="chart-box"><Skeleton height="210px" /></div>
         <ChartsUiChart v-else-if="hasEngagement" type="radar" :data="engagementChartData" :options="engagementChartOptions" height="210px" />
-        <div v-else class="empty">{{ t('admin.dashboard.noEngagement') }}</div>
+        <CommonEmptyState v-else :description="t('admin.dashboard.noEngagement')" />
       </article>
 
       <article class="panel">
@@ -861,14 +848,6 @@ onMounted(loadDashboard)
   font-weight: 700;
 }
 
-.empty {
-  display: grid;
-  place-items: center;
-  min-height: 180px;
-  color: var(--text-muted);
-  font-size: .9rem;
-  font-weight: 500;
-}
 .empty.compact { min-height: 110px; }
 
 @media (max-width: 1280px) {

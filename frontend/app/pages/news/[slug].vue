@@ -52,7 +52,7 @@ watch(() => route.params.slug, load)
   <div class="page-stack">
     <NuxtLink to="/news" class="back">← {{ t('student.news.back') }}</NuxtLink>
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="error" class="empty">{{ error }}</div>
+    <CommonEmptyState v-else-if="error" :description="error" />
     <article v-else-if="post" class="article">
       <div
         v-if="post.cover_image_url"

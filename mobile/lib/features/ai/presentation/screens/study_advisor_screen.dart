@@ -6,6 +6,7 @@ import '../../data/models/ai_models.dart';
 import '../../data/repositories/ai_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/error/friendly_error.dart';
 
 final extensionRecommendationsProvider =
     FutureProvider.autoDispose<List<CourseRecommendationItem>>((ref) {
@@ -46,7 +47,7 @@ class _StudyAdvisorScreenState extends ConsumerState<StudyAdvisorScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Lỗi: $e', textAlign: TextAlign.center),
+                Text('Lỗi: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
                 AppSpacing.h12,
                 FilledButton(
                   onPressed: () => ref.invalidate(studentCurriculumEvaluationProvider),

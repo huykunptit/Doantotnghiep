@@ -28,15 +28,7 @@ const courses = ref<MyCourse[]>([])
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 const formatVnd = (n = 0) => new Intl.NumberFormat(numberLocale.value, { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n)
 
-function chartColors() {
-  const dark = import.meta.client && document.documentElement.classList.contains('dark')
-  return {
-    text: dark ? '#a8b8b4' : '#4a5a57',
-    grid: dark ? 'rgba(255,255,255,.08)' : 'rgba(15,118,110,.12)',
-    brand: '#0f766e',
-    brandSoft: 'rgba(15,118,110,.25)',
-  }
-}
+const { colors: chartColors } = useChartColors()
 
 const revenueChart = computed(() => {
   const c = chartColors()
@@ -88,11 +80,6 @@ onMounted(load)
 <template>
   <div class="page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('instructor.console') }}</span>
-        <h1>{{ t('instructor.revenue.title') }}</h1>
-        <p>{{ t('instructor.revenue.subtitle') }}</p>
-      </div>
       <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
     </header>
 
@@ -125,7 +112,7 @@ onMounted(load)
             <Button :label="t('instructor.revenue.viewDetail')" size="small" text @click="navigateTo(`/instructor/courses/${data.id}/revenue`)" />
           </template>
         </Column>
-        <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+        <template #empty><CommonEmptyState :description="t('common.noData')" /></template>
       </DataTable>
     </section>
   </div>
@@ -133,11 +120,8 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head { display: flex; justify-content: space-between; gap: 12px; }
+
+.workspace-head { display: flex; justify-content: flex-end; gap: 12px; }
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 2vw, 1.8rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .kpi, .panel, .table-panel {
@@ -150,5 +134,5 @@ onMounted(load)
 .panel-head { margin-bottom: 10px; }
 .link { font-weight: 700; color: var(--text); }
 .link:hover { color: var(--brand); }
-.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+
 </style>

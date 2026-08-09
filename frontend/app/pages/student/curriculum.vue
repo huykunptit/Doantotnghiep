@@ -98,7 +98,7 @@ onMounted(load)
         </div>
       </div>
 
-      <section v-if="!visibleTerms.length" class="empty">{{ t('student.curriculum.emptyTerms') }}</section>
+      <CommonEmptyState v-if="!visibleTerms.length" :description="t('student.curriculum.emptyTerms')" />
 
       <div v-else class="term-list">
         <section v-for="term in visibleTerms" :key="term.term_number" class="term-block">

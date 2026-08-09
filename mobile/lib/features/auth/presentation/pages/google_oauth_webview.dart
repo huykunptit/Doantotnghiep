@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../providers/auth_provider.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class GoogleOauthWebviewPage extends ConsumerStatefulWidget {
   const GoogleOauthWebviewPage({super.key});
@@ -60,7 +61,7 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e);
         _fetchingUrl = false;
       });
     }
@@ -82,7 +83,7 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
         },
         error: (e, _) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+            SnackBar(content: Text(friendlyErrorMessage(e)), backgroundColor: Colors.red),
           );
           context.go('/login');
         },
@@ -90,7 +91,7 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        SnackBar(content: Text(friendlyErrorMessage(e)), backgroundColor: Colors.red),
       );
       context.go('/login');
     }

@@ -2,6 +2,12 @@ vendor/
 node_modules/
 .env
 .env.local
+# `php artisan storage:link` (run by the container entrypoint) creates this as
+# an ABSOLUTE symlink to /var/www/storage/app/public. Left on the host after
+# local testing, it breaks `docker build`'s context transfer entirely
+# ("invalid file request public/storage") since the target only resolves
+# inside a running container.
+public/storage
 storage/logs/*.log
 storage/framework/cache/*
 storage/framework/sessions/*

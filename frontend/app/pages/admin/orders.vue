@@ -205,13 +205,6 @@ onMounted(async () => {
 
 <template>
   <div class="page orders-page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.finance') }}</span>
-        <h1>{{ t('admin.orders.title') }}</h1>
-        <p>{{ t('admin.orders.subtitle') }}</p>
-      </div>
-    </header>
 
     <section class="metric-rail">
       <button type="button" class="metric" :class="{ on: !statusChip }" @click="setStatusChip(null)">
@@ -324,7 +317,7 @@ onMounted(async () => {
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('common.noData') }}</div>
+          <CommonEmptyState :description="t('common.noData')" />
         </template>
       </DataTable>
     </section>
@@ -383,13 +376,6 @@ onMounted(async () => {
 
 <style scoped>
 .orders-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
 .metric-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .metric {
@@ -444,8 +430,6 @@ onMounted(async () => {
 .tone-pending { background: #fef9c3; color: #a16207; }
 .tone-failed { background: #fee2e2; color: #b91c1c; }
 .tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
-
-.empty { padding: 40px; color: var(--text-muted); text-align: center; }
 
 .detail-loading { display: grid; place-items: center; padding: 32px; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

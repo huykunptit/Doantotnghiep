@@ -163,13 +163,6 @@ onMounted(load)
 
 <template>
   <div class="page cert-page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.courses') }}</span>
-        <h1>{{ t('admin.certificates.title') }}</h1>
-        <p>{{ t('admin.certificates.subtitle') }}</p>
-      </div>
-    </header>
 
     <section class="table-panel">
       <div class="table-toolbar">
@@ -210,7 +203,7 @@ onMounted(load)
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('common.noData') }}</div>
+          <CommonEmptyState :description="t('common.noData')" />
         </template>
       </DataTable>
     </section>
@@ -244,13 +237,6 @@ onMounted(load)
 
 <style scoped>
 .cert-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
 .table-panel {
   border: 1px solid var(--border); border-radius: 16px;
@@ -282,5 +268,4 @@ onMounted(load)
   border: 1px solid var(--border); background: #fff;
 }
 
-.empty { padding: 36px; text-align: center; color: var(--text-muted); }
 </style>

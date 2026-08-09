@@ -82,11 +82,6 @@ onMounted(load)
 <template>
   <div class="page report-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.reports') }}</span>
-        <h1>{{ t('admin.reports.exams.title') }}</h1>
-        <p>{{ t('admin.reports.exams.subtitle') }}</p>
-      </div>
       <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
     </header>
 
@@ -129,7 +124,7 @@ onMounted(load)
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('common.noData') }}</div>
+          <CommonEmptyState :description="t('common.noData')" />
         </template>
       </DataTable>
     </section>
@@ -138,11 +133,8 @@ onMounted(load)
 
 <style scoped>
 .report-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+.workspace-head { display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; }
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
@@ -171,7 +163,6 @@ onMounted(load)
 .tone-closed { background: #fee2e2; color: #b91c1c; }
 .tone-archived { background: #ede9fe; color: #6d28d9; }
 .tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
-.empty { padding: 36px; text-align: center; color: var(--text-muted); }
 
 @media (max-width: 720px) { .kpi-rail { grid-template-columns: 1fr; } }
 </style>

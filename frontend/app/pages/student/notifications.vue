@@ -54,7 +54,7 @@ onMounted(load)
     </header>
 
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!items.length" class="empty">{{ t('student.notif.empty') }}</div>
+    <CommonEmptyState v-else-if="!items.length" :description="t('student.notif.empty')" />
     <div v-else class="list">
       <button
         v-for="item in items"

@@ -11,6 +11,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../notifications/providers/notification_providers.dart';
 import '../../../ai/presentation/widgets/recommendations_section.dart';
 import '../../../ai/providers/ai_providers.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -188,7 +189,7 @@ class HomePage extends ConsumerWidget {
                     loading: () => const _CoursesShimmer(),
                     error: (e, _) => Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text('Lỗi tải danh sách: $e'),
+                      child: Text(friendlyErrorMessage(e)),
                     ),
                     data: (list) {
                       if (list.isEmpty) {

@@ -134,11 +134,6 @@ onMounted(() => {
 <template>
   <div class="page-stack">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.notifications.eyebrow') }}</span>
-        <h1>{{ t('admin.notifications.title') }}</h1>
-        <p>{{ t('admin.notifications.subtitle') }}</p>
-      </div>
       <div class="page-actions">
         <Button
           :label="t('admin.notifications.testEmail')"
@@ -213,13 +208,10 @@ onMounted(() => {
 
 <style scoped>
 .workspace-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
   margin-bottom: 14px;
 }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

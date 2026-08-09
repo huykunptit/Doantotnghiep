@@ -144,7 +144,7 @@ onMounted(load)
 
       <section class="panel">
         <header class="panel-head"><strong>{{ t('student.points.history') }}</strong></header>
-        <div v-if="!transactions.length" class="empty">{{ t('student.points.noTx') }}</div>
+        <CommonEmptyState v-if="!transactions.length" :description="t('student.points.noTx')" />
         <ul v-else class="tx-list">
           <li v-for="tx in transactions" :key="tx.id">
             <div>

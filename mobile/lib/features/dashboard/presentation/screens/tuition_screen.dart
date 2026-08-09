@@ -5,6 +5,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../data/repositories/dashboard_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class TuitionScreen extends ConsumerStatefulWidget {
   const TuitionScreen({super.key});
@@ -46,7 +47,7 @@ class _TuitionScreenState extends ConsumerState<TuitionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -71,7 +72,7 @@ class _TuitionScreenState extends ConsumerState<TuitionScreen> {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Lỗi: $e')),
+        error: (e, _) => Center(child: Text('Lỗi: ${friendlyErrorMessage(e)}')),
         data: (data) {
           if (data.items.isEmpty) {
             return const Center(child: Text('Chưa có dữ liệu học phí.'));

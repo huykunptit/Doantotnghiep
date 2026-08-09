@@ -8,6 +8,7 @@ import '../data/repositories/path_repository.dart';
 import '../../courses/providers/my_courses_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../core/error/friendly_error.dart';
 
 class PathDetailPage extends ConsumerWidget {
   const PathDetailPage({super.key, required this.slug});
@@ -29,7 +30,7 @@ class PathDetailPage extends ConsumerWidget {
               children: [
                 Icon(Icons.error_outline, size: 48, color: AppColors.error),
                 AppSpacing.h12,
-                Text(e.toString(), textAlign: TextAlign.center),
+                Text(friendlyErrorMessage(e), textAlign: TextAlign.center),
                 AppSpacing.h16,
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(pathDetailProvider(slug)),
@@ -118,7 +119,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(friendlyErrorMessage(e)),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -147,7 +148,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(friendlyErrorMessage(e)),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

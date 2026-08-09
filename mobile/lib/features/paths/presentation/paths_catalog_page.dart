@@ -7,6 +7,7 @@ import '../providers/paths_catalog_provider.dart';
 import '../data/models/career_path_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../core/error/friendly_error.dart';
 
 class PathsCatalogPage extends ConsumerStatefulWidget {
   const PathsCatalogPage({super.key});
@@ -90,7 +91,7 @@ class _PathsCatalogPageState extends ConsumerState<PathsCatalogPage> {
               children: [
                 Icon(Icons.error_outline, size: 48, color: AppColors.error),
                 AppSpacing.h12,
-                Text('Lỗi tải danh sách: $e', textAlign: TextAlign.center),
+                Text('Lỗi tải danh sách: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
                 AppSpacing.h16,
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(pathsCatalogProvider()),

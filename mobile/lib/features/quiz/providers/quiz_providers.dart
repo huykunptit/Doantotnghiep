@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/models/quiz_model.dart';
 import '../data/repositories/quiz_repository.dart';
+import '../../../core/error/friendly_error.dart';
 
 part 'quiz_providers.g.dart';
 
@@ -150,7 +151,7 @@ class ExamAttempt extends _$ExamAttempt {
 
       _startLocalTimer();
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyErrorMessage(e));
     }
   }
 
@@ -219,7 +220,7 @@ class ExamAttempt extends _$ExamAttempt {
       _startLocalTimer();
       _startStatusPolling();
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
+      state = state.copyWith(isLoading: false, error: friendlyErrorMessage(e));
     }
   }
 
@@ -447,7 +448,7 @@ class ExamAttempt extends _$ExamAttempt {
     } catch (e) {
       state = state.copyWith(
         isSubmitting: false,
-        error: isAuto ? 'Tự động nộp bài lỗi: ${e.toString()}' : e.toString(),
+        error: isAuto ? 'Tự động nộp bài lỗi: ${friendlyErrorMessage(e)}' : friendlyErrorMessage(e),
       );
       // Restart timers if it wasn't auto
       if (!isAuto) {

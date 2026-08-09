@@ -171,11 +171,6 @@ onMounted(async () => {
 <template>
   <div class="page create-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.assessment') }}</span>
-        <h1>{{ t('admin.quiz.createTitle') }}</h1>
-        <p>{{ t('admin.quiz.createSubtitle') }}</p>
-      </div>
       <div class="page-actions">
         <Button :label="t('common.cancel')" severity="secondary" outlined @click="navigateTo('/admin/quiz')" />
         <Button :label="t('common.save')" icon="pi pi-check" :loading="saving" @click="save" />
@@ -255,12 +250,9 @@ onMounted(async () => {
 <style scoped>
 .create-page { gap: 14px; }
 .workspace-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
 }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 .page-actions { display: flex; gap: 8px; }

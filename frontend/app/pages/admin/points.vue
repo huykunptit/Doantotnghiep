@@ -297,7 +297,7 @@ onMounted(() => {
             <span>{{ i + 1 }}. {{ u.name }} <small>{{ u.student_code }}</small></span>
             <strong>{{ fmtNum(u.points_balance) }}</strong>
           </div>
-          <p v-if="!statsLoading && !(stats?.top_students || []).length" class="empty">{{ t('common.noData') }}</p>
+          <CommonEmptyState v-if="!statsLoading && !(stats?.top_students || []).length" :description="t('common.noData')" />
         </section>
       </div>
 
@@ -316,7 +316,7 @@ onMounted(() => {
           <Column :header="t('admin.points.time')">
             <template #body="{ data }">{{ fmtDate(data.created_at) }}</template>
           </Column>
-          <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('common.noData')" /></template>
         </DataTable>
       </section>
     </template>
@@ -371,7 +371,7 @@ onMounted(() => {
               <Button icon="pi pi-trash" text rounded severity="danger" @click="askDelete(data)" />
             </template>
           </Column>
-          <template #empty><div class="empty">{{ t('admin.points.empty') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('admin.points.empty')" /></template>
         </DataTable>
       </section>
     </template>
@@ -443,7 +443,7 @@ onMounted(() => {
 .list-row { display: flex; justify-content: space-between; gap: .75rem; padding: .45rem 0; border-bottom: 1px solid var(--p-content-border-color); }
 .list-row small { color: var(--p-text-muted-color); }
 .muted { display: block; color: var(--p-text-muted-color); font-size: .8rem; }
-.empty { text-align: center; color: var(--p-text-muted-color); padding: .75rem; }
+
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
 .field { display: flex; flex-direction: column; gap: .35rem; font-size: .85rem; font-weight: 600; }
 .field.full { grid-column: 1 / -1; }

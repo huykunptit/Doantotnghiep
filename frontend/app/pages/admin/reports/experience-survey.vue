@@ -271,11 +271,6 @@ onMounted(load)
 <template>
   <div class="page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.reports') }}</span>
-        <h1>{{ t('admin.experienceSurvey.title') }}</h1>
-        <p>{{ t('admin.experienceSurvey.subtitle') }}</p>
-      </div>
       <div class="actions">
         <Button :label="t('admin.experienceSurvey.refresh')" icon="pi pi-refresh" severity="secondary" outlined :loading="loading" @click="load" />
         <Button :label="t('admin.experienceSurvey.export')" icon="pi pi-file-excel" :loading="exportingCsv" @click="exportCsv" />
@@ -349,8 +344,8 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
+
+.workspace-head { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.35rem, 2vw, 1.7rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }

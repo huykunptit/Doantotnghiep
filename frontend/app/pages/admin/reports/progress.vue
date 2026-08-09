@@ -68,11 +68,6 @@ onMounted(load)
 <template>
   <div class="page report-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.reports') }}</span>
-        <h1>{{ t('admin.reports.progress.title') }}</h1>
-        <p>{{ t('admin.reports.progress.subtitle') }}</p>
-      </div>
       <Button icon="pi pi-refresh" severity="secondary" text rounded :loading="loading" @click="load" />
     </header>
 
@@ -105,7 +100,7 @@ onMounted(load)
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('admin.dashboard.noProgress') }}</div>
+          <CommonEmptyState :description="t('admin.dashboard.noProgress')" />
         </template>
       </DataTable>
     </section>
@@ -128,11 +123,8 @@ onMounted(load)
 
 <style scoped>
 .report-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+.workspace-head { display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; }
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
@@ -158,7 +150,6 @@ onMounted(load)
 .bar-wrap { display: flex; align-items: center; gap: 10px; }
 .bar { flex: 1; height: 8px; }
 .bar-wrap span { font-size: .82rem; font-weight: 700; min-width: 2.5rem; text-align: right; }
-.empty { padding: 32px; text-align: center; color: var(--text-muted); }
 
 @media (max-width: 720px) { .kpi-rail { grid-template-columns: 1fr; } }
 </style>

@@ -6,6 +6,7 @@ import '../providers/my_courses_provider.dart';
 import '../data/models/enrollment_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/error_state.dart';
 
 class MyCoursesPage extends ConsumerWidget {
   const MyCoursesPage({super.key});
@@ -30,24 +31,9 @@ class MyCoursesPage extends ConsumerWidget {
         ),
         body: enrollmentsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                  AppSpacing.h12,
-                  Text(e.toString(), textAlign: TextAlign.center),
-                  AppSpacing.h16,
-                  FilledButton.icon(
-                    onPressed: () => ref.invalidate(myEnrollmentsProvider),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Thử lại'),
-                  ),
-                ],
-              ),
-            ),
+          error: (e, _) => ErrorStateWidget(
+            error: e,
+            onRetry: () => ref.invalidate(myEnrollmentsProvider),
           ),
           data: (enrollments) {
             if (enrollments.isEmpty) {

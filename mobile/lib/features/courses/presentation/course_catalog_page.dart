@@ -7,6 +7,7 @@ import '../providers/course_catalog_provider.dart';
 import '../data/models/course_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/error_state.dart';
 
 class CourseCatalogPage extends ConsumerStatefulWidget {
   const CourseCatalogPage({super.key});
@@ -123,21 +124,9 @@ class _CourseCatalogPageState extends ConsumerState<CourseCatalogPage> {
               },
               child: catalogAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                      AppSpacing.h12,
-                      Text('Lỗi tải danh sách: $e', textAlign: TextAlign.center),
-                      AppSpacing.h16,
-                      FilledButton.icon(
-                        onPressed: () => ref.invalidate(courseCatalogProvider()),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Thử lại'),
-                      ),
-                    ],
-                  ),
+                error: (e, _) => ErrorStateWidget(
+                  error: e,
+                  onRetry: () => ref.invalidate(courseCatalogProvider()),
                 ),
                 data: (courses) {
                   if (courses.isEmpty) {

@@ -39,13 +39,6 @@ onMounted(load)
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('instructor.console') }}</span>
-        <h1>{{ t('instructor.students.title') }}</h1>
-        <p>{{ t('instructor.students.subtitle') }}</p>
-      </div>
-    </header>
 
     <section class="grid" :aria-busy="loading">
       <button
@@ -62,19 +55,14 @@ onMounted(load)
         </div>
         <i class="pi pi-angle-right" />
       </button>
-      <div v-if="!loading && !courses.length" class="empty">{{ t('common.noData') }}</div>
+      <CommonEmptyState v-if="!loading && !courses.length" :description="t('common.noData')" />
     </section>
   </div>
 </template>
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 2vw, 1.8rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
+
 .grid { display: grid; gap: 10px; }
 .card {
   display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 12px;
@@ -87,5 +75,5 @@ onMounted(load)
 .copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .copy span { color: var(--text-muted); font-size: .85rem; font-weight: 500; }
-.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+
 </style>

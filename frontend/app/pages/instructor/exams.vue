@@ -333,16 +333,11 @@ onMounted(async () => {
 <template>
   <div class="page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('instructor.console') }}</span>
-        <h1>{{ t('instructor.exams.title') }}</h1>
-        <p>{{ t('instructor.exams.subtitle') }}</p>
-      </div>
       <Button :label="t('instructor.exams.create')" icon="pi pi-plus" @click="showCreate = true" />
     </header>
 
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!exams.length" class="empty">{{ t('instructor.exams.empty') }}</div>
+    <CommonEmptyState v-else-if="!exams.length" :description="t('instructor.exams.empty')" />
     <DataTable v-else :value="exams" class="tbl" responsive-layout="scroll">
       <Column field="title" :header="t('instructor.exams.exam')">
         <template #body="{ data }">
@@ -489,8 +484,8 @@ onMounted(async () => {
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.eyebrow { display: block; margin-bottom: 4px; color: var(--brand); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.workspace-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.workspace-head { display: flex; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.4rem, 2vw, 1.75rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }
 .empty { padding: 28px; text-align: center; color: var(--text-muted); }

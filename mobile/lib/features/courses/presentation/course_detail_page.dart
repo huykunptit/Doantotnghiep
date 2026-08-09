@@ -8,6 +8,7 @@ import '../data/models/course_model.dart';
 import '../data/repositories/course_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../core/error/friendly_error.dart';
 
 class CourseDetailPage extends ConsumerWidget {
   const CourseDetailPage({super.key, required this.courseId});
@@ -29,7 +30,7 @@ class CourseDetailPage extends ConsumerWidget {
               children: [
                 Icon(Icons.error_outline, size: 48, color: AppColors.error),
                 AppSpacing.h12,
-                Text(e.toString(), textAlign: TextAlign.center),
+                Text(friendlyErrorMessage(e), textAlign: TextAlign.center),
                 AppSpacing.h16,
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(courseDetailProvider(courseId)),
@@ -110,7 +111,7 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(friendlyErrorMessage(e)),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

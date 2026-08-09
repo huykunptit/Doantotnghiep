@@ -331,7 +331,7 @@ onMounted(async () => {
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('admin.tuition.empty') }}</div>
+          <CommonEmptyState :description="t('admin.tuition.empty')" />
         </template>
       </DataTable>
     </section>
@@ -402,7 +402,7 @@ onMounted(async () => {
 .filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .filters > :first-child { min-width: 220px; flex: 1; }
 .muted { display: block; color: var(--p-text-muted-color); font-size: .8rem; }
-.empty { padding: 1.25rem; text-align: center; color: var(--p-text-muted-color); }
+
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; }
 .field { display: flex; flex-direction: column; gap: .35rem; font-size: .85rem; font-weight: 600; }
 .field.full { grid-column: 1 / -1; }

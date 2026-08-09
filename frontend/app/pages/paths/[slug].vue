@@ -190,7 +190,7 @@ onMounted(load)
         </ol>
       </section>
     </template>
-    <div v-else class="empty">{{ t('student.paths.notFound') }}</div>
+    <CommonEmptyState v-else :description="t('student.paths.notFound')" />
   </div>
 </template>
 

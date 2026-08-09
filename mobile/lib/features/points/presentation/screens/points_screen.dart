@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../providers/points_providers.dart';
 import '../../data/models/points_model.dart';
 import '../../data/repositories/points_repository.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class PointsScreen extends ConsumerStatefulWidget {
   const PointsScreen({super.key});
@@ -34,7 +35,7 @@ class _PointsScreenState extends ConsumerState<PointsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi: ${e.toString()}'),
+          content: Text('Lỗi: ${friendlyErrorMessage(e)}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -62,7 +63,7 @@ class _PointsScreenState extends ConsumerState<PointsScreen> {
               error: (e, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('Lỗi tải dữ liệu: $e'),
+                  child: Text('Lỗi tải dữ liệu: ${friendlyErrorMessage(e)}'),
                 ),
               ),
             ),
@@ -130,7 +131,7 @@ class _PointsScreenState extends ConsumerState<PointsScreen> {
             data: (txns) => _TransactionList(transactions: txns),
             loading: () =>
                 const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Text('Lỗi tải giao dịch: $e'),
+            error: (e, _) => Text('Lỗi tải giao dịch: ${friendlyErrorMessage(e)}'),
           ),
           const SizedBox(height: 80),
         ],

@@ -122,7 +122,7 @@ onMounted(load)
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('instructor.grades.empty') }}</div>
+          <CommonEmptyState :description="t('instructor.grades.empty')" />
         </template>
       </DataTable>
     </section>
@@ -142,7 +142,7 @@ onMounted(load)
 .kpi strong { font-size: 1.4rem; }
 .panel { border: 1px solid var(--p-content-border-color); border-radius: 12px; overflow: hidden; background: var(--p-content-background); }
 .muted { display: block; color: var(--p-text-muted-color); font-size: .8rem; }
-.empty { padding: 1.5rem; text-align: center; color: var(--p-text-muted-color); }
+
 code { font-size: .8rem; background: var(--p-surface-100); padding: .15rem .4rem; border-radius: 6px; }
 @media (max-width: 720px) { .kpis { grid-template-columns: 1fr; } }
 </style>

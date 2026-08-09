@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../data/models/career_model.dart';
 import '../../providers/career_providers.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class CareerAdvisorScreen extends ConsumerStatefulWidget {
   const CareerAdvisorScreen({super.key});
@@ -99,7 +100,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi tải lên CV: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Lỗi tải lên CV: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -145,7 +146,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi lưu form: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Lỗi lưu form: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -178,7 +179,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi đánh giá: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Lỗi đánh giá: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -207,7 +208,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi tạo lộ trình: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Lỗi tạo lộ trình: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

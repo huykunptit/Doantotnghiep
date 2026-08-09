@@ -197,7 +197,7 @@ onMounted(() => {
           <template #body="{ data }">{{ fmt(data.checked_in_at) }}</template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('student.attendance.empty') }}</div>
+          <CommonEmptyState :description="t('student.attendance.empty')" />
         </template>
       </DataTable>
     </section>
@@ -214,5 +214,5 @@ onMounted(() => {
 .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
 .panel-head h2 { margin: 0; }
 .muted { display: block; color: var(--p-text-muted-color); font-size: .8rem; }
-.empty { padding: 1rem; text-align: center; color: var(--p-text-muted-color); }
+
 </style>

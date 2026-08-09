@@ -197,15 +197,14 @@ onMounted(load)
 
     <section class="panel">
       <div v-if="loading" class="empty">{{ t('instructor.grades.loading') }}</div>
-      <div v-else-if="!data?.components.length" class="empty">
-        <p>{{ t('instructor.grades.noComponents') }}</p>
+      <CommonEmptyState v-else-if="!data?.components.length" :description="t('instructor.grades.noComponents')">
         <Button
           :label="t('instructor.grades.applyPreset')"
           icon="pi pi-sparkles"
           :loading="applyingPreset"
           @click="applyPreset"
         />
-      </div>
+      </CommonEmptyState>
       <div v-else class="table-wrap">
         <table class="grade-table">
           <thead>

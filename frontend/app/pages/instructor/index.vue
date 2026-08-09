@@ -47,15 +47,7 @@ const formatVnd = (value = 0) =>
 
 const formatNumber = (value = 0) => value.toLocaleString(numberLocale.value)
 
-function chartColors() {
-  const dark = import.meta.client && document.documentElement.classList.contains('dark')
-  return {
-    text: dark ? '#a8b8b4' : '#4a5a57',
-    grid: dark ? 'rgba(255,255,255,.08)' : 'rgba(15,118,110,.12)',
-    brand: '#0f766e',
-    brandSoft: 'rgba(15,118,110,.25)',
-  }
-}
+const { colors: chartColors } = useChartColors()
 
 const revenueChart = computed(() => {
   const c = chartColors()
@@ -159,7 +151,6 @@ onMounted(load)
   <div class="page dash">
     <header class="workspace-head">
       <div>
-        <span class="eyebrow">{{ t('instructor.console') }}</span>
         <h1>{{ greeting }}, {{ auth.user?.name || t('instructor.roleLabel') }}</h1>
         <p>{{ todayLabel }} · {{ t('instructor.dashboard.subtitle') }}</p>
       </div>
@@ -208,7 +199,7 @@ onMounted(load)
             </NuxtLink>
           </li>
         </ul>
-        <p v-else class="empty">{{ t('instructor.dashboard.noInsights') }}</p>
+        <CommonEmptyState v-else :description="t('instructor.dashboard.noInsights')" />
       </div>
 
       <div class="panel">
@@ -241,10 +232,7 @@ onMounted(load)
 <style scoped>
 .dash { display: flex; flex-direction: column; gap: 14px; }
 .workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 2vw, 1.8rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 

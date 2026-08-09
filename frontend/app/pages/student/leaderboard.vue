@@ -50,7 +50,7 @@ onMounted(load)
     </section>
 
     <div v-if="loading" class="empty">…</div>
-    <div v-else-if="!top.length" class="empty">{{ t('student.points.boardEmpty') }}</div>
+    <CommonEmptyState v-else-if="!top.length" :description="t('student.points.boardEmpty')" />
     <ol v-else class="board">
       <li
         v-for="(user, index) in top"

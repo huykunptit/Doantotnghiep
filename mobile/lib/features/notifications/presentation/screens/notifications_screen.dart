@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/notification_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/error_state.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -99,27 +100,12 @@ class NotificationsScreen extends ConsumerWidget {
         },
         child: notificationsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  AppSpacing.h12,
-                  Text('Lỗi: $e', textAlign: TextAlign.center),
-                  AppSpacing.h16,
-                  FilledButton.icon(
-                    onPressed: () {
-                      ref.invalidate(studentNotificationsProvider);
-                      ref.invalidate(unreadNotificationsCountProvider);
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Thử lại'),
-                  ),
-                ],
-              ),
-            ),
+          error: (e, _) => ErrorStateWidget(
+            error: e,
+            onRetry: () {
+              ref.invalidate(studentNotificationsProvider);
+              ref.invalidate(unreadNotificationsCountProvider);
+            },
           ),
           data: (notifications) {
             if (notifications.isEmpty) {

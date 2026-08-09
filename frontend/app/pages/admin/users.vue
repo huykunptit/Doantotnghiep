@@ -753,13 +753,6 @@ onMounted(async () => {
 
 <template>
   <div class="page users-page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.people') }}</span>
-        <h1>{{ t('admin.users.title') }}</h1>
-        <p>{{ t('admin.users.subtitle') }}</p>
-      </div>
-    </header>
 
     <section class="metric-rail">
       <button type="button" class="metric" :class="{ on: !roleChip }" @click="setRoleChip(null)">
@@ -962,7 +955,7 @@ onMounted(async () => {
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('common.noData') }}</div>
+          <CommonEmptyState :description="t('common.noData')" />
         </template>
       </DataTable>
     </section>
@@ -1264,13 +1257,6 @@ onMounted(async () => {
 
 <style scoped>
 .users-page { gap: 14px; }
-.workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 
 .metric-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .metric {
@@ -1345,8 +1331,6 @@ onMounted(async () => {
 .tone-leave { background: #fde68a; color: #92400e; }
 .tone-retired { background: #e2e8f0; color: #475569; }
 .tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
-
-.empty { padding: 40px; color: var(--text-muted); text-align: center; }
 
 .modal-grid {
   display: grid;

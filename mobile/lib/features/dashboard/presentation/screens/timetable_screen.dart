@@ -4,6 +4,7 @@ import '../../providers/dashboard_provider.dart';
 import '../../data/models/portal_models.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class TimetableScreen extends ConsumerWidget {
   const TimetableScreen({super.key});
@@ -35,7 +36,7 @@ class TimetableScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Lỗi: $e')),
+        error: (e, _) => Center(child: Text('Lỗi: ${friendlyErrorMessage(e)}')),
         data: (data) {
           final byDay = <int, List<TimetableScheduleItem>>{};
           for (var d = 1; d <= 7; d++) {

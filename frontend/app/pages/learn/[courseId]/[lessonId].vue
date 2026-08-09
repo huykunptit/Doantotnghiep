@@ -162,7 +162,7 @@ watch([courseId, lessonId], load, { immediate: true })
 
           <section v-else-if="lesson.type === 'page'" class="page-content">
             <div v-if="lesson.description" v-html="lesson.description" />
-            <p v-else class="empty">{{ t('student.learn.pageEmpty') }}</p>
+            <CommonEmptyState v-else :description="t('student.learn.pageEmpty')" />
           </section>
 
           <section v-else-if="lesson.type === 'file' || lesson.type === 'document'" class="file-box">

@@ -5,6 +5,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../data/repositories/profile_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/error/friendly_error.dart';
 
 /// Plain (non code-generated) provider — avoids a build_runner pass just to
 /// surface a couple of read-only fields (class/program/major) for the card.
@@ -28,7 +29,7 @@ class StudentIdCardPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Thẻ sinh viên')),
       body: authState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(e.toString())),
+        error: (e, _) => Center(child: Text(friendlyErrorMessage(e))),
         data: (user) {
           if (user == null) return const SizedBox.shrink();
 

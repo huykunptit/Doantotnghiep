@@ -165,11 +165,6 @@ onMounted(load)
 <template>
   <div class="page-stack">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.news.eyebrow') }}</span>
-        <h1>{{ t('admin.news.title') }}</h1>
-        <p>{{ t('admin.news.subtitle') }}</p>
-      </div>
       <Button :label="t('admin.news.create')" icon="pi pi-plus" @click="openCreate" />
     </header>
 
@@ -213,7 +208,7 @@ onMounted(load)
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('admin.news.empty') }}</div>
+          <CommonEmptyState :description="t('admin.news.empty')" />
         </template>
       </DataTable>
     </section>
@@ -264,13 +259,10 @@ onMounted(load)
 
 <style scoped>
 .workspace-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
   margin-bottom: 14px;
 }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); }
 .panel {
@@ -284,7 +276,7 @@ onMounted(load)
 .title-cell { display: grid; gap: 2px; }
 .title-cell small { color: var(--brand); font-weight: 700; }
 .row-actions { display: flex; gap: 2px; }
-.empty { padding: 24px; text-align: center; color: var(--text-muted); }
+
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }

@@ -337,7 +337,7 @@ onMounted(loadSections)
     </section>
 
     <section class="surface panel">
-      <div v-if="!selectedSectionId" class="empty">{{ t('admin.attendance.pickSectionFirst') }}</div>
+      <CommonEmptyState v-if="!selectedSectionId" :description="t('admin.attendance.pickSectionFirst')" />
       <DataTable
         v-else
         :value="sessions"
@@ -481,7 +481,7 @@ onMounted(loadSections)
 .field > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; }
 .field.full { grid-column: 1 / -1; }
 .hint { margin: 10px 0 0; color: var(--text-muted); font-size: .85rem; }
-.empty { padding: 24px; text-align: center; color: var(--text-muted); }
+
 .row-actions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-width: min(560px, 80vw); }
 .qr-toggle {

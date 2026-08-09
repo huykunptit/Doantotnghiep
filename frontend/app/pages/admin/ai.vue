@@ -244,11 +244,6 @@ onMounted(load)
 <template>
   <div class="page ai-page">
     <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('admin.menu.system') }}</span>
-        <h1>{{ t('admin.ai.title') }}</h1>
-        <p>{{ t('admin.ai.subtitle') }}</p>
-      </div>
       <div class="page-actions">
         <Button
           :label="t('common.refresh')"
@@ -422,7 +417,7 @@ onMounted(load)
             <Column field="tokens" :header="t('admin.ai.tokens')">
               <template #body="{ data }">{{ formatK(data.tokens || 0) }}</template>
             </Column>
-            <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+            <template #empty><CommonEmptyState :description="t('common.noData')" /></template>
           </DataTable>
         </section>
         <section class="panel">
@@ -433,7 +428,7 @@ onMounted(load)
             <Column field="tokens" :header="t('admin.ai.tokens')">
               <template #body="{ data }">{{ formatK(data.tokens || 0) }}</template>
             </Column>
-            <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+            <template #empty><CommonEmptyState :description="t('common.noData')" /></template>
           </DataTable>
         </section>
       </div>
@@ -476,7 +471,7 @@ onMounted(load)
           <Column field="created_at" :header="t('admin.ai.time')">
             <template #body="{ data }">{{ formatDate(data.created_at) }}</template>
           </Column>
-          <template #empty><div class="empty">{{ t('common.noData') }}</div></template>
+          <template #empty><CommonEmptyState :description="t('common.noData')" /></template>
         </DataTable>
       </section>
     </template>
@@ -486,12 +481,9 @@ onMounted(load)
 <style scoped>
 .ai-page { gap: 14px; }
 .workspace-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
 }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.5rem, 2vw, 1.85rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
 .page-actions { display: flex; gap: 8px; flex-wrap: wrap; }

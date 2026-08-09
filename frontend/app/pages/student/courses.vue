@@ -53,7 +53,7 @@ onMounted(load)
         </div>
         <Button :label="t('student.courses.learn')" size="small" @click.stop="item.course && navigateTo(`/learn/${item.course.id}`)" />
       </button>
-      <div v-if="!loading && !rows.length" class="empty">{{ t('student.courses.empty') }}</div>
+      <CommonEmptyState v-if="!loading && !rows.length" :description="t('student.courses.empty')" />
     </section>
   </div>
 </template>
@@ -71,6 +71,6 @@ onMounted(load)
 .body { min-width: 0; }
 .body strong { display: block; }
 .body span, .body small { color: var(--text-muted); font-size: .85rem; font-weight: 500; }
-.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+
 @media (max-width: 700px) { .card { grid-template-columns: 56px 1fr; } .card > :last-child { grid-column: 1 / -1; } }
 </style>

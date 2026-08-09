@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/points_providers.dart';
 import '../../data/models/points_model.dart';
 import '../../data/repositories/points_repository.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class VoucherShopScreen extends ConsumerWidget {
   const VoucherShopScreen({super.key});
@@ -36,7 +37,7 @@ class VoucherShopScreen extends ConsumerWidget {
                 const Icon(Icons.error_outline,
                     size: 48, color: Colors.grey),
                 const SizedBox(height: 12),
-                Text('Lỗi tải cửa hàng: $e',
+                Text('Lỗi tải cửa hàng: ${friendlyErrorMessage(e)}',
                     textAlign: TextAlign.center),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -124,7 +125,7 @@ class _VoucherGridState extends ConsumerState<_VoucherGrid> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi đổi quà: $e'),
+          content: Text('Lỗi đổi quà: ${friendlyErrorMessage(e)}'),
           backgroundColor: Colors.red,
         ),
       );

@@ -36,15 +36,7 @@ const fmtDate = (value?: string | null) => {
   return new Intl.DateTimeFormat(numberLocale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-function chartColors() {
-  const dark = import.meta.client && document.documentElement.classList.contains('dark')
-  return {
-    text: dark ? '#a8b8b4' : '#4a5a57',
-    grid: dark ? 'rgba(255,255,255,.08)' : 'rgba(15,118,110,.12)',
-    brand: '#0f766e',
-    brandSoft: 'rgba(15,118,110,.25)',
-  }
-}
+const { colors: chartColors } = useChartColors()
 
 const revenueChart = computed(() => {
   const c = chartColors()
@@ -157,7 +149,7 @@ onMounted(load)
         <Column :header="t('instructor.revenue.paidAt')">
           <template #body="{ data }">{{ fmtDate(data.paid_at) }}</template>
         </Column>
-        <template #empty><div class="empty">{{ t('instructor.revenue.emptyOrders') }}</div></template>
+        <template #empty><CommonEmptyState :description="t('instructor.revenue.emptyOrders')" /></template>
       </DataTable>
     </section>
   </div>
@@ -177,6 +169,6 @@ onMounted(load)
 .kpi strong { display: block; margin-top: 4px; font-family: var(--font-display); font-size: 1.35rem; }
 .panel-head { margin-bottom: 10px; }
 small { display: block; color: var(--text-muted); font-size: .78rem; }
-.empty { padding: 28px; text-align: center; color: var(--text-muted); }
+
 @media (max-width: 700px) { .kpi-rail { grid-template-columns: 1fr; } }
 </style>

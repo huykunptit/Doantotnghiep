@@ -148,13 +148,6 @@ onMounted(async () => {
 
 <template>
   <div class="page">
-    <header class="workspace-head">
-      <div>
-        <span class="eyebrow">{{ t('instructor.console') }}</span>
-        <h1>{{ t('instructor.courses.title') }}</h1>
-        <p>{{ t('instructor.courses.subtitle') }}</p>
-      </div>
-    </header>
 
     <section class="table-panel">
       <div class="table-toolbar">
@@ -216,7 +209,7 @@ onMounted(async () => {
           </template>
         </Column>
         <template #empty>
-          <div class="empty">{{ t('common.noData') }}</div>
+          <CommonEmptyState :description="t('common.noData')" />
         </template>
       </DataTable>
     </section>
@@ -257,12 +250,7 @@ onMounted(async () => {
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
-.workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.45rem, 2vw, 1.8rem); }
-.workspace-head p { margin: 0; color: var(--text-muted); font-size: .95rem; font-weight: 500; }
-.eyebrow {
-  display: block; margin-bottom: 4px; color: var(--brand);
-  font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-}
+
 .table-panel {
   border: 1px solid var(--border); border-radius: 16px; padding: 12px;
   background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(8px);
@@ -282,7 +270,7 @@ onMounted(async () => {
 .tone-rejected { background: #fee2e2; color: #b91c1c; }
 .tone-draft { background: #e2e8f0; color: #475569; }
 .tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
-.empty { padding: 36px; text-align: center; color: var(--text-muted); }
+
 .form { display: grid; gap: 12px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { color: var(--text-muted); font-size: .75rem; font-weight: 700; }

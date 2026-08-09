@@ -146,7 +146,7 @@ onMounted(load)
 
     <!-- Chưa nộp: học phí kỳ còn nợ -->
     <template v-else-if="tab === 'unpaid'">
-      <div v-if="!unpaidItems.length" class="empty">{{ emptyTabMessage }}</div>
+      <CommonEmptyState v-if="!unpaidItems.length" :description="emptyTabMessage" />
       <div v-else class="list">
         <article v-for="row in unpaidItems" :key="row.id" class="debt-card">
           <header class="debt-head">
@@ -179,7 +179,7 @@ onMounted(load)
 
     <!-- Đã nộp = lịch sử thanh toán (học phí + khóa ngoài CTĐT) -->
     <template v-else>
-      <div v-if="!paymentHistory.length" class="empty">{{ emptyTabMessage }}</div>
+      <CommonEmptyState v-if="!paymentHistory.length" :description="emptyTabMessage" />
       <div v-else class="list">
         <article v-for="payment in paymentHistory" :key="payment.id" class="debt-card">
           <header class="debt-head">

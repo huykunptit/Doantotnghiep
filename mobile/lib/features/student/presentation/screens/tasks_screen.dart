@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/student_models.dart';
 import '../../providers/student_providers.dart';
+import '../../../../core/error/friendly_error.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -72,7 +73,7 @@ class _TaskList extends ConsumerWidget {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 8),
-            Text(e.toString(), textAlign: TextAlign.center),
+            Text(friendlyErrorMessage(e), textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton(
                 onPressed: () => ref.invalidate(myTasksProvider(done: done)),
