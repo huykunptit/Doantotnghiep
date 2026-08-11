@@ -21,8 +21,8 @@
   --radius-lg: 18px;
   --shadow-sm: 0 1px 2px rgba(19, 39, 35, .06);
   --shadow-md: 0 10px 30px rgba(19, 39, 35, .08);
-  --font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
-  --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', sans-serif;
+  --font-sans: 'Roboto', 'Segoe UI', sans-serif;
+  --font-display: 'Roboto Condensed', 'Roboto', sans-serif;
   --p-font-family: var(--font-sans);
   --p-text-font-size: 16.5px;
   --body-bg-image: url('/body-bg.jpg');

@@ -8,5 +8,14 @@ import 'app_exception.dart';
 /// type 'String'"). This is the single choke point that guarantees it can't.
 String friendlyErrorMessage(Object error) {
   if (error is AppException) return error.message;
+  // `Exception` (unlike `Error`) is reserved in this codebase for deliberately
+  // thrown, already-Vietnamese, user-facing messages (see attendance_screen's
+  // location checks) — safe to surface. TypeError/NoSuchMethodError/etc. are
+  // `Error`, not `Exception`, so they still fall through to the generic text.
+  if (error is Exception) {
+    final msg = error.toString();
+    const prefix = 'Exception: ';
+    return msg.startsWith(prefix) ? msg.substring(prefix.length) : msg;
+  }
   return 'Đã xảy ra lỗi. Vui lòng thử lại.';
 }

@@ -123,7 +123,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
       _showSuccessDialog(res.message, res.attendance);
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar(friendlyErrorMessage(e).replaceFirst('Exception: ', ''));
+      _showErrorSnackBar(friendlyErrorMessage(e));
     } finally {
       if (mounted) {
         setState(() {
