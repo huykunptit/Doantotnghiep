@@ -5,7 +5,12 @@
       "Bash(php -v)",
       "Bash(where python *)",
       "Bash(docker info *)",
-      "Bash(grep -n '$disk\\\\s*=' /d/Doantotnghiep/backend/app/Http/Controllers/AIManagement/CareerAdvisorController.php)"
+      "Bash(grep -n '$disk\\\\s*=' /d/Doantotnghiep/backend/app/Http/Controllers/AIManagement/CareerAdvisorController.php)",
+      "Bash(grep -n '$frontend\\\\s*=' /d/Doantotnghiep/backend/app/Http/Controllers/UserManagement/AuthController.php)",
+      "Read(//c/Users/huyng/AppData/Local/Android/sdk/ndk/**)",
+      "Read(//c/Users/huyng/AppData/Local/Android/sdk/build-tools/**)",
+      "Bash(flutter --version)",
+      "Bash(flutter doctor *)"
     ]
   }
 }
