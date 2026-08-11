@@ -246,9 +246,9 @@ watch(locale, () => {
       </h1>
       <p>{{ t('auth.login.storyDesc') }}</p>
       <div class="story-points">
-        <div><i class="pi pi-chart-line" /><span><strong>{{ t('auth.login.point1Title') }}</strong><small>{{ t('auth.login.point1Desc') }}</small></span></div>
-        <div><i class="pi pi-shield" /><span><strong>{{ t('auth.login.point2Title') }}</strong><small>{{ t('auth.login.point2Desc') }}</small></span></div>
-        <div><i class="pi pi-sparkles" /><span><strong>{{ t('auth.login.point3Title') }}</strong><small>{{ t('auth.login.point3Desc') }}</small></span></div>
+        <div><i class="pi pi-book" /><span><strong>{{ t('auth.login.point1Title') }}</strong><small>{{ t('auth.login.point1Desc') }}</small></span></div>
+        <div><i class="pi pi-verified" /><span><strong>{{ t('auth.login.point2Title') }}</strong><small>{{ t('auth.login.point2Desc') }}</small></span></div>
+        <div><i class="pi pi-comments" /><span><strong>{{ t('auth.login.point3Title') }}</strong><small>{{ t('auth.login.point3Desc') }}</small></span></div>
       </div>
     </section>
 
@@ -347,8 +347,7 @@ watch(locale, () => {
   margin-top: 1px;
   border-radius: 10px;
   background: rgba(255, 255, 255, .14);
-  font: inherit;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .story-points span {

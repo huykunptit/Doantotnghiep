@@ -49,6 +49,7 @@ const tip = ref('')
 const tipLoading = ref(false)
 const evaluation = ref<EvalSummary | null>(null)
 const recCourses = ref<CourseRec[]>([])
+const studyTips = ref<string[]>([])
 
 const completionPercent = computed(() =>
   Math.round((evaluation.value?.summary?.completion_ratio || 0) * 100),
@@ -123,18 +124,15 @@ async function load() {
 async function askTip() {
   tipLoading.value = true
   try {
-    const res = await useApi<{ tip?: string, message?: string, reply?: string, summary?: string }>('/ai/tutoring', {
+    const res = await useApi<{ narrative?: string, study_tips?: string[], source?: string }>('/ai/study-advisor', {
       method: 'POST',
-      body: {
-        context: 'study_roadmap',
-        prompt: evaluation.value?.narrative || 'Gợi ý lộ trình học cải thiện dựa trên kết quả học tập.',
-        progress_percent: completionPercent.value,
-      },
     })
-    tip.value = res.tip || res.summary || res.message || res.reply || evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
+    tip.value = res.narrative || evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
+    studyTips.value = res.study_tips || []
   }
   catch {
     tip.value = evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
+    studyTips.value = []
   }
   finally {
     tipLoading.value = false
@@ -183,6 +181,9 @@ onMounted(load)
       <section class="panel">
         <h2>{{ t('student.studyAdvisor.aiTip') }}</h2>
         <p>{{ tip || '…' }}</p>
+        <ul v-if="studyTips.length" class="tips">
+          <li v-for="(item, i) in studyTips" :key="i">{{ item }}</li>
+        </ul>
         <Button :label="t('student.studyAdvisor.refreshTip')" icon="pi pi-refresh" size="small" text :loading="tipLoading" @click="askTip" />
       </section>
 
@@ -248,6 +249,8 @@ onMounted(load)
 .stats span { display: block; color: var(--text-muted); font-size: .78rem; font-weight: 600; }
 .stats strong { font-size: 1.3rem; }
 .list h3 { margin: 14px 0 6px; font-size: .95rem; }
+.tips { margin: 8px 0 12px; padding-left: 18px; display: grid; gap: 4px; }
+.tips li { color: var(--text); font-weight: 500; line-height: 1.4; }
 .muted { color: var(--text-muted); }
 .courses { display: grid; gap: 8px; margin-top: 10px; }
 .course {

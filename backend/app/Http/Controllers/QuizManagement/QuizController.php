@@ -12,6 +12,7 @@ use App\Models\Lesson;
 use App\Models\Question;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -96,7 +97,7 @@ class QuizController extends Controller
      * an exam: tells the UI whether a face-verification gate is required
      * *without* creating an attempt / starting the timer (unlike startExamQuiz).
      */
-    public function examPreCheck(Request $request, Exam $exam): JsonResponse
+    public function examPreCheck(Request $request, Exam $exam, MediaService $mediaService): JsonResponse
     {
         $user = $request->user();
         abort_unless($user, 403);
@@ -121,6 +122,10 @@ class QuizController extends Controller
             'exam' => $exam->only(['id', 'title', 'duration', 'proctoring_enabled']),
             'is_open' => $exam->isOpen() || \App\Support\Authorize::isAdmin($user),
             'has_face_url' => !empty($user->face_url),
+            // Resolved URL of the student's enrolled reference photo, needed
+            // client-side to compute a face descriptor for comparison against
+            // the live webcam capture (see FaceVerification.vue).
+            'face_photo_url' => !empty($user->face_url) ? $mediaService->getUrl($user->face_url) : null,
             // Only gate on face check for a *fresh* start — resuming an
             // already in-progress attempt shouldn't re-block the student.
             'requires_face_check' => (bool) $exam->proctoring_enabled && !$hasActiveAttempt,

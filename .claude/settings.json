@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where php *)",
+      "Bash(php -v)",
+      "Bash(where python *)",
+      "Bash(docker info *)",
+      "Bash(grep -n '$disk\\\\s*=' /d/Doantotnghiep/backend/app/Http/Controllers/AIManagement/CareerAdvisorController.php)"
+    ]
+  }
+}

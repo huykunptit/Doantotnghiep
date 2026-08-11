@@ -591,25 +591,40 @@ class CareerAdvisorController extends Controller
             ]);
         }
 
-        $data = $this->getRecommendationPayload($cv, $request->job_title);
-        $data['target_role'] = $request->job_title;
+        $role = $request->job_title;
+        $cv = $cv->fresh();
 
-        // Find relevant courses in our database based on AI suggestions
-        $suggestedCourseIds = $this->resolveSuggestedCourses($data)->values();
-        $expertAnalysis = $this->buildExpertAnalysis($cv, $request->job_title, $data);
+        // 1 lần gọi AI duy nhất (/evaluate-cv) dùng chung cho cả gợi ý khóa học lẫn
+        // bản tóm tắt lưu vào lịch sử — trước đây gọi thêm /recommend + buildExpertAnalysis()
+        // riêng, tốn thêm 1 round-trip AI và tạo ra 2 bản nhận xét không khớp nhau cho
+        // cùng 1 thao tác của người dùng.
+        $local = $this->evaluateCvLocally($cv, $user);
+        $aiReview = $this->getEvaluationPayload($cv, $role);
+        $evaluation = $this->mergeRecruiterEvaluation($local, $aiReview, $role);
+        $cv->update(['evaluation_json' => $evaluation]);
+
+        $suggestedCourseIds = $this->resolveSuggestedCourses([
+            'skill_gaps' => $evaluation['skill_gaps'] ?? [],
+            'recommended_keyword_topics' => $evaluation['recommended_keyword_topics'] ?? ($evaluation['skill_gaps'] ?? []),
+            'target_role' => $role,
+        ])->values();
+
+        $expertAnalysis = [
+            'overview' => $evaluation['overview'] ?? '',
+            'strengths' => $evaluation['strengths'] ?? [],
+            'weaknesses' => $evaluation['weaknesses'] ?? [],
+            'cv_additions' => $evaluation['missing_items'] ?? [],
+            'cv_improvements' => $evaluation['improvements'] ?? [],
+            'learning_priorities' => $evaluation['interview_focus'] ?? [],
+        ];
 
         $recommendation = CareerRecommendation::create([
             'user_id' => $user->id,
-            'match_score' => $data['match_score'] ?? 0,
-            'skill_gaps' => $data['skill_gaps'] ?? [],
+            'match_score' => $evaluation['score'] ?? 0,
+            'skill_gaps' => $evaluation['skill_gaps'] ?? [],
             'suggested_courses' => $suggestedCourseIds,
             'ai_summary' => json_encode($expertAnalysis, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
-
-        $local = $this->evaluateCvLocally($cv->fresh(), $user);
-        $aiReview = $this->getEvaluationPayload($cv->fresh(), $request->job_title);
-        $evaluation = $this->mergeRecruiterEvaluation($local, $aiReview, $request->job_title);
-        $cv->update(['evaluation_json' => $evaluation]);
 
         $courses = Course::query()
             ->whereIn('id', $suggestedCourseIds)

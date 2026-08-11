@@ -199,9 +199,12 @@ class CVAnalysisService
             }
         }
 
+        $sharedSecret = (string) config('services.ai_service.shared_secret');
+
         try {
             $response = Http::connectTimeout(5)
                 ->timeout(90)
+                ->withHeaders($sharedSecret !== '' ? ['X-Internal-Token' => $sharedSecret] : [])
                 ->post($url, [
                     'file_base64' => base64_encode($bytes),
                     'file_name' => $originalFilename,

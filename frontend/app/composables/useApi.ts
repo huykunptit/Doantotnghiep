@@ -28,7 +28,7 @@ function buildQuery(query?: ApiQuery) {
   return params
 }
 
-function resolveApiBase() {
+export function resolveApiBase() {
   const config = useRuntimeConfig()
   const publicBase = String(config.public.apiBase || '/api')
   if (import.meta.server) {
@@ -145,4 +145,103 @@ export async function useApiDownload(
   a.click()
   a.remove()
   URL.revokeObjectURL(objectUrl)
+}
+
+interface ApiStreamDoneEvent {
+  done: true
+  tokens_used?: { prompt: number, completion: number, total: number }
+  rag_used?: boolean
+  sources?: Array<{ source?: string, subject?: string | null, score?: number | null }>
+  source?: string
+}
+
+interface ApiStreamOptions {
+  method?: ApiMethod
+  body?: Record<string, unknown>
+  token?: string | null
+  headers?: Record<string, string>
+  signal?: AbortSignal
+  onDelta?: (text: string) => void
+  onDone?: (data: ApiStreamDoneEvent) => void
+  onError?: (message: string) => void
+}
+
+function dispatchSseEvent(rawEvent: string, options: ApiStreamOptions) {
+  const dataLines = rawEvent
+    .split('\n')
+    .filter(line => line.startsWith('data:'))
+    .map(line => line.slice(5).trim())
+  if (!dataLines.length) return
+
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(dataLines.join('\n'))
+  }
+  catch {
+    return
+  }
+
+  if (typeof parsed.delta === 'string') {
+    options.onDelta?.(parsed.delta)
+  }
+  else if (parsed.error) {
+    options.onError?.(String(parsed.error))
+  }
+  else if (parsed.done) {
+    options.onDone?.(parsed as unknown as ApiStreamDoneEvent)
+  }
+}
+
+/**
+ * Đọc SSE (Server-Sent Events) từ 1 endpoint streaming của backend (vd. /ai/chat/stream).
+ * Dùng fetch() thô vì $fetch (ofetch) không hỗ trợ đọc dần ReadableStream tiện lợi.
+ */
+export async function useApiStream(path: string, options: ApiStreamOptions = {}): Promise<void> {
+  const tokenCookie = useCookie<string | null>('eript-token')
+  const token = options.token === undefined ? tokenCookie.value : options.token
+  const base = resolveApiBase()
+  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      method: options.method || 'POST',
+      headers: {
+        Accept: 'text/event-stream',
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      signal: options.signal,
+    })
+  }
+  catch {
+    options.onError?.('network_error')
+    return
+  }
+
+  if (!response.ok || !response.body) {
+    options.onError?.(`http_${response.status}`)
+    return
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let sepIndex = buffer.indexOf('\n\n')
+    while (sepIndex !== -1) {
+      dispatchSseEvent(buffer.slice(0, sepIndex), options)
+      buffer = buffer.slice(sepIndex + 2)
+      sepIndex = buffer.indexOf('\n\n')
+    }
+  }
+
+  if (buffer.trim()) dispatchSseEvent(buffer, options)
 }

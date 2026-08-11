@@ -22,6 +22,7 @@ from models.schemas import (
     RecommendResponse,
 )
 from services.provider import call_provider
+from utils.json_extract import extract_json_object
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 ROLE_SKILL_MAP: dict[str, list[str]] = {
+    # --- Công nghệ thông tin ---
     "laravel": ["PHP", "Laravel", "MySQL", "REST API", "Git", "Docker"],
     "php": ["PHP", "Laravel", "MySQL", "REST API", "Git", "Docker"],
     "backend": ["PHP", "Laravel", "MySQL", "REST API", "Testing", "Docker"],
@@ -38,7 +40,6 @@ ROLE_SKILL_MAP: dict[str, list[str]] = {
     "full stack": ["PHP", "Laravel", "JavaScript", "Vue.js", "MySQL", "Docker"],
     "fullstack": ["PHP", "Laravel", "JavaScript", "Vue.js", "MySQL", "Docker"],
     "devops": ["Docker", "Linux", "AWS", "Git", "CI/CD", "Testing"],
-    "data": ["Python", "SQL", "Machine Learning", "Testing", "Statistics"],
     "mobile": ["Flutter", "Dart", "React Native", "JavaScript", "Git"],
     "python": ["Python", "Django", "FastAPI", "SQL", "Docker", "Git"],
     "java": ["Java", "Spring Boot", "MySQL", "REST API", "Git", "Docker"],
@@ -46,6 +47,35 @@ ROLE_SKILL_MAP: dict[str, list[str]] = {
     "vue": ["Vue.js", "Nuxt", "JavaScript", "TypeScript", "HTML/CSS", "Git"],
     "ai": ["Python", "Machine Learning", "Deep Learning", "TensorFlow", "SQL"],
     "cloud": ["AWS", "Docker", "Kubernetes", "Linux", "CI/CD", "Terraform"],
+    "qa": ["Testing", "Selenium", "Postman", "SQL", "Git", "CI/CD"],
+    "tester": ["Testing", "Selenium", "Postman", "SQL", "Git", "CI/CD"],
+    "kiểm thử": ["Testing", "Selenium", "Postman", "SQL", "Git", "CI/CD"],
+    "data scientist": ["Python", "Machine Learning", "Pandas", "SQL", "Statistics", "Data Visualization"],
+    "data science": ["Python", "Machine Learning", "Pandas", "SQL", "Statistics", "Data Visualization"],
+    "data engineer": ["Python", "SQL", "ETL", "Spark", "Airflow", "Data Warehouse"],
+    "data": ["Python", "SQL", "Machine Learning", "Testing", "Statistics"],
+    "security": ["Network Security", "Penetration Testing", "SIEM", "Linux", "Cryptography", "OWASP"],
+    "cyber": ["Network Security", "Penetration Testing", "SIEM", "Linux", "Cryptography", "OWASP"],
+    "an ninh mạng": ["Network Security", "Penetration Testing", "SIEM", "Linux", "Cryptography", "OWASP"],
+    ".net": [".NET", "C#", "SQL Server", "ASP.NET", "Git", "REST API"],
+    "c#": [".NET", "C#", "SQL Server", "ASP.NET", "Git", "REST API"],
+    "golang": ["Go", "REST API", "Docker", "Git", "Microservices", "SQL"],
+    "go developer": ["Go", "REST API", "Docker", "Git", "Microservices", "SQL"],
+    "blockchain": ["Solidity", "Blockchain", "Smart Contract", "Web3.js", "Ethereum", "Git"],
+    "game": ["Unity", "C#", "Game Design", "3D Modeling", "Git", "C++"],
+    # --- Quản trị kinh doanh ---
+    "product manager": ["Agile", "Scrum", "Product Roadmap", "User Story", "Analytics", "Communication"],
+    "product owner": ["Agile", "Scrum", "Product Roadmap", "User Story", "Analytics", "Communication"],
+    "project manager": ["Agile", "Scrum", "Project Planning", "Risk Management", "Communication", "MS Project"],
+    "business analyst": ["Requirement Analysis", "SQL", "BPMN", "Documentation", "Communication", "Excel"],
+    "digital marketing": ["SEO", "Google Ads", "Content Marketing", "Analytics", "Social Media", "Email Marketing"],
+    "marketing": ["SEO", "Google Ads", "Content Marketing", "Analytics", "Social Media", "Email Marketing"],
+    # --- Điện tử viễn thông ---
+    "network": ["Networking", "Cisco", "TCP/IP", "Linux", "Security", "Firewall"],
+    "mạng": ["Networking", "Cisco", "TCP/IP", "Linux", "Security", "Firewall"],
+    "embedded": ["C/C++", "Embedded C", "IoT Protocols", "Microcontroller", "RTOS", "Circuit Design"],
+    "nhúng": ["C/C++", "Embedded C", "IoT Protocols", "Microcontroller", "RTOS", "Circuit Design"],
+    "iot": ["C/C++", "Embedded C", "IoT Protocols", "Microcontroller", "RTOS", "Circuit Design"],
 }
 
 SKILL_DICTIONARY: dict[str, list[str]] = {
@@ -180,50 +210,32 @@ def _extract_docx_text(raw: bytes) -> tuple[str, str]:
 
 
 async def _ocr_pdf_with_ai(raw: bytes, payload: ParseCVRequest) -> str:
-    """PDF ảnh/scan → lấy ảnh trang đầu → Gemini/Claude OCR."""
-    image_b64, mime = _pdf_first_image(raw)
-    if not image_b64 or not payload.api_key:
+    """PDF ảnh/scan → lấy ảnh tối đa 5 trang đầu → Gemini/Claude/OpenAI-compat OCR trong 1 lần gọi."""
+    images = _pdf_images(raw, max_pages=5)
+    if not images or not payload.api_key:
         return ""
 
+    page_note = "Đây là ảnh CV" + (f" gồm {len(images)} trang liên tiếp" if len(images) > 1 else "") + "."
     prompt = (
-        "Đây là ảnh CV. Hãy trích TOÀN BỘ chữ đọc được (tiếng Việt/Anh), "
+        f"{page_note} Hãy trích TOÀN BỘ chữ đọc được (tiếng Việt/Anh) theo đúng thứ tự trang, "
         "giữ cấu trúc theo dòng. Chỉ trả về nội dung CV, không giải thích."
     )
     provider = (payload.provider or "gemini").strip().lower()
 
     try:
         if provider == "gemini":
-            reply, _ = await _gemini_vision(
-                payload.api_key or "",
-                image_b64,
-                mime,
-                prompt,
-                payload.model,
-            )
+            reply, _ = await _gemini_vision(payload.api_key or "", images, prompt, payload.model)
         elif provider == "claude":
-            reply, _ = await _claude_vision(
-                payload.api_key or "",
-                image_b64,
-                mime,
-                prompt,
-                payload.model,
-            )
+            reply, _ = await _claude_vision(payload.api_key or "", images, prompt, payload.model)
         else:
-            # OpenAI-compatible multimodal
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime};base64,{image_b64}",
-                            },
-                        },
-                    ],
-                }
-            ]
+            # OpenAI-compatible multimodal — nhiều ảnh trong cùng 1 message
+            content: list[dict] = [{"type": "text", "text": prompt}]
+            for image_b64, mime in images:
+                content.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"data:{mime};base64,{image_b64}"},
+                })
+            messages = [{"role": "user", "content": content}]
             reply, _ = await call_provider(
                 provider=provider,
                 api_key=payload.api_key or "",
@@ -237,31 +249,32 @@ async def _ocr_pdf_with_ai(raw: bytes, payload: ParseCVRequest) -> str:
         return ""
 
 
-def _pdf_first_image(raw: bytes) -> tuple[str, str]:
+def _pdf_images(raw: bytes, max_pages: int = 5) -> list[tuple[str, str]]:
+    """Lấy ảnh của tối đa max_pages trang đầu (mỗi trang lấy ảnh lớn nhất nếu có)."""
+    images: list[tuple[str, str]] = []
     try:
         from pypdf import PdfReader
 
         reader = PdfReader(io.BytesIO(raw))
-        if not reader.pages:
-            return "", "image/png"
-        page = reader.pages[0]
-        if getattr(page, "images", None):
-            img = page.images[0]
+        for page in reader.pages[:max_pages]:
+            page_images = getattr(page, "images", None)
+            if not page_images:
+                continue
+            img = page_images[0]
             data = img.data
             name = (img.name or "img.png").lower()
             mime = "image/jpeg" if name.endswith((".jpg", ".jpeg")) else "image/png"
             if name.endswith(".webp"):
                 mime = "image/webp"
-            return base64.b64encode(data).decode("ascii"), mime
+            images.append((base64.b64encode(data).decode("ascii"), mime))
     except Exception as exc:
-        logger.warning("Extract PDF image failed: %s", exc)
-    return "", "image/png"
+        logger.warning("Extract PDF images failed: %s", exc)
+    return images
 
 
 async def _gemini_vision(
     api_key: str,
-    image_b64: str,
-    mime: str,
+    images: list[tuple[str, str]],
     prompt: str,
     model: str | None,
 ) -> tuple[str | None, dict]:
@@ -270,16 +283,11 @@ async def _gemini_vision(
 
     model_name = model or settings.DEFAULT_GEMINI_MODEL
     url = f"{settings.GEMINI_API_URL}/{model_name}:generateContent?key={api_key}"
+    parts: list[dict] = [{"text": prompt}]
+    for image_b64, mime in images:
+        parts.append({"inline_data": {"mime_type": mime, "data": image_b64}})
     body = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {"text": prompt},
-                    {"inline_data": {"mime_type": mime, "data": image_b64}},
-                ],
-            }
-        ],
+        "contents": [{"role": "user", "parts": parts}],
         "generationConfig": {"temperature": 0.1},
     }
     async with httpx.AsyncClient() as client:
@@ -288,41 +296,37 @@ async def _gemini_vision(
         )
         response.raise_for_status()
         data = response.json()
-    parts = (((data.get("candidates") or [{}])[0].get("content") or {}).get("parts")) or []
-    text = "\n".join(p.get("text", "") for p in parts if p.get("text")).strip()
+    parts_out = (((data.get("candidates") or [{}])[0].get("content") or {}).get("parts")) or []
+    text = "\n".join(p.get("text", "") for p in parts_out if p.get("text")).strip()
     return text or None, {}
 
 
 async def _claude_vision(
     api_key: str,
-    image_b64: str,
-    mime: str,
+    images: list[tuple[str, str]],
     prompt: str,
     model: str | None,
 ) -> tuple[str | None, dict]:
     import httpx
     from config import settings
 
+    content: list[dict] = []
+    for image_b64, mime in images:
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": mime,
+                "data": image_b64,
+            },
+        })
+    content.append({"type": "text", "text": prompt})
+
     body = {
         "model": model or settings.DEFAULT_CLAUDE_MODEL,
         "max_tokens": 4096,
         "temperature": 0.1,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": mime,
-                            "data": image_b64,
-                        },
-                    },
-                    {"type": "text", "text": prompt},
-                ],
-            }
-        ],
+        "messages": [{"role": "user", "content": content}],
     }
     headers = {
         "Content-Type": "application/json",
@@ -463,11 +467,9 @@ async def _evaluate_with_ai(payload: EvaluateCVRequest) -> EvaluateCVResponse | 
         return None
 
     try:
-        start = reply.find("{")
-        end = reply.rfind("}")
-        if start == -1 or end == -1:
+        raw = extract_json_object(reply)
+        if raw is None:
             return None
-        raw = json.loads(reply[start : end + 1])
         score = int(raw.get("match_score") or 0)
         score = max(0, min(score, 100))
 
@@ -695,11 +697,9 @@ async def _recommend_with_ai(payload: RecommendRequest) -> RecommendResponse | N
         return None
 
     try:
-        start = reply.find("{")
-        end = reply.rfind("}")
-        if start == -1 or end == -1:
+        raw = extract_json_object(reply)
+        if raw is None:
             return None
-        raw = json.loads(reply[start : end + 1])
         score = int(raw.get("match_score") or 0)
         score = max(0, min(score, 100))
         gaps = [str(x) for x in (raw.get("skill_gaps") or []) if x][:6]

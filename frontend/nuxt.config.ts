@@ -68,6 +68,10 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       ],
       link: [
+        // Explicit tag so the tab icon matches the brand logo from first
+        // paint (SSR) — useSiteSettings.applyBranding() overwrites this
+        // client-side if an admin has uploaded a custom favicon.
+        { rel: 'icon', type: 'image/png', href: '/images/eript-logo.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {

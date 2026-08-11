@@ -5,9 +5,10 @@ Chat Service — xử lý logic chatbot tư vấn + RAG giáo trình.
 from __future__ import annotations
 
 import re
+from typing import AsyncGenerator
 
-from models.schemas import ChatContext, ChatRequest, RagSource, TokenUsage
-from services.provider import call_provider
+from models.schemas import EMPTY_TOKENS, ChatContext, ChatRequest, RagSource, TokenUsage
+from services.provider import call_provider, stream_provider
 from utils.context import build_context_summary
 
 try:
@@ -201,16 +202,8 @@ def build_ai_messages(
     return messages
 
 
-async def chat(
-    payload: ChatRequest,
-    role: str | None = None,
-) -> tuple[str | None, TokenUsage, bool, list[RagSource]]:
-    """
-    Xử lý chat request — build messages (có RAG nếu sẵn sàng) và gọi AI provider.
-
-    Returns:
-        (reply_text, token_usage, rag_used, sources)
-    """
+def _build_rag(payload: ChatRequest, role: str | None) -> tuple[bool, list[RagSource], str]:
+    """Truy hồi RAG (nếu bật + sẵn sàng). Dùng chung cho chat() và chat_stream()."""
     rag_used = False
     sources: list[RagSource] = []
     rag_block = ""
@@ -238,6 +231,21 @@ async def chat(
                         score=ch.get("score"),
                     ))
 
+    return rag_used, sources, rag_block
+
+
+async def chat(
+    payload: ChatRequest,
+    role: str | None = None,
+) -> tuple[str | None, TokenUsage, bool, list[RagSource]]:
+    """
+    Xử lý chat request — build messages (có RAG nếu sẵn sàng) và gọi AI provider.
+
+    Returns:
+        (reply_text, token_usage, rag_used, sources)
+    """
+    rag_used, sources, rag_block = _build_rag(payload, role)
+
     messages = build_ai_messages(payload, role=role, rag_block=rag_block)
     reply, tokens = await call_provider(
         provider=payload.provider or "chatgpt",
@@ -246,3 +254,47 @@ async def chat(
         model=payload.model,
     )
     return sanitize_reply(reply), tokens, rag_used, sources
+
+
+async def chat_stream(
+    payload: ChatRequest,
+    role: str | None = None,
+) -> AsyncGenerator[dict, None]:
+    """
+    Bản streaming của chat() — build messages giống hệt, nhưng sinh token theo
+    thời gian thực thay vì đợi trả lời đầy đủ.
+
+    Yields:
+        {"rag": {"used": bool, "sources": [dict, ...]}}  — 1 lần, trước khi có token đầu tiên
+        {"delta": "..."}  — từng đoạn văn bản mới (đã sanitize markdown/emoji)
+        {"usage": TokenUsage}  — 1 lần, ở cuối
+    """
+    rag_used, sources, rag_block = _build_rag(payload, role)
+    yield {"rag": {"used": rag_used, "sources": [s.model_dump() for s in sources]}}
+
+    messages = build_ai_messages(payload, role=role, rag_block=rag_block)
+
+    full_so_far = ""
+    sanitized_so_far = ""
+    usage: TokenUsage = {**EMPTY_TOKENS}
+
+    async for item in stream_provider(
+        provider=payload.provider or "chatgpt",
+        api_key=payload.api_key or "",
+        messages=messages,
+        model=payload.model,
+    ):
+        if "delta" in item:
+            full_so_far += item["delta"]
+            # sanitize_reply() bóc markdown/emoji trên toàn bộ text tích lũy (không thể áp
+            # regex trên từng token rời rạc vì marker như "**" có thể bị cắt giữa 2 chunk),
+            # rồi chỉ gửi phần hậu tố mới cho client để giữ hiệu ứng gõ dần.
+            sanitized_full = sanitize_reply(full_so_far) or ""
+            if len(sanitized_full) > len(sanitized_so_far):
+                suffix = sanitized_full[len(sanitized_so_far):]
+                sanitized_so_far = sanitized_full
+                yield {"delta": suffix}
+        elif "usage" in item:
+            usage = item["usage"]
+
+    yield {"usage": usage}

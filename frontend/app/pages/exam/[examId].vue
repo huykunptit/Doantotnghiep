@@ -27,7 +27,12 @@ const preChecking = ref(true)
 const preCheckError = ref('')
 const requiresFaceCheck = ref(false)
 const hasFaceUrl = ref(false)
+const facePhotoUrl = ref<string | null>(null)
 const faceVerified = ref(false)
+const { loadModels: loadFaceModels, countFacesInVideo } = useFaceApi()
+let monitorStream: MediaStream | null = null
+let monitorVideo: HTMLVideoElement | null = null
+let monitorInterval: ReturnType<typeof setInterval> | null = null
 const attemptId = ref<number | null>(null)
 const remainingTime = ref<number | null>(null)
 const status = ref('in_progress')
@@ -82,9 +87,11 @@ async function runPreCheck() {
       exam: { title: string, proctoring_enabled?: boolean }
       requires_face_check: boolean
       has_face_url: boolean
+      face_photo_url: string | null
     }>(`/exams/${examId.value}/pre-check`)
 
     hasFaceUrl.value = !!data.has_face_url
+    facePhotoUrl.value = data.face_photo_url
     requiresFaceCheck.value = !!data.requires_face_check
 
     if (requiresFaceCheck.value) {
@@ -129,7 +136,10 @@ async function loadExam() {
     status.value = data.status || 'in_progress'
     if (data.saved_answers) answers.value = { ...data.saved_answers }
     startTimer()
-    if (proctoring.value) bindProctor()
+    if (proctoring.value) {
+      bindProctor()
+      startFaceMonitor()
+    }
   }
   catch (e: any) {
     error.value = e?.data?.message || t('exam.loadError')
@@ -202,6 +212,7 @@ async function submitExam(auto = false) {
   submitting.value = true
   if (timerInterval) clearInterval(timerInterval)
   unbindProctor()
+  stopFaceMonitor()
   try {
     const res = await useApi<{ attempt_id?: number, score?: number }>(`/exams/${examId.value}/submit`, {
       method: 'POST',
@@ -221,16 +232,29 @@ async function submitExam(auto = false) {
   }
 }
 
+async function logViolation(type: string, severity: 'warning' | 'critical', metadata: Record<string, unknown>) {
+  if (!attemptId.value) return
+  try {
+    await useApi(`/attempts/${attemptId.value}/violations`, {
+      method: 'POST',
+      body: { type, severity, metadata },
+    })
+  }
+  catch { /* ignore offline */ }
+}
+
 function onVisibility() {
   if (document.hidden && status.value === 'in_progress') {
     focusLoss.value++
+    const critical = focusLoss.value >= MAX_FOCUS_LOSS
+    logViolation('focus_lost', critical ? 'critical' : 'warning', { count: focusLoss.value, max: MAX_FOCUS_LOSS })
     toast.add({
       severity: 'warn',
       summary: t('exam.focusWarn'),
       detail: t('exam.focusCount', { n: focusLoss.value, max: MAX_FOCUS_LOSS }),
       life: 4000,
     })
-    if (focusLoss.value >= MAX_FOCUS_LOSS) submitExam(true)
+    if (critical) submitExam(true)
   }
 }
 
@@ -244,11 +268,92 @@ function unbindProctor() {
   document.removeEventListener('visibilitychange', onVisibility)
 }
 
+// ── Continuous webcam monitoring (behavior-based cheating detection) ────────
+// Runs independently of the pre-exam face-verification camera (that stream is
+// torn down once verified). Periodically counts faces in frame client-side
+// (face-api.js) and reports no_face/multiple_faces as real proctoring
+// violations — same endpoint the pre-exam check and focus-loss use.
+const MONITOR_INTERVAL_MS = 8000
+const MONITOR_COOLDOWN_MS = 30000
+const MONITOR_STREAK_TO_FLAG = 2
+let noFaceStreak = 0
+let multiFaceStreak = 0
+let lastNoFaceLogAt = 0
+let lastMultiFaceLogAt = 0
+
+async function startFaceMonitor() {
+  if (!import.meta.client || monitorInterval) return
+  try {
+    await loadFaceModels()
+    monitorStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } },
+      audio: false,
+    })
+    monitorVideo = document.createElement('video')
+    monitorVideo.srcObject = monitorStream
+    monitorVideo.muted = true
+    monitorVideo.playsInline = true
+    await monitorVideo.play().catch(() => {})
+  }
+  catch {
+    // No camera available for continuous monitoring — proctoring still
+    // relies on focus-loss detection; don't block the exam over this.
+    return
+  }
+
+  monitorInterval = setInterval(async () => {
+    if (status.value !== 'in_progress' || !monitorVideo) return
+    let count = 0
+    try {
+      count = await countFacesInVideo(monitorVideo)
+    }
+    catch {
+      return
+    }
+
+    const now = Date.now()
+    if (count === 0) {
+      noFaceStreak++
+      multiFaceStreak = 0
+      if (noFaceStreak >= MONITOR_STREAK_TO_FLAG && now - lastNoFaceLogAt > MONITOR_COOLDOWN_MS) {
+        lastNoFaceLogAt = now
+        logViolation('no_face', 'warning', { streak: noFaceStreak })
+        toast.add({ severity: 'warn', summary: t('exam.faceCheck.noFaceDuringExam'), life: 4000 })
+      }
+    }
+    else if (count > 1) {
+      multiFaceStreak++
+      noFaceStreak = 0
+      if (multiFaceStreak >= MONITOR_STREAK_TO_FLAG && now - lastMultiFaceLogAt > MONITOR_COOLDOWN_MS) {
+        lastMultiFaceLogAt = now
+        logViolation('multiple_faces', 'critical', { count, streak: multiFaceStreak })
+        toast.add({ severity: 'error', summary: t('exam.faceCheck.multipleFacesDuringExam'), life: 4000 })
+      }
+    }
+    else {
+      noFaceStreak = 0
+      multiFaceStreak = 0
+    }
+  }, MONITOR_INTERVAL_MS)
+}
+
+function stopFaceMonitor() {
+  if (monitorInterval) {
+    clearInterval(monitorInterval)
+    monitorInterval = null
+  }
+  monitorVideo?.pause()
+  monitorVideo = null
+  monitorStream?.getTracks().forEach(track => track.stop())
+  monitorStream = null
+}
+
 onMounted(runPreCheck)
 onBeforeUnmount(() => {
   if (timerInterval) clearInterval(timerInterval)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   unbindProctor()
+  stopFaceMonitor()
 })
 </script>
 
@@ -263,6 +368,9 @@ onBeforeUnmount(() => {
         <small v-if="autoSaveStatus">{{ autoSaveStatus }}</small>
       </div>
       <div class="right">
+        <span v-if="proctoring" class="proctor-badge" :title="t('exam.proctoringActive')">
+          <i class="pi pi-video" /> {{ t('exam.proctoringActive') }}
+        </span>
         <span class="progress">{{ answeredCount }}/{{ questions.length }}</span>
         <span class="timer" :class="{ urgent: timerUrgent }"><i class="pi pi-clock" /> {{ timerDisplay }}</span>
         <Button :label="t('exam.submit')" icon="pi pi-send" :loading="submitting" :disabled="loading || !!error" @click="askSubmit" />
@@ -277,7 +385,7 @@ onBeforeUnmount(() => {
 
     <div v-else-if="requiresFaceCheck && !faceVerified" class="center face-gate">
       <div class="face-gate-card">
-        <ExamFaceVerification :exam-id="examId" :has-face-url="hasFaceUrl" @verified="onFaceVerified" />
+        <ExamFaceVerification :exam-id="examId" :has-face-url="hasFaceUrl" :face-photo-url="facePhotoUrl" @verified="onFaceVerified" />
         <Button
           v-if="!hasFaceUrl"
           :label="t('exam.faceCheck.backToExams')"
@@ -386,6 +494,12 @@ onBeforeUnmount(() => {
 .left small { color: var(--text-muted, #5b6f6b); }
 .right { display: flex; align-items: center; gap: 12px; }
 .progress { font-weight: 700; }
+.proctor-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+  background: color-mix(in srgb, #dc2626 12%, transparent); color: #b91c1c;
+}
+.proctor-badge i { font-size: .85rem; }
 .timer { font-weight: 800; font-variant-numeric: tabular-nums; display: inline-flex; gap: 6px; align-items: center; }
 .timer.urgent { color: #dc2626; }
 .center { min-height: 60vh; display: grid; place-content: center; gap: 12px; text-align: center; }

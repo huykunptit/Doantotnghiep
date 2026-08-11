@@ -70,6 +70,7 @@
     "saveFail": "Lỗi lưu tự động",
     "focusWarn": "Cảnh báo giám sát",
     "focusCount": "Bạn đã rời tab {n}/{max} lần",
+    "proctoringActive": "Đang giám sát bằng camera",
     "prev": "Câu trước",
     "next": "Câu sau",
     "writeAnswer": "Nhập câu trả lời...",
@@ -103,7 +104,12 @@
       "failed": "Xác thực thất bại",
       "continue": "Tiếp tục vào thi",
       "checkingAccess": "Đang kiểm tra quyền truy cập kỳ thi...",
-      "preCheckError": "Không thể kiểm tra thông tin kỳ thi."
+      "preCheckError": "Không thể kiểm tra thông tin kỳ thi.",
+      "noReferenceFace": "Không nhận diện được khuôn mặt trong ảnh hồ sơ. Vui lòng liên hệ quản trị viên để cập nhật lại ảnh.",
+      "modelLoadError": "Không tải được mô-đun nhận diện khuôn mặt. Vui lòng tải lại trang.",
+      "noFaceInFrame": "Không phát hiện khuôn mặt trong khung hình. Vui lòng nhìn thẳng vào camera và thử lại.",
+      "noFaceDuringExam": "Không phát hiện khuôn mặt trong lúc thi.",
+      "multipleFacesDuringExam": "Phát hiện nhiều khuôn mặt trong lúc thi."
     }
   },
   "career": {
@@ -2607,17 +2613,17 @@
   },
   "auth": {
     "login": {
-      "storyLabel": "Hệ sinh thái học tập Eript",
-      "storyDesc": "Quản trị đào tạo, nội dung, khảo thí và dữ liệu học tập trên cùng một nền tảng.",
-      "point1Title": "Dữ liệu tập trung",
-      "point1Desc": "Theo dõi hiệu quả đào tạo theo thời gian thực.",
-      "point2Title": "Vận hành an toàn",
-      "point2Desc": "Vai trò và phân quyền rõ ràng cho từng bộ phận.",
-      "point3Title": "Trải nghiệm hiện đại",
-      "point3Desc": "Gọn gàng, nhanh và nhất quán trên mọi thiết bị.",
+      "storyLabel": "Eript LMS",
+      "storyDesc": "Học bài, làm bài kiểm tra và xem kết quả ở một nơi.",
+      "point1Title": "Khóa học & bài giảng",
+      "point1Desc": "Học theo lộ trình từng môn, xem lại bài giảng bất cứ lúc nào.",
+      "point2Title": "Thi trực tuyến",
+      "point2Desc": "Làm bài kiểm tra có giám sát, biết điểm ngay sau khi nộp.",
+      "point3Title": "Trợ lý AI",
+      "point3Desc": "Hỏi bài, xin tư vấn định hướng học tập khi cần.",
       "welcome": "Chào mừng trở lại",
       "title": "Đăng nhập hệ thống",
-      "subtitle": "Sử dụng tài khoản Eript LMS của bạn.",
+      "subtitle": "Nhập email và mật khẩu để tiếp tục.",
       "email": "Email",
       "password": "Mật khẩu",
       "passwordPlaceholder": "Nhập mật khẩu",
@@ -2637,8 +2643,8 @@
         "failed": "Đăng nhập thất bại",
         "expired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
       },
-      "storyTitle1": "Một không gian học tập",
-      "storyTitle2": "được thiết kế để phát triển lâu dài"
+      "storyTitle1": "Chào mừng bạn",
+      "storyTitle2": "quay lại Eript LMS"
     }
   }
 }

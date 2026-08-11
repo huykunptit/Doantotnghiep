@@ -8,6 +8,8 @@ use App\Http\Controllers\AIManagement\AiManagementController;
 // Chat công khai cho khách chưa đăng nhập (giới hạn tần suất).
 Route::post('/ai/chat/guest', [AIChatController::class, 'guestChat'])
     ->middleware('throttle:20,1');
+Route::post('/ai/chat/guest/stream', [AIChatController::class, 'guestChatStream'])
+    ->middleware('throttle:20,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     // ─── Career Advisor ───
@@ -20,7 +22,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ─── AI Chat + tutoring ───
     Route::post('/ai/chat', [AIChatController::class, 'chat']);
+    Route::post('/ai/chat/stream', [AIChatController::class, 'chatStream']);
     Route::post('/ai/tutoring', [AIChatController::class, 'tutoring']);
+    Route::post('/ai/study-advisor', [AIChatController::class, 'studyAdvisorAdvice']);
 
     // ─── AI Management (Admin) ───
     Route::prefix('admin/ai')->middleware('role:admin')->group(function () {

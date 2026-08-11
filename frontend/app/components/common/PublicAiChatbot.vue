@@ -11,6 +11,8 @@ interface ChatMsg { role: 'user' | 'assistant', text: string }
 
 const welcome = computed(() => t('public.ai.chatWelcome'))
 const messages = ref<ChatMsg[]>([{ role: 'assistant', text: welcome.value }])
+/** true khi đã nhận token đầu tiên của câu trả lời hiện tại — ẩn "typing dots" khi text đang chảy dần. */
+const streaming = ref(false)
 const quickQuestions = computed(() => [
   t('public.ai.q1'),
   t('public.ai.q2'),
@@ -38,36 +40,47 @@ async function sendMessage() {
   messages.value.push({ role: 'user', text })
   input.value = ''
   loading.value = true
+  streaming.value = false
   scrollToBottom()
 
-  try {
-    const history = messages.value
-      .slice(1)
-      .slice(-8)
-      .map(m => ({ role: m.role, content: m.text }))
+  const history = messages.value
+    .slice(1)
+    .slice(-8)
+    .map(m => ({ role: m.role, content: m.text }))
 
-    const res = await useApi<{ reply?: string }>('/ai/chat/guest', {
-      method: 'POST',
-      token: null,
-      body: { message: text, history },
-      timeout: 20000,
-    })
-    messages.value.push({
-      role: 'assistant',
-      text: res.reply || t('public.ai.chatEmptyReply'),
-    })
-  }
-  catch (error: any) {
-    const status = error?.statusCode || error?.status
-    messages.value.push({
-      role: 'assistant',
-      text: status === 429 ? t('public.ai.chatRateLimit') : t('public.ai.chatError'),
-    })
-  }
-  finally {
-    loading.value = false
-    scrollToBottom()
-  }
+  let streamingIndex = -1
+
+  await useApiStream('/ai/chat/guest/stream', {
+    token: null,
+    body: { message: text, history },
+    onDelta: (delta) => {
+      if (streamingIndex === -1) {
+        messages.value.push({ role: 'assistant', text: '' })
+        streamingIndex = messages.value.length - 1
+        streaming.value = true
+      }
+      const msg = messages.value[streamingIndex]
+      if (msg) msg.text += delta
+      scrollToBottom()
+    },
+    onDone: () => {
+      if (streamingIndex === -1) {
+        messages.value.push({ role: 'assistant', text: t('public.ai.chatEmptyReply') })
+      }
+    },
+    onError: (message) => {
+      if (streamingIndex === -1) {
+        messages.value.push({
+          role: 'assistant',
+          text: message === 'http_429' ? t('public.ai.chatRateLimit') : t('public.ai.chatError'),
+        })
+      }
+    },
+  })
+
+  loading.value = false
+  streaming.value = false
+  scrollToBottom()
 }
 
 function scrollToBottom() {
@@ -122,7 +135,7 @@ onBeforeUnmount(() => {
           >
             <div class="bubble">{{ msg.text }}</div>
           </div>
-          <div v-if="loading" class="row bot">
+          <div v-if="loading && !streaming" class="row bot">
             <div class="bubble typing">
               <span /><span /><span />
             </div>

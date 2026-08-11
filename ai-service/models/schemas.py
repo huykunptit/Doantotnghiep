@@ -320,3 +320,30 @@ class TutoringResponse(BaseModel):
     weak_skills: list[str] = Field(default_factory=list)
     study_tips: list[str] = Field(default_factory=list)
     summary: str = ""
+
+
+class StudyAdvisorRequest(BaseModel):
+    """
+    Request tư vấn học tập — dùng số liệu CTĐT/GPA/điểm yếu thật đã tính rule-based
+    (từ CurriculumEvaluationService bên Laravel), khác với TutoringRequest ở trên
+    (vốn chỉ có % tiến độ chung, dùng cho widget mẹo học bài).
+    """
+    user_id: int
+    academic_summary: dict = Field(default_factory=dict)
+    strengths: list[dict] = Field(default_factory=list)
+    weaknesses: list[dict] = Field(default_factory=list)
+    by_term: list[dict] = Field(default_factory=list)
+    target_roles: list[str] = Field(default_factory=list)
+    top_skills: list[str] = Field(default_factory=list)
+    quiz_scores: list[dict] = Field(default_factory=list)
+    rule_based_narrative: str = ""
+    provider: str | None = "chatgpt"
+    model: str | None = None
+    api_key: str | None = None
+
+
+class StudyAdvisorResponse(BaseModel):
+    """Response tư vấn học tập."""
+    narrative: str = ""
+    study_tips: list[str] = Field(default_factory=list)
+    focus_courses: list[str] = Field(default_factory=list)

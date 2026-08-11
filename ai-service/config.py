@@ -53,6 +53,11 @@ class Settings:
     # Docker → Ollama trên Windows host
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
 
+    # --- Xác thực nội bộ (chỉ backend Laravel được gọi) ---
+    # Rỗng = không bắt buộc (dev local chưa cấu hình). Phải khớp AI_SERVICE_SHARED_SECRET
+    # bên backend/.env khi triển khai thật.
+    AI_SERVICE_SHARED_SECRET: str = ""
+
     @classmethod
     def from_env(cls) -> "Settings":
         """Tạo Settings instance, override từ env nếu có."""
@@ -67,6 +72,7 @@ class Settings:
             "CLAUDE_API_URL",
             "CLAUDE_AUTH_MODE",
             "CLAUDE_API_VERSION",
+            "AI_SERVICE_SHARED_SECRET",
         ]:
             env_val = os.getenv(key)
             if env_val:

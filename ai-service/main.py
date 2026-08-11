@@ -5,11 +5,11 @@ FastAPI application gom tất cả routers.
 Mỗi router xử lý 1 nhóm tính năng riêng biệt.
 """
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Depends, FastAPI
 
 from config import settings
 from routers import chat, career, generate, analyze, tutoring, rag
+from utils.auth import require_internal_token
 
 # =============================================================================
 # Khởi tạo FastAPI app
@@ -23,25 +23,21 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS — cho phép Laravel backend gọi trực tiếp
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Không có CORS: ai-service chỉ được gọi server-to-server từ Laravel backend, không có
+# trình duyệt nào gọi thẳng — bật CORS ở đây chỉ tạo thêm bề mặt tấn công không cần thiết.
 
 # =============================================================================
 # Include Routers
 # =============================================================================
 
-app.include_router(chat.router)       # POST /chat
-app.include_router(career.router)     # POST /parse-cv, /recommend
-app.include_router(generate.router)   # POST /generate/course-title, /generate/quiz, ...
-app.include_router(analyze.router)    # POST /analyze/exam
-app.include_router(tutoring.router)   # POST /tutoring/recommend
-app.include_router(rag.router)        # GET /rag/status, POST /rag/query
+_internal = [Depends(require_internal_token)]
+
+app.include_router(chat.router, dependencies=_internal)       # POST /chat, /chat/stream
+app.include_router(career.router, dependencies=_internal)     # POST /parse-cv, /recommend
+app.include_router(generate.router, dependencies=_internal)   # POST /generate/course-title, /generate/quiz, ...
+app.include_router(analyze.router, dependencies=_internal)    # POST /analyze/exam
+app.include_router(tutoring.router, dependencies=_internal)   # POST /tutoring/recommend
+app.include_router(rag.router, dependencies=_internal)        # GET /rag/status, POST /rag/query
 
 
 # =============================================================================

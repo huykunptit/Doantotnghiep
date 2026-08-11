@@ -7,7 +7,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from models.schemas import TutoringRequest, TutoringResponse
+from models.schemas import (
+    StudyAdvisorRequest,
+    StudyAdvisorResponse,
+    TutoringRequest,
+    TutoringResponse,
+)
 from services import tutoring_service
 from utils.providers import require_api_key
 
@@ -28,3 +33,14 @@ async def get_recommendations(payload: TutoringRequest) -> TutoringResponse:
     """
     require_api_key(payload.provider, payload.api_key)
     return await tutoring_service.get_recommendations(payload)
+
+
+@router.post("/study-advisor", response_model=StudyAdvisorResponse)
+async def get_study_advice(payload: StudyAdvisorRequest) -> StudyAdvisorResponse:
+    """
+    Diễn giải kết quả đánh giá CTĐT (rule-based, tính sẵn bên Laravel) thành lời tư vấn
+    học tập tự nhiên — khác với /recommend ở trên (dùng % tiến độ chung cho widget mẹo
+    học bài), endpoint này dùng GPA/môn yếu/điểm quiz thật cho trang Cố vấn học tập.
+    """
+    require_api_key(payload.provider, payload.api_key)
+    return await tutoring_service.get_study_advice(payload)

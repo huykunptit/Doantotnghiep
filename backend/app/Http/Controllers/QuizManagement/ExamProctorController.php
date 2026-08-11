@@ -277,17 +277,21 @@ class ExamProctorController extends Controller
 
     // ── Face verification (Student, before/during exam) ─────────────────
 
+    /** similarity >= this passes. Tuned for face-api.js's FaceRecognitionNet
+     *  euclidean distance (typical same-person distance < 0.5-0.6), converted
+     *  client-side to similarity = 1 - distance before being sent here. */
+    private const FACE_MATCH_THRESHOLD = 0.45;
+
     /**
      * Verify the student's captured face against their enrolled profile photo
      * before letting them start (or resume) a proctored exam.
      *
-     * MVP note: real biometric matching requires an ML face-recognition model
-     * (not available in this deployment). This endpoint validates that (1) the
-     * student has a registered face photo on file and (2) the client actually
-     * captured a real image (non-empty, valid JPEG/PNG within a sane size),
-     * then returns a stub match score. Wire a real `face_recognition` /
-     * embedding-similarity call here (e.g. via ai-service) when available —
-     * see TODO below.
+     * The actual face detection + descriptor comparison runs client-side
+     * (face-api.js, in the browser) against the reference photo returned by
+     * examPreCheck's `face_photo_url` — this endpoint receives the resulting
+     * similarity score, re-validates it against a server-side threshold (so a
+     * client can't just claim `ok: true`), and is the source of truth for
+     * pass/fail plus violation logging.
      */
     public function verifyFace(Request $request, Exam $exam): JsonResponse
     {
@@ -296,6 +300,7 @@ class ExamProctorController extends Controller
 
         $validated = $request->validate([
             'image' => ['required', 'string'],
+            'score' => ['required', 'numeric', 'min:0', 'max:1'],
         ]);
 
         // If the student already has an in-progress attempt for this exam,
@@ -333,13 +338,25 @@ class ExamProctorController extends Controller
             ], 422);
         }
 
-        // TODO(AI): replace this stub with a real similarity check, e.g.
-        // POST the two images (user->face_url + captured) to an ai-service
-        // endpoint wrapping `face_recognition`/DeepFace and threshold the score.
+        $score = (float) $validated['score'];
+        $matched = $score >= self::FACE_MATCH_THRESHOLD;
+
+        if (!$matched && $attempt) {
+            ExamViolation::create([
+                'attempt_id' => $attempt->id,
+                'user_id'    => $user->id,
+                'type'       => 'suspicious',
+                'severity'   => 'warning',
+                'metadata'   => ['reason' => 'face_mismatch', 'score' => $score],
+            ]);
+        }
+
         return response()->json([
-            'ok'      => true,
-            'score'   => 1.0,
-            'message' => 'Xác thực khuôn mặt thành công.',
+            'ok'      => $matched,
+            'score'   => $score,
+            'message' => $matched
+                ? 'Xác thực khuôn mặt thành công.'
+                : 'Khuôn mặt không khớp với ảnh hồ sơ. Vui lòng thử lại với đủ ánh sáng và nhìn thẳng vào camera.',
         ]);
     }
 

@@ -25,6 +25,8 @@ const welcome = computed(() =>
 )
 
 const messages = ref<ChatMsg[]>([{ role: 'assistant', text: welcome.value }])
+/** true khi đã nhận token đầu tiên của câu trả lời hiện tại — ẩn "typing dots" khi text đang chảy dần. */
+const streaming = ref(false)
 
 const quickQuestions = computed(() =>
   props.courseId
@@ -64,41 +66,54 @@ async function sendMessage() {
   messages.value.push({ role: 'user', text })
   input.value = ''
   loading.value = true
+  streaming.value = false
   scrollToBottom()
 
-  try {
-    const history = messages.value
-      .slice(1)
-      .slice(-10)
-      .map(m => ({ role: m.role, content: m.text }))
+  const history = messages.value
+    .slice(1)
+    .slice(-10)
+    .map(m => ({ role: m.role, content: m.text }))
 
-    const res = await useApi<{
-      reply?: string
-      rag_used?: boolean
-      sources?: RagSource[]
-    }>('/ai/chat', {
-      method: 'POST',
-      body: {
-        message: text,
-        course_id: props.courseId || undefined,
-        history,
-        use_rag: true,
-      },
-    })
-    messages.value.push({
-      role: 'assistant',
-      text: res.reply || t('student.ai.chatEmptyReply'),
-      ragUsed: !!res.rag_used,
-      sources: res.sources || [],
-    })
-  }
-  catch {
-    messages.value.push({ role: 'assistant', text: t('student.ai.chatError') })
-  }
-  finally {
-    loading.value = false
-    scrollToBottom()
-  }
+  let streamingIndex = -1
+
+  await useApiStream('/ai/chat/stream', {
+    body: {
+      message: text,
+      course_id: props.courseId || undefined,
+      history,
+      use_rag: true,
+    },
+    onDelta: (delta) => {
+      if (streamingIndex === -1) {
+        messages.value.push({ role: 'assistant', text: '' })
+        streamingIndex = messages.value.length - 1
+        streaming.value = true
+      }
+      const msg = messages.value[streamingIndex]
+      if (msg) msg.text += delta
+      scrollToBottom()
+    },
+    onDone: (data) => {
+      if (streamingIndex === -1) {
+        messages.value.push({ role: 'assistant', text: t('student.ai.chatEmptyReply') })
+        streamingIndex = messages.value.length - 1
+      }
+      const msg = messages.value[streamingIndex]
+      if (msg) {
+        msg.ragUsed = !!data.rag_used
+        msg.sources = data.sources || []
+      }
+    },
+    onError: () => {
+      if (streamingIndex === -1) {
+        messages.value.push({ role: 'assistant', text: t('student.ai.chatError') })
+      }
+    },
+  })
+
+  loading.value = false
+  streaming.value = false
+  scrollToBottom()
 }
 
 function scrollToBottom() {
@@ -165,7 +180,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
-          <div v-if="loading" class="row bot">
+          <div v-if="loading && !streaming" class="row bot">
             <div class="bubble typing">
               <span /><span /><span />
             </div>

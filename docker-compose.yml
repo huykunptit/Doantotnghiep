@@ -213,6 +213,8 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       DEFAULT_OLLAMA_MODEL: ${DEFAULT_OLLAMA_MODEL:-qwen2.5:latest}
       OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-180}
+      # Phải khớp AI_SERVICE_SHARED_SECRET trong backend/.env — rỗng = không bắt buộc xác thực.
+      AI_SERVICE_SHARED_SECRET: ${AI_SERVICE_SHARED_SECRET:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:

@@ -20,6 +20,7 @@ class AiSetting extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'quota_reset_at' => 'datetime',
+        'api_key' => 'encrypted',
     ];
 
     protected $hidden = [

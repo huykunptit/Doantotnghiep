@@ -2,6 +2,7 @@
 const props = defineProps<{
   examId: string | number
   hasFaceUrl: boolean
+  facePhotoUrl: string | null
 }>()
 
 const emit = defineEmits<{
@@ -10,14 +11,18 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { loadModels, descriptorFromImageUrl, descriptorFromVideo, similarityFromDescriptors } = useFaceApi()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const stream = ref<MediaStream | null>(null)
+const modelsReady = ref(false)
 const verifying = ref(false)
 const verified = ref(false)
 const cameraError = ref('')
 const statusMessage = ref('')
+
+let referenceDescriptor: Float32Array | null = null
 
 function stopCamera() {
   stream.value?.getTracks().forEach(track => track.stop())
@@ -51,6 +56,22 @@ async function startCamera() {
   }
 }
 
+/** Loads face-api.js models + computes the reference descriptor from the enrolled profile photo, once. */
+async function prepareModels() {
+  if (!props.hasFaceUrl || !props.facePhotoUrl) return
+  try {
+    await loadModels()
+    referenceDescriptor = await descriptorFromImageUrl(props.facePhotoUrl)
+    modelsReady.value = true
+    if (!referenceDescriptor) {
+      cameraError.value = t('exam.faceCheck.noReferenceFace')
+    }
+  }
+  catch {
+    cameraError.value = t('exam.faceCheck.modelLoadError')
+  }
+}
+
 function captureFrame(): string | null {
   const video = videoRef.value
   const canvas = canvasRef.value
@@ -78,6 +99,12 @@ async function verifyFace() {
   }
   if (cameraError.value) return
 
+  if (!modelsReady.value) await prepareModels()
+  if (!referenceDescriptor) {
+    cameraError.value = t('exam.faceCheck.noReferenceFace')
+    return
+  }
+
   const image = captureFrame()
   if (!image) {
     cameraError.value = t('exam.faceCheck.captureFailed')
@@ -87,10 +114,32 @@ async function verifyFace() {
   verifying.value = true
   statusMessage.value = ''
   try {
-    await useApi(`/exams/${props.examId}/verify-face`, {
+    // Real comparison happens here, in the browser: the live webcam frame's
+    // face descriptor vs. the enrolled reference photo's descriptor. Only the
+    // resulting similarity score (plus the captured image, for audit) goes to
+    // the server, which independently thresholds it — see
+    // ExamProctorController::verifyFace for why the server still decides
+    // pass/fail rather than trusting a client-sent boolean.
+    const liveDescriptor = videoRef.value ? await descriptorFromVideo(videoRef.value) : null
+    if (!liveDescriptor) {
+      statusMessage.value = t('exam.faceCheck.noFaceInFrame')
+      toast.add({ severity: 'warn', summary: t('exam.faceCheck.failed'), detail: statusMessage.value, life: 4000 })
+      return
+    }
+
+    const score = similarityFromDescriptors(referenceDescriptor, liveDescriptor)
+
+    const res = await useApi<{ ok: boolean, message?: string }>(`/exams/${props.examId}/verify-face`, {
       method: 'POST',
-      body: { image },
+      body: { image, score },
     })
+
+    if (!res.ok) {
+      statusMessage.value = res.message || t('exam.faceCheck.failed')
+      toast.add({ severity: 'error', summary: t('exam.faceCheck.failed'), detail: statusMessage.value, life: 4000 })
+      return
+    }
+
     verified.value = true
     statusMessage.value = t('exam.faceCheck.verified')
     stopCamera()
@@ -105,7 +154,10 @@ async function verifyFace() {
   }
 }
 
-onMounted(startCamera)
+onMounted(() => {
+  startCamera()
+  prepareModels()
+})
 onBeforeUnmount(stopCamera)
 </script>
 
@@ -135,6 +187,7 @@ onBeforeUnmount(stopCamera)
       <div class="cam-shell">
         <video ref="videoRef" autoplay playsinline muted class="cam" />
         <div v-if="verified" class="cam-overlay success"><i class="pi pi-check-circle" /></div>
+        <div v-if="!modelsReady && !cameraError" class="cam-overlay loading"><i class="pi pi-spin pi-spinner" /></div>
       </div>
 
       <p v-if="cameraError" class="msg error">{{ cameraError }}</p>
@@ -154,6 +207,7 @@ onBeforeUnmount(stopCamera)
           :label="t('exam.faceCheck.verifyNow')"
           icon="pi pi-camera"
           :loading="verifying"
+          :disabled="!modelsReady"
           @click="verifyFace"
         />
       </div>
@@ -184,6 +238,7 @@ onBeforeUnmount(stopCamera)
   position: absolute; inset: 0; display: grid; place-items: center; font-size: 3rem;
 }
 .cam-overlay.success { background: rgba(16, 185, 129, .25); color: #10b981; }
+.cam-overlay.loading { background: rgba(0, 0, 0, .35); color: #fff; font-size: 2rem; }
 .msg { margin: 0; text-align: center; font-size: .88rem; color: var(--text-muted, #5b6f6b); }
 .msg.error { color: #dc2626; }
 .actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }

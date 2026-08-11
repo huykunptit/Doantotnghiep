@@ -10,15 +10,20 @@ use App\Models\Category;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\LessonProgress;
+use App\Models\QuizAttempt;
 use App\Services\AiServiceClient;
+use App\Services\CurriculumEvaluationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AIChatController extends Controller
 {
-    public function __construct(protected AiServiceClient $ai)
-    {
+    public function __construct(
+        protected AiServiceClient $ai,
+        protected CurriculumEvaluationService $curriculumEvaluation,
+    ) {
     }
 
     /**
@@ -70,7 +75,7 @@ class AIChatController extends Controller
             'rag_top_k' => 5,
             'rag_scope' => $ragScope,
             'subject_hint' => $subjectHint,
-        ], $user->id, '/chat');
+        ], $user->id, '/chat', maxTotalMs: 30000);
 
         $elapsed = (int) ((microtime(true) - $startTime) * 1000);
         if ($result['ok']) {
@@ -85,6 +90,65 @@ class AIChatController extends Controller
             'reply' => 'Tôi đang gặp khó khăn trong việc kết nối với máy chủ AI. Bạn hãy thử lại sau nhé!',
             'detail' => $result['error'],
         ], 503);
+    }
+
+    /**
+     * Bản streaming của chat() — trả lời hiện dần theo thời gian thực (SSE) thay vì
+     * đợi có đủ câu trả lời mới hiển thị.
+     */
+    public function chatStream(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'message' => 'required|string|max:1000',
+            'course_id' => 'nullable|integer',
+            'history' => 'nullable|array|max:20',
+            'history.*.role' => 'required_with:history|string|in:user,assistant',
+            'history.*.content' => 'required_with:history|string|max:2000',
+            'use_rag' => 'nullable|boolean',
+            'subject_hint' => 'nullable|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $role = 'student';
+        if (\App\Support\Authorize::isAdmin($user)) {
+            $role = 'admin';
+        } elseif ($user->hasRole('instructor')) {
+            $role = 'instructor';
+        }
+
+        $useRag = $request->has('use_rag')
+            ? $request->boolean('use_rag')
+            : in_array($role, ['student', 'instructor'], true);
+
+        $courseId = $request->filled('course_id') ? $request->integer('course_id') : null;
+        $ragScope = $courseId ? 'course' : 'global';
+        $subjectHint = $request->input('subject_hint');
+        if ($ragScope === 'course' && !$subjectHint) {
+            $subjectHint = Course::query()->whereKey($courseId)->value('title');
+        }
+
+        $payload = [
+            'message' => $request->message,
+            'user_id' => $user->id,
+            'course_id' => $courseId,
+            'role' => $role,
+            'history' => $request->input('history', []),
+            'context' => $this->buildChatContext($request),
+            'use_rag' => $useRag,
+            'rag_top_k' => 5,
+            'rag_scope' => $ragScope,
+            'subject_hint' => $subjectHint,
+        ];
+
+        return response()->stream(function () use ($payload, $user) {
+            foreach ($this->ai->streamChat('chat/stream', 'chat', $payload, $user->id, '/chat/stream') as $chunk) {
+                echo $chunk;
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            }
+        }, 200, $this->sseHeaders());
     }
 
     /**
@@ -125,7 +189,7 @@ class AIChatController extends Controller
             'role' => 'guest',
             'history' => $request->input('history', []),
             'context' => $this->buildGuestChatContext(),
-        ], null, '/chat/guest', connectTimeout: 2, timeout: 18);
+        ], null, '/chat/guest', connectTimeout: 2, timeout: 18, maxTotalMs: 15000);
 
         if ($result['ok'] && is_string($result['data']['reply'] ?? null) && $result['data']['reply'] !== '') {
             return response()->json(array_merge($result['data'], [
@@ -138,6 +202,91 @@ class AIChatController extends Controller
             'reply' => $this->heuristicGuestChat($message),
             'source' => 'heuristic',
         ]);
+    }
+
+    /**
+     * Bản streaming của guestChat(). FAQ vẫn trả lời tức thì (không gọi AI); câu hỏi
+     * thật sự cần AI thì stream theo thời gian thực, có heuristic nếu AI service lỗi
+     * hoàn toàn (kể cả sau khi đã thử fallback non-stream).
+     */
+    public function guestChatStream(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'message' => 'required|string|max:500',
+            'history' => 'nullable|array|max:8',
+            'history.*.role' => 'required_with:history|string|in:user,assistant',
+            'history.*.content' => 'required_with:history|string|max:1000',
+        ]);
+
+        $message = (string) $request->message;
+
+        if ($this->isGuestFaqIntent($message)) {
+            return response()->stream(
+                fn () => $this->emitSingleShotSse($this->heuristicGuestChat($message), 'heuristic'),
+                200,
+                $this->sseHeaders(),
+            );
+        }
+
+        $aiSettings = AiSetting::current();
+        if (!$aiSettings->is_active) {
+            return response()->stream(
+                fn () => $this->emitSingleShotSse($this->heuristicGuestChat($message), 'heuristic'),
+                200,
+                $this->sseHeaders(),
+            );
+        }
+
+        $payload = [
+            'message' => $message,
+            'user_id' => null,
+            'course_id' => null,
+            'role' => 'guest',
+            'history' => $request->input('history', []),
+            'context' => $this->buildGuestChatContext(),
+        ];
+
+        return response()->stream(function () use ($payload, $message) {
+            $sentAny = false;
+            try {
+                foreach ($this->ai->streamChat('chat/stream', 'chat', $payload, null, '/chat/guest/stream', connectTimeout: 2, timeout: 20) as $chunk) {
+                    $sentAny = true;
+                    echo $chunk;
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+            } catch (\Throwable $e) {
+                $sentAny = false;
+            }
+
+            if (!$sentAny) {
+                $this->emitSingleShotSse($this->heuristicGuestChat($message), 'heuristic');
+            }
+        }, 200, $this->sseHeaders());
+    }
+
+    /** @return array<string, string> */
+    protected function sseHeaders(): array
+    {
+        return [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'X-Accel-Buffering' => 'no',
+            'Connection' => 'keep-alive',
+        ];
+    }
+
+    /** Gửi 1 câu trả lời (không phải AI) dưới dạng SSE, giữ nguyên "hợp đồng" định dạng với client. */
+    protected function emitSingleShotSse(string $reply, string $source): void
+    {
+        echo 'data: ' . json_encode(['delta' => $reply], JSON_UNESCAPED_UNICODE) . "\n\n";
+        echo 'data: ' . json_encode(['done' => true, 'source' => $source], JSON_UNESCAPED_UNICODE) . "\n\n";
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+        flush();
     }
 
     /**
@@ -155,11 +304,13 @@ class AIChatController extends Controller
         ]);
 
         $user = $request->user();
+        $quizAverages = $this->courseQuizAverages($user->id);
+
         $enrollments = Enrollment::query()
             ->where('user_id', $user->id)
             ->with(['course:id,title', 'course.lessons:id,course_id'])
             ->get()
-            ->map(function (Enrollment $enrollment) use ($user, $request) {
+            ->map(function (Enrollment $enrollment) use ($user, $request, $quizAverages) {
                 $lessonIds = $enrollment->course?->lessons?->pluck('id') ?? collect();
                 $total = $lessonIds->count();
                 $completed = $total > 0
@@ -179,7 +330,7 @@ class AIChatController extends Controller
                     'course_id' => $enrollment->course_id,
                     'course_title' => $enrollment->course?->title ?? ('Course #' . $enrollment->course_id),
                     'progress_percent' => $percent,
-                    'quiz_avg_score' => null,
+                    'quiz_avg_score' => $quizAverages->get($enrollment->course_id),
                     'last_accessed' => optional($enrollment->updated_at)?->toIso8601String(),
                 ];
             })
@@ -189,7 +340,7 @@ class AIChatController extends Controller
         $result = $this->ai->postWithFallback('tutoring/recommend', [
             'user_id' => $user->id,
             'enrolled_courses' => $enrollments,
-            'quiz_scores' => [],
+            'quiz_scores' => $this->recentQuizScores($user->id),
             'study_pattern' => [
                 'course_id' => $request->integer('course_id') ?: null,
                 'lesson_id' => $request->integer('lesson_id') ?: null,
@@ -211,6 +362,92 @@ class AIChatController extends Controller
             $this->heuristicTutoring($request, $enrollments),
             ['source' => 'heuristic']
         ));
+    }
+
+    /** Điểm quiz trung bình theo từng khóa (chỉ lần làm đã hoàn thành), key = course_id. */
+    protected function courseQuizAverages(int $userId): \Illuminate\Support\Collection
+    {
+        return QuizAttempt::query()
+            ->join('quizzes', 'quizzes.id', '=', 'quiz_attempts.quiz_id')
+            ->where('quiz_attempts.user_id', $userId)
+            ->whereIn('quiz_attempts.status', ['submitted', 'force_stopped'])
+            ->whereNotNull('quizzes.course_id')
+            ->whereNotNull('quiz_attempts.score')
+            ->selectRaw('quizzes.course_id as course_id, AVG(quiz_attempts.score) as avg_score')
+            ->groupBy('quizzes.course_id')
+            ->get()
+            ->keyBy('course_id')
+            ->map(fn ($row) => round((float) $row->avg_score, 1));
+    }
+
+    /**
+     * Danh sách các lần làm quiz gần nhất đã hoàn thành, dùng làm ngữ cảnh chi tiết cho AI
+     * (khác với courseQuizAverages() ở trên là điểm trung bình theo khóa).
+     *
+     * @return list<array{title: string, score: float}>
+     */
+    protected function recentQuizScores(int $userId, int $limit = 15): array
+    {
+        return QuizAttempt::query()
+            ->join('quizzes', 'quizzes.id', '=', 'quiz_attempts.quiz_id')
+            ->where('quiz_attempts.user_id', $userId)
+            ->whereIn('quiz_attempts.status', ['submitted', 'force_stopped'])
+            ->whereNotNull('quiz_attempts.score')
+            ->orderByDesc('quiz_attempts.completed_at')
+            ->limit($limit)
+            ->get(['quizzes.title as title', 'quiz_attempts.score as score'])
+            ->map(fn ($row) => ['title' => (string) $row->title, 'score' => (float) $row->score])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Tư vấn học tập AI cho trang Cố vấn học tập — diễn giải tự nhiên kết quả đánh giá
+     * CTĐT (rule-based, từ CurriculumEvaluationService) thay vì endpoint /ai/tutoring
+     * (vốn chỉ nhận course_id/lesson_id, dùng cho widget mẹo học bài LearnTip.vue).
+     */
+    public function studyAdvisorAdvice(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $evaluation = $this->curriculumEvaluation->evaluate($user);
+
+        if (!($evaluation['has_curriculum'] ?? false)) {
+            return response()->json([
+                'narrative' => $evaluation['message'] ?? 'Chưa có dữ liệu chương trình đào tạo để tư vấn.',
+                'study_tips' => [],
+                'focus_courses' => [],
+                'source' => 'rule',
+            ]);
+        }
+
+        $result = $this->ai->postWithFallback('tutoring/study-advisor', [
+            'user_id' => $user->id,
+            'academic_summary' => $evaluation['summary'] ?? [],
+            'strengths' => $evaluation['strengths'] ?? [],
+            'weaknesses' => $evaluation['weaknesses'] ?? [],
+            'by_term' => $evaluation['by_term'] ?? [],
+            'target_roles' => $evaluation['target_roles'] ?? [],
+            'top_skills' => $evaluation['top_skills'] ?? [],
+            'quiz_scores' => $this->recentQuizScores($user->id),
+            'rule_based_narrative' => $evaluation['narrative'] ?? '',
+        ], $user->id, '/tutoring/study-advisor', timeout: 60);
+
+        if ($result['ok'] && filled($result['data']['narrative'] ?? null)) {
+            return response()->json([
+                'narrative' => $result['data']['narrative'],
+                'study_tips' => $result['data']['study_tips'] ?? [],
+                'focus_courses' => $result['data']['focus_courses'] ?? [],
+                'source' => 'ai',
+                'provider_used' => $result['provider'],
+            ]);
+        }
+
+        return response()->json([
+            'narrative' => $evaluation['narrative'] ?? '',
+            'study_tips' => [],
+            'focus_courses' => [],
+            'source' => 'rule',
+        ]);
     }
 
     protected function heuristicTutoring(Request $request, array $enrollments): array

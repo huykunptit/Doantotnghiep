@@ -5,11 +5,16 @@ Phase 4.
 
 from __future__ import annotations
 
-import json
 import logging
 
-from models.schemas import TutoringRequest, TutoringResponse
+from models.schemas import (
+    StudyAdvisorRequest,
+    StudyAdvisorResponse,
+    TutoringRequest,
+    TutoringResponse,
+)
 from services.provider import call_provider
+from utils.json_extract import extract_json_object
 
 logger = logging.getLogger(__name__)
 
@@ -72,22 +77,87 @@ async def get_recommendations(payload: TutoringRequest) -> TutoringResponse:
     return _parse_tutoring(reply)
 
 
+async def get_study_advice(payload: StudyAdvisorRequest) -> StudyAdvisorResponse:
+    """Diễn giải kết quả đánh giá CTĐT (rule-based) thành lời khuyên tự nhiên, cá nhân hóa."""
+    summary = payload.academic_summary or {}
+    level = summary.get("level", "")
+    gpa = summary.get("overall_gpa")
+    completion = summary.get("completion_ratio")
+    completion_pct = f"{completion * 100:.0f}%" if isinstance(completion, (int, float)) else "?"
+
+    strengths_lines = [
+        f"- {c.get('title', '?')}: {c.get('final_score', '?')}" for c in payload.strengths[:5]
+    ]
+    weaknesses_lines = [
+        f"- {c.get('title', '?')}: {c.get('final_score', '?')}" for c in payload.weaknesses[:5]
+    ]
+    quiz_lines = [
+        f"- Quiz \"{q.get('title', '?')}\": {q.get('score', '?')}%" for q in payload.quiz_scores[:10]
+    ]
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Bạn là cố vấn học tập AI của một trường đại học, đang tư vấn cho sinh viên dựa trên "
+                "kết quả học tập THẬT (GPA, môn đã hoàn thành, môn điểm thấp, điểm quiz). "
+                "Viết lời khuyên tự nhiên, cụ thể, khích lệ nhưng thẳng thắn — diễn giải ý nghĩa của "
+                "số liệu thay vì chỉ lặp lại chúng, và đề xuất hành động cụ thể tiếp theo. "
+                "Trả về JSON thuần (không markdown) đúng schema:\n"
+                "{\n"
+                '  "narrative": "đoạn tư vấn 4-7 câu tiếng Việt",\n'
+                '  "study_tips": ["lời khuyên hành động cụ thể 1", ...] tối đa 5,\n'
+                '  "focus_courses": ["môn/kỹ năng nên ưu tiên củng cố 1", ...] tối đa 3\n'
+                "}\n"
+                "Chỉ dùng dữ liệu được cung cấp, không bịa thêm môn học hay điểm số không có trong đó."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Trình độ hiện tại: {level or 'chưa xác định'}. "
+                f"GPA tích lũy: {gpa if gpa is not None else 'chưa đủ dữ liệu'}. "
+                f"Hoàn thành {completion_pct} môn bắt buộc trong CTĐT.\n\n"
+                "Môn điểm cao (điểm mạnh):\n" + ("\n".join(strengths_lines) or "Chưa có.") + "\n\n"
+                "Môn điểm thấp (cần củng cố):\n" + ("\n".join(weaknesses_lines) or "Chưa có.") + "\n\n"
+                "Kết quả quiz gần đây:\n" + ("\n".join(quiz_lines) or "Chưa làm quiz nào.") + "\n\n"
+                f"Định hướng nghề nghiệp: {', '.join(payload.target_roles) or 'chưa xác định'}.\n"
+                f"Kỹ năng nổi bật: {', '.join(payload.top_skills) or 'chưa có dữ liệu'}.\n\n"
+                "Hãy viết lời tư vấn học tập cho sinh viên này. Trả về JSON."
+            ),
+        },
+    ]
+
+    reply, _ = await call_provider(
+        provider=payload.provider or "chatgpt",
+        api_key=payload.api_key or "",
+        messages=messages,
+        model=payload.model,
+        temperature=0.5,
+    )
+
+    raw = extract_json_object(reply) if reply else None
+    if raw is None or not str(raw.get("narrative") or "").strip():
+        return StudyAdvisorResponse(narrative=payload.rule_based_narrative)
+
+    return StudyAdvisorResponse(
+        narrative=str(raw.get("narrative") or "").strip(),
+        study_tips=[str(x).strip() for x in (raw.get("study_tips") or []) if str(x).strip()][:5],
+        focus_courses=[str(x).strip() for x in (raw.get("focus_courses") or []) if str(x).strip()][:3],
+    )
+
+
 def _parse_tutoring(text: str | None) -> TutoringResponse:
     """Parse JSON từ AI response."""
     if not text:
         return TutoringResponse(summary="Không thể phân tích — AI không trả kết quả.")
-    try:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
-            raw = json.loads(text[start : end + 1])
-            return TutoringResponse(
-                review_lessons=raw.get("review_lessons", []),
-                next_courses=raw.get("next_courses", []),
-                weak_skills=raw.get("weak_skills", []),
-                study_tips=raw.get("study_tips", []),
-                summary=raw.get("summary", ""),
-            )
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.warning("Failed to parse tutoring JSON: %s", e)
+    raw = extract_json_object(text)
+    if raw is not None:
+        return TutoringResponse(
+            review_lessons=raw.get("review_lessons", []),
+            next_courses=raw.get("next_courses", []),
+            weak_skills=raw.get("weak_skills", []),
+            study_tips=raw.get("study_tips", []),
+            summary=raw.get("summary", ""),
+        )
     return TutoringResponse(summary=text)

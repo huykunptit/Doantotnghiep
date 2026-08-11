@@ -48,9 +48,9 @@ async function submit() {
 <template>
   <div class="auth-panel">
     <section class="auth-story">
-      <span class="story-label">Bắt đầu hành trình</span>
-      <h1>Tạo tài khoản và mở khóa lộ trình học tập của bạn.</h1>
-      <p>Một tài khoản để truy cập khóa học, bài kiểm tra, tiến độ và chứng chỉ trên Eript LMS.</p>
+      <span class="story-label">Eript LMS</span>
+      <h1>Tạo tài khoản để bắt đầu học.</h1>
+      <p>Dùng một tài khoản để học khóa học, làm bài kiểm tra và xem kết quả trên Eript LMS.</p>
     </section>
 
     <AuthPanelCard>
@@ -58,7 +58,7 @@ async function submit() {
         <div class="auth-heading">
           <span>Đăng ký</span>
           <h2>Tạo tài khoản mới</h2>
-          <p>Điền thông tin để bắt đầu học ngay hôm nay.</p>
+          <p>Điền thông tin bên dưới để tạo tài khoản.</p>
         </div>
 
         <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
@@ -85,7 +85,7 @@ async function submit() {
           </label>
           <label class="notice agree">
             <input v-model="agreed" type="checkbox">
-            <span>Bằng việc tạo tài khoản, bạn đồng ý sử dụng hệ thống học tập và theo dõi tiến độ của mình.</span>
+            <span>Tôi đồng ý với các điều khoản sử dụng của Eript LMS.</span>
           </label>
           <Button type="submit" label="Tạo tài khoản" icon="pi pi-user-plus" :loading="loading" fluid />
         </form>

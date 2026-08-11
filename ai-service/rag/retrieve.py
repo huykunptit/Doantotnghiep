@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import random
 import re
 import unicodedata
 from typing import Any, Literal
@@ -78,8 +77,8 @@ def retrieve_chunks(
     """
     Similarity search trên ChromaDB.
 
-    - scope=global: tìm mọi giáo trình; nếu nhiều môn điểm gần nhau → random 1 môn,
-      rồi trả chunks của môn đó.
+    - scope=global: tìm mọi giáo trình; nếu nhiều môn điểm gần nhau → chọn tất định
+      môn có nhiều chunk khớp nhất (tie-break theo tên), rồi trả chunks của môn đó.
     - scope=course: chỉ tìm trong giáo trình khớp subject_hint (không fallback toàn cục).
 
     Returns list of {text, source, subject, page, score}.
@@ -114,6 +113,7 @@ def retrieve_chunks(
 
 def _pick_subject(hits: list[dict[str, Any]], *, tie_epsilon: float) -> str | None:
     best_by_subject: dict[str, float] = {}
+    count_by_subject: dict[str, int] = {}
     for h in hits:
         subj = (h.get("subject") or "").strip()
         if not subj:
@@ -126,13 +126,22 @@ def _pick_subject(hits: list[dict[str, Any]], *, tie_epsilon: float) -> str | No
         prev = best_by_subject.get(subj)
         if prev is None or sc > prev:
             best_by_subject[subj] = sc
+        count_by_subject[subj] = count_by_subject.get(subj, 0) + 1
 
     if not best_by_subject:
         return None
 
     top = max(best_by_subject.values())
     candidates = [s for s, sc in best_by_subject.items() if sc >= top - tie_epsilon]
-    return random.choice(candidates)
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # Hòa điểm: chọn tất định — ưu tiên môn có nhiều chunk khớp hơn (nhiều bằng
+    # chứng hỗ trợ hơn), rồi tie-break theo tên môn để cùng câu hỏi luôn ra
+    # cùng kết quả giữa các lần gọi (trước đây dùng random.choice, gây trả lời
+    # không nhất quán).
+    candidates.sort(key=lambda s: (-count_by_subject.get(s, 0), s))
+    return candidates[0]
 
 
 def _query_filtered_contains(
