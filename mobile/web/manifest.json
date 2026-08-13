@@ -1,11 +1,11 @@
 {
-    "name": "Eript LMS",
-    "short_name": "Eript",
+    "name": "ERIPT LMS",
+    "short_name": "ERIPT",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#050805",
     "theme_color": "#2F7A4F",
-    "description": "Eript LMS — học tập thích nghi, vững tri thức.",
+    "description": "ERIPT LMS — học tập thích nghi, vững tri thức.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

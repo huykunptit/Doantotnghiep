@@ -140,6 +140,7 @@ const studyStatusOptions = computed(() => [
   { label: t('admin.users.status.tot_nghiep'), value: 'tot_nghiep' },
   { label: t('admin.users.status.thoi_hoc'), value: 'thoi_hoc' },
   { label: t('admin.users.status.dinh_chi'), value: 'dinh_chi' },
+  { label: t('admin.users.status.chua_dong_hoc_phi'), value: 'chua_dong_hoc_phi' },
   { label: t('admin.users.status.dang_cong_tac'), value: 'dang_cong_tac' },
   { label: t('admin.users.status.nghi_phep'), value: 'nghi_phep' },
   { label: t('admin.users.status.nghi_huu'), value: 'nghi_huu' },
@@ -216,6 +217,7 @@ function statusTone(status?: string | null) {
     tot_nghiep: 'tone-graduated',
     thoi_hoc: 'tone-dropped',
     dinh_chi: 'tone-suspended',
+    chua_dong_hoc_phi: 'tone-unpaid',
     dang_cong_tac: 'tone-staff',
     nghi_phep: 'tone-leave',
     nghi_huu: 'tone-retired',
@@ -1110,7 +1112,7 @@ onMounted(async () => {
     </Dialog>
 
     <!-- Import modal -->
-    <Dialog v-model:visible="importOpen" modal :header="t('admin.users.importTitle')" :style="{ width: 'min(760px, 96vw)' }" :dismissable-mask="true">
+    <Dialog v-model:visible="importOpen" modal :header="t('admin.users.importTitle')" :style="{ width: 'min(760px, 96vw)' }" :dismissable-mask="true" class="import-modal">
       <div class="import-box">
         <div class="import-step">
           <div class="step-head">
@@ -1196,7 +1198,7 @@ onMounted(async () => {
     </Dialog>
 
     <!-- Face photo bulk import modal -->
-    <Dialog v-model:visible="faceImportOpen" modal :header="t('admin.users.importFacesTitle')" :style="{ width: 'min(680px, 96vw)' }" :dismissable-mask="true">
+    <Dialog v-model:visible="faceImportOpen" modal :header="t('admin.users.importFacesTitle')" :style="{ width: 'min(680px, 96vw)' }" :dismissable-mask="true" class="import-modal">
       <div class="import-box">
         <div class="import-step">
           <div class="step-head">
@@ -1327,6 +1329,7 @@ onMounted(async () => {
 .tone-graduated { background: #e0f2fe; color: #0369a1; }
 .tone-dropped { background: #ffe4e6; color: #be123c; }
 .tone-suspended { background: #fce7f3; color: #be185d; }
+.tone-unpaid { background: #ffedd5; color: #c2410c; }
 .tone-staff { background: #ccfbf1; color: #0f766e; }
 .tone-leave { background: #fde68a; color: #92400e; }
 .tone-retired { background: #e2e8f0; color: #475569; }
@@ -1366,6 +1369,9 @@ onMounted(async () => {
   border-color: var(--brand) !important;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent) !important;
 }
+
+.user-modal :deep(.p-dialog-content),
+.import-modal :deep(.p-dialog-content) { overflow: auto; }
 
 .import-box { display: grid; gap: 16px; }
 .import-step {

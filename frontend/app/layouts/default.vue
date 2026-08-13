@@ -7,7 +7,7 @@ const { settings } = useSiteSettings()
 const { t } = useI18n()
 const mobileOpen = ref(false)
 
-const brand = computed(() => settings.value.site_name || 'Eript LMS')
+const brand = computed(() => settings.value.site_name || 'ERIPT LMS')
 const dashboardPath = computed(() => dashboardFor(auth.user))
 const userInitials = computed(() =>
   (auth.user?.name || 'SV').split(' ').filter(Boolean).slice(-2).map(p => p[0]).join('').toUpperCase(),

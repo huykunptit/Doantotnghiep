@@ -7,8 +7,11 @@ use App\Models\Exam;
 use App\Models\ExamViolation;
 use App\Models\Notification;
 use App\Models\QuizAttempt;
+use App\Services\MediaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ExamProctorController extends Controller
 {
@@ -244,16 +247,23 @@ class ExamProctorController extends Controller
         }
 
         $validated = $request->validate([
-            'type'     => ['required', 'string', 'in:focus_lost,no_face,multiple_faces,suspicious'],
+            'type'     => ['required', 'string', 'in:focus_lost,no_face,multiple_faces,suspicious,looking_away,phone_detected'],
             'severity' => ['nullable', 'string', 'in:warning,critical'],
             'metadata' => ['nullable', 'array'],
+            'image'    => ['nullable', 'string'],
         ]);
+
+        $snapshotUrl = null;
+        if (!empty($validated['image'])) {
+            $snapshotUrl = $this->storeViolationSnapshot($validated['image'], $attempt->id);
+        }
 
         $violation = ExamViolation::create([
             'attempt_id'   => $attempt->id,
             'user_id'      => $user->id,
             'type'         => $validated['type'],
             'severity'     => $validated['severity'] ?? 'warning',
+            'snapshot_url' => $snapshotUrl,
             'metadata'     => $validated['metadata'] ?? null,
         ]);
 
@@ -368,6 +378,16 @@ class ExamProctorController extends Controller
      */
     private function isValidCapturedImage(string $rawImage): bool
     {
+        return $this->decodeValidatedImage($rawImage) !== null;
+    }
+
+    /**
+     * Decodes + sanity-checks a base64-encoded captured frame (same rules as
+     * isValidCapturedImage) and returns the raw binary + extension, or null
+     * if it doesn't look like a real JPEG/PNG camera frame.
+     */
+    private function decodeValidatedImage(string $rawImage): ?array
+    {
         $data = $rawImage;
         if (preg_match('/^data:image\/(jpe?g|png);base64,(.+)$/i', $data, $matches)) {
             $data = $matches[2];
@@ -375,18 +395,42 @@ class ExamProctorController extends Controller
 
         $binary = base64_decode($data, true);
         if ($binary === false) {
-            return false;
+            return null;
         }
 
         $size = strlen($binary);
         if ($size < 1000 || $size > 8 * 1024 * 1024) {
-            return false;
+            return null;
         }
 
         $isJpeg = substr($binary, 0, 2) === "\xFF\xD8";
         $isPng  = substr($binary, 0, 8) === "\x89PNG\r\n\x1a\n";
+        if (!$isJpeg && !$isPng) {
+            return null;
+        }
 
-        return $isJpeg || $isPng;
+        return ['binary' => $binary, 'ext' => $isPng ? 'png' : 'jpg'];
+    }
+
+    /**
+     * Persists a violation snapshot (base64 frame) to storage and returns its
+     * public URL, or null if the image was invalid — a bad/missing snapshot
+     * must never block the violation itself from being logged.
+     */
+    private function storeViolationSnapshot(string $rawImage, int $attemptId): ?string
+    {
+        $decoded = $this->decodeValidatedImage($rawImage);
+        if (!$decoded) {
+            return null;
+        }
+
+        $media = app(MediaService::class);
+        $disk  = $media->getDisk();
+        $path  = "exam-violations/{$attemptId}/" . now()->timestamp . '_' . Str::random(10) . '.' . $decoded['ext'];
+
+        Storage::disk($disk)->put($path, $decoded['binary']);
+
+        return $media->getUrl($path);
     }
 
     // ── Live Monitor (Admin/Instructor) ─────────────────────────────────

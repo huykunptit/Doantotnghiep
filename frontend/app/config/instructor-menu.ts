@@ -38,6 +38,13 @@ export const instructorMenu: InstructorMenuItem[] = [
     permission: ['manage_courses', 'manage_grades'],
   },
   {
+    key: 'attendance',
+    labelKey: 'instructor.menu.attendance',
+    icon: 'pi pi-qrcode',
+    to: '/instructor/attendance',
+    permission: ['manage_courses', 'manage_grades'],
+  },
+  {
     key: 'grades',
     labelKey: 'instructor.menu.grades',
     icon: 'pi pi-list-check',
@@ -50,6 +57,13 @@ export const instructorMenu: InstructorMenuItem[] = [
     icon: 'pi pi-file-edit',
     to: '/instructor/exams',
     permission: 'manage_exams',
+  },
+  {
+    key: 'academic-calendar',
+    labelKey: 'instructor.menu.academicCalendar',
+    icon: 'pi pi-calendar',
+    to: '/instructor/academic-calendar',
+    permission: ['manage_academic', 'manage_courses'],
   },
 ]
 

@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Seed toàn bộ site_settings.
- * Giữ nguyên tên site (Eript LMS), màu chủ đạo (#0f766e / #0d655e),
- * logo PTIT và các thông tin liên hệ mặc định.
+ * Giữ nguyên tên site (ERIPT LMS), màu chủ đạo (#0f766e / #0d655e),
+ * logo ERIPT và các thông tin liên hệ mặc định.
  *
  * Idempotent: chỉ insert key chưa tồn tại.
  * Chạy độc lập: php artisan db:seed --class=SiteSettingsSeeder
@@ -19,11 +19,11 @@ class SiteSettingsSeeder extends Seeder
     {
         $settings = [
             // ── Branding ──────────────────────────────────────────────────────
-            'site_name'            => 'Eript LMS',
-            'site_description'     => 'Nền tảng học tập trực tuyến – Học viện Công nghệ Bưu chính Viễn thông',
+            'site_name'            => 'ERIPT LMS',
+            'site_description'     => 'Nền tảng học tập trực tuyến ERIPT LMS – Học viện Công nghệ Bưu chính Viễn thông',
             'site_tagline'         => 'Học mọi lúc, mọi nơi',
-            'site_logo'            => '/logo.png',
-            'site_favicon'         => '/favicon.ico',
+            'site_logo'            => '/images/eript-logo.png',
+            'site_favicon'         => '/images/eript-logo.png',
 
             // ── Theme Colors ──────────────────────────────────────────────────
             'theme_color_primary'  => '#0f766e',
@@ -43,7 +43,7 @@ class SiteSettingsSeeder extends Seeder
             'social_zalo'          => null,
 
             // ── Legal / Footer ────────────────────────────────────────────────
-            'footer_copyright'     => '© ' . date('Y') . ' Eript LMS – PTIT. All rights reserved.',
+            'footer_copyright'     => '© ' . date('Y') . ' ERIPT LMS – PTIT. All rights reserved.',
             'legal_company_name'   => 'Học viện Công nghệ Bưu chính Viễn thông',
             'legal_tax_code'       => null,
             'terms_url'            => null,
@@ -61,7 +61,7 @@ class SiteSettingsSeeder extends Seeder
             'smtp_password'        => null,
             'smtp_encryption'      => 'tls',
             'smtp_from_address'    => null,
-            'smtp_from_name'       => 'Eript LMS',
+            'smtp_from_name'       => 'ERIPT LMS',
         ];
 
         $existingKeys = DB::table('site_settings')->pluck('value', 'key')->all();

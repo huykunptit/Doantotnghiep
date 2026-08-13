@@ -748,7 +748,7 @@ class StudentDashboardController extends Controller
         }
 
         $session = \App\Models\OfflineSession::where('qr_token', $rawToken)
-            ->with(['lesson.section.course', 'classSection.course'])
+            ->with(['lesson.section.course', 'classSection.course', 'course', 'administrativeClass'])
             ->first();
 
         if (!$session) {
@@ -784,17 +784,25 @@ class StudentDashboardController extends Controller
             $distance = null;
         }
 
-        // Verify enrollment via class section
+        // Verify enrollment: lớp HC / lớp tín chỉ / ghi danh khoá
         $enrolled = false;
-        if ($session->classSection) {
-            $enrolled = \App\Models\Enrollment::where('user_id', $user->id)
+        if ($session->administrative_class_id) {
+            $enrolled = (int) $user->administrative_class_id === (int) $session->administrative_class_id;
+        }
+        if (!$enrolled && $session->classSection) {
+            $enrolled = Enrollment::where('user_id', $user->id)
                 ->where('class_section_id', $session->class_section_id)
+                ->exists();
+        }
+        if (!$enrolled && $session->course_id) {
+            $enrolled = Enrollment::where('user_id', $user->id)
+                ->where('course_id', $session->course_id)
                 ->exists();
         }
         if (!$enrolled && $session->lesson) {
             $course = $session->lesson->section?->course;
             if ($course) {
-                $enrolled = \App\Models\Enrollment::where('user_id', $user->id)
+                $enrolled = Enrollment::where('user_id', $user->id)
                     ->where('course_id', $course->id)
                     ->exists();
             }
@@ -818,7 +826,8 @@ class StudentDashboardController extends Controller
             ]
         );
 
-        $courseTitle = $session->classSection?->course?->title
+        $courseTitle = $session->course?->title
+            ?? $session->classSection?->course?->title
             ?? $session->lesson?->section?->course?->title
             ?? null;
 

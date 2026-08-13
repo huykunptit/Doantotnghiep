@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { GazeOffset } from '~/composables/useFaceApi'
+
 const props = defineProps<{
   examId: string | number
   hasFaceUrl: boolean
@@ -6,12 +8,12 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  verified: []
+  verified: [gazeBaseline: GazeOffset | null]
 }>()
 
 const { t } = useI18n()
 const toast = useToast()
-const { loadModels, descriptorFromImageUrl, descriptorFromVideo, similarityFromDescriptors } = useFaceApi()
+const { loadModels, descriptorFromImageUrl, descriptorFromVideo, detectFacesWithLandmarks, estimateGazeOffset, similarityFromDescriptors } = useFaceApi()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -142,8 +144,21 @@ async function verifyFace() {
 
     verified.value = true
     statusMessage.value = t('exam.faceCheck.verified')
+
+    // Baseline gaze pose from this same (frontal, well-lit, identity-confirmed)
+    // frame — the continuous in-exam monitor compares against this to flag
+    // sustained deviation ("looking_away"), instead of guessing a fixed pose.
+    let gazeBaseline: GazeOffset | null = null
+    try {
+      if (videoRef.value) {
+        const faces = await detectFacesWithLandmarks(videoRef.value)
+        if (faces[0]) gazeBaseline = estimateGazeOffset(faces[0].landmarks)
+      }
+    }
+    catch { /* baseline is best-effort — monitor just skips gaze checks without it */ }
+
     stopCamera()
-    emit('verified')
+    emit('verified', gazeBaseline)
   }
   catch (error: any) {
     statusMessage.value = error?.data?.message || t('exam.faceCheck.failed')

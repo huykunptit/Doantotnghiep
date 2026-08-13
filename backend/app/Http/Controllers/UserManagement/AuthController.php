@@ -51,7 +51,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::query()->where('email', $credentials['email'])->first();
-        if ($user && !$user->hasVerifiedEmail()) {
+        if ($user && !$user->hasVerifiedEmail() && !$user->hasRole('admin')) {
             $user->sendEmailVerificationNotification();
 
             return response()->json([

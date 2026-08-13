@@ -17,11 +17,21 @@ interface ExamRow {
   quiz?: { id: number } | null
 }
 
+interface ViolationItem {
+  id: number
+  type: string
+  severity: string
+  snapshot_url?: string | null
+  metadata?: Record<string, unknown> | null
+  created_at?: string | null
+}
+
 interface LiveAttempt {
   id: number
   status: string
   score?: number | null
   violations_count?: number
+  recent_violations?: ViolationItem[]
   user?: { name?: string, email?: string } | null
 }
 
@@ -46,6 +56,12 @@ const exams = ref<ExamRow[]>([])
 const monitorOpen = ref(false)
 const monitorExam = ref<ExamRow | null>(null)
 const monitorData = ref<LiveMonitor | null>(null)
+
+const violationsPopover = ref()
+const activeViolations = ref<ViolationItem[]>([])
+
+let monitorPollTimer: ReturnType<typeof setInterval> | null = null
+const MONITOR_POLL_MS = 9000
 
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 
@@ -83,6 +99,28 @@ function attemptStatusLabel(status: string) {
   return translated === key ? status : translated
 }
 
+function violationTypeLabel(type: string) {
+  const key = `admin.reports.examTracking.violationTypes.${type}`
+  const translated = t(key)
+  return translated === key ? type : translated
+}
+
+function violationSeverityTone(severity: string) {
+  return severity === 'critical' ? 'danger' : 'warn'
+}
+
+function fmtDateTime(value?: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat(numberLocale.value, {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function showViolations(event: Event, attempt: LiveAttempt) {
+  activeViolations.value = attempt.recent_violations || []
+  violationsPopover.value?.toggle(event)
+}
+
 async function load() {
   loading.value = true
   try {
@@ -112,6 +150,7 @@ async function openMonitor(exam: ExamRow) {
   monitorLoading.value = true
   try {
     monitorData.value = await useApi<LiveMonitor>(`/exams/${exam.id}/live-monitor`)
+    startMonitorPoll()
   }
   catch (error: any) {
     toast.add({
@@ -126,6 +165,33 @@ async function openMonitor(exam: ExamRow) {
     monitorLoading.value = false
   }
 }
+
+/** Silent background refresh while the dialog is open — no spinner, no toast on failure (just retries next tick). */
+async function refreshMonitorSilently() {
+  if (!monitorExam.value) return
+  try {
+    monitorData.value = await useApi<LiveMonitor>(`/exams/${monitorExam.value.id}/live-monitor`)
+  }
+  catch { /* transient — next poll tick will retry */ }
+}
+
+function startMonitorPoll() {
+  stopMonitorPoll()
+  monitorPollTimer = setInterval(refreshMonitorSilently, MONITOR_POLL_MS)
+}
+
+function stopMonitorPoll() {
+  if (monitorPollTimer) {
+    clearInterval(monitorPollTimer)
+    monitorPollTimer = null
+  }
+}
+
+watch(monitorOpen, (open) => {
+  if (!open) stopMonitorPoll()
+})
+
+onBeforeUnmount(stopMonitorPoll)
 
 onMounted(load)
 </script>
@@ -189,6 +255,7 @@ onMounted(load)
       :header="t('admin.reports.examTracking.monitorTitle', { title: monitorExam?.title || '' })"
       :style="{ width: 'min(760px, 96vw)' }"
       :dismissable-mask="true"
+      class="scroll-fix-modal"
     >
       <div v-if="monitorLoading" class="monitor-loading">
         <ProgressSpinner style="width:32px;height:32px" stroke-width="4" />
@@ -229,7 +296,19 @@ onMounted(load)
           <Column field="score" :header="t('admin.reports.examTracking.score')" style="width:5rem">
             <template #body="{ data }">{{ data.score ?? '—' }}</template>
           </Column>
-          <Column field="violations_count" :header="t('admin.reports.examTracking.violations')" style="width:5rem" />
+          <Column :header="t('admin.reports.examTracking.violations')" style="width:6rem">
+            <template #body="{ data }">
+              <button
+                type="button"
+                class="violations-btn"
+                :class="{ empty: !data.violations_count }"
+                :disabled="!data.violations_count"
+                @click="showViolations($event, data)"
+              >
+                {{ data.violations_count ?? 0 }}
+              </button>
+            </template>
+          </Column>
           <template #empty><CommonEmptyState :description="t('admin.reports.examTracking.noAttempts')" /></template>
         </DataTable>
       </template>
@@ -237,10 +316,28 @@ onMounted(load)
         <Button :label="t('common.cancel')" severity="secondary" text @click="monitorOpen = false" />
       </template>
     </Dialog>
+
+    <Popover ref="violationsPopover" class="violations-popover">
+      <div class="violations-list">
+        <div v-if="!activeViolations.length" class="violations-empty">{{ t('admin.reports.examTracking.noViolations') }}</div>
+        <div v-for="v in activeViolations" :key="v.id" class="violation-row">
+          <Image v-if="v.snapshot_url" :src="v.snapshot_url" preview width="56" class="violation-thumb" />
+          <div class="violation-info">
+            <div class="violation-head">
+              <strong>{{ violationTypeLabel(v.type) }}</strong>
+              <Tag :value="v.severity" :severity="violationSeverityTone(v.severity)" />
+            </div>
+            <small>{{ fmtDateTime(v.created_at) }}</small>
+          </div>
+        </div>
+      </div>
+    </Popover>
   </div>
 </template>
 
 <style scoped>
+.scroll-fix-modal :deep(.p-dialog-content) { overflow: auto; }
+
 .report-page { gap: 14px; }
 .workspace-head { display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px; }
 
@@ -281,4 +378,20 @@ onMounted(load)
 .cell-stack small { display: block; color: var(--text-muted); font-size: .78rem; }
 
 @media (max-width: 720px) { .summary-rail { grid-template-columns: 1fr 1fr; } }
+
+.violations-btn {
+  min-width: 2rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface-subtle); font-weight: 700; font-size: .82rem; cursor: pointer;
+}
+.violations-btn:not(.empty) { border-color: #fca5a5; background: #fee2e2; color: #b91c1c; }
+.violations-btn.empty { cursor: default; color: var(--text-muted); }
+
+.violations-list { display: grid; gap: 10px; width: min(320px, 80vw); }
+.violations-empty { color: var(--text-muted); font-size: .85rem; padding: 4px; }
+.violation-row { display: flex; gap: 10px; align-items: flex-start; }
+.violation-thumb { border-radius: 8px; overflow: hidden; flex: 0 0 auto; }
+.violation-info { display: grid; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.violation-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.violation-head strong { font-size: .85rem; }
+.violation-info small { color: var(--text-muted); font-size: .75rem; }
 </style>

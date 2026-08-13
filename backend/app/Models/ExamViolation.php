@@ -10,7 +10,7 @@ class ExamViolation extends Model
     protected $fillable = [
         'attempt_id',
         'user_id',
-        'type',         // focus_lost | no_face | multiple_faces | suspicious
+        'type',         // focus_lost | no_face | multiple_faces | suspicious | looking_away | phone_detected
         'severity',     // warning | critical
         'snapshot_url',
         'metadata',

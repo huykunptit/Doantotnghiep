@@ -5,15 +5,15 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Sylva LMS cần camera để quét mã QR điểm danh tại lớp học / workshop.</string>
+	<string>ERIPT LMS cần camera để quét mã QR điểm danh tại lớp học / workshop.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Sylva LMS cần vị trí GPS để xác minh bạn đang trong bán kính 15m quanh lớp học khi điểm danh.</string>
+	<string>ERIPT LMS cần vị trí GPS để xác minh bạn đang trong bán kính 15m quanh lớp học khi điểm danh.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Sylva LMS cần vị trí GPS để xác minh bạn đang trong bán kính 15m quanh lớp học khi điểm danh.</string>
+	<string>ERIPT LMS cần vị trí GPS để xác minh bạn đang trong bán kính 15m quanh lớp học khi điểm danh.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sylva LMS</string>
+	<string>ERIPT LMS</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Sylva LMS</string>
+	<string>ERIPT LMS</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

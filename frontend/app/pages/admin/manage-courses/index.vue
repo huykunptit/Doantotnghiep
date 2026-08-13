@@ -8,18 +8,21 @@ definePageMeta({
 })
 
 interface CategoryItem { id: number, name: string }
+interface OptionItem { label: string, value: number | string | null }
 interface AdminCourse {
   id: number
   title: string
   description?: string | null
   thumbnail?: string | null
   status: string
+  course_mode?: string
   is_featured?: boolean
   price?: number
   lessons_count?: number
   enrollments_count?: number
-  instructor?: { name: string } | null
+  instructor?: { id?: number, name: string } | null
   category?: { id: number, name: string } | null
+  program?: { id: number, code?: string, name: string } | null
   created_at?: string
 }
 interface Paginator<T> {
@@ -27,7 +30,7 @@ interface Paginator<T> {
   total: number
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -40,9 +43,18 @@ const page = ref(1)
 const perPage = ref(15)
 const tableSearch = ref('')
 const categories = ref<CategoryItem[]>([])
+const instructorOptions = ref<OptionItem[]>([])
+const programOptions = ref<OptionItem[]>([])
 
 const filters = reactive({
   status: null as string | null,
+  course_mode: null as string | null,
+  pricing: null as string | null,
+  category_id: null as number | null,
+  instructor_id: null as number | null,
+  program_id: null as number | null,
+  is_featured: null as string | null,
+  sort: 'newest' as string,
 })
 
 const modalOpen = ref(false)
@@ -55,6 +67,16 @@ const form = reactive({
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
+const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
+function formatPrice(price = 0) {
+  if (!price) return t('admin.manageCourses.free')
+  return new Intl.NumberFormat(numberLocale.value, {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(price)
+}
+
 const statusOptions = computed(() => [
   { label: t('common.all'), value: null },
   { label: t('admin.manageCourses.statuses.published'), value: 'published' },
@@ -63,7 +85,44 @@ const statusOptions = computed(() => [
   { label: t('admin.manageCourses.statuses.rejected'), value: 'rejected' },
 ])
 
-const activeFilterCount = computed(() => (filters.status ? 1 : 0))
+const modeOptions = computed(() => [
+  { label: t('common.all'), value: null },
+  { label: t('admin.manageCourses.modes.core'), value: 'core' },
+  { label: t('admin.manageCourses.modes.extension'), value: 'extension' },
+])
+
+const pricingOptions = computed(() => [
+  { label: t('common.all'), value: null },
+  { label: t('admin.manageCourses.pricingPaid'), value: 'paid' },
+  { label: t('admin.manageCourses.pricingFree'), value: 'free' },
+])
+
+const featuredOptions = computed(() => [
+  { label: t('common.all'), value: null },
+  { label: t('admin.manageCourses.featuredOnly'), value: 'true' },
+  { label: t('admin.manageCourses.notFeatured'), value: 'false' },
+])
+
+const sortOptions = computed(() => [
+  { label: t('admin.manageCourses.sortNewest'), value: 'newest' },
+  { label: t('admin.manageCourses.sortPriceAsc'), value: 'price_asc' },
+  { label: t('admin.manageCourses.sortPriceDesc'), value: 'price_desc' },
+  { label: t('admin.manageCourses.sortTitle'), value: 'title' },
+  { label: t('admin.manageCourses.sortLearners'), value: 'learners' },
+])
+
+const activeFilterCount = computed(() => {
+  let n = 0
+  if (filters.status) n++
+  if (filters.course_mode) n++
+  if (filters.pricing) n++
+  if (filters.category_id) n++
+  if (filters.instructor_id) n++
+  if (filters.program_id) n++
+  if (filters.is_featured) n++
+  if (filters.sort && filters.sort !== 'newest') n++
+  return n
+})
 
 function statusTone(status: string) {
   if (status === 'published') return 'tone-published'
@@ -71,6 +130,10 @@ function statusTone(status: string) {
   if (status === 'rejected') return 'tone-rejected'
   if (status === 'draft') return 'tone-draft'
   return 'tone-neutral'
+}
+
+function modeTone(mode?: string) {
+  return mode === 'extension' ? 'tone-extension' : 'tone-core'
 }
 
 async function loadCategories() {
@@ -83,17 +146,47 @@ async function loadCategories() {
   }
 }
 
+async function loadFilterOptions() {
+  try {
+    const [instructors, programs] = await Promise.all([
+      useApi<{ data?: Array<{ id: number, name: string, staff_code?: string }> }>('/admin/instructors', { query: { per_page: 200 } }).catch(() => ({ data: [] })),
+      useApi<{ data?: Array<{ id: number, name: string, code?: string }> }>('/admin/academic/programs', { query: { per_page: 100 } }).catch(() => ({ data: [] })),
+    ])
+    instructorOptions.value = (instructors.data || []).map(u => ({
+      label: u.staff_code ? `${u.staff_code} — ${u.name}` : u.name,
+      value: u.id,
+    }))
+    programOptions.value = (programs.data || []).map(p => ({
+      label: p.code ? `${p.code} — ${p.name}` : p.name,
+      value: p.id,
+    }))
+  }
+  catch {
+    instructorOptions.value = []
+    programOptions.value = []
+  }
+}
+
+function toQuery() {
+  return {
+    page: page.value,
+    per_page: perPage.value,
+    search: tableSearch.value || undefined,
+    status: filters.status || undefined,
+    course_mode: filters.course_mode || undefined,
+    pricing: filters.pricing || undefined,
+    category_id: filters.category_id || undefined,
+    instructor_id: filters.instructor_id || undefined,
+    program_id: filters.program_id || undefined,
+    is_featured: filters.is_featured || undefined,
+    sort: filters.sort || undefined,
+  }
+}
+
 async function load() {
   loading.value = true
   try {
-    const res = await useApi<Paginator<AdminCourse>>('/admin/courses', {
-      query: {
-        page: page.value,
-        per_page: perPage.value,
-        search: tableSearch.value || undefined,
-        status: filters.status || undefined,
-      },
-    })
+    const res = await useApi<Paginator<AdminCourse>>('/admin/courses', { query: toQuery() })
     rows.value = res.data || []
     total.value = res.total || 0
   }
@@ -125,6 +218,14 @@ function applyFilters() {
 
 function resetFilters() {
   filters.status = null
+  filters.course_mode = null
+  filters.pricing = null
+  filters.category_id = null
+  filters.instructor_id = null
+  filters.program_id = null
+  filters.is_featured = null
+  filters.sort = 'newest'
+  tableSearch.value = ''
   page.value = 1
   load()
 }
@@ -234,13 +335,12 @@ function askDelete(course: AdminCourse) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadCategories(), load()])
+  await Promise.all([loadCategories(), loadFilterOptions(), load()])
 })
 </script>
 
 <template>
   <div class="page manage-page">
-
     <section class="table-panel">
       <div class="filter-bar">
         <div class="filter-title">
@@ -253,6 +353,85 @@ onMounted(async () => {
             <Select
               v-model="filters.status"
               :options="statusOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.mode') }}</span>
+            <Select
+              v-model="filters.course_mode"
+              :options="modeOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.pricing') }}</span>
+            <Select
+              v-model="filters.pricing"
+              :options="pricingOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.category') }}</span>
+            <Select
+              v-model="filters.category_id"
+              :options="categories"
+              option-label="name"
+              option-value="id"
+              show-clear
+              filter
+              class="w-full"
+              :placeholder="t('common.all')"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.instructor') }}</span>
+            <Select
+              v-model="filters.instructor_id"
+              :options="instructorOptions"
+              option-label="label"
+              option-value="value"
+              show-clear
+              filter
+              class="w-full"
+              :placeholder="t('common.all')"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.program') }}</span>
+            <Select
+              v-model="filters.program_id"
+              :options="programOptions"
+              option-label="label"
+              option-value="value"
+              show-clear
+              filter
+              class="w-full"
+              :placeholder="t('common.all')"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.featured') }}</span>
+            <Select
+              v-model="filters.is_featured"
+              :options="featuredOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.manageCourses.sort') }}</span>
+            <Select
+              v-model="filters.sort"
+              :options="sortOptions"
               option-label="label"
               option-value="value"
               class="w-full"
@@ -291,7 +470,7 @@ onMounted(async () => {
         <Column :header="t('admin.users.stt')" style="width:4rem">
           <template #body="{ index }">{{ (page - 1) * perPage + index + 1 }}</template>
         </Column>
-        <Column :header="t('admin.manageCourses.course')" style="min-width:220px">
+        <Column :header="t('admin.manageCourses.course')" style="min-width:240px">
           <template #body="{ data }">
             <div class="course-cell">
               <img v-if="data.thumbnail" :src="data.thumbnail" :alt="data.title" class="thumb">
@@ -303,13 +482,27 @@ onMounted(async () => {
             </div>
           </template>
         </Column>
+        <Column :header="t('admin.manageCourses.mode')" style="width:120px">
+          <template #body="{ data }">
+            <span class="pill" :class="modeTone(data.course_mode)">
+              {{ t(`admin.manageCourses.modes.${data.course_mode || 'extension'}`, data.course_mode || '—') }}
+            </span>
+          </template>
+        </Column>
+        <Column :header="t('admin.manageCourses.price')" style="min-width:120px">
+          <template #body="{ data }">
+            <span class="price-cell" :class="{ paid: (data.price || 0) > 0 }">
+              {{ formatPrice(data.price || 0) }}
+            </span>
+          </template>
+        </Column>
         <Column :header="t('admin.manageCourses.instructor')" style="min-width:140px">
           <template #body="{ data }">{{ data.instructor?.name || '—' }}</template>
         </Column>
-        <Column :header="t('admin.manageCourses.lessons')" style="width:100px">
+        <Column :header="t('admin.manageCourses.lessons')" style="width:90px">
           <template #body="{ data }">{{ data.lessons_count || 0 }}</template>
         </Column>
-        <Column :header="t('admin.manageCourses.learners')" style="width:100px">
+        <Column :header="t('admin.manageCourses.learners')" style="width:90px">
           <template #body="{ data }">{{ data.enrollments_count || 0 }}</template>
         </Column>
         <Column :header="t('admin.manageCourses.status')" style="width:130px">
@@ -398,7 +591,7 @@ onMounted(async () => {
 }
 .filter-bar { margin-bottom: 12px; }
 .filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .filter-actions { display: flex; gap: 8px; margin-top: 10px; }
 .table-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -419,6 +612,9 @@ onMounted(async () => {
 }
 .course-cell small { display: block; color: var(--text-muted); margin-top: 2px; }
 
+.price-cell { font-weight: 650; color: var(--text-muted); }
+.price-cell.paid { color: var(--text); font-weight: 750; }
+
 .pill {
   display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
   font-size: .72rem; font-weight: 700; white-space: nowrap;
@@ -428,6 +624,8 @@ onMounted(async () => {
 .tone-rejected { background: #fee2e2; color: #b91c1c; }
 .tone-draft { background: #e2e8f0; color: #475569; }
 .tone-neutral { background: var(--surface-hover); color: var(--text-muted); }
+.tone-core { background: #e0f2fe; color: #0369a1; }
+.tone-extension { background: #fce7f3; color: #be185d; }
 
 .featured-btn { color: var(--text-muted) !important; }
 .featured-btn.on { color: #d97706 !important; }

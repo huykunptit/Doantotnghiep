@@ -14,6 +14,7 @@ import '../../data/repositories/learning_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/error/friendly_error.dart';
+import '../../../../core/widgets/app_loader.dart';
 import '../../../../core/widgets/loading_overlay.dart';
 class LessonPlayerScreen extends ConsumerStatefulWidget {
   const LessonPlayerScreen({
@@ -43,11 +44,21 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
   bool _isVideoLoading = false;
   bool _videoHasError = false;
   String? _videoErrorMessage;
+  final TextEditingController _noteController = TextEditingController();
+  final FocusNode _noteFocusNode = FocusNode();
+  bool _isSavingNote = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (!mounted || _tabController.indexIsChanging) return;
+      setState(() {});
+      if (_tabController.index != 1 && _noteFocusNode.hasFocus) {
+        _noteFocusNode.unfocus();
+      }
+    });
   }
 
   @override
@@ -67,6 +78,8 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
   void dispose() {
     _disposePlayer();
     _tabController.dispose();
+    _noteController.dispose();
+    _noteFocusNode.dispose();
     super.dispose();
   }
 
@@ -287,13 +300,75 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
     }
   }
 
+  Future<int> _currentPlaybackSeconds() async {
+    if (_isYoutubeVideo && _youtubeController != null) {
+      try {
+        final current = (await _youtubeController!.currentTime).round();
+        if (current >= 0) {
+          _lastWatchedSeconds = current;
+          return current;
+        }
+      } catch (_) {}
+      return _lastWatchedSeconds;
+    }
+
+    final player = _videoPlayerController;
+    if (player != null && player.value.isInitialized) {
+      final current = player.value.position.inSeconds;
+      _lastWatchedSeconds = current;
+      return current;
+    }
+
+    return _lastWatchedSeconds;
+  }
+
+  String _formatNoteTime(int totalSeconds) {
+    final safe = totalSeconds < 0 ? 0 : totalSeconds;
+    final minutes = safe ~/ 60;
+    final seconds = safe % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _submitNote() async {
+    final text = _noteController.text.trim();
+    if (text.isEmpty || _isSavingNote) return;
+
+    setState(() => _isSavingNote = true);
+    try {
+      final currentPos = await _currentPlaybackSeconds();
+      await ref
+          .read(lessonNotesProvider(widget.courseId, widget.lessonId).notifier)
+          .addNote(content: text, timeSeconds: currentPos);
+      _noteController.clear();
+      _noteFocusNode.unfocus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã lưu ghi chú tại ${_formatNoteTime(currentPos)}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingNote = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final lessonAsync = ref.watch(lessonDetailProvider(widget.courseId, widget.lessonId));
     final courseAsync = ref.watch(courseDetailProvider(widget.courseId));
     final theme = Theme.of(context);
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: courseAsync.when(
           data: (course) => Text(course.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
@@ -316,7 +391,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
         ],
       ),
       body: lessonAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: AppLoader(message: 'Đang tải bài học...')),
         error: (e, _) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -340,33 +415,51 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
 
           return Column(
             children: [
-              // Media / Player Area
-              _buildPlayerArea(lesson),
-
-              // Title Area
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lesson.title,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    if (lesson.description != null &&
-                        lesson.description!.isNotEmpty &&
-                        lesson.type == 'video') ...[
-                      AppSpacing.h8,
+              // Hide bulky chrome when typing notes so the field stays above keyboard.
+              if (!(keyboardOpen && _tabController.index == 1)) ...[
+                _buildPlayerArea(lesson),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        _plainText(lesson.description!),
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        lesson.title,
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
+                      if (lesson.description != null &&
+                          lesson.description!.isNotEmpty &&
+                          lesson.type == 'video') ...[
+                        AppSpacing.h8,
+                        Text(
+                          _plainText(lesson.description!),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
+              ] else
+                Material(
+                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit_note_rounded, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Ghi chú tại ${_formatNoteTime(_lastWatchedSeconds)}',
+                            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // Tabs
               TabBar(
@@ -394,11 +487,12 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
               ),
 
               // Bottom Navigation bar
-              courseAsync.when(
-                data: (course) => _buildBottomNavBar(course, lesson),
-                loading: () => const SizedBox.shrink(),
-                error: (_, _) => const SizedBox.shrink(),
-              ),
+              if (!(keyboardOpen && _tabController.index == 1))
+                courseAsync.when(
+                  data: (course) => _buildBottomNavBar(course, lesson),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
             ],
           );
         },
@@ -633,93 +727,116 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
 
   Widget _buildNotesTab(LessonDetailModel lesson) {
     final notesAsync = ref.watch(lessonNotesProvider(widget.courseId, widget.lessonId));
-    final noteCtrl = TextEditingController();
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Column(
       children: [
-        // Create note section
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: noteCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Thêm ghi chú tại giây hiện tại...',
-                  ),
-                ),
-              ),
-              AppSpacing.w12,
-              IconButton.filled(
-                icon: const Icon(Icons.add),
-                onPressed: () async {
-                  final text = noteCtrl.text.trim();
-                  if (text.isEmpty) return;
-
-                  final currentPos = _videoPlayerController?.value.position.inSeconds ?? 0;
-                  try {
-                    await ref
-                        .read(lessonNotesProvider(widget.courseId, widget.lessonId).notifier)
-                        .addNote(content: text, timeSeconds: currentPos);
-                    noteCtrl.clear();
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-
-        // Notes List
         Expanded(
           child: notesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: AppLoader(compact: true, size: 64, message: 'Đang tải ghi chú...')),
             error: (e, _) => Center(child: Text('Lỗi: ${friendlyErrorMessage(e)}')),
             data: (notes) {
               if (notes.isEmpty) {
-                return const Center(child: Text('Chưa có ghi chú nào.'));
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'Chưa có ghi chú nào.\nNhập nội dung bên dưới để lưu tại thời điểm video hiện tại.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                );
               }
-              return ListView.builder(
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                 itemCount: notes.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 4),
                 itemBuilder: (context, index) {
                   final note = notes[index];
-                  final minutes = note.timeSeconds ~/ 60;
-                  final seconds = note.timeSeconds % 60;
-                  final timeLabel = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+                  final timeLabel = _formatNoteTime(note.timeSeconds);
 
-                  return ListTile(
-                    leading: ActionChip(
-                      label: Text(timeLabel),
-                      onPressed: () => _seekTo(note.timeSeconds),
-                      avatar: const Icon(Icons.play_arrow, size: 14),
-                    ),
-                    title: Text(note.content),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(lessonNotesProvider(widget.courseId, widget.lessonId).notifier)
-                              .removeNote(note.id);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
-                            );
+                  return Card(
+                    elevation: 0,
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                    child: ListTile(
+                      leading: ActionChip(
+                        label: Text(timeLabel),
+                        onPressed: () => _seekTo(note.timeSeconds),
+                        avatar: const Icon(Icons.play_arrow, size: 14),
+                      ),
+                      title: Text(note.content),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(lessonNotesProvider(widget.courseId, widget.lessonId).notifier)
+                                .removeNote(note.id);
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Lỗi: ${friendlyErrorMessage(e)}'), backgroundColor: Colors.red),
+                              );
+                            }
                           }
-                        }
-                      },
+                        },
+                      ),
                     ),
                   );
                 },
               );
             },
+          ),
+        ),
+        AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 10 + (bottomInset > 0 ? 0 : MediaQuery.paddingOf(context).bottom)),
+          child: Material(
+            elevation: 2,
+            borderRadius: BorderRadius.circular(16),
+            color: theme.colorScheme.surface,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _noteController,
+                      focusNode: _noteFocusNode,
+                      minLines: 1,
+                      maxLines: 4,
+                      textInputAction: TextInputAction.newline,
+                      decoration: InputDecoration(
+                        hintText: 'Thêm ghi chú tại ${_formatNoteTime(_lastWatchedSeconds)}...',
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                      onTap: () async {
+                        // Refresh displayed timestamp before typing.
+                        await _currentPlaybackSeconds();
+                        if (mounted) setState(() {});
+                      },
+                      onSubmitted: (_) => _submitNote(),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton.filled(
+                    onPressed: _isSavingNote ? null : _submitNote,
+                    icon: _isSavingNote
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.add),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -730,7 +847,7 @@ class _LessonPlayerScreenState extends ConsumerState<LessonPlayerScreen> with Si
     final attachmentsAsync = ref.watch(lessonAttachmentsProvider(widget.courseId, widget.lessonId));
 
     return attachmentsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: AppLoader(compact: true, size: 64, message: 'Đang tải tài liệu...')),
       error: (e, _) => Center(child: Text('Lỗi tải tài liệu: ${friendlyErrorMessage(e)}')),
       data: (attachments) {
         if (attachments.isEmpty) {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
+import type { GazeOffset } from '~/composables/useFaceApi'
 
 definePageMeta({ layout: false, middleware: ['auth'] })
 
@@ -29,10 +30,14 @@ const requiresFaceCheck = ref(false)
 const hasFaceUrl = ref(false)
 const facePhotoUrl = ref<string | null>(null)
 const faceVerified = ref(false)
-const { loadModels: loadFaceModels, countFacesInVideo } = useFaceApi()
+const gazeBaseline = ref<GazeOffset | null>(null)
+const { loadModels: loadFaceModels, detectFacesWithLandmarks, estimateGazeOffset } = useFaceApi()
+const { detectPhone } = usePhoneDetector()
 let monitorStream: MediaStream | null = null
 let monitorVideo: HTMLVideoElement | null = null
+let monitorCanvas: HTMLCanvasElement | null = null
 let monitorInterval: ReturnType<typeof setInterval> | null = null
+let phoneCheckInterval: ReturnType<typeof setInterval> | null = null
 const attemptId = ref<number | null>(null)
 const remainingTime = ref<number | null>(null)
 const status = ref('in_progress')
@@ -110,8 +115,9 @@ async function runPreCheck() {
   }
 }
 
-function onFaceVerified() {
+function onFaceVerified(baseline: GazeOffset | null) {
   faceVerified.value = true
+  gazeBaseline.value = baseline
   requiresFaceCheck.value = false
   loadExam()
 }
@@ -139,6 +145,7 @@ async function loadExam() {
     if (proctoring.value) {
       bindProctor()
       startFaceMonitor()
+      startPhoneMonitor()
     }
   }
   catch (e: any) {
@@ -213,6 +220,7 @@ async function submitExam(auto = false) {
   if (timerInterval) clearInterval(timerInterval)
   unbindProctor()
   stopFaceMonitor()
+  stopPhoneMonitor()
   try {
     const res = await useApi<{ attempt_id?: number, score?: number }>(`/exams/${examId.value}/submit`, {
       method: 'POST',
@@ -232,12 +240,26 @@ async function submitExam(auto = false) {
   }
 }
 
+/** Grabs the current frame of the background monitor camera as a JPEG data URL — used as violation evidence. */
+function captureMonitorSnapshot(): string | null {
+  if (!monitorVideo || !monitorVideo.videoWidth) return null
+  if (!monitorCanvas) monitorCanvas = document.createElement('canvas')
+  monitorCanvas.width = monitorVideo.videoWidth
+  monitorCanvas.height = monitorVideo.videoHeight
+  const ctx = monitorCanvas.getContext('2d')
+  if (!ctx) return null
+  ctx.drawImage(monitorVideo, 0, 0, monitorCanvas.width, monitorCanvas.height)
+  return monitorCanvas.toDataURL('image/jpeg', 0.7)
+}
+
 async function logViolation(type: string, severity: 'warning' | 'critical', metadata: Record<string, unknown>) {
   if (!attemptId.value) return
+  // Snapshot evidence only for critical violations — keeps storage bounded.
+  const image = severity === 'critical' ? captureMonitorSnapshot() : null
   try {
     await useApi(`/attempts/${attemptId.value}/violations`, {
       method: 'POST',
-      body: { type, severity, metadata },
+      body: { type, severity, metadata, ...(image ? { image } : {}) },
     })
   }
   catch { /* ignore offline */ }
@@ -270,16 +292,25 @@ function unbindProctor() {
 
 // ── Continuous webcam monitoring (behavior-based cheating detection) ────────
 // Runs independently of the pre-exam face-verification camera (that stream is
-// torn down once verified). Periodically counts faces in frame client-side
-// (face-api.js) and reports no_face/multiple_faces as real proctoring
-// violations — same endpoint the pre-exam check and focus-loss use.
+// torn down once verified). Periodically detects faces + landmarks in frame
+// client-side (face-api.js) — one detector call per tick serves both the
+// face count (no_face/multiple_faces) and, for a single face, a head-pose
+// check against the baseline captured at verification (looking_away).
+// Violations report through the same endpoint the pre-exam check and
+// focus-loss use.
 const MONITOR_INTERVAL_MS = 8000
 const MONITOR_COOLDOWN_MS = 30000
 const MONITOR_STREAK_TO_FLAG = 2
+const LOOK_AWAY_STREAK_TO_FLAG = 4
+const LOOK_AWAY_COOLDOWN_MS = 45000
+const GAZE_YAW_THRESHOLD = 0.35
+const GAZE_PITCH_THRESHOLD = 0.3
 let noFaceStreak = 0
 let multiFaceStreak = 0
+let lookAwayStreak = 0
 let lastNoFaceLogAt = 0
 let lastMultiFaceLogAt = 0
+let lastLookAwayLogAt = 0
 
 async function startFaceMonitor() {
   if (!import.meta.client || monitorInterval) return
@@ -303,36 +334,61 @@ async function startFaceMonitor() {
 
   monitorInterval = setInterval(async () => {
     if (status.value !== 'in_progress' || !monitorVideo) return
-    let count = 0
+    let faces: Awaited<ReturnType<typeof detectFacesWithLandmarks>> = []
     try {
-      count = await countFacesInVideo(monitorVideo)
+      faces = await detectFacesWithLandmarks(monitorVideo)
     }
     catch {
       return
     }
 
     const now = Date.now()
+    const count = faces.length
+
     if (count === 0) {
       noFaceStreak++
       multiFaceStreak = 0
+      lookAwayStreak = 0
       if (noFaceStreak >= MONITOR_STREAK_TO_FLAG && now - lastNoFaceLogAt > MONITOR_COOLDOWN_MS) {
         lastNoFaceLogAt = now
         logViolation('no_face', 'warning', { streak: noFaceStreak })
         toast.add({ severity: 'warn', summary: t('exam.faceCheck.noFaceDuringExam'), life: 4000 })
       }
+      return
     }
-    else if (count > 1) {
+
+    if (count > 1) {
       multiFaceStreak++
       noFaceStreak = 0
+      lookAwayStreak = 0
       if (multiFaceStreak >= MONITOR_STREAK_TO_FLAG && now - lastMultiFaceLogAt > MONITOR_COOLDOWN_MS) {
         lastMultiFaceLogAt = now
         logViolation('multiple_faces', 'critical', { count, streak: multiFaceStreak })
         toast.add({ severity: 'error', summary: t('exam.faceCheck.multipleFacesDuringExam'), life: 4000 })
       }
+      return
+    }
+
+    noFaceStreak = 0
+    multiFaceStreak = 0
+
+    if (!gazeBaseline.value) return
+    const primary = faces.reduce((a, b) => (a.detection.box.area >= b.detection.box.area ? a : b))
+    const offset = estimateGazeOffset(primary.landmarks)
+    if (!offset) return
+
+    const yawDelta = Math.abs(offset.yaw - gazeBaseline.value.yaw)
+    const pitchDelta = Math.abs(offset.pitch - gazeBaseline.value.pitch)
+    if (yawDelta > GAZE_YAW_THRESHOLD || pitchDelta > GAZE_PITCH_THRESHOLD) {
+      lookAwayStreak++
+      if (lookAwayStreak >= LOOK_AWAY_STREAK_TO_FLAG && now - lastLookAwayLogAt > LOOK_AWAY_COOLDOWN_MS) {
+        lastLookAwayLogAt = now
+        logViolation('looking_away', 'warning', { yaw_delta: yawDelta, pitch_delta: pitchDelta, streak: lookAwayStreak })
+        toast.add({ severity: 'warn', summary: t('exam.faceCheck.lookingAwayDuringExam'), life: 4000 })
+      }
     }
     else {
-      noFaceStreak = 0
-      multiFaceStreak = 0
+      lookAwayStreak = 0
     }
   }, MONITOR_INTERVAL_MS)
 }
@@ -348,12 +404,61 @@ function stopFaceMonitor() {
   monitorStream = null
 }
 
+// ── Phone detection (separate, thinner pipeline) ────────────────────────────
+// Reuses the same background monitor camera stream (started by
+// startFaceMonitor) but runs on its own tick, offset from the face-monitor
+// tick, so the two heavier client-side inferences don't land in the same
+// frame and stall a slow machine.
+const PHONE_CHECK_INTERVAL_MS = 6000
+const PHONE_STREAK_TO_FLAG = 2
+const PHONE_COOLDOWN_MS = 30000
+let phoneStreak = 0
+let lastPhoneLogAt = 0
+
+function startPhoneMonitor() {
+  if (!import.meta.client || phoneCheckInterval) return
+
+  phoneCheckInterval = setInterval(async () => {
+    if (status.value !== 'in_progress' || !monitorVideo) return
+    let result: { found: boolean, score: number }
+    try {
+      result = await detectPhone(monitorVideo)
+    }
+    catch {
+      // Detector failed to load or run (e.g. underpowered device) — skip
+      // phone checks silently, don't block the exam over it.
+      return
+    }
+
+    const now = Date.now()
+    if (result.found) {
+      phoneStreak++
+      if (phoneStreak >= PHONE_STREAK_TO_FLAG && now - lastPhoneLogAt > PHONE_COOLDOWN_MS) {
+        lastPhoneLogAt = now
+        logViolation('phone_detected', 'critical', { score: result.score, streak: phoneStreak })
+        toast.add({ severity: 'error', summary: t('exam.faceCheck.phoneDetectedDuringExam'), life: 4000 })
+      }
+    }
+    else {
+      phoneStreak = 0
+    }
+  }, PHONE_CHECK_INTERVAL_MS)
+}
+
+function stopPhoneMonitor() {
+  if (phoneCheckInterval) {
+    clearInterval(phoneCheckInterval)
+    phoneCheckInterval = null
+  }
+}
+
 onMounted(runPreCheck)
 onBeforeUnmount(() => {
   if (timerInterval) clearInterval(timerInterval)
   if (autoSaveTimer) clearTimeout(autoSaveTimer)
   unbindProctor()
   stopFaceMonitor()
+  stopPhoneMonitor()
 })
 </script>
 

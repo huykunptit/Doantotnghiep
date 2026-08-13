@@ -67,6 +67,51 @@ async function countFacesInVideo(video: HTMLVideoElement) {
   return results.length
 }
 
+export interface GazeOffset { yaw: number, pitch: number }
+
+/**
+ * Detects all faces plus their 68-point landmarks in one pass — used by the
+ * continuous monitor so it only runs the detector once per tick instead of
+ * once for the face count and again for head-pose landmarks.
+ */
+async function detectFacesWithLandmarks(video: HTMLVideoElement) {
+  await loadModels()
+  return faceapi.detectAllFaces(video, detectorOptions()).withFaceLandmarks()
+}
+
+/**
+ * Rough 2D head-pose estimate from 68-point landmarks — not true 3D pose (no
+ * camera intrinsics available), just enough to catch a face that has turned
+ * or tilted away from a known-good baseline pose:
+ *  - yaw: how far the nose tip sits off-center between the outer eye
+ *    corners, normalized by face width. 0 = centered, larger = turned
+ *    left/right.
+ *  - pitch: how far the nose tip sits from the eye line, normalized by
+ *    eye-to-chin distance. Smaller = head tipped down (e.g. looking at a
+ *    phone in the lap), larger = tipped up.
+ */
+function estimateGazeOffset(landmarks: faceapi.FaceLandmarks68): GazeOffset | null {
+  const points = landmarks.positions
+  const leftEyeOuter = points[36]
+  const rightEyeOuter = points[45]
+  const noseTip = points[30]
+  const chin = points[8]
+  if (!leftEyeOuter || !rightEyeOuter || !noseTip || !chin) return null
+
+  const faceWidth = Math.abs(rightEyeOuter.x - leftEyeOuter.x)
+  if (faceWidth < 1) return null
+
+  const eyeMidX = (leftEyeOuter.x + rightEyeOuter.x) / 2
+  const eyeMidY = (leftEyeOuter.y + rightEyeOuter.y) / 2
+  const faceHeight = Math.abs(chin.y - eyeMidY)
+  if (faceHeight < 1) return null
+
+  return {
+    yaw: (noseTip.x - eyeMidX) / faceWidth,
+    pitch: (noseTip.y - eyeMidY) / faceHeight,
+  }
+}
+
 /** face-api.js FaceRecognitionNet euclidean distance -> a 0..1 similarity score (1 = identical). */
 function similarityFromDescriptors(a: Float32Array, b: Float32Array) {
   const distance = faceapi.euclideanDistance(a, b)
@@ -79,6 +124,8 @@ export function useFaceApi() {
     descriptorFromImageUrl,
     descriptorFromVideo,
     countFacesInVideo,
+    detectFacesWithLandmarks,
+    estimateGazeOffset,
     similarityFromDescriptors,
   }
 }

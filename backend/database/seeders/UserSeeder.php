@@ -197,7 +197,7 @@ class UserSeeder extends Seeder
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@lms.com'],
             [
-                'name' => 'Nguyễn Thanh Bình',
+                'name' => 'Super Admin',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
                 'avatar' => 'https://i.pravatar.cc/300?img=68',
@@ -224,7 +224,6 @@ class UserSeeder extends Seeder
         }
     }
 
-    /** Số SV demo gốc giữ email studentN@lms.com (không đổi sang mã SV). */
     public const DEMO_LMS_STUDENT_COUNT = 16;
 
     private function seedStudents(): void
@@ -236,7 +235,6 @@ class UserSeeder extends Seeder
                 ? "student{$n}@lms.com"
                 : "student{$n}@stu.ptit.edu.vn";
 
-            // Tìm theo email demo / tạm, hoặc theo họ tên (sau khi OrgAcademic đổi sang mã SV)
             $user = User::query()
                 ->whereIn('email', [
                     $email,

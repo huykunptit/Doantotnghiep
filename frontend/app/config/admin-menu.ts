@@ -35,8 +35,8 @@ const adminMenuRaw: AdminMenuItem[] = [
     labelKey: 'admin.menu.academic',
     icon: 'pi pi-graduation-cap',
     children: [
-      { labelKey: 'admin.menu.academicCalendar', to: '/admin/lnd/academic-calendar' },
       { labelKey: 'admin.menu.academicCatalog', to: '/admin/academic' },
+      { labelKey: 'admin.menu.academicCalendar', to: '/admin/lnd/academic-calendar' },
       { labelKey: 'admin.menu.learningPaths', to: '/admin/lnd/learning-paths' },
       { labelKey: 'admin.menu.adminClasses', to: '/admin/lnd/classes' },
       { labelKey: 'admin.menu.classSchedules', to: '/admin/lnd/schedules' },

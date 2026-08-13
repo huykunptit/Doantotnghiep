@@ -99,10 +99,17 @@ onMounted(load)
         :loading="loading"
         lazy
         paginator
+        :first="(page - 1) * perPage"
         :rows="perPage"
         :total-records="total"
+        :rows-per-page-options="[10, 15, 25]"
+        paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+        :current-page-report-template="t('admin.users.pageReport')"
         @page="onPage"
       >
+        <Column :header="t('admin.users.stt')" style="width:4rem">
+          <template #body="{ index }">{{ (page - 1) * perPage + index + 1 }}</template>
+        </Column>
         <Column :header="t('instructor.students.name')">
           <template #body="{ data }">
             <div class="user-cell">

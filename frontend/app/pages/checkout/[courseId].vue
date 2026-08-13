@@ -3,6 +3,15 @@ import { useToast } from 'primevue/usetoast'
 
 definePageMeta({ layout: 'default', middleware: ['auth'] })
 
+interface PathSuggestion {
+  id: number
+  title: string
+  slug: string
+  path_price: number
+  remaining_count: number
+  remaining_total_price: number
+}
+
 interface CourseDetail {
   id: number
   title: string
@@ -11,6 +20,7 @@ interface CourseDetail {
   lessons_count?: number
   is_enrolled?: boolean
   instructor?: { name?: string } | null
+  path_suggestions?: PathSuggestion[]
 }
 
 const route = useRoute()
@@ -28,6 +38,8 @@ const method = ref<'payos'>('payos')
 const methods = computed(() => [
   { value: 'payos' as const, label: t('student.checkout.payos'), note: t('student.checkout.payosNote') },
 ])
+
+const pathSuggestion = computed(() => course.value?.path_suggestions?.[0] || null)
 
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 const formatPrice = (price = 0) => {
@@ -120,6 +132,31 @@ onMounted(load)
             <span>{{ m.note }}</span>
           </button>
         </div>
+
+        <aside v-if="pathSuggestion && !alreadyEnrolled" class="path-hint">
+          <strong>{{ t('student.checkout.pathSuggestTitle') }}</strong>
+          <p>
+            {{ t('student.checkout.pathSuggestBody', {
+              path: pathSuggestion.title,
+              n: pathSuggestion.remaining_count,
+              price: formatPrice(pathSuggestion.remaining_total_price),
+            }) }}
+          </p>
+          <div class="path-hint-actions">
+            <Button
+              :label="t('student.detail.pathSuggestView')"
+              text
+              size="small"
+              @click="navigateTo(`/paths/${pathSuggestion.slug}`)"
+            />
+            <Button
+              :label="t('student.detail.pathSuggestBuyPath', { price: formatPrice(pathSuggestion.path_price) })"
+              size="small"
+              severity="secondary"
+              @click="navigateTo(`/checkout/path/${pathSuggestion.slug}`)"
+            />
+          </div>
+        </aside>
       </section>
 
       <aside class="panel summary">
@@ -167,6 +204,12 @@ onMounted(load)
 }
 .method.on { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); background: var(--brand-soft); }
 .method span { color: var(--text-muted); font-size: .82rem; font-weight: 500; }
+.path-hint {
+  margin-top: 16px; padding: 12px; border-radius: 12px;
+  background: var(--brand-soft); display: grid; gap: 6px;
+}
+.path-hint p { margin: 0; color: var(--text-muted); font-size: .9rem; font-weight: 550; }
+.path-hint-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .summary .price { display: block; margin: 8px 0 14px; font-size: 1.8rem; font-family: var(--font-display); }
 .line { display: flex; justify-content: space-between; font-weight: 650; margin-bottom: 14px; }
 .note { padding: 12px; border-radius: 12px; background: var(--brand-soft); font-weight: 600; }

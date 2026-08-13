@@ -936,24 +936,70 @@ class AdminController extends Controller
             return $forbidden;
         }
 
-        $query = Course::with('instructor:id,name,avatar', 'category')
+        $query = Course::with('instructor:id,name,avatar', 'category:id,name,slug', 'program:id,code,name')
             ->withCount('lessons', 'enrollments');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%');
+        if ($request->filled('course_mode')) {
+            $query->where('course_mode', $request->course_mode);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->integer('category_id'));
+        }
+
+        if ($request->filled('instructor_id')) {
+            $query->where('user_id', $request->integer('instructor_id'));
+        }
+
+        if ($request->filled('program_id')) {
+            $query->where('program_id', $request->integer('program_id'));
+        }
+
+        if ($request->filled('is_featured')) {
+            $query->where('is_featured', filter_var($request->input('is_featured'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        // free | paid — khoá bán (có giá) vs miễn phí
+        $pricing = trim((string) $request->query('pricing', ''));
+        if ($pricing === 'paid') {
+            $query->where('price', '>', 0);
+        } elseif ($pricing === 'free') {
+            $query->where(function ($q) {
+                $q->whereNull('price')->orWhere('price', '<=', 0);
             });
         }
 
-        $courses = $query
-            ->orderByDesc('is_featured')
-            ->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 15));
+        if ($request->filled('price_min')) {
+            $query->where('price', '>=', $request->integer('price_min'));
+        }
+        if ($request->filled('price_max')) {
+            $query->where('price', '<=', $request->integer('price_max'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%')
+                    ->orWhereHas('instructor', fn ($iq) => $iq->where('name', 'like', '%' . $search . '%'));
+            });
+        }
+
+        $sort = (string) $request->query('sort', 'newest');
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            'title' => $query->orderBy('title')->orderByDesc('id'),
+            'learners' => $query->orderByDesc('enrollments_count')->orderByDesc('id'),
+            default => $query->orderByDesc('is_featured')->orderByDesc('created_at'),
+        };
+
+        $courses = $query->paginate($request->integer('per_page', 15));
 
         return response()->json($courses);
     }

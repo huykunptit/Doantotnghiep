@@ -114,7 +114,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen>
             qrToken: token,
             latitude: position.latitude,
             longitude: position.longitude,
-            deviceInfo: 'Sylva LMS Mobile',
+            deviceInfo: 'ERIPT LMS Mobile',
           );
 
       if (!mounted) return;

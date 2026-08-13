@@ -235,37 +235,68 @@ class OrgAcademicSeeder extends Seeder
 
     private function seedAcademicCalendar(int $institutionId): array
     {
-        $year = AcademicYear::query()->updateOrCreate(
-            ['institution_id' => $institutionId, 'name' => '2025-2026'],
-            ['start_date' => '2025-08-01', 'end_date' => '2026-07-31', 'is_current' => true, 'status' => 'active']
-        );
+        // Seed đủ năm học cho các khoá demo D23/D24 (2023→2028+) — mỗi năm 2 học kỳ.
+        $years = [];
+        $firstTerm = null;
+        $secondTerm = null;
 
-        $term1 = Term::query()->updateOrCreate(
-            ['academic_year_id' => $year->id, 'code' => 'HK1'],
-            [
-                'name' => 'Học kỳ 1',
-                'start_date' => '2025-09-01',
-                'end_date' => '2026-01-10',
-                'enrollment_start_at' => '2025-08-15 00:00:00',
-                'enrollment_end_at' => '2025-09-05 23:59:59',
-                'exam_start_at' => '2025-12-15 00:00:00',
-                'exam_end_at' => '2026-01-10 23:59:59',
-                'is_current' => true,
-                'status' => 'active',
-            ]
-        );
-        $term2 = Term::query()->updateOrCreate(
-            ['academic_year_id' => $year->id, 'code' => 'HK2'],
-            [
-                'name' => 'Học kỳ 2',
-                'start_date' => '2026-02-01',
-                'end_date' => '2026-06-15',
-                'is_current' => false,
-                'status' => 'planned',
-            ]
-        );
+        for ($yStart = 2023; $yStart <= 2028; $yStart++) {
+            $yEnd = $yStart + 1;
+            $name = "{$yStart}-{$yEnd}";
+            $year = AcademicYear::query()->updateOrCreate(
+                ['institution_id' => $institutionId, 'name' => $name],
+                [
+                    'start_date' => sprintf('%d-08-01', $yStart),
+                    'end_date' => sprintf('%d-07-31', $yEnd),
+                    'is_current' => $name === '2025-2026',
+                    'status' => 'active',
+                ]
+            );
+            $years[$name] = $year;
 
-        return compact('year', 'term1', 'term2');
+            $term1 = Term::query()->updateOrCreate(
+                ['academic_year_id' => $year->id, 'code' => 'HK1'],
+                [
+                    'name' => 'Học kỳ 1',
+                    'start_date' => sprintf('%d-09-01', $yStart),
+                    'end_date' => sprintf('%d-01-15', $yEnd),
+                    'enrollment_start_at' => sprintf('%d-08-15 00:00:00', $yStart),
+                    'enrollment_end_at' => sprintf('%d-09-05 23:59:59', $yStart),
+                    'exam_start_at' => sprintf('%d-12-15 00:00:00', $yStart),
+                    'exam_end_at' => sprintf('%d-01-15 23:59:59', $yEnd),
+                    'is_current' => $name === '2025-2026',
+                    'status' => 'active',
+                ]
+            );
+            $term2 = Term::query()->updateOrCreate(
+                ['academic_year_id' => $year->id, 'code' => 'HK2'],
+                [
+                    'name' => 'Học kỳ 2',
+                    'start_date' => sprintf('%d-02-01', $yEnd),
+                    'end_date' => sprintf('%d-06-30', $yEnd),
+                    'is_current' => false,
+                    'status' => 'active',
+                ]
+            );
+
+            if ($name === '2025-2026') {
+                $firstTerm = $term1;
+                $secondTerm = $term2;
+            }
+        }
+
+        AcademicYear::query()
+            ->where('institution_id', $institutionId)
+            ->where('name', '!=', '2025-2026')
+            ->update(['is_current' => false]);
+
+        $year = $years['2025-2026'] ?? reset($years);
+
+        return [
+            'year' => $year,
+            'term1' => $firstTerm ?? Term::query()->where('code', 'HK1')->first(),
+            'term2' => $secondTerm ?? Term::query()->where('code', 'HK2')->first(),
+        ];
     }
 
     /**

@@ -206,7 +206,13 @@ onMounted(load)
   display: inline-block; margin-top: 14px; padding: 4px 10px; border-radius: 999px;
   background: rgba(255,255,255,.16); font-size: .78rem; font-weight: 700; letter-spacing: .04em;
 }
-.hero h1 { margin: 10px 0 8px; font-size: clamp(1.6rem, 3vw, 2.2rem); text-shadow: 0 1px 12px rgba(0, 0, 0, .4); }
+.hero h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: #f8fffc !important;
+  -webkit-text-fill-color: #f8fffc;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, .45);
+}
 .hero p { margin: 0; max-width: 52ch; color: rgba(255,255,255,.86); font-weight: 500; }
 .hero-meta { display: flex; gap: 16px; margin-top: 16px; align-items: baseline; font-weight: 650; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }

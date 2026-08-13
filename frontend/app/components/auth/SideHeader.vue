@@ -8,7 +8,7 @@ const { t } = useI18n()
     <NuxtLink to="/" class="auth-side-brand">
       <CommonBrandMark size="sm" />
       <span>
-        <strong>Eript LMS</strong>
+        <strong>ERIPT LMS</strong>
       </span>
     </NuxtLink>
     <div class="auth-side-actions">

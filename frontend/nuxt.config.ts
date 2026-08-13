@@ -62,9 +62,9 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Eript LMS',
+      title: 'ERIPT LMS',
       meta: [
-        { name: 'description', content: 'Nền tảng quản trị và học tập Eript LMS' },
+        { name: 'description', content: 'Nền tảng quản trị và học tập ERIPT LMS' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       ],
       link: [

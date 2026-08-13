@@ -66,6 +66,7 @@ class RoleSeeder extends Seeder
             'manage_grades',
             'view_grades',
             'view_reports',
+            'manage_academic', // năm học / học kỳ + lớp HC (điểm danh QR)
         ]);
 
         $advisor->syncPermissions([

@@ -38,7 +38,7 @@
     "ai": {
       "chatTitle": "Trợ lý AI",
       "chatStatus": "Tư vấn nhanh trước khi đăng ký",
-      "chatWelcome": "Eript LMS xin chào! Tôi có thể giúp gì cho bạn?",
+      "chatWelcome": "ERIPT LMS xin chào! Tôi có thể giúp gì cho bạn?",
       "chatCleared": "Đã xoá hội thoại. Bạn cần hỗ trợ gì?",
       "chatEmptyReply": "Hệ thống chưa có phản hồi cho yêu cầu này.",
       "chatError": "Lỗi kết nối. Trợ lý AI tạm không khả dụng, thử lại sau.",
@@ -2091,7 +2091,7 @@
       "subtitle": "Thẻ sinh viên điện tử — dùng để tra cứu nhanh thông tin học vụ của bạn.",
       "loadError": "Không tải được thông tin thẻ sinh viên",
       "print": "In thẻ",
-      "defaultInstitution": "Eript LMS",
+      "defaultInstitution": "ERIPT LMS",
       "defaultProgramLevel": "Đại học",
       "cardTitle": "THẺ SINH VIÊN",
       "cardSubtitle": "STUDENT ID CARD",
@@ -2434,7 +2434,7 @@
       "chatTitle": "Trợ lý AI",
       "chatStatus": "Sẵn sàng hỗ trợ",
       "chatContextOn": "Đang gắn ngữ cảnh khóa học",
-      "chatWelcome": "Eript LMS xin chào! Tôi có thể giúp gì cho bạn?",
+      "chatWelcome": "ERIPT LMS xin chào! Tôi có thể giúp gì cho bạn?",
       "chatWelcomeCourse": "Xin chào! Trong khóa này mình chỉ tra giáo trình của môn đang học. Hỏi khái niệm, bài học, quiz hoặc mẹo học tập nhé.",
       "chatCleared": "Đã xoá hội thoại. Bạn cần hỗ trợ gì?",
       "chatNeedLogin": "Vui lòng đăng nhập để dùng Trợ lý AI.",
@@ -2613,7 +2613,7 @@
   },
   "auth": {
     "login": {
-      "storyLabel": "Eript LMS",
+      "storyLabel": "ERIPT LMS",
       "storyDesc": "Học bài, làm bài kiểm tra và xem kết quả ở một nơi.",
       "point1Title": "Khóa học & bài giảng",
       "point1Desc": "Học theo lộ trình từng môn, xem lại bài giảng bất cứ lúc nào.",
@@ -2644,7 +2644,7 @@
         "expired": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
       },
       "storyTitle1": "Chào mừng bạn",
-      "storyTitle2": "quay lại Eript LMS"
+      "storyTitle2": "quay lại ERIPT LMS"
     }
   }
 }

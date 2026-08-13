@@ -30,7 +30,7 @@ const PUBLIC_MAJORS: Category[] = [
 ]
 
 const { settings } = useSiteSettings()
-const brand = computed(() => settings.value.site_name || 'Eript LMS')
+const brand = computed(() => settings.value.site_name || 'ERIPT LMS')
 const tagline = computed(() => settings.value.site_description || 'Nền tảng học tập thích nghi, nuôi dưỡng tri thức lâu dài.')
 
 const { data: coursesData } = await useAsyncData('home-courses', async () => {

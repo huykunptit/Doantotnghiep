@@ -39,13 +39,15 @@ class LessonNoteController extends Controller
         $data = $request->validate([
             'content' => ['required', 'string', 'max:5000'],
             'position_seconds' => ['nullable', 'integer', 'min:0'],
+            // Mobile clients historically sent time_seconds.
+            'time_seconds' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $note = LessonNote::create([
             'user_id' => $user->id,
             'lesson_id' => $lesson->id,
             'content' => $data['content'],
-            'position_seconds' => $data['position_seconds'] ?? 0,
+            'position_seconds' => $data['position_seconds'] ?? $data['time_seconds'] ?? 0,
         ]);
 
         return response()->json(['message' => 'Lesson note created successfully.', 'note' => $note], 201);

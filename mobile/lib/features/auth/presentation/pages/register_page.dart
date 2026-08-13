@@ -84,7 +84,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 const AuthBrandHeader(
                   compact: true,
                   showWordmark: false,
-                  subtitle: 'Tham gia Eript LMS — học tập mọi lúc, mọi nơi',
+                  subtitle: 'Tham gia ERIPT LMS — học tập mọi lúc, mọi nơi',
                 ),
                 AppSpacing.h20,
                 Text(

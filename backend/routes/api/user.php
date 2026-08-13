@@ -93,7 +93,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/instructor/sections/{classSection}/grades', [GradebookController::class, 'update']);
         Route::put('/instructor/courses/{course}/grade-components', [GradebookController::class, 'upsertComponents']);
         Route::post('/instructor/courses/{course}/grade-components/preset', [GradebookController::class, 'presetComponents']);
+    });
 
+    Route::middleware('permission:manage_grades|manage_courses')->group(function () {
         Route::get('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'index']);
         Route::post('/instructor/sections/{classSection}/sessions', [OfflineSessionController::class, 'store']);
         Route::put('/instructor/sessions/{session}', [OfflineSessionController::class, 'update']);
@@ -101,6 +103,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/instructor/sessions/{session}/qr', [OfflineSessionController::class, 'generateQr']);
         Route::get('/instructor/sessions/{session}/attendance', [OfflineSessionController::class, 'attendanceReport']);
         Route::get('/instructor/sections/{classSection}/attendance-stats', [OfflineSessionController::class, 'sectionStats']);
+
+        // Điểm danh QR theo khoá + lớp hành chính
+        Route::get('/instructor/attendance/sessions', [OfflineSessionController::class, 'instructorIndex']);
+        Route::post('/instructor/attendance/sessions', [OfflineSessionController::class, 'instructorStore']);
+    });
+
+    // Lịch học vụ (năm học / học kỳ) + lớp HC cho GV
+    Route::middleware('permission:manage_academic|manage_courses')->prefix('instructor/academic')->group(function () {
+        Route::get('/{resource}', [AcademicManagementController::class, 'index']);
+        Route::post('/{resource}', [AcademicManagementController::class, 'store']);
+        Route::put('/{resource}/{id}', [AcademicManagementController::class, 'update']);
+        Route::delete('/{resource}/{id}', [AcademicManagementController::class, 'destroy']);
     });
 
     // ─── Advisor ───
@@ -232,9 +246,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/academic/enrollments/delete', [EnrollmentManagementController::class, 'destroyEnrollment']);
         Route::post('/academic/enrollments/delete-import-preview', [EnrollmentManagementController::class, 'importDeletePreview']);
         Route::post('/academic/enrollments/delete-import-execute', [EnrollmentManagementController::class, 'importDeleteExecute']);
+        Route::get('/academic/administrative-classes/{administrativeClass}', [EnrollmentManagementController::class, 'adminClassDetail']);
         Route::post('/academic/administrative-classes/enroll-students', [EnrollmentManagementController::class, 'enrollStudentsToAdminClass']);
+        Route::post('/academic/administrative-classes/{administrativeClass}/enroll-curriculum', [EnrollmentManagementController::class, 'enrollClassToCurriculum']);
+        Route::get('/academic/administrative-classes/{administrativeClass}/term-map', [EnrollmentManagementController::class, 'classTermMap']);
+        Route::post('/academic/administrative-classes/{administrativeClass}/term-map', [EnrollmentManagementController::class, 'saveClassTermMap']);
         Route::post('/academic/administrative-classes/import-students-preview', [EnrollmentManagementController::class, 'importStudentsToAdminClassPreview']);
         Route::post('/academic/administrative-classes/import-students-execute', [EnrollmentManagementController::class, 'importStudentsToAdminClassExecute']);
+        Route::post('/academic/administrative-classes/bulk-import-preview', [EnrollmentManagementController::class, 'bulkImportAdminClassesPreview']);
+        Route::post('/academic/administrative-classes/bulk-import-execute', [EnrollmentManagementController::class, 'bulkImportAdminClassesExecute']);
 
         Route::get('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'index']);
         Route::post('/academic/admin-classes/{adminClass}/sections', [AdminClassSectionController::class, 'attach']);

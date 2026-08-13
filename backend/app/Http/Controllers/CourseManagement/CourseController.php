@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CourseManagement;
 
 use App\Http\Controllers\Controller;
 
+use App\Models\CareerPathCourse;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Curriculum;
@@ -72,15 +73,52 @@ class CourseController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
+        $query = Course::with('instructor:id,name,avatar', 'category:id,name,slug')
+            ->withCount('lessons', 'enrollments')
+            ->where('user_id', $user->id);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('course_mode')) {
+            $query->where('course_mode', $request->course_mode);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->integer('category_id'));
+        }
+
+        $pricing = trim((string) $request->query('pricing', ''));
+        if ($pricing === 'paid') {
+            $query->where('price', '>', 0);
+        } elseif ($pricing === 'free') {
+            $query->where(function ($q) {
+                $q->whereNull('price')->orWhere('price', '<=', 0);
+            });
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhereHas('category', fn ($cq) => $cq->where('name', 'like', '%' . $search . '%'));
+            });
+        }
+
+        $sort = (string) $request->query('sort', 'newest');
+        match ($sort) {
+            'price_asc' => $query->orderBy('price')->orderByDesc('id'),
+            'price_desc' => $query->orderByDesc('price')->orderByDesc('id'),
+            'title' => $query->orderBy('title')->orderByDesc('id'),
+            'learners' => $query->orderByDesc('enrollments_count')->orderByDesc('id'),
+            default => $query->orderByDesc('created_at'),
+        };
+
         $perPage = max(1, min(100, $request->integer('per_page', 12)));
 
-        $courses = Course::with('instructor:id,name,avatar')
-            ->withCount('lessons', 'enrollments')
-            ->where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
-
-        return response()->json($courses);
+        return response()->json($query->paginate($perPage));
     }
 
     public function store(Request $request): JsonResponse
@@ -189,7 +227,99 @@ class CourseController extends Controller
             'has_reviewed'   => $hasReviewed,
             'avg_rating'     => round($avgRating ?? 0, 1),
             'latest_reviews' => $latestReviews,
+            'path_suggestions' => $this->buildPathSuggestions($course, $user?->id),
         ]);
+    }
+
+    /**
+     * Khi mua lẻ 1 khoá: gợi ý các khoá còn lại trong lộ trình chứa khoá này.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buildPathSuggestions(Course $course, ?int $userId): array
+    {
+        if ($course->course_mode === 'core') {
+            return [];
+        }
+
+        $links = CareerPathCourse::query()
+            ->where('course_id', $course->id)
+            ->whereHas('careerPath', fn ($q) => $q->published())
+            ->with([
+                'careerPath' => fn ($q) => $q->with([
+                    'pathCourses' => fn ($pq) => $pq->orderBy('sort_order')->with('course:id,title,slug,thumbnail,price,status'),
+                ]),
+            ])
+            ->get();
+
+        if ($links->isEmpty()) {
+            return [];
+        }
+
+        $enrolledIds = [];
+        if ($userId) {
+            $allCourseIds = $links
+                ->flatMap(fn (CareerPathCourse $link) => $link->careerPath?->pathCourses?->pluck('course_id') ?? collect())
+                ->unique()
+                ->values()
+                ->all();
+            if ($allCourseIds !== []) {
+                $enrolledIds = Enrollment::query()
+                    ->where('user_id', $userId)
+                    ->whereIn('course_id', $allCourseIds)
+                    ->pluck('course_id')
+                    ->all();
+            }
+        }
+        $enrolledSet = array_fill_keys($enrolledIds, true);
+
+        $suggestions = [];
+        foreach ($links as $link) {
+            $path = $link->careerPath;
+            if (!$path) {
+                continue;
+            }
+
+            $items = $path->pathCourses ?? collect();
+            $remaining = [];
+            $ownedCount = 0;
+            foreach ($items as $item) {
+                $c = $item->course;
+                if (!$c || $c->status !== 'published') {
+                    continue;
+                }
+                if (isset($enrolledSet[$c->id]) || (int) $c->id === (int) $course->id) {
+                    // Khoá hiện tại tính như sắp sở hữu khi đang xem/mua
+                    $ownedCount++;
+                    continue;
+                }
+                $remaining[] = [
+                    'id' => $c->id,
+                    'title' => $c->title,
+                    'slug' => $c->slug,
+                    'thumbnail' => $c->thumbnail,
+                    'price' => (int) $c->price,
+                ];
+            }
+
+            if ($remaining === []) {
+                continue;
+            }
+
+            $suggestions[] = [
+                'id' => $path->id,
+                'title' => $path->title,
+                'slug' => $path->slug,
+                'path_price' => (int) $path->price,
+                'total_count' => $items->count(),
+                'owned_count' => $ownedCount,
+                'remaining_count' => count($remaining),
+                'remaining_total_price' => array_sum(array_column($remaining, 'price')),
+                'remaining_courses' => $remaining,
+            ];
+        }
+
+        return $suggestions;
     }
 
     public function update(Request $request, Course $course): JsonResponse

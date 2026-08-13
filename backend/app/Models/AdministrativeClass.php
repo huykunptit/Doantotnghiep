@@ -87,4 +87,9 @@ class AdministrativeClass extends Model
             ->withPivot(['term_number', 'assigned_by', 'assigned_at'])
             ->withTimestamps();
     }
+
+    public function termMap(): HasMany
+    {
+        return $this->hasMany(AdministrativeClassTerm::class);
+    }
 }

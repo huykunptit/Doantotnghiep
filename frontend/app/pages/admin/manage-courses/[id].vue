@@ -1180,6 +1180,75 @@ async function publishCourse() {
   }
 }
 
+const approving = ref(false)
+const rejecting = ref(false)
+const rejectCourseOpen = ref(false)
+const rejectCourseReason = ref('')
+
+const previewUrl = computed(() => `/courses/${courseId.value}`)
+
+function askApproveCourse() {
+  confirm.require({
+    message: t('admin.courseReview.approveConfirm', { title: course.value?.title || '' }),
+    header: t('admin.courseReview.approveTitle'),
+    icon: 'pi pi-check-circle',
+    accept: async () => {
+      approving.value = true
+      try {
+        const res = await useApi<{ course: CourseDetail }>(`/admin/courses/${courseId.value}/approve`, { method: 'PUT' })
+        course.value = res.course
+        metaForm.status = res.course.status || metaForm.status
+        toast.add({ severity: 'success', summary: t('admin.courseReview.approved'), life: 2200 })
+      }
+      catch (error: any) {
+        toast.add({
+          severity: 'error',
+          summary: t('admin.courseReview.approveError'),
+          detail: errDetail(error),
+          life: 3500,
+        })
+      }
+      finally {
+        approving.value = false
+      }
+    },
+  })
+}
+
+function openRejectCourse() {
+  rejectCourseReason.value = ''
+  rejectCourseOpen.value = true
+}
+
+async function submitRejectCourse() {
+  if (!rejectCourseReason.value.trim()) {
+    toast.add({ severity: 'warn', summary: t('admin.courseReview.reasonRequired'), life: 2800 })
+    return
+  }
+  rejecting.value = true
+  try {
+    const res = await useApi<{ course: CourseDetail }>(`/admin/courses/${courseId.value}/reject`, {
+      method: 'PUT',
+      body: { reject_reason: rejectCourseReason.value.trim() },
+    })
+    course.value = res.course
+    metaForm.status = res.course.status || metaForm.status
+    toast.add({ severity: 'success', summary: t('admin.courseReview.rejected'), life: 2200 })
+    rejectCourseOpen.value = false
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('admin.courseReview.rejectError'),
+      detail: errDetail(error),
+      life: 3500,
+    })
+  }
+  finally {
+    rejecting.value = false
+  }
+}
+
 const isNewLessonDraft = computed(() =>
   selection.value.kind === 'lesson' && (!lessonForm.id || lessonForm.id < 0),
 )
@@ -1207,6 +1276,14 @@ onMounted(async () => {
         </div>
       </div>
       <div class="top-actions">
+        <a :href="previewUrl" target="_blank" rel="noopener">
+          <Button
+            :label="t('admin.manageCourses.preview')"
+            icon="pi pi-eye"
+            severity="secondary"
+            outlined
+          />
+        </a>
         <Button
           :label="t('common.save')"
           icon="pi pi-save"
@@ -1214,7 +1291,25 @@ onMounted(async () => {
           severity="secondary"
           @click="saveCourseMeta"
         />
+        <template v-if="course?.status === 'pending_review'">
+          <Button
+            :label="t('admin.courseReview.reject')"
+            icon="pi pi-times"
+            severity="danger"
+            outlined
+            :disabled="approving"
+            @click="openRejectCourse"
+          />
+          <Button
+            :label="t('admin.courseReview.approve')"
+            icon="pi pi-check"
+            severity="success"
+            :loading="approving"
+            @click="askApproveCourse"
+          />
+        </template>
         <Button
+          v-else
           :label="t('admin.builder.publish')"
           icon="pi pi-send"
           :loading="publishing"
@@ -1806,6 +1901,29 @@ onMounted(async () => {
           </div>
         </div>
       </div>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="rejectCourseOpen"
+      modal
+      :header="t('admin.courseReview.rejectTitle')"
+      :style="{ width: 'min(520px, 96vw)' }"
+    >
+      <p class="hint">{{ t('admin.courseReview.rejectHint', { title: course?.title || '' }) }}</p>
+      <label class="field">
+        <span>{{ t('admin.courseReview.reason') }}</span>
+        <CommonRichTextEditor v-model="rejectCourseReason" height="180px" :placeholder="t('admin.courseReview.reasonPh')" />
+      </label>
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="rejectCourseOpen = false" />
+        <Button
+          :label="t('admin.courseReview.reject')"
+          icon="pi pi-times"
+          severity="danger"
+          :loading="rejecting"
+          @click="submitRejectCourse"
+        />
+      </template>
     </Dialog>
   </div>
 </template>

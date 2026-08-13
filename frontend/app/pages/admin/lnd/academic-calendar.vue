@@ -82,6 +82,8 @@ const yearStatusOptions = computed(() => [
 const termStatusOptions = computed(() => [
   { label: t('admin.calendar.termStatus.upcoming'), value: 'upcoming' },
   { label: t('admin.calendar.termStatus.ongoing'), value: 'ongoing' },
+  { label: t('admin.calendar.termStatus.active'), value: 'active' },
+  { label: t('admin.calendar.termStatus.planned'), value: 'planned' },
   { label: t('admin.calendar.termStatus.completed'), value: 'completed' },
 ])
 
@@ -113,8 +115,8 @@ function fmtDate(d: string | null | undefined) {
 }
 
 function termStatusTone(status: string) {
-  if (status === 'ongoing') return 'tone-active'
-  if (status === 'upcoming') return 'tone-deferred'
+  if (status === 'ongoing' || status === 'active') return 'tone-active'
+  if (status === 'upcoming' || status === 'planned') return 'tone-deferred'
   if (status === 'completed') return 'tone-neutral'
   return 'tone-neutral'
 }
@@ -399,6 +401,12 @@ onMounted(async () => {
 
 <template>
   <div class="page calendar-page">
+    <header class="page-heading">
+      <div>
+        <h1>{{ t('admin.calendar.title') }}</h1>
+        <p>{{ t('admin.calendar.subtitle') }}</p>
+      </div>
+    </header>
 
     <section class="table-panel">
       <div class="table-toolbar">
@@ -601,6 +609,8 @@ onMounted(async () => {
 
 <style scoped>
 .calendar-page { gap: 14px; }
+.page-heading h1 { margin: 0 0 6px; font-size: 1.35rem; }
+.page-heading p { margin: 0; color: var(--text-muted); max-width: 72ch; line-height: 1.45; }
 
 .table-panel {
   border: 1px solid var(--border); border-radius: 16px;

@@ -45,27 +45,32 @@ class TrainingProgramSeeder extends Seeder
             return;
         }
 
-        $defaultInstructor = User::query()
-            ->where('user_type', 'instructor')
+        $instructors = User::query()
+            ->where('email', 'like', 'instructor%@lms.com')
             ->orderBy('id')
-            ->first()
-            ?? User::query()->where('user_type', 'admin')->first();
+            ->get();
 
-        if (!$defaultInstructor) {
-            $this->command?->error('TrainingProgramSeeder: chưa có user nào làm owner cho courses.');
-            return;
+        if ($instructors->isEmpty()) {
+            $fallback = User::query()->where('email', 'admin@lms.com')->first()
+                ?? User::query()->where('user_type', 'admin')->first();
+            if (!$fallback) {
+                $this->command?->error('TrainingProgramSeeder: chưa có user nào làm owner cho courses.');
+                return;
+            }
+            $instructors = collect([$fallback]);
         }
 
         $loaiLabels = $data['mo_ta_loai'] ?? [];
 
         $categoryByProgram = [
-            'CNTT' => \App\Models\Category::query()->where('slug', 'cong-nghe-thong-tin')->value('id'),
-            'QTKD' => \App\Models\Category::query()->where('slug', 'quan-tri-kinh-doanh')->value('id'),
-            'DTVT' => \App\Models\Category::query()->where('slug', 'dien-tu-vien-thong')->value('id'),
+            'CNTT' => \App\Models\Category::query()->where('slug', 'like', 'cong-nghe-thong-tin%')->value('id'),
+            'QTKD' => \App\Models\Category::query()->where('slug', 'like', 'quan-tri-kinh-doanh%')->value('id'),
+            'DTVT' => \App\Models\Category::query()->where('slug', 'like', 'dien-tu-vien-thong%')->value('id'),
         ];
 
         $courseCache = []; // [normalized title] => Course
         $stats = ['courses_created' => 0, 'courses_reused' => 0, 'curriculum_courses' => 0, 'electives' => 0, 'curricula_missing' => 0];
+        $ownerCursor = 0;
 
         foreach ($data['nganh'] as $progEntry) {
             $progJsonId = $progEntry['id'] ?? null;
@@ -110,10 +115,12 @@ class TrainingProgramSeeder extends Seeder
                         if ($isElective) {
                             // Placeholder course riêng cho từng slot trong từng curriculum
                             $placeholderTitle = sprintf('%s — %s (kỳ %d)', $tenMon, $majorCode, $termNumber);
+                            $owner = $instructors[$ownerCursor % $instructors->count()];
+                            $ownerCursor++;
                             $course = $this->upsertCourse(
                                 $placeholderTitle,
                                 $tinChi,
-                                $defaultInstructor->id,
+                                (int) $owner->id,
                                 $loaiLabels[$loai] ?? $loai,
                                 $courseCache,
                                 $stats,
@@ -131,10 +138,12 @@ class TrainingProgramSeeder extends Seeder
                             ], JSON_UNESCAPED_UNICODE);
                             $stats['electives']++;
                         } else {
+                            $owner = $instructors[$ownerCursor % $instructors->count()];
+                            $ownerCursor++;
                             $course = $this->upsertCourse(
                                 $tenMon,
                                 $tinChi,
-                                $defaultInstructor->id,
+                                (int) $owner->id,
                                 $loaiLabels[$loai] ?? $loai,
                                 $courseCache,
                                 $stats,
@@ -218,7 +227,7 @@ class TrainingProgramSeeder extends Seeder
 
         $existing = Course::query()->where('title', $title)->first();
         if ($existing) {
-            $patch = [];
+            $patch = ['user_id' => $ownerId];
             if (empty($existing->thumbnail)) {
                 $patch['thumbnail'] = $this->fakeThumbnail($title, (int) $existing->id);
             }
@@ -231,10 +240,8 @@ class TrainingProgramSeeder extends Seeder
             if ($curriculumId && !$existing->curriculum_id) {
                 $patch['curriculum_id'] = $curriculumId;
             }
-            if ($patch !== []) {
-                $existing->update($patch);
-                $existing->refresh();
-            }
+            $existing->update($patch);
+            $existing->refresh();
             $cache[$key] = $existing;
             $stats['courses_reused']++;
             return $existing;

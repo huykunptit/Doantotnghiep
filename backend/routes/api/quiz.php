@@ -69,6 +69,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/exams/{exam}/results/{attempt}', [QuizController::class, 'examResults']);
         Route::post('/attempts/{attempt}/auto-save', [ExamProctorController::class, 'autoSave']);
         Route::get('/attempts/{attempt}/status', [ExamProctorController::class, 'checkStatus']);
-        Route::post('/attempts/{attempt}/violations', [ExamProctorController::class, 'logViolation']);
+        Route::post('/attempts/{attempt}/violations', [ExamProctorController::class, 'logViolation'])->middleware('throttle:30,1');
     });
 });

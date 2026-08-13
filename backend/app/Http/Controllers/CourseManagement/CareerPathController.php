@@ -286,6 +286,8 @@ class CareerPathController extends Controller
             CareerPathCourse::where('career_path_id', $careerPath->id)
                 ->whereNotIn('id', $keep)
                 ->delete();
+
+            $careerPath->recalculatePriceFromCourses();
         });
 
         return $this->adminShow($request, $careerPath->fresh());
@@ -302,7 +304,8 @@ class CareerPathController extends Controller
         }
 
         $pathCourse->delete();
+        $careerPath->recalculatePriceFromCourses();
 
-        return response()->json(['message' => 'Removed']);
+        return response()->json(['message' => 'Removed', 'price' => (int) $careerPath->fresh()->price]);
     }
 }

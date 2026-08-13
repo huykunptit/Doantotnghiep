@@ -1,8 +1,8 @@
 class Branding {
   Branding._();
 
-  static const name = 'Eript LMS';
-  static const shortName = 'Eript';
+  static const name = 'ERIPT LMS';
+  static const shortName = 'ERIPT';
   static const tagline = 'Học tập thích nghi · Vững tri thức';
 
   static const logoAsset = 'assets/branding/logo.png';

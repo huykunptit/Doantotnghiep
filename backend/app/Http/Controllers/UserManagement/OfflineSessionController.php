@@ -4,9 +4,13 @@ namespace App\Http\Controllers\UserManagement;
 
 use App\Helpers\GpaCalculator;
 use App\Http\Controllers\Controller;
+use App\Models\AdministrativeClass;
 use App\Models\ClassSection;
+use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\OfflineSession;
 use App\Models\OfflineSessionAttendance;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,6 +25,94 @@ class OfflineSessionController extends Controller
             ->get();
 
         return response()->json(['sessions' => $sessions]);
+    }
+
+    /**
+     * Danh sách phiên điểm danh của GV: lọc theo khoá / lớp hành chính.
+     */
+    public function instructorIndex(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $query = OfflineSession::query()
+            ->with([
+                'course:id,title,slug,thumbnail',
+                'administrativeClass:id,code,name',
+                'classSection:id,code,name',
+            ])
+            ->withCount('attendances')
+            ->where(function ($q) use ($user) {
+                $q->whereHas('course', fn ($cq) => $cq->where('user_id', $user->id))
+                    ->orWhereHas('classSection', fn ($sq) => $sq->where('lecturer_id', $user->id));
+            })
+            ->orderByDesc('start_at');
+
+        if ($request->filled('course_id')) {
+            $query->where('course_id', $request->integer('course_id'));
+        }
+        if ($request->filled('administrative_class_id')) {
+            $query->where('administrative_class_id', $request->integer('administrative_class_id'));
+        }
+
+        return response()->json([
+            'sessions' => $query->limit(100)->get(),
+        ]);
+    }
+
+    /**
+     * GV tạo phiên QR: chọn khoá học + lớp hành chính.
+     */
+    public function instructorStore(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $data = $request->validate([
+            'course_id' => 'required|integer|exists:courses,id',
+            'administrative_class_id' => 'required|integer|exists:administrative_classes,id',
+            'title' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'room' => 'nullable|string|max:100',
+            'start_at' => 'required|date',
+            'duration' => 'required|integer|min:1',
+            'max_participants' => 'nullable|integer|min:1',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'check_in_radius_meters' => 'nullable|integer|min:5|max:500',
+            'qr_enabled' => 'nullable|boolean',
+            'qr_mode' => 'nullable|in:manual,rotating,static',
+            'qr_rotate_seconds' => 'nullable|integer|min:15|max:600',
+        ]);
+
+        $course = Course::query()->findOrFail($data['course_id']);
+        if ((int) $course->user_id !== (int) $user->id && !$user->hasRole('admin')) {
+            return response()->json(['message' => 'Bạn không phải giảng viên phụ trách khoá này.'], 403);
+        }
+
+        $adminClass = AdministrativeClass::query()->findOrFail($data['administrative_class_id']);
+
+        $session = OfflineSession::create([
+            'course_id' => $course->id,
+            'administrative_class_id' => $adminClass->id,
+            'title' => $data['title'],
+            'location' => $data['location'],
+            'room' => $data['room'] ?? null,
+            'start_at' => $data['start_at'],
+            'duration' => $data['duration'],
+            'max_participants' => $data['max_participants'] ?? null,
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'check_in_radius_meters' => $data['check_in_radius_meters'] ?? OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS,
+            'qr_enabled' => (bool) ($data['qr_enabled'] ?? true),
+            'qr_mode' => $data['qr_mode'] ?? OfflineSession::QR_MODE_MANUAL,
+            'qr_rotate_seconds' => $data['qr_rotate_seconds'] ?? 60,
+            'is_active' => false,
+        ]);
+
+        return response()->json([
+            'session' => $session->load(['course:id,title', 'administrativeClass:id,code,name']),
+        ], 201);
     }
 
     // ─── Instructor: create session ───────────────────────────────────────────
@@ -48,6 +140,8 @@ class OfflineSessionController extends Controller
             'qr_mode'          => $data['qr_mode'] ?? OfflineSession::QR_MODE_MANUAL,
             'qr_rotate_seconds'=> $data['qr_rotate_seconds'] ?? 60,
             'class_section_id' => $classSection->id,
+            'course_id'        => $classSection->course_id,
+            'administrative_class_id' => $classSection->administrative_class_id,
             'is_active'        => false,
         ]);
 
@@ -115,16 +209,26 @@ class OfflineSessionController extends Controller
     // ─── Instructor: attendance report for a session ─────────────────────────
     public function attendanceReport(OfflineSession $session): JsonResponse
     {
-        $section = $session->classSection()->with('enrollments.user')->first();
-
         $attendances = OfflineSessionAttendance::where('offline_session_id', $session->id)
             ->with('user:id,name,student_code,email,avatar')
             ->get()
             ->keyBy('user_id');
 
-        $enrolled = $section
-            ? $section->enrollments->map(fn ($e) => $e->user)->filter()
-            : collect();
+        $enrolled = collect();
+        if ($session->administrative_class_id) {
+            $enrolled = User::query()
+                ->where('administrative_class_id', $session->administrative_class_id)
+                ->where(function ($q) {
+                    $q->where('user_type', 'student')->orWhereHas('roles', fn ($r) => $r->where('name', 'student'));
+                })
+                ->orderBy('name')
+                ->get(['id', 'name', 'student_code', 'email', 'avatar']);
+        } elseif ($session->classSection) {
+            $section = $session->classSection()->with('enrollments.user')->first();
+            $enrolled = $section
+                ? $section->enrollments->map(fn ($e) => $e->user)->filter()
+                : collect();
+        }
 
         $rows = $enrolled->map(function ($user) use ($attendances) {
             $att = $attendances->get($user->id);
@@ -148,7 +252,7 @@ class OfflineSessionController extends Controller
         ];
 
         return response()->json([
-            'session' => $session,
+            'session' => $session->load(['course:id,title', 'administrativeClass:id,code,name']),
             'summary' => $summary,
             'rows'    => $rows,
         ]);

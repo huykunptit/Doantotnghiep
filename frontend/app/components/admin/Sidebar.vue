@@ -11,7 +11,7 @@ const { t } = useI18n()
 const openGroups = ref<string[]>([])
 const loggingOut = ref(false)
 
-const brand = computed(() => settings.value.site_name || 'Eript LMS')
+const brand = computed(() => settings.value.site_name || 'ERIPT LMS')
 const userName = computed(() => auth.user?.name || 'Admin LMS')
 const userInitials = computed(() =>
   userName.value

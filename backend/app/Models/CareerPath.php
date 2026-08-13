@@ -76,6 +76,23 @@ class CareerPath extends Model
         return $this->pathCourses()->where('is_required', true);
     }
 
+    /**
+     * Giá lộ trình = tổng giá các khoá trong path (mua lẻ từng khoá vẫn được).
+     */
+    public function recalculatePriceFromCourses(): int
+    {
+        $this->loadMissing('pathCourses.course:id,price');
+        $total = (int) $this->pathCourses
+            ->map(fn (CareerPathCourse $row) => (int) ($row->course?->price ?? 0))
+            ->sum();
+
+        if ((int) $this->price !== $total) {
+            $this->update(['price' => $total]);
+        }
+
+        return $total;
+    }
+
     public function scopePublished($query)
     {
         return $query->where('status', 'published');

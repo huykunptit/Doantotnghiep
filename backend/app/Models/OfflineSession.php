@@ -20,6 +20,8 @@ class OfflineSession extends Model
     protected $fillable = [
         'lesson_id',
         'class_section_id',
+        'course_id',
+        'administrative_class_id',
         'title',
         'location',
         'room',
@@ -56,6 +58,16 @@ class OfflineSession extends Model
     public function classSection(): BelongsTo
     {
         return $this->belongsTo(ClassSection::class);
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function administrativeClass(): BelongsTo
+    {
+        return $this->belongsTo(AdministrativeClass::class);
     }
 
     public function attendances(): HasMany

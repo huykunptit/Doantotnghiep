@@ -48,9 +48,9 @@ async function submit() {
 <template>
   <div class="auth-panel">
     <section class="auth-story">
-      <span class="story-label">Eript LMS</span>
+      <span class="story-label">ERIPT LMS</span>
       <h1>Tạo tài khoản để bắt đầu học.</h1>
-      <p>Dùng một tài khoản để học khóa học, làm bài kiểm tra và xem kết quả trên Eript LMS.</p>
+      <p>Dùng một tài khoản để học khóa học, làm bài kiểm tra và xem kết quả trên ERIPT LMS.</p>
     </section>
 
     <AuthPanelCard>
@@ -85,7 +85,7 @@ async function submit() {
           </label>
           <label class="notice agree">
             <input v-model="agreed" type="checkbox">
-            <span>Tôi đồng ý với các điều khoản sử dụng của Eript LMS.</span>
+            <span>Tôi đồng ý với các điều khoản sử dụng của ERIPT LMS.</span>
           </label>
           <Button type="submit" label="Tạo tài khoản" icon="pi pi-user-plus" :loading="loading" fluid />
         </form>

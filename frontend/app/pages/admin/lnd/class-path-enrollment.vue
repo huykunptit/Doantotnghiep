@@ -738,6 +738,7 @@ onMounted(async () => {
       modal
       :header="t('admin.enrollment.manualTitle')"
       :style="{ width: 'min(640px, 96vw)' }"
+      class="scroll-fix-modal"
     >
       <div class="form">
         <label class="field">
@@ -789,6 +790,7 @@ onMounted(async () => {
       :header="t('admin.enrollment.importTitle')"
       :style="{ width: 'min(760px, 96vw)' }"
       :dismissable-mask="true"
+      class="scroll-fix-modal"
     >
       <div class="import-box">
         <div class="import-step">
@@ -904,6 +906,8 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.scroll-fix-modal :deep(.p-dialog-content) { overflow: auto; }
+
 .enrollment-page { gap: 14px; }
 
 .table-panel {

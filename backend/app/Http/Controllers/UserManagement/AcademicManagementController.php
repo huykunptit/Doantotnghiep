@@ -60,6 +60,7 @@ class AcademicManagementController extends Controller
         $query = $this->applyScope($query, $resource, $user->id, \App\Support\Authorize::isAdmin($user));
         $query = $this->applyEagerLoad($query, $resource);
         $query = $this->applyFilters($query, $resource, $request);
+        $query = $this->applyDefaultOrder($query, $resource);
 
         return response()->json($query->paginate((int) $request->integer('per_page', 20)));
     }
@@ -76,10 +77,11 @@ class AcademicManagementController extends Controller
             'administrative-classes' => $query->with([
                 'program:id,code,name',
                 'unit:id,code,name',
-                'cohort:id,code,name,start_year',
+                'cohort:id,code,name,start_year,end_year',
                 'advisor:id,name,email,staff_code',
                 'curriculum:id,name,code',
             ])->withCount('students'),
+            'terms' => $query->with(['academicYear:id,name']),
             'exam-enrollments' => $query->with([
                 'exam:id,title,type',
                 'user:id,name,email,student_code',
@@ -138,6 +140,15 @@ class AcademicManagementController extends Controller
             }
         }
         return $query;
+    }
+
+    private function applyDefaultOrder($query, string $resource)
+    {
+        return match ($resource) {
+            'academic-years' => $query->reorder()->orderBy('start_date')->orderBy('id'),
+            'terms' => $query->reorder()->orderBy('academic_year_id')->orderBy('code')->orderBy('id'),
+            default => $query,
+        };
     }
 
     public function store(Request $request, string $resource): JsonResponse
@@ -225,6 +236,11 @@ class AcademicManagementController extends Controller
             return $query;
         }
 
+        // Năm học / học kỳ / cơ sở: GV có manage_academic được xem toàn bộ (không phụ thuộc unit).
+        if (in_array($resource, ['institutions', 'academic-years', 'terms', 'program-types'], true)) {
+            return $query;
+        }
+
         $activeUnitIds = \App\Models\UserAssignment::query()
             ->where('user_id', $userId)
             ->where('status', 'active')
@@ -232,6 +248,11 @@ class AcademicManagementController extends Controller
             ->values();
 
         if ($activeUnitIds->isEmpty()) {
+            // Vẫn cho xem lớp HC / chương trình toàn trường nếu không gán unit (demo GV).
+            if (in_array($resource, ['programs', 'majors', 'administrative-classes', 'cohorts', 'curricula'], true)) {
+                return $query;
+            }
+
             return $query->whereRaw('1=0');
         }
 
@@ -240,17 +261,9 @@ class AcademicManagementController extends Controller
                 $q->whereIn('id', $activeUnitIds)->orWhereIn('parent_id', $activeUnitIds);
             }),
             'programs', 'majors', 'administrative-classes' => $query->whereIn('unit_id', $activeUnitIds),
-            'curricula', 'cohorts' => $query->whereHas('major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
-            'curriculum-courses' => $query->whereHas('curriculum.major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
-            'institutions' => $query->whereIn('id', function ($sub) use ($activeUnitIds) {
-                $sub->select('institution_id')->from('units')->whereIn('id', $activeUnitIds);
-            }),
-            'academic-years' => $query->whereIn('institution_id', function ($sub) use ($activeUnitIds) {
-                $sub->select('institution_id')->from('units')->whereIn('id', $activeUnitIds);
-            }),
-            'terms' => $query->whereHas('academicYear', fn (Builder $q) => $q->whereIn('institution_id', function ($sub) use ($activeUnitIds) {
-                $sub->select('institution_id')->from('units')->whereIn('id', $activeUnitIds);
-            })),
+            'curricula', 'cohorts' => $query->whereHas('major', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds))
+                ->orWhereHas('program', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
+            'curriculum-courses' => $query->whereHas('curriculum.program', fn (Builder $q) => $q->whereIn('unit_id', $activeUnitIds)),
             default => $query,
         };
     }

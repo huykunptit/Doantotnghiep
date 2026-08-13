@@ -136,13 +136,27 @@ class LearningRepository {
     final path = '/courses/$courseId/lessons/$lessonId/notes';
     final requestData = {
       'content': content,
-      'time_seconds': timeSeconds,
+      'position_seconds': timeSeconds,
     };
 
     try {
       final response = await dio.post<Map<String, dynamic>>(path, data: requestData);
       syncManager.syncOfflineData();
-      return NoteModel.fromJson(response.data!);
+      final body = response.data ?? <String, dynamic>{};
+      final noteJson = body['note'];
+      if (noteJson is Map<String, dynamic>) {
+        return NoteModel.fromJson(noteJson);
+      }
+      if (body['id'] != null) {
+        return NoteModel.fromJson(body);
+      }
+      return NoteModel(
+        id: 0,
+        lessonId: lessonId,
+        content: content,
+        timeSeconds: timeSeconds,
+        createdAt: DateTime.now().toIso8601String(),
+      );
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
@@ -159,12 +173,12 @@ class LearningRepository {
 
         final cacheKey = 'lesson_notes_${courseId}_$lessonId';
         final cached = await cache.getCachedData(cacheKey);
-        final List<dynamic> currentList = cached is List ? cached : [];
+        final List<dynamic> currentList = cached is List ? List<dynamic>.from(cached) : <dynamic>[];
         currentList.add({
           'id': localNote.id,
           'lesson_id': localNote.lessonId,
           'content': localNote.content,
-          'time_seconds': localNote.timeSeconds,
+          'position_seconds': localNote.timeSeconds,
           'created_at': localNote.createdAt,
         });
         await cache.cacheData(cacheKey, currentList);
