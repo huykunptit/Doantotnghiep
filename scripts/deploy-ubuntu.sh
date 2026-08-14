@@ -56,8 +56,11 @@ cmd_run() {
   log "Branch: $REMOTE/$BRANCH"
   log "Build ID: $BUILD_ID"
 
+  # Bỏ qua thay đổi chỉ permission (chmod +x hay làm bẩn tree)
   if [[ "${DEPLOY_FORCE:-0}" != "1" ]]; then
-    if [[ -n "$(git status --porcelain)" ]]; then
+    dirty="$(git -c core.fileMode=false status --porcelain)"
+    if [[ -n "$dirty" ]]; then
+      printf '%s\n' "$dirty"
       die "Working tree đang bẩn. Commit/stash trước, hoặc DEPLOY_FORCE=1 $SELF"
     fi
   fi
