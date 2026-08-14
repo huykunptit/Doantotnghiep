@@ -32,7 +32,7 @@ def rag_query(payload: RagQueryRequest):
     if not stats.get("ready"):
         raise HTTPException(
             status_code=503,
-            detail="RAG chưa sẵn sàng. Chạy: python -m rag.ingest --download --limit 8",
+            detail="RAG chưa sẵn sàng. Đặt PDF vào ai-service/rag/textbooks rồi chạy: python -m rag.ingest --demo-pack",
         )
     scope = (payload.scope or "global").strip().lower()
     if scope not in {"global", "course"}:

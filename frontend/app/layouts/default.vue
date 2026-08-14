@@ -9,6 +9,10 @@ const mobileOpen = ref(false)
 
 const brand = computed(() => settings.value.site_name || 'ERIPT LMS')
 const dashboardPath = computed(() => dashboardFor(auth.user))
+const isStudentUser = computed(() => {
+  const roles = auth.user?.roles || (auth.user?.role ? [auth.user.role] : [])
+  return auth.isAuthenticated && roles.includes('student') && !roles.includes('admin') && !roles.includes('instructor')
+})
 
 /** Thông tin liên hệ / địa chỉ — fallback theo Viện Kinh tế Bưu điện (ERIPT). */
 const footerContact = computed(() => ({
@@ -99,7 +103,8 @@ onMounted(() => {
       <slot />
     </main>
 
-    <CommonPublicAiChatbot v-if="!auth.isAuthenticated" />
+    <StudentAiChatbot v-if="isStudentUser" />
+    <CommonPublicAiChatbot v-else-if="!auth.isAuthenticated" />
 
     <footer class="public-footer">
       <div class="footer-inner">
