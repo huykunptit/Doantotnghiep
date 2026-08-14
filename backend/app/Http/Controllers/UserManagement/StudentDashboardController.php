@@ -146,18 +146,37 @@ class StudentDashboardController extends Controller
             ->get()
             ->keyBy('course_id');
 
+        // Khung lịch thật của lớp hành chính: term_number CTĐT → Term thật (ngày bắt đầu/kết thúc).
+        // Dùng để loại các kỳ CHƯA diễn ra (ghi danh được tạo sẵn cho cả CTĐT nhưng kỳ chưa tới ngày học).
+        $termMap = \App\Models\AdministrativeClassTerm::query()
+            ->where('administrative_class_id', $user->administrativeClass->id)
+            ->with('term')
+            ->get()
+            ->keyBy('term_number');
+
+        $operationalTerm = Term::operational();
+
         $startYear = (int) ($user->cohort?->start_year ?? now()->year);
         $byTerm = $curriculumCourses->groupBy(fn ($cc) => (int) $cc->term_number);
 
-        // Học kỳ đang học = kỳ có ghi danh cao nhất (cuối kỳ mới có điểm → để trống).
-        $currentTermNumber = $curriculumCourses
-            ->filter(fn ($cc) => $cc->course_id && $enrollments->has($cc->course_id))
-            ->max(fn ($cc) => (int) $cc->term_number);
+        // Học kỳ đang học = kỳ khớp với Term đang vận hành theo lịch thật (fallback: ghi danh cao nhất).
+        $currentTermNumber = $termMap
+            ->first(fn ($map) => $operationalTerm && (int) $map->term_id === (int) $operationalTerm->id)
+            ?->term_number
+            ?? $curriculumCourses
+                ->filter(fn ($cc) => $cc->course_id && $enrollments->has($cc->course_id))
+                ->max(fn ($cc) => (int) $cc->term_number);
 
         $semesters = [];
         $cumulativeRows = [];
 
         foreach ($byTerm->sortKeys() as $termNumber => $rows) {
+            // Ẩn các kỳ không hiện hữu: kỳ chưa tới ngày bắt đầu theo lịch học thật của lớp.
+            $mappedTerm = $termMap->get($termNumber)?->term;
+            if ($mappedTerm?->start_date && $mappedTerm->start_date->isFuture()) {
+                continue;
+            }
+
             $coursesOut = [];
             $semesterRows = [];
             $stt = 0;

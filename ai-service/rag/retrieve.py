@@ -246,6 +246,7 @@ def format_rag_context(
         lines.append(block)
         used += len(block)
     lines.append(
-        "Nếu tài liệu không đủ để trả lời, hãy nói rõ và gợi ý sinh viên hỏi cụ thể hơn hoặc xem giáo trình gốc."
+        "Ưu tiên giáo trình trên. Nếu đoạn trích chưa đủ, vẫn trả lời phần còn lại bằng kiến thức chuẩn "
+        "và ghi chú ngắn là phần đó không lấy từ giáo trình — không được từ chối cả câu hỏi."
     )
     return "\n".join(lines).strip()

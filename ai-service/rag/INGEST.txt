@@ -1,23 +1,26 @@
 RAG — Ingest giáo trình PTIT vào ChromaDB
 ========================================
 
-Nguồn: https://github.com/0xl4p/Giao-Trinh-PTIT (~193 PDF)
+PDF minh chứng (commit): ai-service/rag/textbooks/
+  CNTT  — Cấu trúc dữ liệu và giải thuật.pdf
+  QTKD  — Marketing căn bản - 2017.pdf
+  ĐTVT  — Điện tử số - 2013.pdf
 
-1) Cài dependency (trong thư mục ai-service):
-   pip install -r requirements.txt
+Chroma (không commit): ai-service/data/chroma
+Chatbot chỉ retrieve khi collection đã ingest.
 
-2) Tải + index vài môn demo (khuyến nghị lần đầu):
-   python -m rag.ingest --download --limit 8
+--- Production (Docker) ---
 
-3) Index toàn bộ PDF đã có trong data/textbooks:
-   python -m rag.ingest --limit 0
+1) Đảm bảo 3 PDF đã nằm trong ai-service/rag/textbooks/
 
-4) Reset vector store rồi ingest lại:
-   python -m rag.ingest --reset --download --limit 8
+2) Rebuild image nếu container chưa có chromadb:
+   docker compose build ai-service
+   docker compose up -d ai-service
 
-5) Kiểm tra:
-   GET http://127.0.0.1:8001/rag/status
-   POST http://127.0.0.1:8001/rag/query  {"query":"cây nhị phân tìm kiếm","top_k":3}
+3) Index (không tải GitHub; lần đầu tải thêm model embedding ~80MB):
+   docker exec lms_ai_service python -m rag.ingest --demo-pack
 
-Chatbot sinh viên (POST /ai/chat) sẽ tự retrieve khi collection đã có dữ liệu.
-Guest chatbot không dùng RAG (chỉ catalog/heuristic).
+4) Kiểm tra:
+   docker exec lms_ai_service python -c "from rag.store import get_collection_stats; import json; print(json.dumps(get_collection_stats(), ensure_ascii=False, indent=2))"
+
+ready=true, document_count=3 là xong. Chatbot sinh viên tự dùng RAG.

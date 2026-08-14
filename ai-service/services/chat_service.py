@@ -81,15 +81,16 @@ SYSTEM_PROMPTS = {
     ),
     "student": (
         "Bạn là trợ lý AI của Eript LMS, đang hỗ trợ sinh viên. "
-        "Nhiệm vụ: (1) tư vấn khóa học/lộ trình trong catalog, (2) giải đáp kiến thức môn học dựa trên "
-        "TAI_LIEU_GIAO_TRINH_LIEN_QUAN nếu có, (3) hướng dẫn dùng hệ thống. "
-        "Trả lời thân thiện, dễ hiểu bằng tiếng Việt. "
-        "Khi có đoạn giáo trình retrieved: ưu tiên bám sát tài liệu, trích ý chính, "
-        "và nêu tên nguồn PDF / môn ở cuối nếu đã dùng. "
-        "Không bịa công thức/định nghĩa ngoài tài liệu. "
-        "Không lấy kiến thức từ giáo trình môn khác ngoài các đoạn đã cung cấp. "
-        "Nếu tài liệu không đủ, hãy nói chưa đủ căn cứ và gợi ý hỏi cụ thể hơn. "
-        "Ưu tiên gợi ý từ các khóa học có trong hệ thống và khớp chủ đề người hỏi "
+        "Nhiệm vụ: (1) tư vấn khóa học/lộ trình trong catalog, (2) giải thích kiến thức môn học, "
+        "(3) hướng dẫn dùng hệ thống (đăng nhập, ghi danh, lịch học, quiz, chatbot...). "
+        "Trả lời thân thiện, đầy đủ, dễ hiểu bằng tiếng Việt. "
+        "KHÔNG được từ chối chỉ vì không có giáo trình trong context. "
+        "Nếu có TAI_LIEU_GIAO_TRINH_LIEN_QUAN: ưu tiên bám sát tài liệu, trích ý chính, "
+        "nêu tên nguồn PDF / môn ở cuối nếu đã dùng; không lấy giáo trình môn khác ngoài các đoạn đó. "
+        "Nếu KHÔNG có giáo trình retrieved: vẫn trả lời bằng kiến thức chuyên môn chuẩn "
+        "(ví dụ giải thích cây nhị phân tìm kiếm, thuật toán, khái niệm CNTT) và/hoặc dữ liệu "
+        "Context hệ thống (khóa học, danh mục, lộ trình). Có thể ghi chú ngắn là chưa lấy từ giáo trình. "
+        "Ưu tiên gợi ý khóa có trong context và khớp chủ đề người hỏi "
         "(ví dụ hỏi Fullstack Java thì ưu tiên khóa lập trình/CNTT/CSDL; không kéo Tiếng Anh hay Pháp luật vào trừ khi được hỏi).\n"
         f"{FORMAT_RULES}"
     ),
@@ -101,8 +102,33 @@ def get_system_prompt(role: str | None = None) -> str:
     return SYSTEM_PROMPTS.get(role or "default", SYSTEM_PROMPTS["default"])
 
 
+_OPS_QUERY_MARKERS = (
+    "cách dùng hệ thống",
+    "cach dung he thong",
+    "hướng dẫn sử dụng",
+    "huong dan su dung",
+    "tìm khóa",
+    "tim khoa",
+    "khóa phù hợp",
+    "khoa phu hop",
+    "đăng ký",
+    "dang ky",
+    "đăng nhập",
+    "dang nhap",
+    "lộ trình học gợi ý",
+    "lo trinh hoc goi y",
+)
+
+
+def _is_ops_or_catalog_query(message: str) -> bool:
+    folded = (message or "").strip().lower()
+    return any(marker in folded for marker in _OPS_QUERY_MARKERS)
+
+
 def _should_use_rag(payload: ChatRequest, role: str | None) -> bool:
     if payload.use_rag is False:
+        return False
+    if _is_ops_or_catalog_query(payload.message or ""):
         return False
     if payload.use_rag is True:
         return True
@@ -193,9 +219,15 @@ def build_ai_messages(
     ]
     if rag_block:
         parts.append(rag_block)
+    else:
+        parts.append(
+            "Không có đoạn giáo trình retrieved cho câu này. "
+            "Vẫn phải trả lời đầy đủ dựa trên kiến thức chuyên môn và Context hệ thống. "
+            "Cấm trả lời kiểu 'không có giáo trình nên không biết'."
+        )
     parts.append(
-        "Nhắc lại: trả lời plain text, không markdown, không emoji, "
-        "chỉ gợi ý khóa liên quan trực tiếp từ context."
+        "Nhắc lại: trả lời plain text, không markdown, không emoji. "
+        "Nếu gợi ý khóa thì chỉ lấy khóa liên quan trực tiếp từ context."
     )
 
     messages.append({"role": "user", "content": "\n\n".join(parts)})

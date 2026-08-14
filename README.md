@@ -170,19 +170,23 @@ Local dev: `AI_SERVICE_URL=http://127.0.0.1:8001` trong `backend/.env` và **b�
 
 ### RAG giáo trình (chatbot sinh viên)
 
-Nguồn PDF: [Giao-Trinh-PTIT](https://github.com/0xl4p/Giao-Trinh-PTIT). Vector store: ChromaDB (`ai-service/data/chroma`, không commit lên git).
+Nguồn PDF: [Giao-Trinh-PTIT](https://github.com/0xl4p/Giao-Trinh-PTIT).  
+Gói minh chứng **3 môn / 3 ngành** (commit cùng source): `ai-service/rag/textbooks/`.  
+Vector store: ChromaDB (`ai-service/data/chroma`, không commit).
 
 ```bash
 cd ai-service
 pip install -r requirements.txt
 
-# Demo vài môn (hoặc chỉ định file cụ thể)
-python -m rag.ingest --download --limit 8
-# python -m rag.ingest --download --files "Cấu trúc dữ liệu" "Java" "trí tuệ nhân tạo" --reset
+# Index PDF đã có trong rag/textbooks (không tải GitHub)
+python -m rag.ingest --demo-pack
+```
 
-# Kiểm tra
-# GET  http://127.0.0.1:8001/rag/status
-# POST http://127.0.0.1:8001/rag/query
+Production:
+
+```bash
+docker compose build ai-service && docker compose up -d ai-service
+docker exec lms_ai_service python -m rag.ingest --demo-pack
 ```
 
 Chi tiết lệnh: [`ai-service/rag/INGEST.txt`](ai-service/rag/INGEST.txt).

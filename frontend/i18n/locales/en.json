@@ -2744,7 +2744,7 @@
       "chatNeedLogin": "Please sign in to use the AI assistant.",
       "chatEmptyReply": "No reply was returned for this request.",
       "chatError": "Connection error. The AI assistant is temporarily unavailable.",
-      "chatPlaceholder": "Ask about textbooks or courses…",
+      "chatPlaceholder": "Ask about courses, knowledge, or how to use the system…",
       "chatDisclaimer": "AI can make mistakes — verify against cited textbook sources.",
       "chatClear": "Clear chat",
       "chatClose": "Close",

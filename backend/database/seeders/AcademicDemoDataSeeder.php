@@ -127,6 +127,8 @@ class AcademicDemoDataSeeder extends Seeder
             $this->seedHistoricalGrades($currentTerm);
         });
 
+        $this->call(TuitionSeeder::class);
+
         // Reuse the existing activity/persona generator only after all current
         // academic enrollments have correct term/section/cohort references.
         $previousCurrentOnly = config('demo.student_learning_current_only');

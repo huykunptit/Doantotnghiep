@@ -26,8 +26,9 @@ docker/nginx/.htpasswd
 **/.output/
 **/dist/
 
-# AI RAG local data (PDF textbooks + ChromaDB)
+# AI RAG: Chroma persist + PDF runtime (không commit)
 ai-service/data/textbooks/
 ai-service/data/chroma/
+# PDF minh chứng 3 ngành nằm ở ai-service/rag/textbooks/ (có commit)
 ai-service/**/__pycache__/
 ai-service/_repo_probe*.txt

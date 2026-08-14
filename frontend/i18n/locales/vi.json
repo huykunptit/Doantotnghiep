@@ -2744,7 +2744,7 @@
       "chatNeedLogin": "Vui lòng đăng nhập để dùng Trợ lý AI.",
       "chatEmptyReply": "Hệ thống chưa có phản hồi cho yêu cầu này.",
       "chatError": "Lỗi kết nối. Trợ lý AI tạm không khả dụng, thử lại sau.",
-      "chatPlaceholder": "Hỏi theo giáo trình hoặc khóa học…",
+      "chatPlaceholder": "Hỏi về khóa học, kiến thức hoặc cách dùng hệ thống…",
       "chatDisclaimer": "AI có thể sai — hãy đối chiếu giáo trình/ nguồn trích dẫn.",
       "chatClear": "Xóa hội thoại",
       "chatClose": "Đóng",
