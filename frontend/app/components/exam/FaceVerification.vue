@@ -17,6 +17,7 @@ const { t } = useI18n()
 const toast = useToast()
 const {
   loadModels,
+  loadDetectionModels,
   descriptorFromImageUrl,
   descriptorFromVideo,
   detectFacesWithLandmarks,
@@ -53,7 +54,7 @@ async function startCamera() {
   stopCamera()
   try {
     const mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 720 } },
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
       audio: false,
     })
     stream.value = mediaStream
@@ -67,11 +68,19 @@ async function startCamera() {
   }
 }
 
-/** Loads face-api.js models + optional reference descriptor from the enrolled profile photo. */
+/**
+ * Loads models + optional reference descriptor from the enrolled profile
+ * photo. Only the small detector models gate `modelsReady` (and therefore
+ * the capture button) — the heavier recognition model keeps loading in the
+ * background and verifyFace() awaits it itself if it isn't done yet by the
+ * time the user actually clicks capture.
+ */
 async function prepareModels() {
   try {
-    await loadModels()
+    await loadDetectionModels()
     modelsReady.value = true
+
+    await loadModels()
 
     const photo = resolveMediaUrl(props.facePhotoUrl) || props.facePhotoUrl
     if (!photo || props.canEnrollFace) {

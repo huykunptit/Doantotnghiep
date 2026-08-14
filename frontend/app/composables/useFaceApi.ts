@@ -1,28 +1,46 @@
 import * as faceapi from 'face-api.js'
 
-let modelsLoaded = false
-let loadingPromise: Promise<void> | null = null
+let detectionModelsLoaded = false
+let detectionLoadingPromise: Promise<void> | null = null
+let recognitionModelLoaded = false
+let recognitionLoadingPromise: Promise<void> | null = null
 
 /**
- * Loads the (small) face-api.js models once per session. Models live in
- * public/models/ — tiny_face_detector (fast, good enough for periodic
- * in-browser checks) + face_landmark_68 (required for descriptor alignment)
- * + face_recognition (produces the 128-d embedding used for matching).
+ * Loads only the small detector models (~560KB) — enough to show a live
+ * preview and enable the capture button fast. The much heavier recognition
+ * model (~6.4MB, only needed to turn a captured frame into a descriptor)
+ * loads separately so it never blocks the camera UI from becoming usable.
  */
-async function loadModels() {
-  if (modelsLoaded) return
-  if (loadingPromise) return loadingPromise
+async function loadDetectionModels() {
+  if (detectionModelsLoaded) return
+  if (detectionLoadingPromise) return detectionLoadingPromise
 
-  loadingPromise = (async () => {
+  detectionLoadingPromise = (async () => {
     await Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
       faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-      faceapi.nets.faceRecognitionNet.loadFromUri('/models'),
     ])
-    modelsLoaded = true
+    detectionModelsLoaded = true
   })()
 
-  return loadingPromise
+  return detectionLoadingPromise
+}
+
+async function loadRecognitionModel() {
+  if (recognitionModelLoaded) return
+  if (recognitionLoadingPromise) return recognitionLoadingPromise
+
+  recognitionLoadingPromise = (async () => {
+    await faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+    recognitionModelLoaded = true
+  })()
+
+  return recognitionLoadingPromise
+}
+
+/** Loads every model needed to actually compute a face descriptor. */
+async function loadModels() {
+  await Promise.all([loadDetectionModels(), loadRecognitionModel()])
 }
 
 function detectorOptions(inputSize = 416, scoreThreshold = 0.3) {
@@ -174,6 +192,7 @@ function similarityFromDescriptors(a: Float32Array, b: Float32Array) {
 export function useFaceApi() {
   return {
     loadModels,
+    loadDetectionModels,
     descriptorFromImageUrl,
     descriptorFromVideo,
     countFacesInVideo,

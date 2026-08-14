@@ -74,6 +74,14 @@ export default defineNuxtConfig({
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     },
+    // face-api.js model weights (~7MB) are content-addressable and never
+    // change without a filename change — cache them so exam entry doesn't
+    // re-download the whole bundle on every camera check.
+    '/models/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
   },
   app: {
     head: {

@@ -366,12 +366,19 @@ def _text_quality(text: str) -> int:
     return len(letters)
 
 
+def _word_match(keyword: str, haystack: str) -> bool:
+    """Whole-word/phrase match — plain substring checks wrongly match e.g.
+    'java' inside 'javascript' or 'git' inside 'digital'."""
+    pattern = rf"(?<![a-z0-9]){re.escape(keyword.lower())}(?![a-z0-9])"
+    return bool(re.search(pattern, haystack))
+
+
 def _extract_skills(text: str) -> list[str]:
-    normalized = f" {text.lower()} "
+    normalized = text.lower()
     skills: list[str] = []
     for label, keywords in SKILL_DICTIONARY.items():
         for keyword in keywords:
-            if keyword.lower() in normalized:
+            if _word_match(keyword, normalized):
                 skills.append(label)
                 break
     return skills
@@ -531,10 +538,9 @@ def _evaluate_rules(payload: EvaluateCVRequest) -> EvaluateCVResponse:
 
     def _has_skill_token(*tokens: str) -> bool:
         for token in tokens:
-            t = token.lower()
-            if any(re.search(rf"(?<![a-z]){re.escape(t)}(?![a-z])", s) for s in skills_l):
+            if any(_word_match(token, s) for s in skills_l):
                 return True
-            if re.search(rf"(?<![a-z]){re.escape(t)}(?![a-z])", text):
+            if _word_match(token, text):
                 return True
         return False
 
@@ -620,10 +626,14 @@ def _recommend_rules(payload: RecommendRequest) -> RecommendResponse:
     skill_lookup = {skill.lower(): skill for skill in payload.skills}
 
     market_skills = ["Git", "REST API", "Docker"]
+    best_keyword = ""
     for keyword, skills in ROLE_SKILL_MAP.items():
-        if keyword in normalized_job:
+        # Longest whole-word match wins so a short/generic keyword (e.g. "ai",
+        # which is a substring of "trainee" or "email") can't shadow a more
+        # specific role, and matching no longer depends on dict insertion order.
+        if len(keyword) > len(best_keyword) and _word_match(keyword, normalized_job):
             market_skills = skills
-            break
+            best_keyword = keyword
 
     current_skills_lower = set(skill_lookup.keys())
     gaps = [s for s in market_skills if s.lower() not in current_skills_lower]
