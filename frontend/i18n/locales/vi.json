@@ -282,7 +282,8 @@
       "emailTemplates": "Mẫu email",
       "notifications": "Gửi thông báo",
       "news": "Tin tức",
-      "settings": "Cài đặt"
+      "settings": "Cài đặt",
+      "profile": "Hồ sơ"
     },
     "users": {
       "title": "Quản lý người dùng",
@@ -1930,22 +1931,28 @@
       }
     },
     "profile": {
-      "title": "Hồ sơ quản trị",
-      "subtitle": "Cập nhật thông tin tài khoản và mật khẩu.",
+      "title": "Hồ sơ tài khoản",
+      "subtitle": "Cập nhật ảnh đại diện, họ tên và mật khẩu đăng nhập.",
       "infoTitle": "Thông tin cá nhân",
+      "infoHint": "Thông tin này hiển thị trên hệ thống và trong menu tài khoản.",
       "avatar": "Ảnh đại diện",
+      "avatarHint": "PNG, JPG — tối đa 5MB",
       "name": "Họ tên",
       "email": "Email",
+      "emailLocked": "Email không thể đổi tại đây.",
       "saved": "Đã lưu hồ sơ",
       "saveError": "Không lưu được hồ sơ",
       "passwordTitle": "Đổi mật khẩu",
+      "passwordHint": "Dùng mật khẩu hiện tại để đặt mật khẩu mới.",
       "changePassword": "Đổi mật khẩu",
       "currentPassword": "Mật khẩu hiện tại",
       "newPassword": "Mật khẩu mới",
       "confirmPassword": "Xác nhận mật khẩu mới",
       "passwordSaved": "Đã đổi mật khẩu",
       "passwordError": "Không đổi được mật khẩu",
-      "passwordMismatch": "Mật khẩu xác nhận không khớp"
+      "passwordMismatch": "Mật khẩu xác nhận không khớp",
+      "passwordRequired": "Vui lòng nhập mật khẩu hiện tại và mật khẩu mới",
+      "nameRequired": "Vui lòng nhập họ tên"
     }
   },
   "instructor": {

@@ -101,6 +101,7 @@ const adminMenuRaw: AdminMenuItem[] = [
       { labelKey: 'admin.menu.ai', to: '/admin/ai' },
       { labelKey: 'admin.menu.chat', to: '/admin/chat' },
       { labelKey: 'admin.menu.settings', to: '/admin/settings' },
+      { labelKey: 'admin.menu.profile', to: '/admin/profile' },
     ],
   },
 ]

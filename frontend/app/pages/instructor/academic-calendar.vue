@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { formatAcademicRange, parseAcademicDate, toYmd as toAcademicYmd } from '~/utils/academic-date'
 
 definePageMeta({
   layout: 'instructor',
@@ -37,7 +38,7 @@ interface Paginator<T> {
   total: number
 }
 
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -97,28 +98,41 @@ const currentYearName = computed(() =>
 )
 
 function toYmd(d: Date | null): string | null {
-  if (!d) return null
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+  return toAcademicYmd(d)
 }
 
-function parseYmd(s: string | null | undefined): Date | null {
-  if (!s) return null
-  const d = new Date(`${s}T00:00:00`)
-  return Number.isNaN(d.getTime()) ? null : d
+function parseYmd(s: string | Date | null | undefined): Date | null {
+  return parseAcademicDate(s)
 }
 
-function fmtDate(d: string | null | undefined) {
-  if (!d) return '—'
-  return new Date(`${d}T00:00:00`).toLocaleDateString(locale.value === 'vi' ? 'vi-VN' : 'en-GB')
+function fmtRange(from?: string | null, to?: string | null) {
+  return formatAcademicRange(from, to, locale.value)
+}
+
+function termStatusKey(status?: string | null) {
+  return String(status || '').trim().toLowerCase()
+}
+
+function termStatusLabel(status?: string | null) {
+  const key = termStatusKey(status)
+  if (!key) return '—'
+  const i18nKey = `admin.calendar.termStatus.${key}`
+  if (te(i18nKey)) return t(i18nKey)
+  const fallback: Record<string, string> = {
+    upcoming: locale.value === 'en' ? 'Upcoming' : 'Sắp diễn ra',
+    ongoing: locale.value === 'en' ? 'Ongoing' : 'Đang diễn ra',
+    active: locale.value === 'en' ? 'Active' : 'Đang diễn ra',
+    planned: locale.value === 'en' ? 'Planned' : 'Đã lên kế hoạch',
+    completed: locale.value === 'en' ? 'Completed' : 'Đã kết thúc',
+  }
+  return fallback[key] || key
 }
 
 function termStatusTone(status: string) {
-  if (status === 'ongoing' || status === 'active') return 'tone-active'
-  if (status === 'upcoming' || status === 'planned') return 'tone-deferred'
-  if (status === 'completed') return 'tone-neutral'
+  const key = termStatusKey(status)
+  if (key === 'ongoing' || key === 'active') return 'tone-active'
+  if (key === 'upcoming' || key === 'planned') return 'tone-deferred'
+  if (key === 'completed') return 'tone-neutral'
   return 'tone-neutral'
 }
 
@@ -442,7 +456,7 @@ onMounted(async () => {
                   <strong>{{ year.name }}</strong>
                   <span v-if="year.is_current" class="pill tone-active">{{ t('admin.calendar.currentYear') }}</span>
                 </div>
-                <small>{{ fmtDate(year.start_date) }} — {{ fmtDate(year.end_date) }}</small>
+                <small>{{ fmtRange(year.start_date, year.end_date) }}</small>
               </div>
             </div>
             <div class="year-actions" @click.stop>
@@ -474,24 +488,24 @@ onMounted(async () => {
                   <template #body="{ data }"><code>{{ data.code }}</code></template>
                 </Column>
                 <Column :header="t('admin.calendar.startDate')" style="min-width:140px">
-                  <template #body="{ data }">{{ fmtDate(data.start_date) }} — {{ fmtDate(data.end_date) }}</template>
+                  <template #body="{ data }">{{ fmtRange(data.start_date, data.end_date) }}</template>
                 </Column>
                 <Column :header="t('admin.calendar.enrollmentPeriod')" style="min-width:140px">
                   <template #body="{ data }">
-                    <span v-if="data.enrollment_start_at">{{ fmtDate(data.enrollment_start_at) }} — {{ fmtDate(data.enrollment_end_at) }}</span>
+                    <span v-if="data.enrollment_start_at">{{ fmtRange(data.enrollment_start_at, data.enrollment_end_at) }}</span>
                     <span v-else>—</span>
                   </template>
                 </Column>
                 <Column :header="t('admin.calendar.examPeriod')" style="min-width:140px">
                   <template #body="{ data }">
-                    <span v-if="data.exam_start_at">{{ fmtDate(data.exam_start_at) }} — {{ fmtDate(data.exam_end_at) }}</span>
+                    <span v-if="data.exam_start_at">{{ fmtRange(data.exam_start_at, data.exam_end_at) }}</span>
                     <span v-else>—</span>
                   </template>
                 </Column>
                 <Column :header="t('admin.calendar.status')" style="width:120px">
                   <template #body="{ data }">
                     <span class="pill" :class="termStatusTone(data.status)">
-                      {{ t(`admin.calendar.termStatus.${data.status}`) }}
+                      {{ termStatusLabel(data.status) }}
                     </span>
                   </template>
                 </Column>

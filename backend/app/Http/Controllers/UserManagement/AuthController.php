@@ -98,7 +98,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'avatar' => ['nullable', 'url', 'max:2048'],
+            'avatar' => ['nullable', 'string', 'max:2048'],
         ]);
 
         /** @var User $user */

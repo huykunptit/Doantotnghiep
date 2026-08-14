@@ -9,9 +9,6 @@ const { t } = useI18n()
 
 const routeTitle = computed(() => resolveStudentTitle(route.path, t))
 const crumbs = computed(() => resolveStudentBreadcrumb(route.path, t))
-const userInitials = computed(() =>
-  (auth.user?.name || 'SV').split(' ').filter(Boolean).slice(-2).map(p => p[0]).join('').toUpperCase(),
-)
 
 onMounted(() => {
   if (!auth.ready) auth.hydrate()
@@ -45,8 +42,7 @@ onMounted(() => {
           <LocaleSwitcher />
           <StudentNotificationBell />
           <Button :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'" severity="secondary" text rounded :aria-label="t('common.theme')" @click="toggle" />
-          <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
-          <Avatar v-else :label="userInitials" shape="circle" />
+          <CommonAccountMenu />
         </div>
       </header>
       <main class="sv-content">

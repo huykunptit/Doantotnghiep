@@ -85,8 +85,14 @@ class AiSetting extends Model
         }
 
         $primary = strtolower((string) ($this->provider ?: 'chatgpt'));
-        if ($provider === $primary && filled($this->api_key)) {
-            return (string) $this->api_key;
+        if ($provider === $primary) {
+            try {
+                if (filled($this->api_key)) {
+                    return (string) $this->api_key;
+                }
+            } catch (\Throwable) {
+                // APP_KEY lệch / ciphertext cũ — bỏ qua key trong DB, dùng env.
+            }
         }
 
         $fromEnv = match ($provider) {

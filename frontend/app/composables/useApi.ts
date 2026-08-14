@@ -166,30 +166,34 @@ interface ApiStreamOptions {
   onError?: (message: string) => void
 }
 
-function dispatchSseEvent(rawEvent: string, options: ApiStreamOptions) {
+function dispatchSseEvent(rawEvent: string, options: ApiStreamOptions): boolean {
   const dataLines = rawEvent
     .split('\n')
     .filter(line => line.startsWith('data:'))
     .map(line => line.slice(5).trim())
-  if (!dataLines.length) return
+  if (!dataLines.length) return false
 
   let parsed: Record<string, unknown>
   try {
-    parsed = JSON.parse(dataLines.join('\n'))
+    parsed = JSON.parse(dataLines.join(''))
   }
   catch {
-    return
+    return false
   }
 
-  if (typeof parsed.delta === 'string') {
+  if (typeof parsed.delta === 'string' && parsed.delta) {
     options.onDelta?.(parsed.delta)
+    return true
   }
-  else if (parsed.error) {
+  if (parsed.error) {
     options.onError?.(String(parsed.error))
+    return true
   }
-  else if (parsed.done) {
+  if (parsed.done) {
     options.onDone?.(parsed as unknown as ApiStreamDoneEvent)
+    return true
   }
+  return false
 }
 
 /**
@@ -229,19 +233,21 @@ export async function useApiStream(path: string, options: ApiStreamOptions = {})
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
+  let sawEvent = false
 
   while (true) {
     const { value, done } = await reader.read()
     if (done) break
-    buffer += decoder.decode(value, { stream: true })
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
 
     let sepIndex = buffer.indexOf('\n\n')
     while (sepIndex !== -1) {
-      dispatchSseEvent(buffer.slice(0, sepIndex), options)
+      if (dispatchSseEvent(buffer.slice(0, sepIndex), options)) sawEvent = true
       buffer = buffer.slice(sepIndex + 2)
       sepIndex = buffer.indexOf('\n\n')
     }
   }
 
-  if (buffer.trim()) dispatchSseEvent(buffer, options)
+  if (buffer.trim() && dispatchSseEvent(buffer, options)) sawEvent = true
+  if (!sawEvent) options.onError?.('empty_stream')
 }

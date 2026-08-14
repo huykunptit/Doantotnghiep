@@ -104,12 +104,36 @@ async function sendMessage() {
         msg.sources = data.sources || []
       }
     },
-    onError: () => {
-      if (streamingIndex === -1) {
-        messages.value.push({ role: 'assistant', text: t('student.ai.chatError') })
-      }
-    },
+    onError: () => {},
   })
+
+  if (streamingIndex === -1) {
+    try {
+      const res = await useApi<{ reply?: string, rag_used?: boolean, sources?: RagSource[] }>('/ai/chat', {
+        method: 'POST',
+        timeout: 35000,
+        body: {
+          message: text,
+          course_id: props.courseId || undefined,
+          history,
+          use_rag: true,
+        },
+      })
+      const reply = (res.reply || '').trim()
+      messages.value.push({
+        role: 'assistant',
+        text: reply || t('student.ai.chatEmptyReply'),
+        ragUsed: !!res.rag_used,
+        sources: res.sources || [],
+      })
+    }
+    catch {
+      messages.value.push({
+        role: 'assistant',
+        text: t('student.ai.chatError'),
+      })
+    }
+  }
 
   loading.value = false
   streaming.value = false

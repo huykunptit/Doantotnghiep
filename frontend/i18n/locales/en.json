@@ -282,7 +282,8 @@
       "emailTemplates": "Email templates",
       "notifications": "Send notifications",
       "news": "News",
-      "settings": "Settings"
+      "settings": "Settings",
+      "profile": "Profile"
     },
     "users": {
       "title": "User management",
@@ -1930,22 +1931,28 @@
       }
     },
     "profile": {
-      "title": "Admin profile",
-      "subtitle": "Update your account details and password.",
+      "title": "Account profile",
+      "subtitle": "Update your avatar, name, and sign-in password.",
       "infoTitle": "Profile information",
+      "infoHint": "This information appears across the system and in the account menu.",
       "avatar": "Avatar",
+      "avatarHint": "PNG, JPG — max 5MB",
       "name": "Full name",
       "email": "Email",
+      "emailLocked": "Email cannot be changed here.",
       "saved": "Profile saved",
       "saveError": "Could not save profile",
       "passwordTitle": "Change password",
+      "passwordHint": "Use your current password to set a new one.",
       "changePassword": "Change password",
       "currentPassword": "Current password",
       "newPassword": "New password",
       "confirmPassword": "Confirm new password",
       "passwordSaved": "Password changed",
       "passwordError": "Could not change password",
-      "passwordMismatch": "Password confirmation does not match"
+      "passwordMismatch": "Password confirmation does not match",
+      "passwordRequired": "Please enter your current and new password",
+      "nameRequired": "Please enter a full name"
     }
   },
   "instructor": {

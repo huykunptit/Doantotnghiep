@@ -9,9 +9,6 @@ const mobileOpen = ref(false)
 
 const brand = computed(() => settings.value.site_name || 'ERIPT LMS')
 const dashboardPath = computed(() => dashboardFor(auth.user))
-const userInitials = computed(() =>
-  (auth.user?.name || 'SV').split(' ').filter(Boolean).slice(-2).map(p => p[0]).join('').toUpperCase(),
-)
 
 /** Thông tin liên hệ / địa chỉ — fallback theo Viện Kinh tế Bưu điện (ERIPT). */
 const footerContact = computed(() => ({
@@ -64,16 +61,7 @@ onMounted(() => {
             @click="toggle"
           />
           <template v-if="auth.isAuthenticated">
-            <button
-              type="button"
-              class="user-chip"
-              :title="auth.user?.name || t('common.dashboard')"
-              :aria-label="auth.user?.name || t('common.dashboard')"
-              @click="navigateTo(dashboardPath)"
-            >
-              <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
-              <Avatar v-else :label="userInitials" shape="circle" class="user-avatar" />
-            </button>
+            <CommonAccountMenu />
           </template>
           <template v-else>
             <NuxtLink to="/login" class="ghost-link">{{ t('common.login') }}</NuxtLink>

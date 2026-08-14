@@ -26,12 +26,12 @@ class Term extends Model
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'enrollment_start_at' => 'datetime',
-        'enrollment_end_at' => 'datetime',
-        'exam_start_at' => 'datetime',
-        'exam_end_at' => 'datetime',
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
+        'enrollment_start_at' => 'datetime:Y-m-d',
+        'enrollment_end_at' => 'datetime:Y-m-d',
+        'exam_start_at' => 'datetime:Y-m-d',
+        'exam_end_at' => 'datetime:Y-m-d',
         'is_current' => 'boolean',
     ];
 

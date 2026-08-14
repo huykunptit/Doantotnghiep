@@ -9,15 +9,6 @@ const { t } = useI18n()
 
 const routeTitle = computed(() => resolveInstructorTitle(route.path, t))
 const crumbs = computed(() => resolveInstructorBreadcrumb(route.path, t))
-const userInitials = computed(() =>
-  (auth.user?.name || 'GV')
-    .split(' ')
-    .filter(Boolean)
-    .slice(-2)
-    .map(part => part[0])
-    .join('')
-    .toUpperCase(),
-)
 
 onMounted(() => {
   if (!auth.ready) auth.hydrate()
@@ -74,8 +65,7 @@ onMounted(() => {
             :aria-label="t('common.theme')"
             @click="toggle"
           />
-          <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
-          <Avatar v-else :label="userInitials" shape="circle" />
+          <CommonAccountMenu />
         </div>
       </header>
 

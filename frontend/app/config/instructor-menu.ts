@@ -70,6 +70,7 @@ export const instructorMenu: InstructorMenuItem[] = [
 type TranslateFn = (key: string) => string
 
 export function resolveInstructorTitle(path: string, t: TranslateFn) {
+  if (path === '/instructor/profile') return t('admin.profile.title')
   if (path.includes('/edit')) return t('instructor.menu.builder')
   if (path.includes('/students') && path !== '/instructor/students') {
     return t('instructor.menu.courseStudents')
@@ -86,6 +87,7 @@ export function resolveInstructorTitle(path: string, t: TranslateFn) {
 
 export function resolveInstructorBreadcrumb(path: string, t: TranslateFn) {
   if (path === '/instructor') return [{ label: t('instructor.menu.dashboard'), to: '/instructor' }]
+  if (path === '/instructor/profile') return [{ label: t('admin.profile.title'), to: '/instructor/profile' }]
 
   if (/^\/instructor\/courses\/\d+\/edit/.test(path)) {
     return [

@@ -68,15 +68,31 @@ async function sendMessage() {
         messages.value.push({ role: 'assistant', text: t('public.ai.chatEmptyReply') })
       }
     },
-    onError: (message) => {
-      if (streamingIndex === -1) {
-        messages.value.push({
-          role: 'assistant',
-          text: message === 'http_429' ? t('public.ai.chatRateLimit') : t('public.ai.chatError'),
-        })
-      }
-    },
+    onError: () => {},
   })
+
+  if (streamingIndex === -1) {
+    try {
+      const res = await useApi<{ reply?: string }>('/ai/chat/guest', {
+        method: 'POST',
+        token: null,
+        timeout: 25000,
+        body: { message: text, history },
+      })
+      const reply = (res.reply || '').trim()
+      messages.value.push({
+        role: 'assistant',
+        text: reply || t('public.ai.chatEmptyReply'),
+      })
+    }
+    catch (error: any) {
+      const status = Number(error?.statusCode || error?.response?.status || 0)
+      messages.value.push({
+        role: 'assistant',
+        text: status === 429 ? t('public.ai.chatRateLimit') : t('public.ai.chatError'),
+      })
+    }
+  }
 
   loading.value = false
   streaming.value = false

@@ -185,7 +185,10 @@ class AiServiceClient
             }
 
             if (isset($response) && $response->successful()) {
-                $buffer = '';
+                $rawBuffer = '';
+                $sseBuffer = '';
+                $forwardedDelta = false;
+                $streamFailed = false;
                 $body = $response->toPsrResponse()->getBody();
 
                 try {
@@ -194,55 +197,125 @@ class AiServiceClient
                         if ($chunk === '') {
                             continue;
                         }
-                        $buffer .= $chunk;
-                        yield $chunk;
+                        $rawBuffer .= $chunk;
+                        $sseBuffer .= str_replace(["\r\n", "\r"], "\n", $chunk);
+
+                        while (($pos = strpos($sseBuffer, "\n\n")) !== false) {
+                            $event = substr($sseBuffer, 0, $pos);
+                            $sseBuffer = substr($sseBuffer, $pos + 2);
+                            $parsed = $this->parseSseEvent($event);
+                            if ($parsed === null) {
+                                continue;
+                            }
+                            if (isset($parsed['delta']) && is_string($parsed['delta']) && $parsed['delta'] !== '') {
+                                $forwardedDelta = true;
+                                yield $this->sseEvent(['delta' => $parsed['delta']]);
+                                continue;
+                            }
+                            if (!empty($parsed['error'])) {
+                                $streamFailed = ! $forwardedDelta;
+                                if ($forwardedDelta) {
+                                    yield $this->sseEvent(['done' => true]);
+                                }
+                                break 2;
+                            }
+                            if (!empty($parsed['done'])) {
+                                yield $this->sseEvent($parsed);
+                                $elapsed = (int) ((microtime(true) - $started) * 1000);
+                                $tokensUsed = $this->extractTokensFromSseBuffer($rawBuffer);
+                                AiRequestLog::create([
+                                    'user_id' => $userId,
+                                    'endpoint' => $endpoint,
+                                    'provider' => $primary,
+                                    'model' => $model,
+                                    'tokens_used' => $tokensUsed,
+                                    'response_time_ms' => $elapsed,
+                                    'status' => 'success',
+                                    'error_message' => null,
+                                ]);
+                                if ($tokensUsed > 0) {
+                                    $aiSettings->increment('tokens_used', $tokensUsed);
+                                }
+
+                                return;
+                            }
+                        }
                     }
-                } catch (\Throwable $e) {
-                    yield 'data: ' . json_encode(['error' => $e->getMessage()], JSON_UNESCAPED_UNICODE) . "\n\n";
+                } catch (\Throwable) {
+                    $streamFailed = ! $forwardedDelta;
                 }
 
-                $elapsed = (int) ((microtime(true) - $started) * 1000);
-                $tokensUsed = $this->extractTokensFromSseBuffer($buffer);
-                AiRequestLog::create([
-                    'user_id' => $userId,
-                    'endpoint' => $endpoint,
-                    'provider' => $primary,
-                    'model' => $model,
-                    'tokens_used' => $tokensUsed,
-                    'response_time_ms' => $elapsed,
-                    'status' => 'success',
-                    'error_message' => null,
-                ]);
-                if ($tokensUsed > 0) {
-                    $aiSettings->increment('tokens_used', $tokensUsed);
+                if ($forwardedDelta && ! $streamFailed) {
+                    yield $this->sseEvent(['done' => true]);
+                    $elapsed = (int) ((microtime(true) - $started) * 1000);
+                    AiRequestLog::create([
+                        'user_id' => $userId,
+                        'endpoint' => $endpoint,
+                        'provider' => $primary,
+                        'model' => $model,
+                        'tokens_used' => $this->extractTokensFromSseBuffer($rawBuffer),
+                        'response_time_ms' => $elapsed,
+                        'status' => 'success',
+                        'error_message' => null,
+                    ]);
+
+                    return;
                 }
 
-                return;
+                if ($forwardedDelta) {
+                    return;
+                }
             }
         }
 
-        // Provider chính không stream được (thiếu key / lỗi kết nối / HTTP lỗi trước khi
-        // có byte nào forward) → rơi về chuỗi fallback non-stream đầy đủ như /chat thường.
+        // Provider chính không stream được (thiếu key / lỗi kết nối / HTTP lỗi /
+        // SSE error trước khi có delta) → JSON fallback. Nếu vẫn fail: trả lời
+        // tiếng Việt, KHÔNG gửi {"error"} vì frontend sẽ hiện "Lỗi kết nối".
         $result = $this->postWithFallback($fallbackPath, $basePayload, $userId, $logEndpoint, maxTotalMs: 25000);
 
         if ($result['ok']) {
             $reply = (string) ($result['data']['reply'] ?? '');
             if ($reply !== '') {
-                yield 'data: ' . json_encode(['delta' => $reply], JSON_UNESCAPED_UNICODE) . "\n\n";
+                yield $this->sseEvent(['delta' => $reply]);
             }
-            yield 'data: ' . json_encode([
+            yield $this->sseEvent([
                 'done' => true,
                 'tokens_used' => $result['data']['tokens_used'] ?? ['prompt' => 0, 'completion' => 0, 'total' => 0],
                 'rag_used' => $result['data']['rag_used'] ?? false,
                 'sources' => $result['data']['sources'] ?? [],
-            ], JSON_UNESCAPED_UNICODE) . "\n\n";
+            ]);
 
             return;
         }
 
-        yield 'data: ' . json_encode([
-            'error' => $result['error'] ?? 'AI service không khả dụng.',
-        ], JSON_UNESCAPED_UNICODE) . "\n\n";
+        yield $this->sseEvent([
+            'delta' => 'Trợ lý AI đang bận hoặc chưa cấu hình API key. Bạn thử lại sau, hoặc hỏi về khóa học / lộ trình trên hệ thống nhé.',
+        ]);
+        yield $this->sseEvent(['done' => true, 'source' => 'fallback']);
+    }
+
+    /** @param  array<string, mixed>  $payload */
+    protected function sseEvent(array $payload): string
+    {
+        return 'data: '.json_encode($payload, JSON_UNESCAPED_UNICODE)."\n\n";
+    }
+
+    /** @return array<string, mixed>|null */
+    protected function parseSseEvent(string $raw): ?array
+    {
+        $raw = str_replace(["\r\n", "\r"], "\n", $raw);
+        $parts = [];
+        foreach (explode("\n", $raw) as $line) {
+            if (str_starts_with($line, 'data:')) {
+                $parts[] = trim(substr($line, 5));
+            }
+        }
+        if ($parts === []) {
+            return null;
+        }
+        $decoded = json_decode(implode('', $parts), true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     /** Đọc token usage từ event "done" cuối cùng trong buffer SSE đã forward, để ghi log. */
