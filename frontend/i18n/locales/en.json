@@ -32,7 +32,9 @@
     "add": "Add",
     "apply": "Apply",
     "reset": "Reset",
-    "actions": "Actions"
+    "actions": "Actions",
+    "close": "Close",
+    "confirm": "Confirm"
   },
   "public": {
     "ai": {
@@ -109,7 +111,9 @@
       "modelLoadError": "Could not load the face-recognition module. Please reload the page.",
       "noFaceInFrame": "No face detected in frame. Please look straight at the camera and try again.",
       "noFaceDuringExam": "No face detected during the exam.",
-      "multipleFacesDuringExam": "Multiple faces detected during the exam."
+      "multipleFacesDuringExam": "Multiple faces detected during the exam.",
+      "lookingAwayDuringExam": "Looking away detected during exam",
+      "phoneDetectedDuringExam": "Phone detected during exam"
     }
   },
   "career": {
@@ -406,7 +410,8 @@
         "dinh_chi": "Suspended",
         "dang_cong_tac": "Active staff",
         "nghi_phep": "On leave",
-        "nghi_huu": "Retired"
+        "nghi_huu": "Retired",
+        "chua_dong_hoc_phi": "Tuition unpaid"
       },
       "gender": {
         "male": "Male",
@@ -569,6 +574,8 @@
       "termStatus": {
         "upcoming": "Upcoming",
         "ongoing": "Ongoing",
+        "active": "Active",
+        "planned": "Planned",
         "completed": "Completed"
       }
     },
@@ -622,6 +629,80 @@
         "active": "Active",
         "graduated": "Graduated",
         "suspended": "Suspended"
+      },
+      "delete": "Delete",
+      "viewDetail": "View details",
+      "bulkImport": "Bulk import",
+      "bulkImportTitle": "Bulk import admin classes",
+      "bulkImportHint": "Download the CSV template, fill it in, then upload to create multiple classes.",
+      "bulkImportTemplateHint": "Template columns: class code, name, cohort, program…",
+      "bulkImportExecuteBtn": "Import classes",
+      "bulkImportSuccess": "Imported {n} classes",
+      "bulkImportError": "Could not import classes",
+      "downloadTemplate": "Download CSV template",
+      "enrollImport": "Import enrollments CSV",
+      "enrollStudentCode": "Student code",
+      "enrollCurriculum": "Enroll by curriculum",
+      "enrollCurriculumTitle": "Enroll class by curriculum",
+      "enrollCurriculumHint": "Create course enrollments from the curriculum linked to this class.",
+      "enrollCurriculumSubmit": "Enroll by curriculum",
+      "enrollCurriculumSuccess": "Curriculum enrollments created ({n} records)",
+      "enrollCurriculumError": "Curriculum enrollment failed",
+      "enrollCurriculumNoCurriculum": "This class has no curriculum assigned",
+      "enrollCurriculumMissingTerms": "Missing term mapping — configure term map first",
+      "importStepTemplate": "1. Download template",
+      "importStepTemplateHint": "Download the sample CSV and fill the required columns.",
+      "importStepUpload": "2. Upload & validate",
+      "importStepUploadHint": "Drop or choose a CSV file to preview.",
+      "importStepResult": "3. Result",
+      "importStepResultHint": "Confirm valid rows, then run the import.",
+      "importDropTitle": "Drop CSV file here",
+      "importDropHint": "or click to browse",
+      "importCsvOnly": "Only .csv files are accepted",
+      "importChecking": "Validating…",
+      "importPreviewReady": "Ready to import",
+      "importPreviewSummary": "{valid}/{total} valid rows",
+      "importPreviewError": "Could not read file",
+      "importTotalRows": "Total rows",
+      "importValidRows": "Valid",
+      "importInvalidRows": "Invalid",
+      "importStatus": "Status",
+      "importExecuteBtn": "Run import",
+      "importSuccess": "Imported {n} rows",
+      "importError": "Import failed",
+      "termMapPickYear": "Pick academic year",
+      "termMapPickTerm": "Pick term",
+      "termMapTermNumber": "Curriculum term {n}",
+      "termMapDateRange": "{from} — {to}",
+      "termMapEmpty": "No term mapping yet. Pick a year and map each curriculum term.",
+      "termMapAutoApply": "Auto-map in order",
+      "termMapAutoHint": "Assign current-year terms in order to curriculum term numbers.",
+      "termMapSave": "Save term map",
+      "termMapSaved": "Term map saved",
+      "termMapSaveError": "Could not save term map",
+      "termMapLoadError": "Could not load term map",
+      "termMapOpenCalendar": "Open academic calendar",
+      "detail": {
+        "back": "Back to list",
+        "notFound": "Class not found",
+        "loadError": "Could not load class",
+        "studentsTitle": "Students in class",
+        "studentsCount": "{n} students",
+        "noStudents": "No students in this class",
+        "searchStudentPh": "Search by name or student code…",
+        "colStudent": "Student",
+        "colCode": "Code",
+        "colStatus": "Status",
+        "colActions": "Actions",
+        "changeStatus": "Change status",
+        "changeStatusTitle": "Change student status",
+        "statusSaved": "Status updated",
+        "statusSaveError": "Could not update status",
+        "removeFromClass": "Remove from class",
+        "removeConfirmTitle": "Remove from class",
+        "removeConfirm": "Remove {name} from this class?",
+        "removeSuccess": "Removed from class",
+        "removeError": "Could not remove"
       }
     },
     "sections": {
@@ -1140,7 +1221,25 @@
         "rejected": "Rejected",
         "closed": "Closed",
         "archived": "Archived"
-      }
+      },
+      "featuredOnly": "Featured only",
+      "notFeatured": "Not featured",
+      "free": "Free",
+      "mode": "Course mode",
+      "modes": {
+        "core": "Core / curriculum",
+        "extension": "Marketplace"
+      },
+      "pricing": "Pricing",
+      "pricingFree": "Free",
+      "pricingPaid": "Paid",
+      "program": "Program",
+      "sort": "Sort",
+      "sortNewest": "Newest",
+      "sortTitle": "Title",
+      "sortLearners": "Most learners",
+      "sortPriceAsc": "Price: low to high",
+      "sortPriceDesc": "Price: high to low"
     },
     "builder": {
       "eyebrow": "Content builder",
@@ -1298,7 +1397,8 @@
         "qrNeedGeo": "Enabling QR requires venue coordinates (lat / lng).",
         "scormZip": "SCORM package (.zip)",
         "h5pUrl": "H5P URL / embed",
-        "h5pHint": "Paste a bare URL or an <iframe …> snippet. The src is extracted automatically."
+        "h5pHint": "Paste a bare URL or an <iframe …> snippet. The src is extracted automatically.",
+        "qrEnabled": "Enable QR attendance for sessions"
       },
       "statuses": {
         "draft": "Draft",
@@ -1427,7 +1527,8 @@
           "paused": "Paused",
           "submitted": "Submitted",
           "force_stopped": "Force stopped"
-        }
+        },
+        "noViolations": "No violations"
       },
       "examStatuses": {
         "draft": "Draft",
@@ -1827,6 +1928,24 @@
         "examMonitor": "Exam monitor",
         "settings": "Settings"
       }
+    },
+    "profile": {
+      "title": "Admin profile",
+      "subtitle": "Update your account details and password.",
+      "infoTitle": "Profile information",
+      "avatar": "Avatar",
+      "name": "Full name",
+      "email": "Email",
+      "saved": "Profile saved",
+      "saveError": "Could not save profile",
+      "passwordTitle": "Change password",
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "passwordSaved": "Password changed",
+      "passwordError": "Could not change password",
+      "passwordMismatch": "Password confirmation does not match"
     }
   },
   "instructor": {
@@ -1967,7 +2086,9 @@
       "fieldTitle": "Title",
       "fieldDesc": "Description",
       "fieldPrice": "Price (VND)",
-      "fieldCategory": "Category"
+      "fieldCategory": "Category",
+      "filters": "Filters",
+      "free": "Free"
     },
     "revenue": {
       "title": "Revenue",
@@ -1999,10 +2120,24 @@
       "lastWatched": "Last activity",
       "loadError": "Could not load students",
       "empty": "No students yet",
-      "lessonsDone": "{done}/{total} lessons"
+      "lessonsDone": "{done}/{total} lessons",
+      "view": "View"
     },
     "builder": {
       "back": "Back to courses"
+    },
+    "attendance": {
+      "title": "Class attendance",
+      "subtitle": "Pick a course / admin class to create and manage QR attendance sessions.",
+      "hint": "Select a course and admin class before viewing sessions.",
+      "course": "Course",
+      "coursePh": "Select a course…",
+      "adminClass": "Admin class",
+      "adminClassPh": "Select a class…",
+      "pickCourseClass": "Pick a course and class to continue",
+      "empty": "No attendance sessions yet",
+      "loadCoursesError": "Could not load courses",
+      "loadClassesError": "Could not load classes"
     }
   },
   "student": {
@@ -2562,7 +2697,8 @@
       "learnNow": "Start learning",
       "loginToBuy": "Log in to buy",
       "lessons": "{n} lessons",
-      "loadError": "Could not load course"
+      "loadError": "Could not load course",
+      "previewAsAdmin": "Preview as admin"
     },
     "detail": {
       "back": "Back",
@@ -2573,7 +2709,17 @@
       "sections": "{n} sections",
       "includesLessons": "{n} lessons in the curriculum",
       "includesLevel": "Level: {level}",
-      "includesLifetime": "Access based on enrollment"
+      "includesLifetime": "Access based on enrollment",
+      "curriculum": "Course curriculum",
+      "lessonMinutes": "{n} min",
+      "locked": "Locked",
+      "preview": "Preview",
+      "pathSuggestTitle": "Part of a career path",
+      "pathSuggestHint": "Follow the path for a more complete skill track.",
+      "pathSuggestProgress": "Path progress: {n}%",
+      "pathSuggestView": "View path",
+      "pathSuggestBuyPath": "Buy full path",
+      "pathSuggestBuyCourse": "Buy this course only"
     },
     "checkout": {
       "title": "Confirm enrollment",
@@ -2594,7 +2740,9 @@
       "momo": "MoMo",
       "momoNote": "Sandbox demo",
       "zalopay": "ZaloPay",
-      "zalopayNote": "Sandbox demo"
+      "zalopayNote": "Sandbox demo",
+      "pathSuggestTitle": "Suggested career path",
+      "pathSuggestBody": "This course belongs to path {name}. Buying the full path is often better value."
     },
     "payment": {
       "processing": "Processing payment",

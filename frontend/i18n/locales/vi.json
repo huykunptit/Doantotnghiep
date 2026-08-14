@@ -32,7 +32,9 @@
     "add": "Thêm",
     "apply": "Áp dụng",
     "reset": "Xóa lọc",
-    "actions": "Thao tác"
+    "actions": "Thao tác",
+    "close": "Đóng",
+    "confirm": "Xác nhận"
   },
   "public": {
     "ai": {
@@ -109,7 +111,9 @@
       "modelLoadError": "Không tải được mô-đun nhận diện khuôn mặt. Vui lòng tải lại trang.",
       "noFaceInFrame": "Không phát hiện khuôn mặt trong khung hình. Vui lòng nhìn thẳng vào camera và thử lại.",
       "noFaceDuringExam": "Không phát hiện khuôn mặt trong lúc thi.",
-      "multipleFacesDuringExam": "Phát hiện nhiều khuôn mặt trong lúc thi."
+      "multipleFacesDuringExam": "Phát hiện nhiều khuôn mặt trong lúc thi.",
+      "lookingAwayDuringExam": "Phát hiện nhìn ra ngoài trong lúc thi",
+      "phoneDetectedDuringExam": "Phát hiện điện thoại trong lúc thi"
     }
   },
   "career": {
@@ -406,7 +410,8 @@
         "dinh_chi": "Đình chỉ",
         "dang_cong_tac": "Đang công tác",
         "nghi_phep": "Nghỉ phép",
-        "nghi_huu": "Nghỉ hưu"
+        "nghi_huu": "Nghỉ hưu",
+        "chua_dong_hoc_phi": "Chưa đóng học phí"
       },
       "gender": {
         "male": "Nam",
@@ -569,6 +574,8 @@
       "termStatus": {
         "upcoming": "Sắp diễn ra",
         "ongoing": "Đang diễn ra",
+        "active": "Đang diễn ra",
+        "planned": "Đã lên kế hoạch",
         "completed": "Đã kết thúc"
       }
     },
@@ -622,6 +629,80 @@
         "active": "Đang hoạt động",
         "graduated": "Tốt nghiệp",
         "suspended": "Tạm ngưng"
+      },
+      "delete": "Xóa",
+      "viewDetail": "Chi tiết",
+      "bulkImport": "Nhập hàng loạt",
+      "bulkImportTitle": "Nhập lớp hành chính hàng loạt",
+      "bulkImportHint": "Tải mẫu CSV, điền dữ liệu rồi tải lên để tạo nhiều lớp cùng lúc.",
+      "bulkImportTemplateHint": "Mẫu gồm các cột: mã lớp, tên, khóa, chương trình…",
+      "bulkImportExecuteBtn": "Nhập lớp",
+      "bulkImportSuccess": "Đã nhập {n} lớp",
+      "bulkImportError": "Không nhập được lớp",
+      "downloadTemplate": "Tải mẫu CSV",
+      "enrollImport": "Nhập ghi danh CSV",
+      "enrollStudentCode": "Mã sinh viên",
+      "enrollCurriculum": "Ghi danh theo CTĐT",
+      "enrollCurriculumTitle": "Ghi danh cả lớp theo CTĐT",
+      "enrollCurriculumHint": "Tạo enrollment học phần theo khung CTĐT đã gắn với lớp.",
+      "enrollCurriculumSubmit": "Ghi danh theo CTĐT",
+      "enrollCurriculumSuccess": "Đã ghi danh theo CTĐT ({n} bản ghi)",
+      "enrollCurriculumError": "Không ghi danh theo CTĐT được",
+      "enrollCurriculumNoCurriculum": "Lớp chưa được gắn chương trình đào tạo",
+      "enrollCurriculumMissingTerms": "Thiếu map học kỳ — hãy cấu hình term map trước",
+      "importStepTemplate": "1. Tải mẫu",
+      "importStepTemplateHint": "Tải file CSV mẫu và điền đúng cột.",
+      "importStepUpload": "2. Tải lên & kiểm tra",
+      "importStepUploadHint": "Kéo thả hoặc chọn file CSV để xem trước.",
+      "importStepResult": "3. Kết quả",
+      "importStepResultHint": "Xác nhận các dòng hợp lệ rồi thực hiện nhập.",
+      "importDropTitle": "Kéo thả file CSV vào đây",
+      "importDropHint": "hoặc bấm để chọn file",
+      "importCsvOnly": "Chỉ chấp nhận file .csv",
+      "importChecking": "Đang kiểm tra…",
+      "importPreviewReady": "Sẵn sàng nhập",
+      "importPreviewSummary": "{valid}/{total} dòng hợp lệ",
+      "importPreviewError": "Không đọc được file",
+      "importTotalRows": "Tổng dòng",
+      "importValidRows": "Hợp lệ",
+      "importInvalidRows": "Lỗi",
+      "importStatus": "Trạng thái",
+      "importExecuteBtn": "Thực hiện nhập",
+      "importSuccess": "Nhập thành công {n} dòng",
+      "importError": "Nhập thất bại",
+      "termMapPickYear": "Chọn năm học",
+      "termMapPickTerm": "Chọn học kỳ",
+      "termMapTermNumber": "Kỳ CTĐT {n}",
+      "termMapDateRange": "{from} — {to}",
+      "termMapEmpty": "Chưa có map học kỳ. Chọn năm học và gắn từng kỳ CTĐT.",
+      "termMapAutoApply": "Tự map theo thứ tự",
+      "termMapAutoHint": "Gán lần lượt các học kỳ của năm hiện hành theo số kỳ CTĐT.",
+      "termMapSave": "Lưu map học kỳ",
+      "termMapSaved": "Đã lưu map học kỳ",
+      "termMapSaveError": "Không lưu được map học kỳ",
+      "termMapLoadError": "Không tải được map học kỳ",
+      "termMapOpenCalendar": "Mở lịch học vụ",
+      "detail": {
+        "back": "Quay lại danh sách",
+        "notFound": "Không tìm thấy lớp",
+        "loadError": "Không tải được lớp",
+        "studentsTitle": "Sinh viên trong lớp",
+        "studentsCount": "{n} sinh viên",
+        "noStudents": "Chưa có sinh viên trong lớp",
+        "searchStudentPh": "Tìm theo tên hoặc mã SV…",
+        "colStudent": "Sinh viên",
+        "colCode": "Mã SV",
+        "colStatus": "Trạng thái",
+        "colActions": "Thao tác",
+        "changeStatus": "Đổi trạng thái",
+        "changeStatusTitle": "Đổi trạng thái SV",
+        "statusSaved": "Đã cập nhật trạng thái",
+        "statusSaveError": "Không cập nhật được trạng thái",
+        "removeFromClass": "Xóa khỏi lớp",
+        "removeConfirmTitle": "Xóa khỏi lớp",
+        "removeConfirm": "Xóa {name} khỏi lớp này?",
+        "removeSuccess": "Đã xóa khỏi lớp",
+        "removeError": "Không xóa được"
       }
     },
     "sections": {
@@ -1140,7 +1221,25 @@
         "rejected": "Từ chối",
         "closed": "Đã đóng",
         "archived": "Lưu trữ"
-      }
+      },
+      "featuredOnly": "Chỉ khóa nổi bật",
+      "notFeatured": "Không nổi bật",
+      "free": "Miễn phí",
+      "mode": "Loại khóa",
+      "modes": {
+        "core": "CTĐT / Core",
+        "extension": "Marketplace"
+      },
+      "pricing": "Giá",
+      "pricingFree": "Miễn phí",
+      "pricingPaid": "Có phí",
+      "program": "Chương trình",
+      "sort": "Sắp xếp",
+      "sortNewest": "Mới nhất",
+      "sortTitle": "Theo tên",
+      "sortLearners": "Nhiều học viên",
+      "sortPriceAsc": "Giá tăng dần",
+      "sortPriceDesc": "Giá giảm dần"
     },
     "builder": {
       "eyebrow": "Xây dựng nội dung",
@@ -1298,7 +1397,8 @@
         "qrNeedGeo": "Bật QR cần tọa độ địa điểm (vĩ độ / kinh độ).",
         "scormZip": "File gói SCORM (.zip)",
         "h5pUrl": "URL / embed H5P",
-        "h5pHint": "Dán URL trần hoặc đoạn <iframe …>. Hệ thống tự lấy src."
+        "h5pHint": "Dán URL trần hoặc đoạn <iframe …>. Hệ thống tự lấy src.",
+        "qrEnabled": "Bật QR điểm danh cho buổi học"
       },
       "statuses": {
         "draft": "Bản nháp",
@@ -1427,7 +1527,8 @@
           "paused": "Tạm dừng",
           "submitted": "Đã nộp",
           "force_stopped": "Buộc dừng"
-        }
+        },
+        "noViolations": "Không có vi phạm"
       },
       "examStatuses": {
         "draft": "Bản nháp",
@@ -1827,6 +1928,24 @@
         "examMonitor": "Giám sát thi",
         "settings": "Cài đặt"
       }
+    },
+    "profile": {
+      "title": "Hồ sơ quản trị",
+      "subtitle": "Cập nhật thông tin tài khoản và mật khẩu.",
+      "infoTitle": "Thông tin cá nhân",
+      "avatar": "Ảnh đại diện",
+      "name": "Họ tên",
+      "email": "Email",
+      "saved": "Đã lưu hồ sơ",
+      "saveError": "Không lưu được hồ sơ",
+      "passwordTitle": "Đổi mật khẩu",
+      "changePassword": "Đổi mật khẩu",
+      "currentPassword": "Mật khẩu hiện tại",
+      "newPassword": "Mật khẩu mới",
+      "confirmPassword": "Xác nhận mật khẩu mới",
+      "passwordSaved": "Đã đổi mật khẩu",
+      "passwordError": "Không đổi được mật khẩu",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp"
     }
   },
   "instructor": {
@@ -1967,7 +2086,9 @@
       "fieldTitle": "Tiêu đề",
       "fieldDesc": "Mô tả",
       "fieldPrice": "Giá (VND)",
-      "fieldCategory": "Danh mục"
+      "fieldCategory": "Danh mục",
+      "filters": "Bộ lọc",
+      "free": "Miễn phí"
     },
     "revenue": {
       "title": "Doanh thu",
@@ -1999,10 +2120,24 @@
       "lastWatched": "Học gần nhất",
       "loadError": "Không tải được học viên",
       "empty": "Chưa có học viên",
-      "lessonsDone": "{done}/{total} bài"
+      "lessonsDone": "{done}/{total} bài",
+      "view": "Xem"
     },
     "builder": {
       "back": "Quay lại khóa học"
+    },
+    "attendance": {
+      "title": "Điểm danh lớp",
+      "subtitle": "Chọn khóa / lớp hành chính để tạo và quản lý phiên điểm danh QR.",
+      "hint": "Cần chọn khóa học và lớp hành chính trước khi xem phiên.",
+      "course": "Khóa học",
+      "coursePh": "Chọn khóa học…",
+      "adminClass": "Lớp hành chính",
+      "adminClassPh": "Chọn lớp…",
+      "pickCourseClass": "Chọn khóa và lớp để tiếp tục",
+      "empty": "Chưa có phiên điểm danh",
+      "loadCoursesError": "Không tải được danh sách khóa",
+      "loadClassesError": "Không tải được danh sách lớp"
     }
   },
   "student": {
@@ -2562,7 +2697,8 @@
       "learnNow": "Vào học ngay",
       "loginToBuy": "Đăng nhập để mua",
       "lessons": "{n} bài học",
-      "loadError": "Không tải được khóa học"
+      "loadError": "Không tải được khóa học",
+      "previewAsAdmin": "Xem trước (admin)"
     },
     "detail": {
       "back": "Quay lại",
@@ -2573,7 +2709,17 @@
       "sections": "{n} chương",
       "includesLessons": "{n} bài học trong chương trình",
       "includesLevel": "Cấp độ: {level}",
-      "includesLifetime": "Truy cập nội dung theo quyền ghi danh"
+      "includesLifetime": "Truy cập nội dung theo quyền ghi danh",
+      "curriculum": "Nội dung khóa học",
+      "lessonMinutes": "{n} phút",
+      "locked": "Bị khóa",
+      "preview": "Xem trước",
+      "pathSuggestTitle": "Thuộc lộ trình nghề nghiệp",
+      "pathSuggestHint": "Học theo lộ trình để nhận lộ trình kỹ năng đầy đủ hơn.",
+      "pathSuggestProgress": "Tiến độ lộ trình: {n}%",
+      "pathSuggestView": "Xem lộ trình",
+      "pathSuggestBuyPath": "Mua cả lộ trình",
+      "pathSuggestBuyCourse": "Chỉ mua khóa này"
     },
     "checkout": {
       "title": "Xác nhận đăng ký",
@@ -2594,7 +2740,9 @@
       "momo": "MoMo",
       "momoNote": "Sandbox demo",
       "zalopay": "ZaloPay",
-      "zalopayNote": "Sandbox demo"
+      "zalopayNote": "Sandbox demo",
+      "pathSuggestTitle": "Gợi ý lộ trình nghề nghiệp",
+      "pathSuggestBody": "Khóa này thuộc lộ trình {name}. Mua cả lộ trình thường tiết kiệm hơn."
     },
     "payment": {
       "processing": "Đang xử lý thanh toán",
