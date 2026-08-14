@@ -41,5 +41,5 @@ export function profilePathFor(user?: AuthUser | null) {
   const roles = user?.roles || (user?.role ? [user.role] : [])
   if (roles.includes('admin')) return '/admin/profile'
   if (roles.includes('instructor')) return '/instructor/profile'
-  return '/student/account'
+  return '/student/profile'
 }

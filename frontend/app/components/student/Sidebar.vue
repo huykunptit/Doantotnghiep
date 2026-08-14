@@ -63,7 +63,7 @@ onMounted(() => {
     </nav>
 
     <div class="account">
-      <NuxtLink to="/student/account" class="account-link" @click="emit('navigate')">
+      <NuxtLink to="/student/profile" class="account-link" @click="emit('navigate')">
         <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
         <Avatar v-else :label="userInitials" shape="circle" />
         <div class="account-copy">

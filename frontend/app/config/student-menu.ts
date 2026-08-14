@@ -7,8 +7,8 @@ export interface StudentMenuItem {
 
 export const studentMenu: StudentMenuItem[] = [
   { key: 'dashboard', labelKey: 'student.menu.dashboard', icon: 'pi pi-home', to: '/student' },
-  { key: 'account', labelKey: 'student.menu.account', icon: 'pi pi-user-edit', to: '/student/account' },
-  { key: 'idCard', labelKey: 'student.menu.idCard', icon: 'pi pi-id-card', to: '/student/profile' },
+  { key: 'account', labelKey: 'student.menu.account', icon: 'pi pi-user-edit', to: '/student/profile' },
+  { key: 'idCard', labelKey: 'student.menu.idCard', icon: 'pi pi-id-card', to: '/student/id-card' },
   { key: 'courses', labelKey: 'student.menu.myCourses', icon: 'pi pi-book', to: '/student/courses' },
   { key: 'curriculum', labelKey: 'student.menu.curriculum', icon: 'pi pi-sitemap', to: '/student/curriculum' },
   { key: 'timetable', labelKey: 'student.menu.timetable', icon: 'pi pi-calendar', to: '/student/timetable' },
@@ -32,6 +32,8 @@ export function resolveStudentTitle(path: string, t: TranslateFn) {
   if (path.startsWith('/learn')) return t('student.menu.learn')
   if (path.startsWith('/paths')) return t('student.menu.paths')
   if (path.startsWith('/career')) return t('student.menu.career')
+  if (path.startsWith('/student/id-card')) return t('student.menu.idCard')
+  if (path.startsWith('/student/profile') || path.startsWith('/student/account')) return t('student.menu.account')
   if (path.startsWith('/student/study-advisor')) return t('student.menu.studyAdvisor')
   if (path.startsWith('/student/experience-survey')) return t('student.menu.experienceSurvey')
   if (path.startsWith('/student/points')) return t('student.menu.points')

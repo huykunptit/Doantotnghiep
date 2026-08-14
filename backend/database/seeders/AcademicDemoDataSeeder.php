@@ -256,6 +256,7 @@ class AcademicDemoDataSeeder extends Seeder
                         ?: '079'.str_pad((string) ($student->id % 1000000000), 9, '0', STR_PAD_LEFT),
                     'study_status' => $student->study_status ?: 'dang_hoc',
                     'avatar' => sprintf('/storage/seed/avatars/%s-%02d.jpg', $gender, $avatarNumber),
+                    'face_url' => sprintf('/storage/seed/avatars/%s-%02d.jpg', $gender, $avatarNumber),
                 ];
 
                 $student->forceFill($values)->save();

@@ -19,6 +19,10 @@ const userInitials = computed(() =>
 
 const profileTo = computed(() => profilePathFor(auth.user))
 const dashboardTo = computed(() => dashboardFor(auth.user))
+const isStudent = computed(() => {
+  const roles = auth.user?.roles || (auth.user?.role ? [auth.user.role] : [])
+  return roles.includes('student') && !roles.includes('admin') && !roles.includes('instructor')
+})
 
 function toggleAccountPanel(event: Event) {
   accountPanel.value?.toggle(event)
@@ -61,6 +65,10 @@ async function logout() {
         <button type="button" class="account-menu-item" @click="go(profileTo)">
           <i class="pi pi-user-edit" />
           <span>{{ t('common.myProfile') }}</span>
+        </button>
+        <button v-if="isStudent" type="button" class="account-menu-item" @click="go('/student/id-card')">
+          <i class="pi pi-id-card" />
+          <span>{{ t('student.menu.idCard') }}</span>
         </button>
         <button type="button" class="account-menu-item" @click="go(dashboardTo)">
           <i class="pi pi-th-large" />

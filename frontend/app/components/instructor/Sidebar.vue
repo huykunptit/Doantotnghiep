@@ -78,12 +78,14 @@ onMounted(() => {
     </nav>
 
     <div class="account">
-      <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
-      <Avatar v-else :label="userInitials" shape="circle" />
-      <div class="account-copy">
-        <strong>{{ userName }}</strong>
-        <span>{{ t('instructor.roleLabel') }}</span>
-      </div>
+      <NuxtLink to="/instructor/profile" class="account-link" @click="emit('navigate')">
+        <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
+        <Avatar v-else :label="userInitials" shape="circle" />
+        <div class="account-copy">
+          <strong>{{ userName }}</strong>
+          <span>{{ t('instructor.roleLabel') }}</span>
+        </div>
+      </NuxtLink>
       <Button
         icon="pi pi-sign-out"
         severity="secondary"
@@ -190,6 +192,15 @@ onMounted(() => {
   padding: 12px;
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-subtle) 80%, transparent);
+}
+
+.account-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  color: inherit;
 }
 
 .account-copy {

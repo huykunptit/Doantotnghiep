@@ -4,12 +4,9 @@ definePageMeta({
   middleware: ['auth', 'student'],
 })
 
-const { t } = useI18n()
-useHead({ title: () => t('student.account.title') })
+await navigateTo('/student/profile', { replace: true })
 </script>
 
 <template>
-  <div class="page">
-    <CommonAccountProfileForm />
-  </div>
+  <div />
 </template>

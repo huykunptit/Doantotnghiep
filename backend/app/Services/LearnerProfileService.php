@@ -34,7 +34,7 @@ class LearnerProfileService
 
     public function build(User $user, bool $useCache = true): array
     {
-        $cacheKey = "learner_profile:v2:{$user->id}";
+        $cacheKey = "learner_profile:v3:{$user->id}";
         if ($useCache) {
             $cached = Cache::get($cacheKey);
             if (is_array($cached)) {
@@ -124,6 +124,7 @@ class LearnerProfileService
                 'permanent_address' => $user->permanent_address,
                 'nationality' => $user->nationality,
                 'study_status' => $user->study_status,
+                'face_url' => $user->face_url,
                 'program' => $program
                     ? [
                         'id' => $program->id,

@@ -57,6 +57,7 @@ onMounted(() => {
 
         <div class="topbar-actions">
           <LocaleSwitcher />
+          <CommonCartButton />
           <Button
             :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
             severity="secondary"

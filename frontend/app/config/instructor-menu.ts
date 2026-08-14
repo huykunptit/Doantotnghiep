@@ -17,6 +17,12 @@ export const instructorMenu: InstructorMenuItem[] = [
     permission: ['view_dashboard', 'manage_courses'],
   },
   {
+    key: 'profile',
+    labelKey: 'admin.profile.title',
+    icon: 'pi pi-user-edit',
+    to: '/instructor/profile',
+  },
+  {
     key: 'courses',
     labelKey: 'instructor.menu.courses',
     icon: 'pi pi-book',

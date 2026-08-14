@@ -262,6 +262,11 @@ class UserSeeder extends Seeder
                     $n % 2 === 1 ? 'male' : 'female',
                     (intdiv($n - 1, 2) % 16) + 1,
                 ),
+                'face_url' => sprintf(
+                    '/storage/seed/avatars/%s-%02d.jpg',
+                    $n % 2 === 1 ? 'male' : 'female',
+                    (intdiv($n - 1, 2) % 16) + 1,
+                ),
                 'bio' => 'Sinh viên Học viện Công nghệ Bưu chính Viễn thông, học tập trên Eript LMS.',
             ];
 
