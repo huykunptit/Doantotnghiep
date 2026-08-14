@@ -2570,6 +2570,7 @@
       "outcomes": "Bạn sẽ học được gì",
       "benefits": "Nhận được gì sau khóa học",
       "requirements": "Yêu cầu đầu vào",
+      "sections": "{n} chương",
       "includesLessons": "{n} bài học trong chương trình",
       "includesLevel": "Cấp độ: {level}",
       "includesLifetime": "Truy cập nội dung theo quyền ghi danh"

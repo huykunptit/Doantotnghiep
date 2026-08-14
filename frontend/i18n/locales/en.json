@@ -2570,6 +2570,7 @@
       "outcomes": "What you will learn",
       "benefits": "What you get",
       "requirements": "Requirements",
+      "sections": "{n} sections",
       "includesLessons": "{n} lessons in the curriculum",
       "includesLevel": "Level: {level}",
       "includesLifetime": "Access based on enrollment"
