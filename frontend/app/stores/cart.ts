@@ -8,41 +8,129 @@ export interface CartCourse {
   slug?: string | null
 }
 
-const STORAGE_KEY = 'eript-cart'
+const LEGACY_KEY = 'eript-cart'
+const GUEST_KEY = 'eript-cart:guest'
+
+function ownerKey(userId: number | null | undefined) {
+  return userId ? `eript-cart:u${userId}` : GUEST_KEY
+}
+
+function normalize(item: any): CartCourse | null {
+  if (!item || Number(item.id) <= 0) return null
+  return {
+    id: Number(item.id),
+    title: String(item.title || ''),
+    price: Math.max(0, Number(item.price) || 0),
+    thumbnail: item.thumbnail || null,
+    slug: item.slug || null,
+  }
+}
+
+function parseList(raw: string | null): CartCourse[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.map(normalize).filter(Boolean) as CartCourse[]
+  }
+  catch {
+    return []
+  }
+}
+
+function mergeCarts(primary: CartCourse[], extra: CartCourse[]) {
+  const seen = new Set(primary.map(item => item.id))
+  const next = [...primary]
+  for (const item of extra) {
+    if (seen.has(item.id)) continue
+    seen.add(item.id)
+    next.push(item)
+  }
+  return next
+}
 
 export const useCartStore = defineStore('cart', () => {
   const items = ref<CartCourse[]>([])
   const hydrated = ref(false)
+  const ownerId = ref<number | null>(null)
+  let authBound = false
 
   const count = computed(() => items.value.length)
   const subtotal = computed(() => items.value.reduce((sum, item) => sum + Math.max(0, Number(item.price) || 0), 0))
   const ids = computed(() => items.value.map(item => item.id))
 
-  function hydrate() {
-    if (hydrated.value || !import.meta.client) return
-    hydrated.value = true
+  function currentUserId() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      const parsed = raw ? JSON.parse(raw) : []
-      if (!Array.isArray(parsed)) return
-      items.value = parsed
-        .filter((item: any) => item && Number(item.id) > 0)
-        .map((item: any) => ({
-          id: Number(item.id),
-          title: String(item.title || ''),
-          price: Math.max(0, Number(item.price) || 0),
-          thumbnail: item.thumbnail || null,
-          slug: item.slug || null,
-        }))
+      const auth = useAuthStore()
+      if (!auth.isAuthenticated || !auth.user?.id) return null
+      return Number(auth.user.id) || null
     }
     catch {
-      items.value = []
+      return null
     }
+  }
+
+  function readBucket(key: string) {
+    if (!import.meta.client) return []
+    return parseList(localStorage.getItem(key))
+  }
+
+  function writeBucket(key: string, list: CartCourse[]) {
+    if (!import.meta.client) return
+    localStorage.setItem(key, JSON.stringify(list))
+  }
+
+  function migrateLegacy(targetKey: string) {
+    if (!import.meta.client) return
+    const legacy = localStorage.getItem(LEGACY_KEY)
+    if (legacy == null) return
+    if (!localStorage.getItem(targetKey)) localStorage.setItem(targetKey, legacy)
+    localStorage.removeItem(LEGACY_KEY)
   }
 
   function persist() {
     if (!import.meta.client) return
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items.value))
+    writeBucket(ownerKey(ownerId.value), items.value)
+  }
+
+  function loadOwner(userId: number | null, mergeFromGuest = false) {
+    const key = ownerKey(userId)
+    migrateLegacy(key)
+    let next = readBucket(key)
+    if (mergeFromGuest && userId) {
+      next = mergeCarts(next, items.value)
+      writeBucket(GUEST_KEY, [])
+    }
+    ownerId.value = userId
+    hydrated.value = true
+    items.value = next
+    persist()
+  }
+
+  function switchTo(userId: number | null) {
+    if (!import.meta.client) return
+    if (hydrated.value && ownerId.value === userId) return
+    if (hydrated.value) persist()
+    const loggingIn = Boolean(userId) && ownerId.value == null && hydrated.value && items.value.length > 0
+    loadOwner(userId, loggingIn)
+  }
+
+  function hydrate() {
+    if (!import.meta.client) return
+    bindAuth()
+    switchTo(currentUserId())
+  }
+
+  function bindAuth() {
+    if (authBound || !import.meta.client) return
+    authBound = true
+    const auth = useAuthStore()
+    watch(
+      () => (auth.isAuthenticated && auth.user?.id ? Number(auth.user.id) : null),
+      (id) => {
+        switchTo(id)
+      },
+    )
   }
 
   function has(id: number) {
@@ -83,5 +171,5 @@ export const useCartStore = defineStore('cart', () => {
     persist()
   }
 
-  return { items, count, subtotal, ids, hydrate, has, add, remove, removeMany, clear }
+  return { items, count, subtotal, ids, hydrate, bindAuth, has, add, remove, removeMany, clear }
 })

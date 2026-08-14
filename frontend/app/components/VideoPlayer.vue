@@ -17,9 +17,8 @@
 
     <!-- Video Player -->
     <div v-else-if="isIframeSource && iframeUrl" class="player-container iframe-container">
-      <div v-if="isYouTube" :id="ytContainerId" class="iframe-element" />
       <iframe
-        v-else
+        :id="ytContainerId"
         class="iframe-element"
         :src="iframeUrl"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -67,6 +66,8 @@ const props = defineProps<{
   courseId: number
   lessonId: number
   autoplay?: boolean
+  /** URL bài học (YouTube/Drive) — phát ngay, không phụ thuộc signed URL. */
+  src?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -80,8 +81,31 @@ const isYouTube = computed(() => detectProvider(videoUrl.value) === 'youtube')
 const iframeUrl = computed(() => normalizeIframeUrl(videoUrl.value))
 const ytContainerId = computed(() => `yt-player-${props.lessonId}`)
 
+function extractYouTubeId(url: string): string {
+  if (!url) return ''
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname.includes('youtu.be')) {
+      return parsed.pathname.split('/').filter(Boolean)[0] || ''
+    }
+    const fromQuery = parsed.searchParams.get('v')
+    if (fromQuery) return fromQuery
+    const parts = parsed.pathname.split('/').filter(Boolean)
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (['embed', 'shorts', 'live', 'v'].includes(parts[i])) return parts[i + 1]
+    }
+  }
+  catch {
+    /* fall through */
+  }
+  const short = url.match(/youtu\.be\/([^?&/]+)/)
+  const long = url.match(/[?&]v=([^?&/]+)/)
+  const path = url.match(/youtube\.com\/(?:embed|shorts|live|v)\/([^?&/]+)/)
+  return short?.[1] || long?.[1] || path?.[1] || ''
+}
+
 function detectProvider(url: string) {
-  const normalized = url.toLowerCase()
+  const normalized = (url || '').toLowerCase()
   if (normalized.includes('youtube.com') || normalized.includes('youtu.be')) return 'youtube'
   if (normalized.includes('drive.google.com')) return 'gdrive'
   if (normalized.includes('1drv.ms') || normalized.includes('onedrive.live.com')) return 'onedrive'
@@ -92,12 +116,18 @@ function normalizeIframeUrl(url: string) {
   if (!url) return ''
   const provider = detectProvider(url)
   if (provider === 'youtube') {
-    const shortMatch = url.match(/youtu\.be\/([^?&/]+)/)
-    const longMatch = url.match(/[?&]v=([^?&/]+)/)
-    const embedMatch = url.match(/youtube\.com\/embed\/([^?&/]+)/)
-    const id = shortMatch?.[1] || longMatch?.[1] || embedMatch?.[1]
-    // enablejsapi=1 là bắt buộc để YouTube IFrame API hoạt động
-    return id ? `https://www.youtube.com/embed/${id}?enablejsapi=1` : url
+    const id = extractYouTubeId(url)
+    if (!id) return ''
+    const params = new URLSearchParams({
+      enablejsapi: '1',
+      rel: '0',
+      modestbranding: '1',
+      playsinline: '1',
+    })
+    if (import.meta.client && window.location.origin) {
+      params.set('origin', window.location.origin)
+    }
+    return `https://www.youtube.com/embed/${id}?${params.toString()}`
   }
   if (provider === 'gdrive') {
     const fileMatch = url.match(/\/file\/d\/([^/]+)/)
@@ -159,25 +189,31 @@ function loadYouTubeApi(): Promise<void> {
 }
 
 async function initYouTubePlayer() {
-  if (!isYouTube.value) return
-  destroyYouTubePlayer()
+  if (!isYouTube.value || !iframeUrl.value) return
+  if (ytProgressTimer) {
+    clearInterval(ytProgressTimer)
+    ytProgressTimer = null
+  }
+  ytPlayer = null
   await loadYouTubeApi()
   await nextTick()
 
-  const videoId = extractYouTubeId(videoUrl.value)
-  if (!videoId) return
+  const el = document.getElementById(ytContainerId.value)
+  if (!el || !window.YT?.Player) return
 
-  ytPlayer = new window.YT.Player(ytContainerId.value, {
-    videoId,
-    playerVars: {
-      autoplay: props.autoplay ? 1 : 0,
-      rel: 0,
-      modestbranding: 1,
-    },
-    events: {
-      onStateChange: onYtStateChange,
-    },
-  })
+  try {
+    ytPlayer = new window.YT.Player(el, {
+      events: {
+        onReady: (event: any) => {
+          if (props.autoplay) event.target?.playVideo?.()
+        },
+        onStateChange: onYtStateChange,
+      },
+    })
+  }
+  catch {
+    // iframe vẫn phát được dù IFrame API không gắn được
+  }
 }
 
 function onYtStateChange(event: any) {
@@ -221,16 +257,18 @@ async function sendYtProgress(watched_seconds: number, completed: boolean) {
   }
 }
 
-function extractYouTubeId(url: string): string {
-  const short = url.match(/youtu\.be\/([^?&/]+)/)
-  const long  = url.match(/[?&]v=([^?&/]+)/)
-  const embed = url.match(/youtube\.com\/embed\/([^?&/]+)/)
-  return short?.[1] || long?.[1] || embed?.[1] || ''
-}
-
 function destroyYouTubePlayer() {
-  if (ytProgressTimer) { clearInterval(ytProgressTimer); ytProgressTimer = null }
-  ytPlayer?.destroy?.()
+  if (ytProgressTimer) {
+    clearInterval(ytProgressTimer)
+    ytProgressTimer = null
+  }
+  // Không gọi destroy() — nó gỡ iframe Vue đang giữ (mất referrerpolicy → YouTube 153).
+  try {
+    ytPlayer?.stopVideo?.()
+  }
+  catch {
+    /* ignore */
+  }
   ytPlayer = null
 }
 // ───────────────────────────────────────────────────────────────────────────
@@ -250,34 +288,58 @@ watch(() => props.lessonId, () => {
   loadVideo()
 })
 
+function applyPlaybackUrl(url: string, expiresAtIso?: string) {
+  videoUrl.value = url
+  const provider = detectProvider(url)
+  if (provider === 'youtube' && !extractYouTubeId(url)) {
+    error.value = 'Link YouTube không hợp lệ. Dùng youtube.com/watch?v=... hoặc youtu.be/...'
+    return false
+  }
+  if (expiresAtIso && provider === 'file') {
+    expiresAt.value = new Date(expiresAtIso)
+    scheduleRefresh()
+  }
+  return true
+}
+
 const loadVideo = async () => {
   loading.value = true
   error.value = ''
   videoUrl.value = ''
+  expiresAt.value = null
+
+  const immediate = (props.src || '').trim()
+  if (immediate && detectProvider(immediate) !== 'file') {
+    const ok = applyPlaybackUrl(immediate)
+    loading.value = false
+    if (ok && detectProvider(immediate) === 'youtube') {
+      await initYouTubePlayer()
+    }
+    return
+  }
 
   try {
     const response = await useApi<{ url: string; expires_at: string; expires_in: number }>(
       `/courses/${props.courseId}/lessons/${props.lessonId}/video-url`,
-      { token: auth.token }
+      { token: auth.token },
     )
 
-    videoUrl.value = response.url
-    expiresAt.value = new Date(response.expires_at)
+    const ok = applyPlaybackUrl(response.url, response.expires_at)
+    loading.value = false
+    if (!ok) return
 
-    // Schedule URL refresh (2 phút trước khi hết hạn)
-    scheduleRefresh()
-
-    // Khởi tạo YouTube player sau khi có URL
     if (detectProvider(response.url) === 'youtube') {
       await initYouTubePlayer()
-    } else if (props.autoplay) {
+    }
+    else if (props.autoplay) {
       await nextTick()
       videoElement.value?.play()
     }
-
-  } catch (err: any) {
+  }
+  catch (err: any) {
     error.value = err?.data?.message || 'Không thể tải video. Vui lòng thử lại.'
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }

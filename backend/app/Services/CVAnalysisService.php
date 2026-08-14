@@ -311,15 +311,6 @@ class CVAnalysisService
                         }
                     }
                 }
-                if (preg_match_all('/BT(.*?)ET/s', $decoded, $btBlocks)) {
-                    foreach ($btBlocks[1] as $block) {
-                        if (preg_match_all('/\((.*?)\)/s', $block, $btText)) {
-                            foreach ($btText[1] as $fragment) {
-                                $chunks[] = $this->decodePdfText($fragment);
-                            }
-                        }
-                    }
-                }
             }
         }
 

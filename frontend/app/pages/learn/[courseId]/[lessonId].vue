@@ -73,6 +73,7 @@
                   :key="`vid-${lesson.id}`"
                   :course-id="courseId"
                   :lesson-id="lesson.id"
+                  :src="lesson.video_url"
                   class="learn-player-fill"
                   @progress="onPlayerProgress"
                   @ended="onPlayerEnded"
@@ -431,7 +432,9 @@
       </div>
     </Teleport>
 
-    <StudentAiChatbot :course-id="courseId" />
+    <div class="learn-chatbot">
+      <StudentAiChatbot :course-id="courseId" />
+    </div>
   </div>
 </template>
 
@@ -770,6 +773,9 @@ onMounted(init)
 
 <style scoped>
 .learn-shell {
+  --learn-topbar-h: 60px;
+  --learn-bottom-h: 68px;
+  --learn-bottom-safe: calc(var(--learn-bottom-h) + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -942,7 +948,7 @@ onMounted(init)
   display: flex;
   flex-direction: column;
   position: relative;
-  padding-bottom: 80px;
+  padding-bottom: calc(var(--learn-bottom-safe) + 12px);
 }
 
 /* ───── Player ───── */
@@ -1379,7 +1385,7 @@ onMounted(init)
 .learn-qa-fab {
   position: fixed;
   right: calc(400px + 28px);
-  bottom: 96px;
+  bottom: calc(var(--learn-bottom-safe) + 28px);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1407,9 +1413,9 @@ onMounted(init)
   border-left: 1px solid rgba(17, 17, 17, 0.07);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px);
+  height: calc(100dvh - var(--learn-topbar-h) - var(--learn-bottom-safe));
   position: sticky;
-  top: 60px;
+  top: var(--learn-topbar-h);
   overflow: hidden;
 }
 
@@ -1481,7 +1487,7 @@ onMounted(init)
 .learn-section-list {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 24px;
+  padding-bottom: 32px;
   scrollbar-width: thin;
   scrollbar-color: rgba(29, 158, 117, 0.2) transparent;
 }
@@ -1612,8 +1618,10 @@ onMounted(init)
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 68px;
+  box-sizing: border-box;
+  height: var(--learn-bottom-safe);
   padding: 0 32px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-top: 1px solid rgba(17, 17, 17, 0.07);
@@ -1782,9 +1790,10 @@ onMounted(init)
 
   .learn-sidebar {
     position: fixed;
-    top: 60px;
+    top: var(--learn-topbar-h);
     right: 0;
-    bottom: 0;
+    bottom: var(--learn-bottom-safe);
+    height: auto;
     transform: translateX(100%);
     transition: transform 0.25s ease;
     z-index: 60;
@@ -1795,14 +1804,21 @@ onMounted(init)
   .learn-sidebar-backdrop {
     display: block;
     position: fixed;
-    inset: 60px 0 0;
+    inset: var(--learn-topbar-h) 0 var(--learn-bottom-safe) 0;
     background: rgba(17, 17, 17, 0.24);
     z-index: 55;
   }
 
   .learn-bottom { padding-right: 32px; }
   .learn-bottom-hint { display: none; }
-  .learn-qa-fab { right: 24px; bottom: 92px; }
+  .learn-qa-fab { right: 24px; bottom: calc(var(--learn-bottom-safe) + 24px); }
+  .learn-chatbot :deep(.cb) { right: 16px; }
+}
+
+.learn-chatbot :deep(.cb) {
+  bottom: calc(var(--learn-bottom-safe) + 12px);
+  right: calc(400px + 16px);
+  z-index: 45;
 }
 
 @media (max-width: 640px) {

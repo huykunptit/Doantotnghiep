@@ -7,4 +7,5 @@ export default defineNuxtPlugin(() => {
   if (auth.token && (!auth.user || !auth.user.permissions)) {
     auth.fetchMe().catch(() => undefined)
   }
+  useCartStore().hydrate()
 })

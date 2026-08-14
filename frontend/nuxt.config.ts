@@ -81,6 +81,7 @@ export default defineNuxtConfig({
       meta: [
         { name: 'description', content: 'Nền tảng quản trị và học tập ERIPT LMS' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'referrer', content: 'strict-origin-when-cross-origin' },
       ],
       link: [
         // Explicit tag so the tab icon matches the brand logo from first
