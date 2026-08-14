@@ -58,6 +58,21 @@ export default defineNuxtConfig({
     apiInternal: process.env.NUXT_API_INTERNAL || '',
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api',
+      // Bumped at image build time → useful for debugging which build is live
+      buildId: process.env.NUXT_PUBLIC_BUILD_ID || 'dev',
+    },
+  },
+  // HTML/SSR must revalidate after deploy; hashed /_nuxt assets stay cacheable.
+  routeRules: {
+    '/**': {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    },
+    '/_nuxt/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
     },
   },
   app: {
@@ -77,6 +92,10 @@ export default defineNuxtConfig({
         {
           rel: 'stylesheet',
           href: 'https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Roboto+Condensed:wght@500;600;700&display=swap',
+        },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap',
         },
       ],
     },

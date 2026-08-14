@@ -141,7 +141,13 @@ class LessonProgressController extends Controller
         /** @var \App\Models\User $user */
         $user = $request->user();
 
-        $enrollments = Enrollment::with(['course:id,title,thumbnail,price,status,category_id', 'course.category:id,name'])
+        $enrollments = Enrollment::with([
+                'course:id,user_id,title,thumbnail,price,status,category_id',
+                'course.category:id,name',
+                'course.instructor:id,name,avatar',
+                'term:id,name,code,start_date,end_date,is_current,status,academic_year_id',
+                'term.academicYear:id,name',
+            ])
             ->where('user_id', $user->id)
             ->orderByDesc('enrolled_at')
             ->get();
@@ -149,15 +155,34 @@ class LessonProgressController extends Controller
         // Attach progress for each course
         $enriched = $enrollments->map(function (Enrollment $enrollment) use ($user) {
             $course = $enrollment->course;
-            $total = $course->lessons()->count();
-            $completed = LessonProgress::whereIn(
-                'lesson_id',
-                $course->lessons()->pluck('id')
-            )->where('user_id', $user->id)->where('completed', true)->count();
+            if (!$course) {
+                return [
+                    ...$enrollment->toArray(),
+                    'progress' => 0,
+                    'lessons_count' => 0,
+                    'completed_lessons' => 0,
+                ];
+            }
+
+            $lessonIds = $course->lessons()->pluck('id');
+            $total = $lessonIds->count();
+            $completed = $total > 0
+                ? LessonProgress::whereIn('lesson_id', $lessonIds)
+                    ->where('user_id', $user->id)
+                    ->where('completed', true)
+                    ->count()
+                : 0;
+
+            $payload = $enrollment->toArray();
+            if (!empty($payload['term']) && $enrollment->term) {
+                $payload['term']['display_name'] = $enrollment->term->displayName();
+            }
 
             return [
-                ...$enrollment->toArray(),
+                ...$payload,
                 'progress' => $total > 0 ? round($completed / $total * 100, 1) : 0,
+                'lessons_count' => $total,
+                'completed_lessons' => $completed,
             ];
         });
 

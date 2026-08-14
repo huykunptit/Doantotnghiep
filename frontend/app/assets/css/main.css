@@ -3,6 +3,10 @@
   --brand: #0f766e;
   --brand-hover: #0d655e;
   --brand-soft: #e7f5f2;
+  /* Legacy learn-shell tokens (map to brand) */
+  --green: var(--brand);
+  --green-deep: #0d655e;
+  --green-rgb: 15, 118, 110;
   --canvas: #f3f5f7;
   --surface: #ffffff;
   --surface-subtle: #f7f9fa;
@@ -34,11 +38,34 @@
   --p-primary-active-color: #115e59;
 }
 
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 1.25rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  user-select: none;
+}
+
 .dark {
   color-scheme: dark;
   --brand: #44b5a8;
   --brand-hover: #5fc8bb;
   --brand-soft: #163c38;
+  --green: var(--brand);
+  --green-deep: #5fc8bb;
+  --green-rgb: 68, 181, 168;
   --canvas: #0f1414;
   --surface: #171d1c;
   --surface-subtle: #1c2422;

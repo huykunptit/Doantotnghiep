@@ -147,6 +147,8 @@ services:
       target: production
       args:
         NUXT_PUBLIC_API_BASE: /api
+        # Unique per compose build → helps confirm the live image after deploy
+        NUXT_PUBLIC_BUILD_ID: ${NUXT_PUBLIC_BUILD_ID:-manual}
     container_name: lms_frontend
     restart: unless-stopped
     environment:
@@ -228,6 +230,9 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    extra_hosts:
+      # Cho phép nginx gọi deploy-agent trên host (127.0.0.1:9099)
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./backend/public:/var/www/public:ro
