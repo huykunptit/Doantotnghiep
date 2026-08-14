@@ -247,6 +247,7 @@ async def _call_claude(
         "max_tokens": 2048,
         "temperature": temperature,
         "messages": claude_messages,
+        "stream": False,
     }
     if system_text.strip():
         body["system"] = system_text.strip()

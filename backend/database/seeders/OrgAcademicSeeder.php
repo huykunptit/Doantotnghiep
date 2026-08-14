@@ -473,7 +473,17 @@ class OrgAcademicSeeder extends Seeder
                 default => 'CN',
             };
             $codePrefix = 'B' . $shortYear . 'DV' . $majorAbbrev;
-            $studentCode = $this->generateUniqueStudentCode($codePrefix, $usedStudentCodes, $user->id);
+            $currentCode = strtoupper(trim((string) $user->student_code));
+            $canKeepCurrentCode = str_starts_with($currentCode, $codePrefix)
+                && !isset($usedStudentCodes[$currentCode])
+                && !User::query()
+                    ->where('student_code', $currentCode)
+                    ->where('id', '!=', $user->id)
+                    ->exists();
+            $studentCode = $canKeepCurrentCode
+                ? $currentCode
+                : $this->generateUniqueStudentCode($codePrefix, $usedStudentCodes, $user->id);
+            $usedStudentCodes[$studentCode] = true;
             // Giữ student1@lms.com … student16@lms.com cho 16 SV demo gốc (theo tên trong UserSeeder)
             $demoNames = array_slice(\Database\Seeders\UserSeeder::studentNames(), 0, \Database\Seeders\UserSeeder::DEMO_LMS_STUDENT_COUNT);
             $demoIndex = array_search($user->name, $demoNames, true);
@@ -514,8 +524,10 @@ class OrgAcademicSeeder extends Seeder
      */
     private function generateUniqueStudentCode(string $prefix, array &$used, ?int $exceptUserId = null): string
     {
-        for ($attempt = 0; $attempt < 2000; $attempt++) {
-            $suffix = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+        for ($attempt = 0; $attempt < 1000; $attempt++) {
+            // Deterministic by user id so repeated demo seeds keep the same student code.
+            $number = (((int) $exceptUserId * 97) + $attempt) % 1000;
+            $suffix = str_pad((string) $number, 3, '0', STR_PAD_LEFT);
             $code = $prefix . $suffix;
             if (isset($used[$code])) {
                 continue;

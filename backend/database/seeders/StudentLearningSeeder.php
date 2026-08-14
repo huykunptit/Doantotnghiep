@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AdministrativeClassTerm;
 use App\Models\AssignmentSubmission;
 use App\Models\CareerPath;
 use App\Models\Enrollment;
@@ -15,6 +16,7 @@ use App\Models\OfflineSessionAttendance;
 use App\Models\PointTransaction;
 use App\Models\Quiz;
 use App\Models\QuizAttempt;
+use App\Models\Term;
 use App\Models\User;
 use App\Models\UserCareerPath;
 use App\Services\PointService;
@@ -315,20 +317,22 @@ class StudentLearningSeeder extends Seeder
 
     public function run(): void
     {
+        $currentOnly = (bool) config('demo.student_learning_current_only', false);
         $students = User::query()
             ->where('user_type', 'student')
-            ->where('email', 'like', 'student%@lms.com')
             ->with(['cohort', 'administrativeClass'])
             ->orderBy('email')
             ->get();
 
         if ($students->isEmpty()) {
             $this->command?->warn('StudentLearningSeeder: chua co student demo.');
+
             return;
         }
 
         $paths = CareerPath::query()->get()->keyBy('slug');
         $instructorId = User::query()->where('user_type', 'instructor')->orderBy('id')->value('id');
+        $operationalTerm = $this->resolveOperationalTerm();
 
         $stats = [
             'students' => 0,
@@ -351,7 +355,7 @@ class StudentLearningSeeder extends Seeder
                     $q->whereNull('enrollment_source')
                         ->orWhere('enrollment_source', '!=', 'marketplace');
                 })
-                ->with(['course:id,title,status', 'course.lessons'])
+                ->with(['course:id,title,status', 'course.lessons', 'term'])
                 ->get();
 
             $currentTermNumber = $this->resolveCurrentTermNumber($student);
@@ -360,35 +364,46 @@ class StudentLearningSeeder extends Seeder
 
             foreach ($enrollments as $enrollment) {
                 $course = $enrollment->course;
-                if (!$course) {
+                if (! $course) {
                     continue;
                 }
 
                 $termNumber = $termByCourseId[$course->id] ?? null;
-                $isPast = $termNumber !== null && $currentTermNumber !== null
-                    ? ((int) $termNumber < (int) $currentTermNumber)
-                    : true;
+                $isPast = $enrollment->term && $operationalTerm
+                    ? $enrollment->term->end_date?->lt($operationalTerm->start_date)
+                    : ($termNumber !== null && $currentTermNumber !== null
+                        ? ((int) $termNumber < (int) $currentTermNumber)
+                        : true);
+                $isCurrent = $operationalTerm && (int) $enrollment->term_id === (int) $operationalTerm->id;
+
+                if ($currentOnly && ! $isCurrent) {
+                    continue;
+                }
 
                 $targetScore = $this->scoreForCourse($persona, (string) $course->title, (int) $student->id, (int) $course->id);
 
                 if ($isPast) {
                     $stats['grades'] += $this->seedPastGrades($enrollment, $targetScore, $instructorId);
-                } else {
+                } elseif ($isCurrent) {
                     // Ky dang hoc: xoa diem thanh phan de final_score = null
                     // (evaluation / learning-path van coi la "dang hoc")
                     $stats['grades'] += $this->clearCurrentGrades($enrollment);
                 }
 
-                $courseStats = $this->seedCourseActivity($student, $enrollment, $persona, $isPast, $targetScore);
-                $stats['progress'] += $courseStats['progress'];
-                $stats['assignments'] += $courseStats['assignments'];
-                $stats['attendance'] += $courseStats['attendance'];
-                $stats['attempts'] += $courseStats['attempts'];
+                if ($isCurrent) {
+                    $courseStats = $this->seedCourseActivity($student, $enrollment, $persona, false, $targetScore);
+                    $stats['progress'] += $courseStats['progress'];
+                    $stats['assignments'] += $courseStats['assignments'];
+                    $stats['attendance'] += $courseStats['attendance'];
+                    $stats['attempts'] += $courseStats['attempts'];
+                }
             }
 
             $stats['points'] += $this->seedPointsAndStreak($student, $persona);
             $stats['paths'] += $this->seedCareerPath($student, $persona, $paths);
-            $stats['attempts'] += $this->alignExamAttempts($student, $persona);
+            if (! $currentOnly) {
+                $stats['attempts'] += $this->alignExamAttempts($student, $persona);
+            }
         }
 
         $this->command?->info(sprintf(
@@ -403,25 +418,29 @@ class StudentLearningSeeder extends Seeder
             $stats['paths'],
         ));
 
-        $this->command?->table(
-            ['Email', 'Ho ten', 'Persona', 'Level', 'Base', 'Engagement'],
-            $students->map(function (User $s) {
-                $p = self::PERSONAS[$s->email] ?? $this->fallbackPersona($s);
-                return [
-                    $s->email,
-                    $s->name,
-                    $p['label'],
-                    $p['level'],
-                    $p['base'],
-                    $p['engagement'],
-                ];
-            })->all()
-        );
+        if (! $currentOnly) {
+            $this->command?->table(
+                ['Email', 'Ho ten', 'Persona', 'Level', 'Base', 'Engagement'],
+                $students->map(function (User $s) {
+                    $p = self::PERSONAS[$s->email] ?? $this->fallbackPersona($s);
+
+                    return [
+                        $s->email,
+                        $s->name,
+                        $p['label'],
+                        $p['level'],
+                        $p['base'],
+                        $p['engagement'],
+                    ];
+                })->all()
+            );
+        }
     }
 
     private function fallbackPersona(User $student): array
     {
-        $n = (int) preg_replace('/\D+/', '', (string) $student->email) ?: $student->id;
+        $digits = (int) preg_replace('/\D+/', '', (string) $student->email);
+        $n = $digits > 0 ? $digits : (int) sprintf('%u', crc32(strtolower((string) $student->email)));
 
         return [
             'label' => 'Mac dinh',
@@ -441,9 +460,42 @@ class StudentLearningSeeder extends Seeder
 
     private function resolveCurrentTermNumber(User $student): int
     {
-        $startYear = (int) ($student->cohort?->start_year ?? 2024);
+        $operationalTerm = $this->resolveOperationalTerm();
+        if ($operationalTerm && $student->administrative_class_id) {
+            $mapped = AdministrativeClassTerm::query()
+                ->where('administrative_class_id', $student->administrative_class_id)
+                ->where('term_id', $operationalTerm->id)
+                ->value('term_number');
+            if ($mapped !== null) {
+                return (int) $mapped;
+            }
+        }
 
-        return $startYear <= 2023 ? 5 : 3;
+        return 1;
+    }
+
+    private function resolveOperationalTerm(): ?Term
+    {
+        $today = today();
+
+        return Term::query()
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderByDesc('is_current')
+            ->orderByDesc('start_date')
+            ->first()
+            ?? Term::query()
+                ->whereNotNull('enrollment_start_at')
+                ->whereDate('enrollment_start_at', '<=', $today)
+                ->whereDate('start_date', '>=', $today)
+                ->orderBy('start_date')
+                ->first()
+            ?? Term::query()
+                ->whereDate('start_date', '>=', $today)
+                ->orderBy('start_date')
+                ->first()
+            ?? Term::query()->where('is_current', true)->latest('start_date')->first()
+            ?? Term::query()->latest('end_date')->first();
     }
 
     /**
@@ -451,7 +503,7 @@ class StudentLearningSeeder extends Seeder
      */
     private function termMapForCurriculum(?int $curriculumId): array
     {
-        if (!$curriculumId) {
+        if (! $curriculumId) {
             return [];
         }
 
@@ -492,15 +544,15 @@ class StudentLearningSeeder extends Seeder
     {
         $value = mb_strtolower(trim($value));
         $map = [
-            'à'=>'a','á'=>'a','ả'=>'a','ã'=>'a','ạ'=>'a','ă'=>'a','ằ'=>'a','ắ'=>'a','ẳ'=>'a','ẵ'=>'a','ặ'=>'a',
-            'â'=>'a','ầ'=>'a','ấ'=>'a','ẩ'=>'a','ẫ'=>'a','ậ'=>'a',
-            'è'=>'e','é'=>'e','ẻ'=>'e','ẽ'=>'e','ẹ'=>'e','ê'=>'e','ề'=>'e','ế'=>'e','ể'=>'e','ễ'=>'e','ệ'=>'e',
-            'ì'=>'i','í'=>'i','ỉ'=>'i','ĩ'=>'i','ị'=>'i',
-            'ò'=>'o','ó'=>'o','ỏ'=>'o','õ'=>'o','ọ'=>'o','ô'=>'o','ồ'=>'o','ố'=>'o','ổ'=>'o','ỗ'=>'o','ộ'=>'o',
-            'ơ'=>'o','ờ'=>'o','ớ'=>'o','ở'=>'o','ỡ'=>'o','ợ'=>'o',
-            'ù'=>'u','ú'=>'u','ủ'=>'u','ũ'=>'u','ụ'=>'u','ư'=>'u','ừ'=>'u','ứ'=>'u','ử'=>'u','ữ'=>'u','ự'=>'u',
-            'ỳ'=>'y','ý'=>'y','ỷ'=>'y','ỹ'=>'y','ỵ'=>'y',
-            'đ'=>'d',
+            'à' => 'a', 'á' => 'a', 'ả' => 'a', 'ã' => 'a', 'ạ' => 'a', 'ă' => 'a', 'ằ' => 'a', 'ắ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a', 'ặ' => 'a',
+            'â' => 'a', 'ầ' => 'a', 'ấ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a', 'ậ' => 'a',
+            'è' => 'e', 'é' => 'e', 'ẻ' => 'e', 'ẽ' => 'e', 'ẹ' => 'e', 'ê' => 'e', 'ề' => 'e', 'ế' => 'e', 'ể' => 'e', 'ễ' => 'e', 'ệ' => 'e',
+            'ì' => 'i', 'í' => 'i', 'ỉ' => 'i', 'ĩ' => 'i', 'ị' => 'i',
+            'ò' => 'o', 'ó' => 'o', 'ỏ' => 'o', 'õ' => 'o', 'ọ' => 'o', 'ô' => 'o', 'ồ' => 'o', 'ố' => 'o', 'ổ' => 'o', 'ỗ' => 'o', 'ộ' => 'o',
+            'ơ' => 'o', 'ờ' => 'o', 'ớ' => 'o', 'ở' => 'o', 'ỡ' => 'o', 'ợ' => 'o',
+            'ù' => 'u', 'ú' => 'u', 'ủ' => 'u', 'ũ' => 'u', 'ụ' => 'u', 'ư' => 'u', 'ừ' => 'u', 'ứ' => 'u', 'ử' => 'u', 'ữ' => 'u', 'ự' => 'u',
+            'ỳ' => 'y', 'ý' => 'y', 'ỷ' => 'y', 'ỹ' => 'y', 'ỵ' => 'y',
+            'đ' => 'd',
         ];
 
         return strtr($value, $map);
@@ -590,12 +642,14 @@ class StudentLearningSeeder extends Seeder
             $done = $index < $completeCount;
             $percent = $done ? 100 : (int) max(0, min(95, round(($engagement * 40) + (($index * 7) % 30))));
 
-            // At-risk: mon dang hoc + engagement thap -> khong tao progress gan day
-            if (!$isPast && $engagement < 0.35 && $index > 0) {
+            // At-risk: kỳ đang học + engagement thấp → không có bài hoàn thành gần đây
+            // để báo cáo L&D /advisor at-risk có dữ liệu thật.
+            if (! $isPast && $engagement < 0.35) {
                 LessonProgress::query()
                     ->where('user_id', $student->id)
                     ->where('lesson_id', $lesson->id)
                     ->delete();
+
                 continue;
             }
 
@@ -653,16 +707,17 @@ class StudentLearningSeeder extends Seeder
         $assignmentLessons = $lessons->where('type', 'assignment');
         foreach ($assignmentLessons as $aLesson) {
             $assignment = LessonAssignment::query()->where('lesson_id', $aLesson->id)->first();
-            if (!$assignment) {
+            if (! $assignment) {
                 continue;
             }
 
             $shouldSubmit = (($student->id + $assignment->id) % 100) < (int) round($persona['assignment'] * 100);
-            if (!$shouldSubmit) {
+            if (! $shouldSubmit) {
                 AssignmentSubmission::query()
                     ->where('user_id', $student->id)
                     ->where('lesson_assignment_id', $assignment->id)
                     ->delete();
+
                 continue;
             }
 
@@ -673,8 +728,8 @@ class StudentLearningSeeder extends Seeder
                     'lesson_assignment_id' => $assignment->id,
                 ],
                 [
-                    'file_url' => 'https://example.com/submissions/' . $student->id . '-' . $assignment->id . '.pdf',
-                    'student_note' => 'Nop bai demo - ' . $persona['label'],
+                    'file_url' => 'https://example.com/submissions/'.$student->id.'-'.$assignment->id.'.pdf',
+                    'student_note' => 'Nop bai demo - '.$persona['label'],
                     'grade' => $isPast || $persona['engagement'] >= 0.5 ? $grade : null,
                     'feedback' => $isPast ? 'Da cham diem demo.' : null,
                     'submitted_at' => now()->subDays(2 + (($student->id + $assignment->id) % 12)),
@@ -689,12 +744,12 @@ class StudentLearningSeeder extends Seeder
             $session = OfflineSession::query()->updateOrCreate(
                 [
                     'lesson_id' => $oLesson->id,
-                    'title' => 'Buoi offline demo - ' . ($enrollment->course?->title ?? $oLesson->title),
+                    'title' => 'Buoi offline demo - '.($enrollment->course?->title ?? $oLesson->title),
                 ],
                 [
                     'class_section_id' => $enrollment->class_section_id,
-                    'location' => 'Phong Lab A' . (1 + ($oi % 3)) . ' - PTIT',
-                    'room' => 'A' . (201 + $oi),
+                    'location' => 'Phong Lab A'.(1 + ($oi % 3)).' - PTIT',
+                    'room' => 'A'.(201 + $oi),
                     'start_at' => now()->subDays(5 + $oi * 7)->setTime(8, 30),
                     'duration' => 120,
                     'max_participants' => 40,
@@ -710,11 +765,12 @@ class StudentLearningSeeder extends Seeder
             );
 
             $present = (($student->id + $session->id) % 100) < (int) round($persona['attendance'] * 100);
-            if (!$present) {
+            if (! $present) {
                 OfflineSessionAttendance::query()
                     ->where('user_id', $student->id)
                     ->where('offline_session_id', $session->id)
                     ->delete();
+
                 continue;
             }
 
@@ -741,7 +797,10 @@ class StudentLearningSeeder extends Seeder
 
     private function seedPointsAndStreak(User $student, array $persona): int
     {
-        PointTransaction::query()->where('user_id', $student->id)->delete();
+        PointTransaction::query()
+            ->where('user_id', $student->id)
+            ->where('description', 'like', '% (seed)')
+            ->delete();
 
         $target = (int) $persona['points'];
         $created = 0;
@@ -768,7 +827,7 @@ class StudentLearningSeeder extends Seeder
                 'type' => 'earn',
                 'action' => $action[0],
                 'amount' => $amount,
-                'description' => $action[1] . ' (seed)',
+                'description' => $action[1].' (seed)',
                 'created_at' => now()->subDays($day),
                 'updated_at' => now()->subDays($day),
             ]);
@@ -803,6 +862,7 @@ class StudentLearningSeeder extends Seeder
             // At-risk: mot so bai khong nop
             if ($persona['level'] === 'struggling' && (($student->id + $attempt->quiz_id) % 3 === 0)) {
                 $attempt->delete();
+
                 continue;
             }
 
@@ -820,7 +880,7 @@ class StudentLearningSeeder extends Seeder
     private function seedCareerPath(User $student, array $persona, $paths): int
     {
         $slug = $persona['path'] ?? null;
-        if (!$slug || !$paths->has($slug)) {
+        if (! $slug || ! $paths->has($slug)) {
             return 0;
         }
 

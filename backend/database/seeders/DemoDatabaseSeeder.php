@@ -28,15 +28,13 @@ class DemoDatabaseSeeder extends Seeder
             CourseContentSeeder::class,
             QuestionBankSeeder::class,
             TrainingProgramSeeder::class,
-            AcademicSeeder::class,
-            AcademicExtrasSeeder::class,
             MarketplaceSeeder::class,
             CareerSeeder::class,
             NotificationSeeder::class,
             CertificateTemplateSeeder::class,
             CareerPathSeeder::class,
             CourseFrameworkSeeder::class,
-            StudentLearningSeeder::class,
+            AcademicDemoDataSeeder::class,
             NewsSeeder::class,
         ]);
     }
