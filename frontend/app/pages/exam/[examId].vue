@@ -48,6 +48,7 @@ const status = ref('in_progress')
 const questions = ref<QuestionItem[]>([])
 const answers = ref<Record<string, any>>({})
 const currentIndex = ref(0)
+const bookmarks = ref<Record<number, boolean>>({})
 const focusLoss = ref(0)
 const MAX_FOCUS_LOSS = 3
 const FOCUS_LOSS_COOLDOWN_MS = 1500
@@ -75,9 +76,26 @@ const timerDisplay = computed(() => {
 })
 
 const timerUrgent = computed(() => remainingTime.value !== null && remainingTime.value < 300)
+const unansweredCount = computed(() => Math.max(0, questions.value.length - answeredCount.value))
+const bookmarkedCount = computed(() => Object.values(bookmarks.value).filter(Boolean).length)
+const isCurrentBookmarked = computed(() => {
+  const id = current.value?.id
+  return id ? !!bookmarks.value[id] : false
+})
 
 function stripHtml(html: string) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function isQuestionAnswered(qid: number) {
+  const v = answers.value[qid]
+  return v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && !v.length)
+}
+
+function toggleBookmark(qid?: number) {
+  const id = qid ?? current.value?.id
+  if (!id) return
+  bookmarks.value = { ...bookmarks.value, [id]: !bookmarks.value[id] }
 }
 
 function typeLabel(type: string) {
@@ -499,22 +517,6 @@ onBeforeUnmount(() => {
       <div class="monitor-badge"><span class="monitor-dot" />{{ t('exam.proctoringActive') }}</div>
     </div>
 
-    <header class="exam-bar">
-      <div class="left">
-        <strong>{{ examTitle || t('exam.title') }}</strong>
-        <small v-if="autoSaveStatus">{{ autoSaveStatus }}</small>
-      </div>
-      <div class="right">
-        <span v-if="proctoring" class="proctor-badge" :title="t('exam.proctoringActive')">
-          <i class="pi pi-video" /> {{ t('exam.proctoringActive') }}
-        </span>
-        <span v-if="focusLoss" class="focus-pill">{{ t('exam.focusPill', { n: focusLoss, max: MAX_FOCUS_LOSS }) }}</span>
-        <span class="progress">{{ answeredCount }}/{{ questions.length }}</span>
-        <span class="timer" :class="{ urgent: timerUrgent }"><i class="pi pi-clock" /> {{ timerDisplay }}</span>
-        <Button :label="t('exam.submit')" icon="pi pi-send" :loading="submitting" :disabled="loading || !!error" @click="askSubmit" />
-      </div>
-    </header>
-
     <div
       v-if="focusBannerVisible && focusLoss"
       class="focus-banner"
@@ -555,107 +557,284 @@ onBeforeUnmount(() => {
       <Button :label="t('exam.back')" severity="secondary" @click="navigateTo('/student/exams')" />
     </div>
 
-    <div v-else class="exam-body">
-      <aside class="nav">
-        <button
-          v-for="(q, i) in questions"
-          :key="q.id"
-          type="button"
-          class="nav-btn"
-          :class="{
-            active: i === currentIndex,
-            done: answers[q.id] !== undefined && answers[q.id] !== null && answers[q.id] !== '',
-          }"
-          @click="currentIndex = i"
-        >
-          {{ i + 1 }}
-        </button>
-      </aside>
-
-      <main v-if="current" class="question">
-        <div class="q-meta">
-          <Tag :value="typeLabel(current.type)" severity="secondary" />
-          <span>{{ t('exam.questionN', { n: currentIndex + 1 }) }}</span>
+    <div v-else class="exam-workspace">
+      <header class="exam-topbar">
+        <div class="exam-topbar__title">
+          <p class="exam-kicker">{{ t('exam.workspaceKicker') }}</p>
+          <h1>{{ examTitle || t('exam.title') }}</h1>
+          <div class="exam-meta">
+            <span>{{ t('exam.answeredMeta', { answered: answeredCount, total: questions.length }) }}</span>
+            <span>{{ t('exam.unansweredMeta', { n: unansweredCount }) }}</span>
+            <span v-if="bookmarkedCount > 0">{{ t('exam.bookmarkedMeta', { n: bookmarkedCount }) }}</span>
+            <span v-if="autoSaveStatus" class="autosave">{{ autoSaveStatus }}</span>
+          </div>
+          <div v-if="focusLoss" class="exam-warning">
+            <i class="pi pi-exclamation-triangle" />
+            {{ t('exam.focusCount', { n: focusLoss, max: MAX_FOCUS_LOSS }) }}
+          </div>
         </div>
-        <h2>{{ stripHtml(current.content) }}</h2>
-
-        <div v-if="current.type === 'multiple_choice'" class="opts">
-          <label v-for="opt in current.answers || []" :key="opt.id" class="opt">
-            <Checkbox
-              :model-value="(answers[current.id] || []).includes(opt.id)"
-              :binary="true"
-              @update:model-value="toggleMulti(current.id, opt.id)"
-            />
-            <span>{{ stripHtml(opt.content) }}</span>
-          </label>
+        <div class="exam-topbar__actions">
+          <span v-if="proctoring" class="proctor-badge" :title="t('exam.proctoringActive')">
+            <i class="pi pi-video" /> {{ t('exam.proctoringActive') }}
+          </span>
+          <div class="exam-timer" :class="{ urgent: timerUrgent }">
+            <i class="pi pi-clock" />
+            <strong>{{ timerDisplay }}</strong>
+          </div>
+          <button type="button" class="exam-submit-btn" :disabled="loading || submitting || !!error" @click="askSubmit">
+            {{ submitting ? '…' : t('exam.submit') }}
+          </button>
         </div>
+      </header>
 
-        <div v-else-if="['single_choice', 'true_false'].includes(current.type)" class="opts">
-          <label v-for="opt in current.answers || []" :key="opt.id" class="opt">
-            <RadioButton
-              :model-value="answers[current.id]"
-              :input-id="`a-${opt.id}`"
-              :value="opt.id"
-              @update:model-value="selectAnswer(current.id, $event)"
-            />
-            <label :for="`a-${opt.id}`">{{ stripHtml(opt.content) }}</label>
-          </label>
-        </div>
+      <div class="exam-layout">
+        <aside class="exam-sidebar">
+          <div class="exam-sidebar__card">
+            <h3>{{ t('exam.navTitle') }}</h3>
+            <p>{{ t('exam.navHint') }}</p>
+            <div class="question-nav">
+              <button
+                v-for="(q, i) in questions"
+                :key="q.id"
+                type="button"
+                class="q-nav-btn"
+                :class="{
+                  active: i === currentIndex,
+                  answered: isQuestionAnswered(q.id),
+                  bookmarked: !!bookmarks[q.id],
+                }"
+                :title="bookmarks[q.id] ? t('exam.bookmarked') : ''"
+                @click="currentIndex = i"
+              >
+                <span>{{ i + 1 }}</span>
+                <i v-if="bookmarks[q.id]" class="pi pi-bookmark-fill q-nav-flag" aria-hidden="true" />
+              </button>
+            </div>
+            <div class="question-nav-legend">
+              <span><i class="legend-dot legend-answered" /> {{ t('exam.legendAnswered') }}</span>
+              <span><i class="legend-dot legend-bookmark" /> {{ t('exam.legendBookmark') }}</span>
+            </div>
+          </div>
+        </aside>
 
-        <div v-else class="text-ans">
-          <Textarea
-            :model-value="answers[current.id] || ''"
-            rows="5"
-            auto-resize
-            class="w-full"
-            :placeholder="t('exam.writeAnswer')"
-            @update:model-value="selectAnswer(current.id, $event)"
-          />
-        </div>
+        <main v-if="current" class="exam-main">
+          <div class="question-panel">
+            <div class="question-panel__header">
+              <div>
+                <p class="exam-kicker">{{ t('exam.questionOf', { n: currentIndex + 1, total: questions.length }) }}</p>
+                <h2>{{ examTitle || t('exam.title') }}</h2>
+              </div>
+              <div class="question-panel__head-actions">
+                <button
+                  type="button"
+                  class="bookmark-btn"
+                  :class="{ 'is-active': isCurrentBookmarked }"
+                  @click="toggleBookmark()"
+                >
+                  <i :class="isCurrentBookmarked ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'" />
+                  <span>{{ isCurrentBookmarked ? t('exam.bookmarked') : t('exam.bookmark') }}</span>
+                </button>
+                <span class="question-type">{{ typeLabel(current.type) }}</span>
+              </div>
+            </div>
 
-        <div class="q-actions">
-          <Button :label="t('exam.prev')" icon="pi pi-arrow-left" severity="secondary" outlined :disabled="currentIndex === 0" @click="currentIndex--" />
-          <Button
-            v-if="currentIndex < questions.length - 1"
-            :label="t('exam.next')"
-            icon="pi pi-arrow-right"
-            icon-pos="right"
-            @click="currentIndex++"
-          />
-          <Button v-else :label="t('exam.submit')" icon="pi pi-send" :loading="submitting" @click="askSubmit" />
-        </div>
-      </main>
+            <div class="question-content">{{ stripHtml(current.content) }}</div>
+
+            <div v-if="current.type === 'multiple_choice'" class="answer-list">
+              <label
+                v-for="opt in current.answers || []"
+                :key="opt.id"
+                class="answer-option"
+                :class="{ selected: (answers[current.id] || []).includes(opt.id) }"
+              >
+                <Checkbox
+                  :model-value="(answers[current.id] || []).includes(opt.id)"
+                  :binary="true"
+                  @update:model-value="toggleMulti(current.id, opt.id)"
+                />
+                <span>{{ stripHtml(opt.content) }}</span>
+              </label>
+            </div>
+
+            <div v-else-if="['single_choice', 'true_false'].includes(current.type)" class="answer-list">
+              <label
+                v-for="opt in current.answers || []"
+                :key="opt.id"
+                class="answer-option"
+                :class="{ selected: answers[current.id] === opt.id }"
+              >
+                <RadioButton
+                  :model-value="answers[current.id]"
+                  :input-id="`a-${opt.id}`"
+                  :value="opt.id"
+                  @update:model-value="selectAnswer(current.id, $event)"
+                />
+                <label :for="`a-${opt.id}`">{{ stripHtml(opt.content) }}</label>
+              </label>
+            </div>
+
+            <div v-else class="answer-input">
+              <Textarea
+                :model-value="answers[current.id] || ''"
+                rows="5"
+                auto-resize
+                class="exam-text-input"
+                :placeholder="t('exam.writeAnswer')"
+                @update:model-value="selectAnswer(current.id, $event)"
+              />
+            </div>
+
+            <div class="question-nav-buttons">
+              <button type="button" class="nav-btn" :disabled="currentIndex === 0" @click="currentIndex--">
+                ← {{ t('exam.prev') }}
+              </button>
+              <button
+                v-if="currentIndex < questions.length - 1"
+                type="button"
+                class="nav-btn nav-btn--primary"
+                @click="currentIndex++"
+              >
+                {{ t('exam.next') }} →
+              </button>
+              <button
+                v-else
+                type="button"
+                class="exam-submit-btn"
+                :disabled="submitting"
+                @click="askSubmit"
+              >
+                {{ t('exam.submit') }}
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .exam-shell {
+  --green: #0f766e;
+  --green-deep: #0d9488;
+  --green-rgb: 15, 118, 110;
   min-height: 100vh;
-  background: linear-gradient(160deg, #0f766e12, #0b122014 40%, #fff 100%);
-  color: var(--text, #10221f);
+  background: #f8fbff;
+  color: #0f172a;
 }
-.exam-bar {
-  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center;
-  padding: 12px 18px; border-bottom: 1px solid var(--border, #d7e2df);
-  background: color-mix(in srgb, var(--surface, #fff) 92%, transparent);
+.exam-topbar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem;
+  padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(var(--green-rgb), 0.12);
+  background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(18px);
   position: sticky; top: 0; z-index: 10;
 }
-.left { display: grid; gap: 2px; }
-.left strong { font-size: 1.05rem; }
-.left small { color: var(--text-muted, #5b6f6b); }
-.right { display: flex; align-items: center; gap: 12px; }
-.progress { font-weight: 700; }
+.exam-topbar__title h1 { margin: 0; font-size: 1.35rem; }
+.exam-kicker {
+  margin: 0 0 0.35rem; color: var(--green); font-size: 0.76rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.12em;
+}
+.exam-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.45rem; color: #64748b; font-size: 0.92rem; }
+.exam-meta .autosave { color: var(--green); font-weight: 600; }
+.exam-warning {
+  display: flex; align-items: center; gap: 0.35rem; margin-top: 0.5rem;
+  color: #dc2626; font-size: 0.8rem; font-weight: 700;
+}
+.exam-topbar__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.exam-timer {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem;
+  border-radius: 16px; background: #14213d; color: #fff;
+  box-shadow: 0 10px 24px rgba(20, 33, 61, 0.16); font-variant-numeric: tabular-nums;
+}
+.exam-timer.urgent { background: #d71920; animation: pulse 1s infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); } }
+.exam-submit-btn, .nav-btn { border: none; cursor: pointer; transition: 0.2s ease; font: inherit; }
+.exam-submit-btn {
+  padding: 0.9rem 1.2rem; border-radius: 14px; background: var(--green); color: #fff;
+  font-weight: 800; box-shadow: 0 10px 24px rgba(var(--green-rgb), 0.22);
+}
+.exam-submit-btn:hover:not(:disabled), .nav-btn--primary:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.03); }
+.exam-submit-btn:disabled, .nav-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.exam-layout {
+  display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 1.5rem;
+  padding: 1.5rem; max-width: 1280px; margin: 0 auto;
+}
+.exam-sidebar__card, .question-panel {
+  border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92); box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+}
+.exam-sidebar__card { position: sticky; top: 1.5rem; padding: 1.25rem; align-self: start; }
+.exam-sidebar__card h3 { margin: 0 0 0.45rem; }
+.exam-sidebar__card p { margin: 0 0 1rem; color: #64748b; font-size: 0.92rem; line-height: 1.6; }
+
+.question-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; }
+.q-nav-btn {
+  position: relative; min-height: 44px; border: 1px solid #dbe6f5; border-radius: 14px;
+  background: #fff; color: #475569; font-weight: 800; cursor: pointer;
+}
+.q-nav-btn.active { background: rgba(var(--green-rgb), 0.05); color: var(--green); border-color: #90caf9; }
+.q-nav-btn.answered { background: #ecfdf3; color: var(--green-deep); border-color: #86efac; }
+.q-nav-btn.active.answered { box-shadow: inset 0 0 0 1px var(--green); }
+.q-nav-btn.bookmarked { border-color: #f59e0b; box-shadow: inset 0 0 0 1px #fbbf24; }
+.q-nav-flag {
+  position: absolute; top: -6px; right: -6px; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; background: #f59e0b; color: #fff; font-size: 10px;
+}
+
+.question-nav-legend {
+  display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 0.85rem; padding-top: 0.85rem;
+  border-top: 1px dashed #dbe6f5; color: #64748b; font-size: 0.78rem;
+}
+.question-nav-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.legend-answered { background: #ecfdf3; border: 1px solid #86efac; }
+.legend-bookmark { background: #fff; border: 1px solid #f59e0b; box-shadow: inset 0 0 0 1px #fbbf24; }
+
+.question-panel { padding: 1.5rem; }
+.question-panel__header, .question-nav-buttons { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.question-panel__header h2 { margin: 0; font-size: 1.15rem; }
+.question-panel__head-actions { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+.bookmark-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 0.85rem;
+  border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; color: #64748b;
+  font-weight: 700; font-size: 0.85rem; cursor: pointer;
+}
+.bookmark-btn.is-active { background: #fffbeb; border-color: #f59e0b; color: #b45309; }
+.question-type {
+  padding: 0.45rem 0.9rem; border-radius: 999px; background: rgba(var(--green-rgb), 0.05);
+  color: #1558b0; font-size: 0.82rem; font-weight: 700;
+}
+.question-content {
+  margin: 1.5rem 0; padding: 1.25rem; border-radius: 20px; background: #f8fbff;
+  border: 1px solid #dbe6f5; font-size: 1.05rem; line-height: 1.75; white-space: pre-wrap;
+}
+.answer-list { display: grid; gap: 0.85rem; }
+.answer-option {
+  display: flex; align-items: flex-start; gap: 0.8rem; padding: 1rem 1.1rem;
+  border: 1px solid #dbe6f5; border-radius: 18px; background: #fff; cursor: pointer; transition: 0.2s ease;
+}
+.answer-option:hover { border-color: #90caf9; background: #f8fbff; }
+.answer-option.selected {
+  border-color: var(--green); background: rgba(var(--green-rgb), 0.05);
+  box-shadow: inset 0 0 0 1px rgba(var(--green-rgb), 0.12);
+}
+.answer-input { margin-top: 0.25rem; }
+.exam-text-input {
+  width: 100%; min-height: 56px; padding: 1rem 1.1rem; border: 1px solid #cbd5e1;
+  border-radius: 18px; background: #fff; font: inherit; resize: vertical;
+}
+.question-nav-buttons { margin-top: 1.5rem; }
+.nav-btn {
+  padding: 0.9rem 1.2rem; border-radius: 14px; background: #fff; color: #334155;
+  border: 1px solid #dbe6f5; font-weight: 700;
+}
+.nav-btn:hover:not(:disabled) { border-color: #90caf9; color: var(--green); }
+.nav-btn--primary { background: #14213d; color: #fff; border-color: #14213d; }
+
 .proctor-badge {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700;
   background: color-mix(in srgb, #dc2626 12%, transparent); color: #b91c1c;
-}
-.proctor-badge i { font-size: .85rem; }
-.focus-pill {
-  display: inline-flex; align-items: center;
-  padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700;
-  background: #fee2e2; color: #b91c1c;
 }
 .focus-banner {
   display: flex; align-items: center; gap: 10px;
@@ -663,7 +842,6 @@ onBeforeUnmount(() => {
   background: #fef3c7; color: #92400e; border-bottom: 1px solid #fde68a;
 }
 .focus-banner.critical { background: #fee2e2; color: #991b1b; border-bottom-color: #fecaca; }
-.focus-banner i { flex-shrink: 0; }
 .focus-banner span { flex: 1; }
 .focus-dismiss {
   border: 0; background: transparent; color: inherit; cursor: pointer;
@@ -688,46 +866,20 @@ onBeforeUnmount(() => {
 }
 .monitor-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; animation: monitor-pulse 1.6s ease-in-out infinite; }
 @keyframes monitor-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
-@media (max-width: 720px) { .monitor-widget { width: 108px; right: 10px; bottom: 10px; } }
-.timer { font-weight: 800; font-variant-numeric: tabular-nums; display: inline-flex; gap: 6px; align-items: center; }
-.timer.urgent { color: #dc2626; }
 .center { min-height: 60vh; display: grid; place-content: center; gap: 12px; text-align: center; }
 .error-box { color: #b91c1c; }
 .face-gate { padding: 16px; }
 .face-gate-card {
   width: min(560px, 92vw); text-align: left; padding: 24px;
-  border: 1px solid var(--border, #d7e2df); border-radius: 18px;
-  background: color-mix(in srgb, #fff 96%, transparent);
+  border: 1px solid #d7e2df; border-radius: 18px; background: rgba(255, 255, 255, 0.96);
 }
-.face-gate-card .mt { margin-top: 14px; width: 100%; }
-.exam-body {
-  display: grid; grid-template-columns: 88px 1fr; gap: 16px;
-  max-width: 1100px; margin: 0 auto; padding: 16px;
+@media (max-width: 900px) {
+  .exam-layout { grid-template-columns: 1fr; }
+  .exam-sidebar__card { position: static; }
+  .question-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
-.nav { display: flex; flex-direction: column; gap: 6px; }
-.nav-btn {
-  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border, #d7e2df);
-  background: #fff; cursor: pointer; font-weight: 700;
-}
-.nav-btn.active { border-color: #0f766e; background: #0f766e; color: #fff; }
-.nav-btn.done:not(.active) { background: #d1fae5; border-color: #6ee7b7; }
-.question {
-  border: 1px solid var(--border, #d7e2df); border-radius: 16px; padding: 20px;
-  background: color-mix(in srgb, #fff 94%, transparent);
-}
-.q-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; color: var(--text-muted, #5b6f6b); font-size: .85rem; }
-.question h2 { margin: 0 0 16px; font-size: 1.15rem; line-height: 1.5; }
-.opts { display: grid; gap: 8px; }
-.opt {
-  display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px;
-  border: 1px solid var(--border, #d7e2df); border-radius: 12px; cursor: pointer;
-}
-.opt:hover { border-color: #0f766e; }
-.text-ans { margin-top: 4px; }
-.w-full { width: 100%; }
-.q-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
 @media (max-width: 720px) {
-  .exam-body { grid-template-columns: 1fr; }
-  .nav { flex-direction: row; flex-wrap: wrap; }
+  .monitor-widget { width: 108px; right: 10px; bottom: 10px; }
+  .question-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 </style>

@@ -554,16 +554,19 @@ class QuizController extends Controller
         abort_unless($isOwner || $isStudent, 403);
         abort_unless($attempt->isCompleted(), 422);
 
-        $quiz = $exam->quiz;
-        $questions = Question::whereIn('id', $attempt->question_ids ?? [])
+        $questionIds = array_values(array_map('intval', $attempt->question_ids ?? []));
+        $questions = Question::whereIn('id', $questionIds)
             ->with('answers')
-            ->get();
+            ->get()
+            ->sortBy(fn ($q) => array_search((int) $q->id, $questionIds, true))
+            ->values();
 
         $reviewOpts = $exam->review_options['after_submit'] ?? Exam::defaultReviewOptions()['after_submit'];
 
         $result = [
             'attempt_id' => $attempt->id,
             'status'     => $attempt->status,
+            'exam_title' => $exam->title,
         ];
 
         if ($isOwner || ($reviewOpts['marks'] ?? false)) {
@@ -571,29 +574,44 @@ class QuizController extends Controller
             $result['passed'] = $attempt->passed;
         }
 
-        if ($isOwner || ($reviewOpts['attempt'] ?? false)) {
+        $showAttempt = $isOwner || ($reviewOpts['attempt'] ?? false);
+        $showCorrectness = $isOwner || ($reviewOpts['correctness'] ?? false);
+        $showRightAnswer = $isOwner || ($reviewOpts['right_answer'] ?? false);
+
+        if ($showAttempt) {
             $result['student_answers'] = $attempt->answers_json;
         }
 
-        if ($isOwner || ($reviewOpts['right_answer'] ?? false)) {
-            $result['questions'] = $questions->map(function ($q) {
-                return [
+        // Include question stems (+ options) whenever the student may review their attempt,
+        // correctness, or right answers — so "xem bài làm lại" has readable content.
+        if ($showAttempt || $showCorrectness || $showRightAnswer) {
+            $result['questions'] = $questions->map(function ($q) use ($attempt, $showCorrectness, $showRightAnswer) {
+                $studentAnswer = ($attempt->answers_json ?? [])[$q->id]
+                    ?? ($attempt->answers_json ?? [])[(string) $q->id]
+                    ?? null;
+
+                $payload = [
                     'id'      => $q->id,
                     'content' => $q->content,
                     'type'    => $q->type,
-                    'answers' => $q->answers,
+                    'answers' => $q->answers->map(function ($a) use ($showRightAnswer) {
+                        $row = [
+                            'id'      => $a->id,
+                            'content' => $a->content,
+                        ];
+                        if ($showRightAnswer) {
+                            $row['is_correct'] = (bool) $a->is_correct;
+                        }
+
+                        return $row;
+                    })->values(),
                 ];
-            });
-        } elseif ($isOwner || ($reviewOpts['correctness'] ?? false)) {
-            // Show which were right/wrong but not the correct answers
-            $result['questions'] = $questions->map(function ($q) use ($attempt) {
-                $studentAnswer = ($attempt->answers_json ?? [])[$q->id] ?? null;
-                return [
-                    'id'         => $q->id,
-                    'content'    => $q->content,
-                    'type'       => $q->type,
-                    'is_correct' => $this->isAnswerCorrect($q, $studentAnswer),
-                ];
+
+                if ($showCorrectness) {
+                    $payload['is_correct'] = $this->isAnswerCorrect($q, $studentAnswer);
+                }
+
+                return $payload;
             });
         }
 
