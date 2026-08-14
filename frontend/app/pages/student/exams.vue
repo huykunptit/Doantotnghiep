@@ -82,8 +82,9 @@ onMounted(load)
           </div>
           <div v-if="ex.description" class="desc rich" v-html="ex.description" />
           <div class="meta">
-            <span><i class="pi pi-calendar" /> {{ fmt(ex.starts_at) }} → {{ fmt(ex.ends_at) }}</span>
-            <span v-if="ex.duration"><i class="pi pi-clock" /> {{ ex.duration }}'</span>
+            <span><i class="pi pi-calendar" /> {{ t('student.exams.startsAt') }}: {{ fmt(ex.starts_at) }}</span>
+            <span><i class="pi pi-clock" /> {{ t('student.exams.endsAt') }}: {{ fmt(ex.ends_at) }}</span>
+            <span v-if="ex.duration"><i class="pi pi-hourglass" /> {{ ex.duration }}'</span>
             <span v-if="ex.room"><i class="pi pi-map-marker" /> {{ ex.room }}</span>
             <span v-if="ex.attempts_count"><i class="pi pi-check-circle" /> {{ t('student.exams.attempts', { n: ex.attempts_count }) }}</span>
             <span v-if="ex.best_score !== null && ex.best_score !== undefined" class="score"><i class="pi pi-star" /> {{ ex.best_score }}</span>

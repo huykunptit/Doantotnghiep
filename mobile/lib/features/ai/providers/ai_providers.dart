@@ -3,8 +3,13 @@ import '../data/models/ai_models.dart';
 import '../data/repositories/ai_repository.dart';
 
 final recommendationsProvider =
-    FutureProvider.autoDispose<List<CourseRecommendationItem>>((ref) {
+    FutureProvider.autoDispose<RecommendationsBundle>((ref) {
   return ref.watch(aiRepositoryProvider).getRecommendations();
+});
+
+final studyAdvisorAdviceProvider =
+    FutureProvider.autoDispose<StudyAdvisorAdvice>((ref) {
+  return ref.watch(aiRepositoryProvider).getStudyAdvisorAdvice();
 });
 
 final tutoringTipsProvider = FutureProvider.autoDispose

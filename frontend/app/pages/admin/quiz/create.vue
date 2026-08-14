@@ -38,6 +38,8 @@ const form = reactive({
   pass_score: 70,
   max_attempts: 1,
   proctoring_enabled: false,
+  starts_at: null as Date | null,
+  ends_at: null as Date | null,
 })
 
 const typeOptions = computed(() => [
@@ -90,6 +92,17 @@ function sanitizedRandomRules() {
   }))
 }
 
+function toIso(d: Date | null) {
+  return d ? d.toISOString() : null
+}
+
+function applyEndFromDuration() {
+  if (!form.starts_at || !form.duration) return
+  form.ends_at = new Date(form.starts_at.getTime() + Number(form.duration) * 60 * 1000)
+}
+
+watch(() => [form.starts_at, form.duration] as const, applyEndFromDuration)
+
 async function save() {
   if (!form.title.trim()) {
     toast.add({ severity: 'warn', summary: t('admin.quiz.titleRequired'), life: 2500 })
@@ -101,6 +114,10 @@ async function save() {
   }
   if (!questionIds.value.length && !randomRules.value.length) {
     toast.add({ severity: 'warn', summary: t('admin.quiz.questionsRequired'), life: 2800 })
+    return
+  }
+  if (form.starts_at && form.ends_at && form.ends_at.getTime() <= form.starts_at.getTime()) {
+    toast.add({ severity: 'warn', summary: t('admin.quiz.endsBeforeStart'), life: 2800 })
     return
   }
 
@@ -115,6 +132,8 @@ async function save() {
       max_attempts: form.max_attempts,
       type: form.type,
       proctoring_enabled: form.proctoring_enabled,
+      starts_at: toIso(form.starts_at),
+      ends_at: toIso(form.ends_at),
     }
 
     let exam: { id: number, course_id?: number | null }
@@ -233,6 +252,31 @@ onMounted(async () => {
           <span>{{ t('admin.quiz.maxAttempts') }}</span>
           <InputNumber v-model="form.max_attempts" :min="1" :max="99" class="w-full" />
         </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.startsAt') }}</span>
+          <DatePicker
+            v-model="form.starts_at"
+            show-time
+            hour-format="24"
+            show-icon
+            fluid
+            date-format="dd/mm/yy"
+            class="w-full"
+          />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.endsAt') }}</span>
+          <DatePicker
+            v-model="form.ends_at"
+            show-time
+            hour-format="24"
+            show-icon
+            fluid
+            date-format="dd/mm/yy"
+            class="w-full"
+          />
+        </label>
+        <p class="schedule-hint">{{ t('admin.quiz.scheduleHint') }}</p>
         <label class="field full face-check">
           <Checkbox v-model="form.proctoring_enabled" :binary="true" input-id="face-check" />
           <div>
@@ -276,6 +320,10 @@ onMounted(async () => {
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
 .field.full { grid-column: 1 / -1; }
+.schedule-hint {
+  grid-column: 1 / -1; margin: -4px 0 4px; color: var(--text-muted);
+  font-size: .78rem; font-weight: 500;
+}
 .face-check { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
 .face-check label { font-weight: 700; cursor: pointer; }
 .face-check small { display: block; margin-top: 2px; color: var(--text-muted); font-size: .8rem; font-weight: 500; }

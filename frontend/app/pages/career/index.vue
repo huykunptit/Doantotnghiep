@@ -24,6 +24,7 @@ interface Evaluation {
   skill_gaps?: string[]
   interview_focus?: string[]
   completeness_score?: number
+  explanation_unavailable?: boolean
 }
 interface CourseCard {
   id: number
@@ -446,7 +447,14 @@ onMounted(load)
           </div>
         </div>
 
-        <div v-if="evaluation!.overview" class="overview">
+        <div v-if="evaluation!.explanation_unavailable" class="banner warn">
+          <i class="pi pi-exclamation-triangle" />
+          <div class="banner-body">
+            <p>{{ t('career.explanationUnavailable') }}</p>
+          </div>
+        </div>
+
+        <div v-if="evaluation!.overview && !evaluation!.explanation_unavailable" class="overview">
           <h3>{{ t('career.overview') }}</h3>
           <p>{{ evaluation!.overview }}</p>
         </div>

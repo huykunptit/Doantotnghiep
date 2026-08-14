@@ -29,6 +29,7 @@ const { t, locale } = useI18n()
 const items = ref<RecItem[]>([])
 const loading = ref(true)
 const error = ref('')
+const sparseFallback = ref(false)
 
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 
@@ -45,8 +46,13 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const response = await useApi<{ recommendations: RecItem[] }>('/me/recommendations/extensions')
+    const response = await useApi<{
+      recommendations: RecItem[]
+      context?: { profile_sparse?: boolean, fallback?: string | null }
+    }>('/me/recommendations/extensions')
     items.value = (response.recommendations || []).slice(0, props.limit)
+    sparseFallback.value = !!response.context?.profile_sparse
+      && response.context?.fallback === 'curriculum_standard'
   }
   catch (e: any) {
     error.value = e?.data?.message || t('student.ai.recError')
@@ -72,6 +78,7 @@ onMounted(load)
     </header>
 
     <p v-if="error" class="msg error">{{ error }}</p>
+    <p v-else-if="sparseFallback && items.length" class="msg notice">{{ t('student.ai.sparseRecNotice') }}</p>
     <div v-else-if="loading" class="skeleton">
       <div v-for="i in 3" :key="i" class="sk" />
     </div>
@@ -210,8 +217,9 @@ onMounted(load)
 }
 .foot em { font-style: normal; font-weight: 750; color: var(--brand); }
 .foot span { color: var(--text-muted); font-size: .8rem; font-weight: 650; }
-.msg { color: var(--text-muted); margin: 0; font-weight: 500; }
+.msg { color: var(--text-muted); margin: 0 0 10px; font-weight: 500; }
 .msg.error { color: var(--p-red-500, #c0392b); }
+.msg.notice { color: var(--text); }
 .skeleton { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .sk { height: 160px; border-radius: 12px; background: color-mix(in srgb, var(--border) 55%, transparent); animation: pulse 1.2s ease infinite; }
 @keyframes pulse { 50% { opacity: .55; } }

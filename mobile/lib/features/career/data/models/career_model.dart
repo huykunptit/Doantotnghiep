@@ -73,6 +73,8 @@ class CareerEvaluationModel {
   final int? expectedSalary;
   final String? salaryNote;
   final String summary;
+  final String? overview;
+  final bool explanationUnavailable;
 
   CareerEvaluationModel({
     required this.score,
@@ -83,6 +85,8 @@ class CareerEvaluationModel {
     this.expectedSalary,
     this.salaryNote,
     required this.summary,
+    this.overview,
+    this.explanationUnavailable = false,
   });
 
   factory CareerEvaluationModel.fromJson(Map<String, dynamic> json) {
@@ -98,6 +102,8 @@ class CareerEvaluationModel {
       expectedSalary: (json['expected_salary'] as num?)?.toInt(),
       salaryNote: json['salary_note']?.toString(),
       summary: json['summary']?.toString() ?? '',
+      overview: json['overview']?.toString(),
+      explanationUnavailable: json['explanation_unavailable'] == true,
     );
   }
 }

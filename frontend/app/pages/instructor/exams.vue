@@ -98,6 +98,13 @@ function toIso(d: Date | null) {
   return d ? d.toISOString() : null
 }
 
+function applyEndFromDuration() {
+  if (!form.starts_at || !form.duration) return
+  form.ends_at = new Date(form.starts_at.getTime() + Number(form.duration) * 60 * 1000)
+}
+
+watch(() => [form.starts_at, form.duration] as const, applyEndFromDuration)
+
 async function loadExams() {
   loading.value = true
   try {
@@ -151,6 +158,10 @@ async function createExam() {
   }
   if (!questionIds.value.length && !randomRules.value.length) {
     toast.add({ severity: 'warn', summary: t('instructor.exams.questionsRequired'), life: 2800 })
+    return
+  }
+  if (form.starts_at && form.ends_at && form.ends_at.getTime() <= form.starts_at.getTime()) {
+    toast.add({ severity: 'warn', summary: t('admin.quiz.endsBeforeStart'), life: 2800 })
     return
   }
   saving.value = true
@@ -346,7 +357,12 @@ onMounted(async () => {
         </template>
       </Column>
       <Column :header="t('instructor.exams.window')">
-        <template #body="{ data }">{{ fmt(data.starts_at) }} → {{ fmt(data.ends_at) }}</template>
+        <template #body="{ data }">
+          <div class="schedule-cell">
+            <span>{{ t('instructor.exams.startsAt') }}: {{ fmt(data.starts_at) }}</span>
+            <span>{{ t('instructor.exams.endsAt') }}: {{ fmt(data.ends_at) }}</span>
+          </div>
+        </template>
       </Column>
       <Column field="duration" :header="t('instructor.exams.duration')" />
       <Column :header="t('instructor.exams.enrolled')">
@@ -416,11 +432,11 @@ onMounted(async () => {
         </label>
         <label class="field">
           <span>{{ t('instructor.exams.startsAt') }}</span>
-          <DatePicker v-model="form.starts_at" show-time hour-format="24" class="w-full" />
+          <DatePicker v-model="form.starts_at" show-time hour-format="24" show-icon fluid date-format="dd/mm/yy" class="w-full" />
         </label>
         <label class="field">
           <span>{{ t('instructor.exams.endsAt') }}</span>
-          <DatePicker v-model="form.ends_at" show-time hour-format="24" class="w-full" />
+          <DatePicker v-model="form.ends_at" show-time hour-format="24" show-icon fluid date-format="dd/mm/yy" class="w-full" />
         </label>
         <label class="field full">
           <span>{{ t('instructor.exams.adminClass') }}</span>
@@ -510,6 +526,7 @@ onMounted(async () => {
 .status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .w-full { width: 100%; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.schedule-cell { display: flex; flex-direction: column; gap: 2px; font-size: .82rem; line-height: 1.35; }
 .hint { margin: 8px 0 0; color: var(--text-muted); font-size: .84rem; font-weight: 600; }
 @media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } }
 </style>

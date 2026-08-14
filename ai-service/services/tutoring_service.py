@@ -13,8 +13,8 @@ from models.schemas import (
     TutoringRequest,
     TutoringResponse,
 )
-from services.provider import call_provider
-from utils.json_extract import extract_json_object
+from utils.grounding import unknown_quoted_titles
+from utils.json_call import complete_json
 
 logger = logging.getLogger(__name__)
 
@@ -65,16 +65,36 @@ async def get_recommendations(payload: TutoringRequest) -> TutoringResponse:
             ),
         },
     ]
+    short_messages = [
+        {
+            "role": "system",
+            "content": (
+                'Chỉ trả JSON thuần: {"review_lessons":[],"next_courses":[],'
+                '"weak_skills":[],"study_tips":[],"summary":"..."}. Không markdown.'
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Tiến độ:\n{progress_summary[:800]}\nQuiz:\n{quiz_summary[:400]}\nJSON ngắn.",
+        },
+    ]
 
-    reply, _ = await call_provider(
+    raw = await complete_json(
         provider=payload.provider or "chatgpt",
         api_key=payload.api_key or "",
-        messages=messages,
         model=payload.model,
+        messages=messages,
+        short_messages=short_messages,
         temperature=0.5,
+        is_valid=lambda d: bool(str(d.get("summary") or "").strip() or d.get("study_tips")),
     )
-
-    return _parse_tutoring(reply)
+    return TutoringResponse(
+        review_lessons=raw.get("review_lessons", []) or [],
+        next_courses=raw.get("next_courses", []) or [],
+        weak_skills=raw.get("weak_skills", []) or [],
+        study_tips=raw.get("study_tips", []) or [],
+        summary=str(raw.get("summary") or ""),
+    )
 
 
 async def get_study_advice(payload: StudyAdvisorRequest) -> StudyAdvisorResponse:
@@ -128,36 +148,46 @@ async def get_study_advice(payload: StudyAdvisorRequest) -> StudyAdvisorResponse
         },
     ]
 
-    reply, _ = await call_provider(
+    known_titles = [
+        str(c.get("title") or "")
+        for c in (list(payload.strengths) + list(payload.weaknesses))
+    ]
+
+    raw = await complete_json(
         provider=payload.provider or "chatgpt",
         api_key=payload.api_key or "",
-        messages=messages,
         model=payload.model,
+        messages=messages,
+        short_messages=[
+            {
+                "role": "system",
+                "content": (
+                    'Chỉ trả JSON thuần: {"narrative":"...","study_tips":[],"focus_courses":[]}. '
+                    "Không markdown. Không bịa môn hoặc điểm không có trong dữ liệu."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"GPA: {gpa if gpa is not None else 'chưa có'}. "
+                    f"Hoàn thành {completion_pct}. "
+                    f"Môn yếu: {', '.join(c.get('title', '') for c in payload.weaknesses[:5]) or 'chưa có'}. "
+                    "Viết 3-5 câu tư vấn + tối đa 3 mẹo. JSON."
+                ),
+            },
+        ],
         temperature=0.5,
+        is_valid=lambda d: bool(str(d.get("narrative") or "").strip()),
     )
 
-    raw = extract_json_object(reply) if reply else None
-    if raw is None or not str(raw.get("narrative") or "").strip():
-        return StudyAdvisorResponse(narrative=payload.rule_based_narrative)
+    narrative = str(raw.get("narrative") or "").strip()
+    unknown = unknown_quoted_titles(narrative, known_titles)
+    if unknown:
+        logger.warning("Study-advisor grounding: quoted titles not in profile: %s", unknown)
 
     return StudyAdvisorResponse(
-        narrative=str(raw.get("narrative") or "").strip(),
+        narrative=narrative,
         study_tips=[str(x).strip() for x in (raw.get("study_tips") or []) if str(x).strip()][:5],
         focus_courses=[str(x).strip() for x in (raw.get("focus_courses") or []) if str(x).strip()][:3],
     )
 
-
-def _parse_tutoring(text: str | None) -> TutoringResponse:
-    """Parse JSON từ AI response."""
-    if not text:
-        return TutoringResponse(summary="Không thể phân tích — AI không trả kết quả.")
-    raw = extract_json_object(text)
-    if raw is not None:
-        return TutoringResponse(
-            review_lessons=raw.get("review_lessons", []),
-            next_courses=raw.get("next_courses", []),
-            weak_skills=raw.get("weak_skills", []),
-            study_tips=raw.get("study_tips", []),
-            summary=raw.get("summary", ""),
-        )
-    return TutoringResponse(summary=text)

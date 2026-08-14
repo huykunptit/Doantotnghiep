@@ -580,6 +580,27 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
                 ),
               ],
             ),
+            if (evaluation.explanationUnavailable) ...[
+              AppSpacing.h12,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD97706).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.35)),
+                ),
+                child: const Text(
+                  'Nhà cung cấp AI tạm thời lỗi hoặc vượt hạn mức. Danh sách khóa gợi ý bên dưới vẫn theo bộ luật — chưa có phần diễn giải từ mô hình.',
+                ),
+              ),
+            ],
+            if (evaluation.overview != null &&
+                evaluation.overview!.isNotEmpty &&
+                !evaluation.explanationUnavailable) ...[
+              AppSpacing.h12,
+              Text(evaluation.overview!, style: theme.textTheme.bodyMedium?.copyWith(height: 1.45)),
+            ],
             if (evaluation.salaryNote != null) ...[
               AppSpacing.h8,
               Text(evaluation.salaryNote!, style: theme.textTheme.bodySmall),

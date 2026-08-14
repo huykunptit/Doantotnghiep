@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../data/models/ai_models.dart';
 import '../../data/repositories/ai_repository.dart';
 
 class AiChatScreen extends ConsumerStatefulWidget {
@@ -15,29 +17,50 @@ class AiChatScreen extends ConsumerStatefulWidget {
   ConsumerState<AiChatScreen> createState() => _AiChatScreenState();
 }
 
-class _ChatMessage {
-  _ChatMessage({required this.role, required this.text});
-  final String role; // user | assistant
-  final String text;
-}
-
 class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  final _messages = <_ChatMessage>[];
+  final _messages = <AiChatMessage>[];
   bool _loading = false;
+  bool _restored = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _messages.add(
-      _ChatMessage(
+  AiChatMessage get _welcome => AiChatMessage(
         role: 'assistant',
         text: widget.courseId != null
             ? 'Xin chào! Tôi đang hỗ trợ bạn trong khóa học này — hỏi về bài học, quiz hoặc mẹo học tập nhé.'
             : 'Xin chào! Tôi có thể gợi ý khóa học, lộ trình học hoặc giải đáp thắc mắc về hệ thống.',
-      ),
-    );
+      );
+
+  int? get _userId => ref.read(authNotifierProvider).valueOrNull?.id;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _restore());
+  }
+
+  Future<void> _restore() async {
+    final saved = await ref.read(aiChatHistoryStoreProvider).load(
+          userId: _userId,
+          courseId: widget.courseId,
+        );
+    if (!mounted) return;
+    setState(() {
+      _messages
+        ..clear()
+        ..addAll(saved.isNotEmpty ? saved : [_welcome]);
+      _restored = true;
+    });
+    if (saved.length > 1) _scrollToEnd();
+  }
+
+  Future<void> _persist() async {
+    if (!_restored) return;
+    await ref.read(aiChatHistoryStoreProvider).save(
+          messages: _messages,
+          userId: _userId,
+          courseId: widget.courseId,
+        );
   }
 
   @override
@@ -56,19 +79,18 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     if (text.isEmpty || _loading) return;
 
     setState(() {
-      _messages.add(_ChatMessage(role: 'user', text: text));
+      _messages.add(AiChatMessage(role: 'user', text: text));
       _input.clear();
       _loading = true;
     });
     _scrollToEnd();
+    await _persist();
 
     try {
       final history = _messages
           .skip(1)
           .map((m) => {'role': m.role, 'content': m.text})
           .toList();
-      // Exclude the message we just added from history tail duplication:
-      // API expects prior turns; include up to last 10 including current user msg is ok
       final reply = await ref.read(aiRepositoryProvider).chat(
             message: text,
             courseId: widget.courseId,
@@ -78,13 +100,13 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           );
       if (!mounted) return;
       setState(() {
-        _messages.add(_ChatMessage(role: 'assistant', text: reply.reply));
+        _messages.add(AiChatMessage(role: 'assistant', text: reply.reply));
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _messages.add(
-          _ChatMessage(
+          const AiChatMessage(
             role: 'assistant',
             text: 'Lỗi kết nối. Trợ lý AI tạm không khả dụng, thử lại sau.',
           ),
@@ -94,8 +116,28 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
       if (mounted) {
         setState(() => _loading = false);
         _scrollToEnd();
+        await _persist();
       }
     }
+  }
+
+  Future<void> _clear() async {
+    await ref.read(aiChatHistoryStoreProvider).clear(
+          userId: _userId,
+          courseId: widget.courseId,
+        );
+    if (!mounted) return;
+    setState(() {
+      _messages
+        ..clear()
+        ..add(
+          const AiChatMessage(
+            role: 'assistant',
+            text: 'Đã xoá hội thoại. Bạn cần hỗ trợ gì?',
+          ),
+        );
+    });
+    await _persist();
   }
 
   void _scrollToEnd() {
@@ -132,18 +174,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         actions: [
           IconButton(
             tooltip: 'Xóa hội thoại',
-            onPressed: () {
-              setState(() {
-                _messages
-                  ..clear()
-                  ..add(
-                    _ChatMessage(
-                      role: 'assistant',
-                      text: 'Đã xoá hội thoại. Bạn cần hỗ trợ gì?',
-                    ),
-                  );
-              });
-            },
+            onPressed: _clear,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],

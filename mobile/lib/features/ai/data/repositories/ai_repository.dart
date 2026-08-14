@@ -2,10 +2,16 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
+import '../../../../core/storage/secure_storage.dart';
 import '../models/ai_models.dart';
+import '../ai_chat_history_store.dart';
 
 final aiRepositoryProvider = Provider<AiRepository>((ref) {
   return AiRepository(dio: ref.watch(apiClientProvider));
+});
+
+final aiChatHistoryStoreProvider = Provider<AiChatHistoryStore>((ref) {
+  return AiChatHistoryStore(ref.watch(secureStorageProvider));
 });
 
 class AiRepository {
@@ -13,18 +19,42 @@ class AiRepository {
 
   final Dio dio;
 
-  Future<List<CourseRecommendationItem>> getRecommendations() async {
+  Future<RecommendationsBundle> getRecommendations() async {
     try {
       final response = await dio.get<Map<String, dynamic>>(
         '/me/recommendations/extensions',
       );
-      final list = response.data?['recommendations'] as List<dynamic>? ?? [];
-      return list
-          .map((e) =>
-              CourseRecommendationItem.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final data = response.data ?? {};
+      final list = data['recommendations'] as List<dynamic>? ?? [];
+      final context = data['context'] as Map<String, dynamic>? ?? {};
+      return RecommendationsBundle(
+        items: list
+            .whereType<Map>()
+            .map((e) => CourseRecommendationItem.fromJson(
+                  Map<String, dynamic>.from(e),
+                ))
+            .where((e) => e.course.id > 0)
+            .toList(),
+        profileSparse: context['profile_sparse'] == true,
+        fallback: context['fallback']?.toString(),
+      );
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<StudyAdvisorAdvice> getStudyAdvisorAdvice() async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        '/ai/study-advisor',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 70),
+          sendTimeout: const Duration(seconds: 20),
+        ),
+      );
+      return StudyAdvisorAdvice.fromJson(response.data ?? {});
+    } on DioException {
+      return const StudyAdvisorAdvice(explanationUnavailable: true);
     }
   }
 

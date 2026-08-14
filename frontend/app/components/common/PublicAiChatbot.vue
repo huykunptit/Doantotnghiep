@@ -10,6 +10,7 @@ const chatInput = ref<HTMLInputElement | null>(null)
 interface ChatMsg { role: 'user' | 'assistant', text: string }
 
 const welcome = computed(() => t('public.ai.chatWelcome'))
+const transcript = useAiChatHistory('guest')
 const messages = ref<ChatMsg[]>([{ role: 'assistant', text: welcome.value }])
 /** true khi đã nhận token đầu tiên của câu trả lời hiện tại — ẩn "typing dots" khi text đang chảy dần. */
 const streaming = ref(false)
@@ -19,13 +20,29 @@ const quickQuestions = computed(() => [
   t('public.ai.q3'),
 ])
 
+function restoreHistory() {
+  const saved = transcript.read()
+  messages.value = saved?.length
+    ? saved
+    : [{ role: 'assistant', text: welcome.value }]
+}
+
+function persistHistory() {
+  transcript.write(messages.value)
+}
+
 function openChat() {
   isOpen.value = true
-  nextTick(() => chatInput.value?.focus())
+  nextTick(() => {
+    chatInput.value?.focus()
+    scrollToBottom()
+  })
 }
 
 function clearChat() {
+  transcript.clear()
   messages.value = [{ role: 'assistant', text: t('public.ai.chatCleared') }]
+  persistHistory()
 }
 
 function sendQuick(question: string) {
@@ -96,6 +113,7 @@ async function sendMessage() {
 
   loading.value = false
   streaming.value = false
+  persistHistory()
   scrollToBottom()
 }
 
@@ -111,8 +129,10 @@ function onKey(e: KeyboardEvent) {
 
 onMounted(() => {
   if (import.meta.client) document.addEventListener('keydown', onKey)
+  restoreHistory()
 })
 onBeforeUnmount(() => {
+  persistHistory()
   if (import.meta.client) document.removeEventListener('keydown', onKey)
 })
 </script>

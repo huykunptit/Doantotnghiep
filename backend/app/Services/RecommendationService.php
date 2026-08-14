@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserCareerPath;
 use App\Helpers\GpaCalculator;
 use App\Support\StudyAdvisorScoreRule;
+use App\Support\StudyAdvisorTermResolver;
 use Illuminate\Support\Collection;
 
 class RecommendationService
@@ -28,7 +29,23 @@ class RecommendationService
             ->pluck('id')
             ->all();
 
-        $courses = $this->scoreCourses($user, $enrolledIds, $skillPool, $targetRoles, $courseLimit);
+        $sparse = ($profile['academic']['overall_gpa'] ?? null) === null
+            && empty($profile['academic']['weak_courses']);
+
+        $fallback = null;
+        $courses = [];
+        if ($sparse) {
+            $standard = $this->curriculumStandardCourses($user, $courseLimit);
+            if ($standard !== []) {
+                $courses = $standard;
+                $fallback = 'curriculum_standard';
+            }
+        }
+
+        if ($courses === []) {
+            $courses = $this->scoreCourses($user, $enrolledIds, $skillPool, $targetRoles, $courseLimit);
+        }
+
         $paths = $this->scorePaths($ownedPathIds, $skillPool, $targetRoles, $enrolledIds, $pathLimit);
 
         // Boost next-step courses from purchased/followed paths
@@ -51,6 +68,8 @@ class RecommendationService
                 'target_roles' => $targetRoles->values()->all(),
                 'skill_pool_size' => $skillPool->count(),
                 'top_skills' => $profile['skills']['top'] ?? [],
+                'profile_sparse' => $sparse,
+                'fallback' => $fallback,
             ],
         ];
     }
@@ -273,7 +292,8 @@ class RecommendationService
             ->orderBy('position')
             ->get();
 
-        $currentTerm = $this->inferCurrentTermNumber($user);
+        $currentTerm = $this->inferCurrentTermNumber($curriculumCourses, $enrollments);
+        $sparse = StudyAdvisorTermResolver::isSparseGrades($enrollments->pluck('final_score'));
         $rows = collect();
 
         // GPA thang 10 (có trọng số tín chỉ) để áp dụng rule tương đối
@@ -294,8 +314,11 @@ class RecommendationService
         }
         $gpa10 = GpaCalculator::cumulativeScore10($gpaRows);
 
-        // 1) Môn điểm thấp trong CTĐT: tuyệt đối < 6.5 HOẶC < GPA10 − 1.0
+        // 1) Môn điểm thấp — bỏ qua khi hồ sơ chưa có điểm (không suy diễn từ dữ liệu rỗng)
         foreach ($curriculumCourses as $cc) {
+            if ($sparse) {
+                break;
+            }
             $course = $cc->course;
             if (!$course || $course->status !== 'published') {
                 continue;
@@ -338,28 +361,35 @@ class RecommendationService
             if ($done) {
                 continue;
             }
-            $reason = $term === $currentTerm
-                ? sprintf('Sắp / đang học trong CTĐT — kỳ %d', $term)
-                : sprintf('Môn sắp tới trong khung CTĐT — kỳ %d', $term);
+            $reason = $sparse
+                ? sprintf('Môn theo khung chương trình đào tạo chuẩn của ngành — kỳ %d', $term)
+                : ($term === $currentTerm
+                    ? sprintf('Sắp / đang học trong CTĐT — kỳ %d', $term)
+                    : sprintf('Môn sắp tới trong khung CTĐT — kỳ %d', $term));
             $rows->push([
                 'course' => $course,
                 'score' => $term === $currentTerm ? 110 : 95,
                 'matched_skills' => $course->skills->pluck('name')->all(),
                 'reasons' => [$reason],
-                'source' => 'upcoming',
+                'source' => $sparse ? 'curriculum_standard' : 'upcoming',
                 'seed_title' => $course->title,
             ]);
         }
 
+        // Hồ sơ mới: nếu kỳ hiện tại/kế chưa đủ gợi ý, lấy tiếp môn bắt buộc theo thứ tự khung
+        if ($sparse && $rows->count() < $limit) {
+            $rows = $rows->concat($this->remainingStandardCurriculum($curriculumCourses, $enrollments, $rows, $limit));
+        }
+
         // 3) Khóa bổ trợ marketplace liên quan điểm thấp / môn sắp tới
         $seeds = $rows->pluck('seed_title')->filter()->unique()->values();
-        if ($seeds->isNotEmpty()) {
+        if ($seeds->isNotEmpty() && ! $sparse) {
             $boosts = $this->relatedExtensionCourses($seeds->all(), $enrollments->keys()->all(), $limit);
             $rows = $rows->concat($boosts);
         }
 
         $weak = $rows->where('source', 'weak')->sortByDesc('score')->take(3);
-        $upcoming = $rows->where('source', 'upcoming')->sortByDesc('score')->take(3);
+        $upcoming = $rows->whereIn('source', ['upcoming', 'curriculum_standard'])->sortByDesc('score')->take($sparse ? $limit : 3);
         $boost = $rows->where('source', 'boost')->sortByDesc('score')->take(2);
 
         return $weak
@@ -375,11 +405,81 @@ class RecommendationService
             ->all();
     }
 
-    private function inferCurrentTermNumber(User $user): int
+    /**
+     * @return array<int, array{course: Course, score: int, reasons: array, matched_skills: array, source: string}>
+     */
+    public function curriculumStandardCourses(User $user, int $limit = 8): array
     {
-        $startYear = (int) ($user->cohort?->start_year ?? 2024);
+        return collect($this->recommendForStudyAdvisor($user, $limit))
+            ->filter(fn (array $row) => in_array($row['source'] ?? '', ['upcoming', 'curriculum_standard'], true))
+            ->values()
+            ->all();
+    }
 
-        return $startYear <= 2023 ? 5 : 3;
+    /**
+     * @param  Collection<int, mixed>  $curriculumCourses
+     * @param  Collection<int, Enrollment>  $enrollments
+     */
+    private function inferCurrentTermNumber(Collection $curriculumCourses, Collection $enrollments): int
+    {
+        $max = $curriculumCourses
+            ->filter(fn ($cc) => $cc->course_id && $enrollments->has($cc->course_id))
+            ->max(fn ($cc) => (int) $cc->term_number);
+        $min = (int) ($curriculumCourses->min('term_number') ?: 1);
+
+        return StudyAdvisorTermResolver::currentTerm(
+            is_numeric($max) ? (int) $max : null,
+            $min
+        );
+    }
+
+    /**
+     * @param  Collection<int, mixed>  $curriculumCourses
+     * @param  Collection<int, Enrollment>  $enrollments
+     * @param  Collection<int, array>  $already
+     * @return Collection<int, array>
+     */
+    private function remainingStandardCurriculum(
+        Collection $curriculumCourses,
+        Collection $enrollments,
+        Collection $already,
+        int $limit
+    ): Collection {
+        $have = $already->map(fn (array $row) => $row['course']->id)->all();
+        $extra = collect();
+
+        foreach ($curriculumCourses as $cc) {
+            $course = $cc->course;
+            if (!$course || $course->status !== 'published' || in_array($course->id, $have, true)) {
+                continue;
+            }
+            if (! $cc->is_required) {
+                continue;
+            }
+            $enrollment = $enrollments->get($course->id);
+            $done = $enrollment && (
+                ($enrollment->progress ?? 0) >= 100
+                || $enrollment->final_score !== null
+            );
+            if ($done) {
+                continue;
+            }
+            $term = (int) $cc->term_number;
+            $extra->push([
+                'course' => $course,
+                'score' => 80 - min(40, $term * 4),
+                'matched_skills' => $course->skills->pluck('name')->all(),
+                'reasons' => [sprintf('Môn theo khung chương trình đào tạo chuẩn của ngành — kỳ %d', $term)],
+                'source' => 'curriculum_standard',
+                'seed_title' => $course->title,
+            ]);
+            $have[] = $course->id;
+            if ($extra->count() >= $limit) {
+                break;
+            }
+        }
+
+        return $extra;
     }
 
     /**

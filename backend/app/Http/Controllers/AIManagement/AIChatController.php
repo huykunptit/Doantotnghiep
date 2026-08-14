@@ -417,6 +417,7 @@ class AIChatController extends Controller
                 'study_tips' => [],
                 'focus_courses' => [],
                 'source' => 'rule',
+                'explanation_unavailable' => false,
             ]);
         }
 
@@ -438,6 +439,7 @@ class AIChatController extends Controller
                 'study_tips' => $result['data']['study_tips'] ?? [],
                 'focus_courses' => $result['data']['focus_courses'] ?? [],
                 'source' => 'ai',
+                'explanation_unavailable' => false,
                 'provider_used' => $result['provider'],
             ]);
         }
@@ -447,6 +449,8 @@ class AIChatController extends Controller
             'study_tips' => [],
             'focus_courses' => [],
             'source' => 'rule',
+            'explanation_unavailable' => true,
+            'suggested_courses' => $evaluation['suggested_courses'] ?? [],
         ]);
     }
 

@@ -5,14 +5,20 @@ class CourseRecommendationItem {
     required this.course,
     required this.score,
     this.matchedSkills = const [],
+    this.reasons = const [],
+    this.source,
   });
 
   final CourseListItemModel course;
   final int score;
   final List<String> matchedSkills;
+  final List<String> reasons;
+  final String? source;
 
   factory CourseRecommendationItem.fromJson(Map<String, dynamic> json) {
-    final courseJson = json['course'] as Map<String, dynamic>? ?? json;
+    final courseJson = json['course'] is Map
+        ? Map<String, dynamic>.from(json['course'] as Map)
+        : json;
     return CourseRecommendationItem(
       course: CourseListItemModel.fromJson(courseJson),
       score: (json['score'] as num?)?.toInt() ?? 0,
@@ -20,6 +26,68 @@ class CourseRecommendationItem {
               ?.map((e) => e.toString())
               .toList() ??
           const [],
+      reasons: (json['reasons'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      source: json['source']?.toString(),
+    );
+  }
+}
+
+class RecommendationsBundle {
+  const RecommendationsBundle({
+    required this.items,
+    this.profileSparse = false,
+    this.fallback,
+  });
+
+  final List<CourseRecommendationItem> items;
+  final bool profileSparse;
+  final String? fallback;
+
+  bool get usesCurriculumFallback =>
+      profileSparse && fallback == 'curriculum_standard';
+}
+
+class StudyAdvisorAdvice {
+  const StudyAdvisorAdvice({
+    this.narrative = '',
+    this.studyTips = const [],
+    this.source = 'rule',
+    this.explanationUnavailable = false,
+  });
+
+  final String narrative;
+  final List<String> studyTips;
+  final String source;
+  final bool explanationUnavailable;
+
+  factory StudyAdvisorAdvice.fromJson(Map<String, dynamic> json) {
+    return StudyAdvisorAdvice(
+      narrative: json['narrative']?.toString() ?? '',
+      studyTips: (json['study_tips'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      source: json['source']?.toString() ?? 'rule',
+      explanationUnavailable: json['explanation_unavailable'] == true,
+    );
+  }
+}
+
+class AiChatMessage {
+  const AiChatMessage({required this.role, required this.text});
+
+  final String role;
+  final String text;
+
+  Map<String, dynamic> toJson() => {'role': role, 'text': text};
+
+  factory AiChatMessage.fromJson(Map<String, dynamic> json) {
+    return AiChatMessage(
+      role: json['role']?.toString() ?? 'assistant',
+      text: json['text']?.toString() ?? json['content']?.toString() ?? '',
     );
   }
 }

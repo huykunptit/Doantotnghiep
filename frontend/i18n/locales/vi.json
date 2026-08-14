@@ -186,6 +186,7 @@
     "coursesTitle": "Khóa học gợi ý trên hệ thống",
     "coursesHint": "Chỉ hiện khóa khớp skill gaps / JD (không lấy khóa lệch ngành).",
     "coursesEmpty": "Hiện chưa có khóa trên hệ thống khớp sát các kỹ năng còn thiếu. Hãy học theo skill gaps ở trên hoặc bổ sung khóa Java/Spring (nếu JD yêu cầu) vào catalog.",
+    "explanationUnavailable": "Nhà cung cấp AI tạm thời lỗi hoặc vượt hạn mức. Danh sách khóa gợi ý bên dưới vẫn theo bộ luật — chưa có phần diễn giải từ mô hình.",
     "levelUnset": "Mọi cấp độ",
     "roleRequired": "Nhập vị trí mục tiêu trước khi đánh giá",
     "recommendOk": "Đã cập nhật đánh giá & gợi ý",
@@ -1578,6 +1579,10 @@
       "maxAttempts": "Số lần thi",
       "enrolled": "Học viên",
       "schedule": "Lịch thi",
+      "startsAt": "Ngày giờ bắt đầu",
+      "endsAt": "Ngày giờ kết thúc",
+      "scheduleHint": "Chọn ngày và giờ mở ca / đóng ca. Giờ kết thúc mặc định = bắt đầu + thời lượng.",
+      "endsBeforeStart": "Giờ kết thúc phải sau giờ bắt đầu.",
       "shuffleQuestions": "Xáo câu hỏi",
       "shuffleAnswers": "Xáo đáp án",
       "faceCheck": "Yêu cầu xác thực khuôn mặt",
@@ -2313,7 +2318,10 @@
       "courses": "Khóa học bổ trợ gợi ý",
       "coursesHint": "Điểm thấp khi < 6.5/10 hoặc thấp hơn GPA của bạn từ 1.0 điểm trở lên; kèm môn sắp học trong CTĐT.",
       "noCourses": "Chưa có gợi ý khóa học.",
-      "buyHint": "Có thể học / củng cố trên hệ thống"
+      "buyHint": "Có thể học / củng cố trên hệ thống",
+      "sparseProfile": "Hồ sơ chưa có điểm — hệ thống gợi ý theo khung chương trình đào tạo chuẩn của ngành, không suy diễn từ dữ liệu rỗng.",
+      "coursesHintSparse": "Gợi ý theo thứ tự môn trong CTĐT chuẩn (kỳ hiện tại và các kỳ kế).",
+      "explanationUnavailable": "Trợ lý AI tạm thời lỗi hoặc vượt hạn mức. Danh sách gợi ý bên dưới vẫn theo bộ luật CTĐT — chưa có phần diễn giải."
     },
     "experienceSurvey": {
       "title": "Khảo sát trải nghiệm LMS",
@@ -2550,6 +2558,8 @@
       "viewResult": "Xem kết quả",
       "attempts": "{n} lượt",
       "faceCheck": "Check khuôn mặt",
+      "startsAt": "Bắt đầu",
+      "endsAt": "Kết thúc",
       "status": {
         "active": "Đang mở",
         "scheduled": "Sắp diễn ra",
@@ -2696,6 +2706,7 @@
       "recError": "Không tải được gợi ý.",
       "recFallbackCat": "Khóa học",
       "recScore": "Điểm gợi ý: {n}",
+      "sparseRecNotice": "Hồ sơ chưa đủ điểm — đang gợi ý theo khung CTĐT chuẩn của ngành.",
       "chatTitle": "Trợ lý AI",
       "chatStatus": "Sẵn sàng hỗ trợ",
       "chatContextOn": "Đang gắn ngữ cảnh khóa học",

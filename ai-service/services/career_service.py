@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import base64
 import io
-import json
 import logging
 import re
 import tempfile
@@ -22,7 +21,7 @@ from models.schemas import (
     RecommendResponse,
 )
 from services.provider import call_provider
-from utils.json_extract import extract_json_object
+from utils.json_call import complete_json
 
 logger = logging.getLogger(__name__)
 
@@ -456,20 +455,36 @@ async def _evaluate_with_ai(payload: EvaluateCVRequest) -> EvaluateCVResponse | 
         },
     ]
 
-    reply, _ = await call_provider(
+    raw = await complete_json(
         provider=payload.provider or "gemini",
         api_key=payload.api_key or "",
-        messages=messages,
         model=payload.model,
+        messages=messages,
+        short_messages=[
+            {
+                "role": "system",
+                "content": (
+                    'Chỉ trả JSON: {"match_score":0,"verdict":"...","overview":"...",'
+                    '"strengths":[],"weaknesses":[],"improvements":[],"missing_items":[],'
+                    '"skill_gaps":[],"interview_focus":[],"recommended_keyword_topics":[],'
+                    '"salary_comment":null}. Không markdown.'
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Vị trí: {payload.target_job}. "
+                    f"Kỹ năng: {skills_text}. "
+                    f"CV (rút):\n{(payload.cv_text or '')[:1500] or '(trống)'}\n"
+                    "JSON ngắn, overview 3-4 câu."
+                ),
+            },
+        ],
         temperature=0.35,
+        is_valid=lambda d: bool(str(d.get("overview") or "").strip()),
     )
-    if not reply:
-        return None
 
     try:
-        raw = extract_json_object(reply)
-        if raw is None:
-            return None
         score = int(raw.get("match_score") or 0)
         score = max(0, min(score, 100))
 
@@ -478,9 +493,6 @@ async def _evaluate_with_ai(payload: EvaluateCVRequest) -> EvaluateCVResponse | 
 
         overview = str(raw.get("overview") or "").strip()
         verdict = str(raw.get("verdict") or "").strip()
-        if not overview:
-            return None
-
         salary_comment = raw.get("salary_comment")
         if salary_comment is not None:
             salary_comment = str(salary_comment).strip() or None
@@ -499,8 +511,8 @@ async def _evaluate_with_ai(payload: EvaluateCVRequest) -> EvaluateCVResponse | 
             recommended_keyword_topics=_list("recommended_keyword_topics", 6) or gaps[:4],
             salary_comment=salary_comment,
         )
-    except (json.JSONDecodeError, TypeError, ValueError) as exc:
-        logger.warning("Failed to parse evaluate-cv JSON: %s", exc)
+    except (TypeError, ValueError) as exc:
+        logger.warning("Failed to map evaluate-cv JSON: %s", exc)
         return None
 
 
@@ -686,33 +698,43 @@ async def _recommend_with_ai(payload: RecommendRequest) -> RecommendResponse | N
         },
     ]
 
-    reply, _ = await call_provider(
+    raw = await complete_json(
         provider=payload.provider or "claude",
         api_key=payload.api_key or "",
-        messages=messages,
         model=payload.model,
+        messages=messages,
+        short_messages=[
+            {
+                "role": "system",
+                "content": (
+                    'Chỉ trả JSON: {"match_score":0,"skill_gaps":[],'
+                    '"recommended_keyword_topics":[],"summary":"..."}. Không markdown.'
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Vị trí: {payload.target_job}. Kỹ năng: {skills_text}. "
+                    f"CV rút: {(payload.cv_text or '')[:800] or '(trống)'}. JSON ngắn."
+                ),
+            },
+        ],
         temperature=0.4,
+        is_valid=lambda d: bool(str(d.get("summary") or "").strip()),
     )
-    if not reply:
-        return None
 
     try:
-        raw = extract_json_object(reply)
-        if raw is None:
-            return None
         score = int(raw.get("match_score") or 0)
         score = max(0, min(score, 100))
         gaps = [str(x) for x in (raw.get("skill_gaps") or []) if x][:6]
         topics = [str(x) for x in (raw.get("recommended_keyword_topics") or []) if x][:5]
         summary = str(raw.get("summary") or "").strip()
-        if not summary:
-            return None
         return RecommendResponse(
             match_score=score,
             skill_gaps=gaps,
             recommended_keyword_topics=topics or gaps[:3],
             summary=summary,
         )
-    except (json.JSONDecodeError, TypeError, ValueError) as exc:
-        logger.warning("Failed to parse career AI JSON: %s", exc)
+    except (TypeError, ValueError) as exc:
+        logger.warning("Failed to map career AI JSON: %s", exc)
         return None

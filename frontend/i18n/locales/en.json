@@ -186,6 +186,7 @@
     "coursesTitle": "Suggested courses on platform",
     "coursesHint": "Only courses that match skill gaps / JD (no unrelated fillers).",
     "coursesEmpty": "No catalog courses match the missing skills closely enough. Follow the skill gaps above or add relevant courses to the catalog.",
+    "explanationUnavailable": "The AI provider is temporarily unavailable or over quota. Suggested courses below still come from the rule engine — model explanations are not ready yet.",
     "levelUnset": "Any level",
     "roleRequired": "Enter a target role before evaluating",
     "recommendOk": "Evaluation & suggestions updated",
@@ -1578,6 +1579,10 @@
       "maxAttempts": "Max attempts",
       "enrolled": "Enrolled",
       "schedule": "Schedule",
+      "startsAt": "Start date & time",
+      "endsAt": "End date & time",
+      "scheduleHint": "Pick the exam window. End time defaults to start plus duration.",
+      "endsBeforeStart": "End time must be after start time.",
       "shuffleQuestions": "Shuffle questions",
       "shuffleAnswers": "Shuffle answers",
       "faceCheck": "Require face verification",
@@ -2313,7 +2318,10 @@
       "courses": "Suggested boost courses",
       "coursesHint": "A score counts as low when below 6.5/10 or at least 1.0 below your personal GPA; plus upcoming curriculum courses.",
       "noCourses": "No course suggestions yet.",
-      "buyHint": "Available to study or strengthen on the platform"
+      "buyHint": "Available to study or strengthen on the platform",
+      "sparseProfile": "Your profile has no grades yet — suggestions follow the standard curriculum instead of inferring from empty data.",
+      "coursesHintSparse": "Suggestions follow the official curriculum order (current and upcoming terms).",
+      "explanationUnavailable": "The AI provider is temporarily unavailable or over quota. The course list below still comes from curriculum rules — explanations are not ready yet."
     },
     "experienceSurvey": {
       "title": "LMS experience survey",
@@ -2550,6 +2558,8 @@
       "viewResult": "View result",
       "attempts": "{n} attempts",
       "faceCheck": "Face check",
+      "startsAt": "Starts",
+      "endsAt": "Ends",
       "status": {
         "active": "Open",
         "scheduled": "Upcoming",
@@ -2696,6 +2706,7 @@
       "recError": "Could not load recommendations.",
       "recFallbackCat": "Course",
       "recScore": "Match score: {n}",
+      "sparseRecNotice": "Not enough grades yet — showing the standard curriculum instead.",
       "chatTitle": "AI assistant",
       "chatStatus": "Ready to help",
       "chatContextOn": "Course context attached",

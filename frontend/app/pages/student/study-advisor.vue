@@ -40,6 +40,8 @@ interface EvalSummary {
   weaknesses?: Array<{ title: string, final_score: number }>
   suggested_courses?: ApiCourseRec[]
   suggested_paths?: Array<{ id: number, title: string }>
+  profile_sparse?: boolean
+  recommendation_fallback?: string | null
 }
 
 const { t } = useI18n()
@@ -48,6 +50,8 @@ const loading = ref(true)
 const tip = ref('')
 const tipLoading = ref(false)
 const evaluation = ref<EvalSummary | null>(null)
+const explanationUnavailable = ref(false)
+const profileSparse = ref(false)
 const recCourses = ref<CourseRec[]>([])
 const studyTips = ref<string[]>([])
 
@@ -111,7 +115,8 @@ async function load() {
     recCourses.value = (evalRes.suggested_courses || [])
       .map(normalizeCourseRec)
       .filter((c): c is CourseRec => !!c)
-    tip.value = evalRes.narrative || t('student.studyAdvisor.tipFallback')
+    profileSparse.value = !!evalRes.profile_sparse
+    tip.value = ''
   }
   catch (e: any) {
     toast.add({ severity: 'error', summary: t('student.studyAdvisor.loadError'), detail: e?.data?.message, life: 3500 })
@@ -119,19 +124,34 @@ async function load() {
   finally {
     loading.value = false
   }
+  askTip()
 }
 
 async function askTip() {
   tipLoading.value = true
+  explanationUnavailable.value = false
   try {
-    const res = await useApi<{ narrative?: string, study_tips?: string[], source?: string }>('/ai/study-advisor', {
+    const res = await useApi<{
+      narrative?: string
+      study_tips?: string[]
+      source?: string
+      explanation_unavailable?: boolean
+    }>('/ai/study-advisor', {
       method: 'POST',
     })
-    tip.value = res.narrative || evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
-    studyTips.value = res.study_tips || []
+    explanationUnavailable.value = !!res.explanation_unavailable
+    if (explanationUnavailable.value) {
+      tip.value = ''
+      studyTips.value = []
+    }
+    else {
+      tip.value = res.narrative || t('student.studyAdvisor.tipFallback')
+      studyTips.value = res.study_tips || []
+    }
   }
   catch {
-    tip.value = evaluation.value?.narrative || t('student.studyAdvisor.tipFallback')
+    explanationUnavailable.value = true
+    tip.value = ''
     studyTips.value = []
   }
   finally {
@@ -150,6 +170,15 @@ onMounted(load)
 
     <div v-if="loading" class="empty">…</div>
     <template v-else>
+      <section v-if="profileSparse" class="panel alerts">
+        <div class="alert alert-warn">
+          <i class="pi pi-info-circle" />
+          <div>
+            <p>{{ t('student.studyAdvisor.sparseProfile') }}</p>
+          </div>
+        </div>
+      </section>
+
       <section v-if="hasAlerts" class="panel alerts">
         <h2>{{ t('student.studyAdvisor.alerts') }}</h2>
         <div v-if="lowCompletion" class="alert alert-danger">
@@ -180,7 +209,14 @@ onMounted(load)
 
       <section class="panel">
         <h2>{{ t('student.studyAdvisor.aiTip') }}</h2>
-        <p>{{ tip || '…' }}</p>
+        <div v-if="explanationUnavailable" class="alert alert-warn">
+          <i class="pi pi-exclamation-circle" />
+          <div>
+            <p>{{ t('student.studyAdvisor.explanationUnavailable') }}</p>
+          </div>
+        </div>
+        <p v-else-if="tipLoading && !tip">…</p>
+        <p v-else>{{ tip || t('student.studyAdvisor.tipFallback') }}</p>
         <ul v-if="studyTips.length" class="tips">
           <li v-for="(item, i) in studyTips" :key="i">{{ item }}</li>
         </ul>
@@ -208,7 +244,7 @@ onMounted(load)
 
       <section class="panel">
         <h2>{{ t('student.studyAdvisor.courses') }}</h2>
-        <p class="muted">{{ t('student.studyAdvisor.coursesHint') }}</p>
+        <p class="muted">{{ profileSparse ? t('student.studyAdvisor.coursesHintSparse') : t('student.studyAdvisor.coursesHint') }}</p>
         <CommonEmptyState v-if="!recCourses.length" :description="t('student.studyAdvisor.noCourses')" />
         <div v-else class="courses">
           <button v-for="c in recCourses" :key="c.id" type="button" class="course" @click="navigateTo(`/courses/${c.id}`)">

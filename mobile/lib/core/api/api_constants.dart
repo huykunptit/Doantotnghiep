@@ -28,6 +28,8 @@ class ApiConstants {
   static const meCurriculumEvaluationPath = '/me/curriculum-evaluation';
   static const meLearnerProfilePath = '/me/learner-profile';
   static const meRecommendationsExtensionsPath = '/me/recommendations/extensions';
+  static const aiStudyAdvisorPath = '/ai/study-advisor';
+  static const aiChatPath = '/ai/chat';
 
   // AI Career
   static const careerAdvisorPath = '/career/advisor';

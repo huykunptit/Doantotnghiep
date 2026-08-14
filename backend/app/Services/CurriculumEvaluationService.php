@@ -177,6 +177,8 @@ class CurriculumEvaluationService
         );
 
         $recs = $this->recommendations->recommendForStudyAdvisor($user, 8);
+        $sparse = $overallScore10 === null && $weaknesses === [];
+        $fallback = $sparse ? 'curriculum_standard' : null;
 
         return [
             'has_curriculum' => true,
@@ -204,6 +206,8 @@ class CurriculumEvaluationService
             'narrative' => $narrative,
             'suggested_paths' => [],
             'suggested_courses' => $recs,
+            'profile_sparse' => $sparse,
+            'recommendation_fallback' => $fallback,
             // Payload sẵn sàng gửi AI Career Advisor (Phase AI)
             'career_advisor_context' => [
                 'student' => $profile['user'],
@@ -254,8 +258,8 @@ class CurriculumEvaluationService
 
         if ($level === 'excellent') {
             $parts[] = 'Kết quả học tập xuất sắc — phù hợp các lộ trình chuyên sâu / fullstack.';
-        } elseif ($level === 'early') {
-            $parts[] = 'Bạn đang ở giai đoạn đầu CTĐT — ưu tiên hoàn thành môn nền.';
+        } elseif ($level === 'early' || $gpa === null) {
+            $parts[] = 'Hồ sơ chưa đủ điểm để suy diễn môn yếu — tạm thời gợi ý theo khung chương trình đào tạo chuẩn của ngành.';
         }
 
         return implode(' ', $parts);

@@ -24,7 +24,8 @@ class RecommendationsSection extends ConsumerWidget {
         ),
       ),
       error: (_, _) => const SizedBox.shrink(),
-      data: (items) {
+      data: (bundle) {
+        final items = bundle.items;
         if (items.isEmpty) return const SizedBox.shrink();
 
         return Column(
@@ -47,7 +48,9 @@ class RecommendationsSection extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Cá nhân hoá theo lộ trình & kỹ năng',
+                          bundle.usesCurriculumFallback
+                              ? 'Theo khung CTĐT chuẩn — hồ sơ chưa có điểm'
+                              : 'Cá nhân hoá theo lộ trình & kỹ năng',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -69,6 +72,16 @@ class RecommendationsSection extends ConsumerWidget {
               ),
             ),
             AppSpacing.h8,
+            if (bundle.usesCurriculumFallback)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                  'Hồ sơ chưa đủ điểm — đang gợi ý theo khung chương trình đào tạo chuẩn của ngành.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             SizedBox(
               height: 220,
               child: ListView.builder(

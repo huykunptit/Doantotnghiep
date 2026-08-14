@@ -71,7 +71,11 @@ const form = reactive({
   shuffle_answers: false,
   proctoring_enabled: false,
   course_id: null as number | null,
+  starts_at: null as Date | null,
+  ends_at: null as Date | null,
 })
+
+let hydratingSchedule = false
 
 const statusOptions = computed(() => [
   { label: t('admin.reports.examStatuses.draft'), value: 'draft' },
@@ -141,12 +145,34 @@ const filtered = computed(() => {
 
 const numberLocale = computed(() => (locale.value === 'en' ? 'en-US' : 'vi-VN'))
 
-function fmtDate(value?: string | null) {
+function fmtDateTime(value?: string | null) {
   if (!value) return '—'
   return new Intl.DateTimeFormat(numberLocale.value, {
-    day: '2-digit', month: '2-digit', year: 'numeric',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
   }).format(new Date(value))
 }
+
+function parseApiDate(value?: string | null): Date | null {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function toIso(d: Date | null) {
+  return d ? d.toISOString() : null
+}
+
+function applyEndFromDuration() {
+  if (hydratingSchedule || !form.starts_at || !form.duration) return
+  form.ends_at = new Date(form.starts_at.getTime() + Number(form.duration) * 60 * 1000)
+}
+
+watch(() => [form.starts_at, form.duration] as const, applyEndFromDuration)
 
 function statusLabel(status?: string | null) {
   const key = `admin.reports.examStatuses.${status || 'draft'}`
@@ -221,6 +247,8 @@ function resetForm() {
   form.shuffle_answers = false
   form.proctoring_enabled = false
   form.course_id = selectedCourseId.value
+  form.starts_at = null
+  form.ends_at = null
 }
 
 function examWritePath(exam: ExamItem) {
@@ -240,6 +268,7 @@ function openCreate() {
 function openEdit(exam: ExamItem) {
   modalMode.value = 'edit'
   editing.value = exam
+  hydratingSchedule = true
   form.title = exam.title
   form.description = exam.description || ''
   form.status = exam.status || 'draft'
@@ -250,7 +279,10 @@ function openEdit(exam: ExamItem) {
   form.shuffle_answers = false
   form.proctoring_enabled = !!exam.proctoring_enabled
   form.course_id = exam.course_id || selectedCourseId.value
+  form.starts_at = parseApiDate(exam.starts_at)
+  form.ends_at = parseApiDate(exam.ends_at)
   modalOpen.value = true
+  nextTick(() => { hydratingSchedule = false })
 }
 
 async function saveExam() {
@@ -260,6 +292,11 @@ async function saveExam() {
   }
   if (activeScope.value === 'course' && modalMode.value === 'create' && !form.course_id) {
     toast.add({ severity: 'warn', summary: t('admin.quiz.courseRequired'), life: 2500 })
+    return
+  }
+
+  if (form.starts_at && form.ends_at && form.ends_at.getTime() <= form.starts_at.getTime()) {
+    toast.add({ severity: 'warn', summary: t('admin.quiz.endsBeforeStart'), life: 2800 })
     return
   }
 
@@ -275,6 +312,8 @@ async function saveExam() {
       shuffle_questions: form.shuffle_questions,
       shuffle_answers: form.shuffle_answers,
       proctoring_enabled: form.proctoring_enabled,
+      starts_at: toIso(form.starts_at),
+      ends_at: toIso(form.ends_at),
     }
 
     if (modalMode.value === 'create') {
@@ -545,8 +584,13 @@ onMounted(async () => {
         <Column :header="t('admin.quiz.enrolled')" style="min-width:90px">
           <template #body="{ data }">{{ data.exam_enrollments_count ?? '—' }}</template>
         </Column>
-        <Column :header="t('admin.quiz.schedule')" style="min-width:140px">
-          <template #body="{ data }">{{ fmtDate(data.starts_at) }} – {{ fmtDate(data.ends_at) }}</template>
+        <Column :header="t('admin.quiz.schedule')" style="min-width:220px">
+          <template #body="{ data }">
+            <div class="schedule-cell">
+              <span>{{ t('admin.quiz.startsAt') }}: {{ fmtDateTime(data.starts_at) }}</span>
+              <span>{{ t('admin.quiz.endsAt') }}: {{ fmtDateTime(data.ends_at) }}</span>
+            </div>
+          </template>
         </Column>
         <Column :header="t('admin.users.actions')" style="width:12rem">
           <template #body="{ data }">
@@ -584,7 +628,7 @@ onMounted(async () => {
       v-model:visible="modalOpen"
       modal
       :header="modalMode === 'create' ? t('admin.quiz.add') : t('admin.quiz.edit')"
-      :style="{ width: 'min(640px, 96vw)' }"
+      :style="{ width: 'min(720px, 96vw)' }"
       :dismissable-mask="true"
     >
       <div class="modal-grid">
@@ -631,6 +675,31 @@ onMounted(async () => {
           <span>{{ t('admin.quiz.maxAttempts') }}</span>
           <InputNumber v-model="form.max_attempts" :min="1" :max="99" class="w-full" />
         </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.startsAt') }}</span>
+          <DatePicker
+            v-model="form.starts_at"
+            show-time
+            hour-format="24"
+            show-icon
+            fluid
+            date-format="dd/mm/yy"
+            class="w-full"
+          />
+        </label>
+        <label class="field">
+          <span>{{ t('admin.quiz.endsAt') }}</span>
+          <DatePicker
+            v-model="form.ends_at"
+            show-time
+            hour-format="24"
+            show-icon
+            fluid
+            date-format="dd/mm/yy"
+            class="w-full"
+          />
+        </label>
+        <p class="schedule-hint">{{ t('admin.quiz.scheduleHint') }}</p>
         <label class="field switch-field">
           <span>{{ t('admin.quiz.shuffleQuestions') }}</span>
           <ToggleSwitch v-model="form.shuffle_questions" />
@@ -727,6 +796,11 @@ onMounted(async () => {
 .empty { padding: 40px; color: var(--text-muted); text-align: center; }
 .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field.full { grid-column: 1 / -1; }
+.schedule-hint {
+  grid-column: 1 / -1; margin: -4px 0 4px; color: var(--text-muted);
+  font-size: .78rem; font-weight: 500;
+}
+.schedule-cell { display: flex; flex-direction: column; gap: 2px; font-size: .82rem; line-height: 1.35; }
 .switch-field { flex-direction: row; align-items: center; justify-content: space-between; }
 .switch-hint { display: block; margin-top: 2px; font-weight: 500; color: var(--text-muted); text-transform: none; }
 .status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

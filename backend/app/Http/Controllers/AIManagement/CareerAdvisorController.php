@@ -503,7 +503,7 @@ class CareerAdvisorController extends Controller
         ], auth()->id(), '/evaluate-cv', timeout: 90, maxTotalMs: 70000);
 
         if ($result['ok'] && is_array($result['data']) && filled($result['data']['overview'] ?? null)) {
-            return $result['data'];
+            return array_merge($result['data'], ['explanation_unavailable' => false]);
         }
 
         // Fallback: expert analysis + recommend gaps
@@ -525,6 +525,7 @@ class CareerAdvisorController extends Controller
             'interview_focus' => $expert['learning_priorities'] ?? [],
             'recommended_keyword_topics' => $recommend['recommended_keyword_topics'] ?? [],
             'salary_comment' => null,
+            'explanation_unavailable' => true,
         ];
     }
 
@@ -556,6 +557,7 @@ class CareerAdvisorController extends Controller
             'target_role' => $role,
             'reviewed' => true,
             'review_style' => 'recruiter',
+            'explanation_unavailable' => (bool) ($ai['explanation_unavailable'] ?? false),
         ]);
     }
 
