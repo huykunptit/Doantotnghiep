@@ -195,6 +195,9 @@ services:
       PMA_PORT: 3306
       PMA_USER: root
       PMA_PASSWORD: root
+      # Đường dẫn public thật (đứng sau nginx, dưới sub-path /phpmyadmin/) —
+      # cần thiết để phpMyAdmin sinh đúng URL/redirect khi reverse-proxy.
+      PMA_ABSOLUTE_URI: https://eript-lms.io.vn/phpmyadmin/
     ports:
       - "8083:80"
     depends_on:
@@ -237,6 +240,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - ./backend/public:/var/www/public:ro
       # `php artisan storage:link` makes public/storage an ABSOLUTE symlink to
       # /var/www/storage/app/public — that only resolves inside the backend

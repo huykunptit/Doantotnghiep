@@ -17,6 +17,9 @@
 .vscode/
 .idea/
 
+# Basic Auth credentials for internal tools (phpMyAdmin) — generate on server
+docker/nginx/.htpasswd
+
 # Dependencies / build outputs
 **/node_modules/
 **/.nuxt/
