@@ -29,5 +29,6 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call(CanonicalSnapshotSeeder::class);
+        $this->call(VoucherSeeder::class);
     }
 }

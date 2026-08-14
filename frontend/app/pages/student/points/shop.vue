@@ -8,7 +8,7 @@ interface VoucherItem {
   name: string
   description?: string | null
   points_cost: number
-  discount_type?: string | null
+  type?: string | null
   discount_value?: number | null
   course?: { id: number, title: string } | null
 }
@@ -99,6 +99,11 @@ onMounted(load)
           <span>{{ item.description || item.course?.title || t('student.points.voucherGeneric') }}</span>
           <div class="row">
             <Tag :value="`${item.points_cost} ${t('student.points.pts')}`" severity="info" />
+            <Tag
+              v-if="item.type === 'discount_percent' && item.discount_value"
+              :value="t('student.points.discountPercent', { n: item.discount_value })"
+              severity="success"
+            />
             <Button
               :label="t('student.points.redeem')"
               size="small"
@@ -118,6 +123,13 @@ onMounted(load)
           <code>{{ item.code }}</code>
           <span>{{ t('student.points.status') }}: {{ item.status || '—' }}</span>
           <span>{{ t('student.points.expires') }}: {{ formatExpiry(item.expires_at) }}</span>
+          <Button
+            v-if="item.status === 'unused'"
+            :label="t('student.points.useAtCheckout')"
+            size="small"
+            outlined
+            @click="navigateTo('/cart')"
+          />
         </article>
       </div>
     </template>
@@ -141,6 +153,6 @@ onMounted(load)
 }
 .card span { color: var(--text-muted); font-size: .88rem; font-weight: 500; }
 .card code { font-size: .85rem; padding: 4px 8px; border-radius: 8px; background: var(--surface-subtle); width: fit-content; }
-.row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .empty { color: var(--text-muted); }
 </style>

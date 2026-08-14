@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\AcademicYear;
 use App\Models\AdministrativeClass;
 use App\Models\AdministrativeClassTerm;
+use App\Models\AssignmentSubmission;
 use App\Models\ClassSchedule;
 use App\Models\ClassSection;
 use App\Models\CurriculumCourse;
@@ -14,16 +15,25 @@ use App\Models\ExamEnrollment;
 use App\Models\ExamViolation;
 use App\Models\GradeComponent;
 use App\Models\GradeEntry;
+use App\Models\Lesson;
+use App\Models\LessonAssignment;
+use App\Models\LessonProgress;
+use App\Models\OfflineSession;
+use App\Models\OfflineSessionAttendance;
 use App\Models\Question;
 use App\Models\Quiz;
-use App\Models\QuizAttempt;
 use App\Models\Term;
 use App\Models\User;
+use App\Models\UserCertificate;
+use App\Models\VirtualClass;
+use App\Services\CareerPathFulfillmentService;
 use Carbon\CarbonImmutable;
+use Database\Seeders\Support\SeededQuizAttempt;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -35,6 +45,18 @@ use RuntimeException;
 class AcademicDemoDataSeeder extends Seeder
 {
     private const AVATAR_COUNT = 16;
+
+    /** @var array<string, int> */
+    private const CERT_COURSE_COUNTS = [
+        'student1@lms.com' => 2,
+        'student2@lms.com' => 1,
+        'student3@lms.com' => 2,
+        'student5@lms.com' => 2,
+        'student8@lms.com' => 1,
+        'student11@lms.com' => 1,
+        'student13@lms.com' => 1,
+        'student16@lms.com' => 1,
+    ];
 
     private const SLOTS = [
         [1, '07:00', '09:30'],
@@ -74,11 +96,16 @@ class AcademicDemoDataSeeder extends Seeder
         'exam_enrollments' => 0,
         'attempts' => 0,
         'violations' => 0,
+        'completed_courses' => 0,
+        'certificates' => 0,
+        'qr_sessions' => 0,
+        'qr_checkins' => 0,
     ];
 
     public function run(): void
     {
         $this->publishAvatars();
+        $this->shiftHk1StartsToAugust();
 
         $currentTerm = $this->resolveOperationalTerm();
         if (! $currentTerm) {
@@ -105,7 +132,11 @@ class AcademicDemoDataSeeder extends Seeder
 
         DB::transaction(function () use ($currentTerm): void {
             $this->seedExams($currentTerm);
+            $this->seedCompletedCoursesAndCertificates();
+            $this->seedQrAttendanceSessions($currentTerm);
         });
+
+        $this->synchronizeCurrentFlags($currentTerm);
 
         $audit = $this->audit($currentTerm);
         $this->printSummary($currentTerm, $audit);
@@ -287,13 +318,13 @@ class AcademicDemoDataSeeder extends Seeder
 
         $isFirst = $code === 'HK1';
         $termStart = $isFirst
-            ? CarbonImmutable::create($academicYearStart, 9, 1)
+            ? CarbonImmutable::create($academicYearStart, 8, 1)
             : CarbonImmutable::create($academicYearEnd, 2, 1);
         $termEnd = $isFirst
             ? CarbonImmutable::create($academicYearEnd, 1, 15)
             : CarbonImmutable::create($academicYearEnd, 6, 30);
 
-        return Term::query()->firstOrCreate(
+        return Term::query()->updateOrCreate(
             ['academic_year_id' => $year->id, 'code' => $code],
             [
                 'name' => $isFirst ? 'Học kỳ 1' : 'Học kỳ 2',
@@ -413,22 +444,29 @@ class AcademicDemoDataSeeder extends Seeder
                     );
                     $this->stats['schedules']++;
 
-                    if ($mapped->term->start_date?->gt($currentTerm->start_date)) {
-                        continue;
-                    }
+                    $isFutureTerm = $mapped->term->start_date?->gt($currentTerm->start_date);
 
                     foreach ($students as $student) {
-                        Enrollment::query()->updateOrCreate(
-                            ['user_id' => $student->id, 'course_id' => $course->id],
-                            [
-                                'term_id' => $mapped->term_id,
-                                'cohort_id' => $class->cohort_id,
-                                'class_section_id' => $section->id,
-                                'order_id' => null,
-                                'enrollment_source' => 'academic',
-                                'enrolled_at' => $mapped->term->start_date,
-                            ],
-                        );
+                        $attributes = [
+                            'term_id' => $mapped->term_id,
+                            'cohort_id' => $class->cohort_id,
+                            'class_section_id' => $section->id,
+                            'order_id' => null,
+                            'enrollment_source' => 'academic',
+                            'enrolled_at' => $mapped->term->start_date,
+                        ];
+
+                        if ($isFutureTerm) {
+                            Enrollment::query()->firstOrCreate(
+                                ['user_id' => $student->id, 'course_id' => $course->id],
+                                $attributes,
+                            );
+                        } else {
+                            Enrollment::query()->updateOrCreate(
+                                ['user_id' => $student->id, 'course_id' => $course->id],
+                                $attributes,
+                            );
+                        }
                         $this->stats['enrollments']++;
                     }
                 }
@@ -636,12 +674,20 @@ class AcademicDemoDataSeeder extends Seeder
 
     private function seedExams(Term $currentTerm): void
     {
-        $questionIds = Question::query()->orderBy('id')->limit(10)->pluck('id');
+        $recentCutoff = $currentTerm->start_date?->copy()->subMonths(18) ?? now()->subYear();
+        $lastCompletedId = Term::query()
+            ->where('end_date', '<', $currentTerm->start_date)
+            ->orderByDesc('end_date')
+            ->value('id');
+
         $examSections = ClassSection::query()
             ->with(['course', 'term', 'enrollments'])
             ->whereHas('term', fn ($query) => $query
-                ->where('end_date', '<', $currentTerm->start_date)
-                ->orWhere('id', $currentTerm->id))
+                ->where('end_date', '>=', $recentCutoff)
+                ->where(function ($inner) use ($currentTerm): void {
+                    $inner->where('end_date', '<', $currentTerm->start_date)
+                        ->orWhere('id', $currentTerm->id);
+                }))
             ->whereNotNull('administrative_class_id')
             ->orderBy('id')
             ->get()
@@ -654,108 +700,273 @@ class AcademicDemoDataSeeder extends Seeder
 
         foreach ($examSections as $section) {
             $isHistorical = $section->term->end_date?->lt($currentTerm->start_date) ?? false;
-            $startsAt = $section->term->exam_start_at
-                ?? $section->term->end_date?->copy()->subDays(10)->setTime(8, 0);
-            $title = "Thi cuối kỳ - {$section->course->title} ({$section->code})";
-            $exam = Exam::query()->updateOrCreate(
-                ['course_id' => $section->course_id, 'title' => $title],
+            $includeMidterm = $isHistorical && (int) $section->term_id === (int) $lastCompletedId;
+            $kinds = $includeMidterm
+                ? [
+                    ['label' => 'Thi giữa kỳ', 'minutes' => 45, 'offset_days' => 55, 'type' => 'standalone'],
+                    ['label' => 'Thi cuối kỳ', 'minutes' => 90, 'offset_days' => 10, 'type' => 'course_final'],
+                ]
+                : [
+                    ['label' => 'Thi cuối kỳ', 'minutes' => 90, 'offset_days' => 10, 'type' => 'course_final'],
+                ];
+
+            foreach ($kinds as $kind) {
+                $this->seedSectionExam($section, $currentTerm, $isHistorical, $kind);
+            }
+        }
+    }
+
+    /**
+     * @param  array{label: string, minutes: int, offset_days: int, type: string}  $kind
+     */
+    private function seedSectionExam(ClassSection $section, Term $currentTerm, bool $isHistorical, array $kind): void
+    {
+        $termEnd = $section->term->end_date?->copy() ?? $currentTerm->end_date?->copy();
+        $startsAt = $kind['type'] === 'course_final' && $section->term->exam_start_at
+            ? $section->term->exam_start_at->copy()->setTime(8, 0)
+            : $termEnd?->copy()->subDays($kind['offset_days'])->setTime(8, 0);
+
+        $title = "{$kind['label']} - {$section->course->title} ({$section->code})";
+        $status = $isHistorical
+            ? 'closed'
+            : ($startsAt?->isPast() ? 'active' : 'scheduled');
+
+        $exam = Exam::query()->updateOrCreate(
+            ['course_id' => $section->course_id, 'title' => $title],
+            [
+                'description' => "{$kind['label']} học phần {$section->course->title} — lớp {$section->code}.",
+                'type' => $kind['type'],
+                'status' => $status,
+                'duration' => $kind['minutes'],
+                'pass_score' => 50,
+                'max_attempts' => 1,
+                'shuffle_questions' => false,
+                'shuffle_answers' => false,
+                'review_options' => Exam::defaultReviewOptions(),
+                'starts_at' => $startsAt,
+                'ends_at' => $startsAt?->copy()->addMinutes($kind['minutes']),
+                'room' => 'P'.(200 + ($section->id % 20)),
+                'proctoring_enabled' => true,
+                'created_by' => $section->lecturer_id,
+            ],
+        );
+        $this->stats['exams']++;
+
+        $quiz = Quiz::query()->updateOrCreate(
+            ['exam_id' => $exam->id],
+            [
+                'lesson_id' => null,
+                'course_id' => $section->course_id,
+                'scope' => 'exam',
+                'title' => $title,
+                'time_limit' => $kind['minutes'],
+                'pass_score' => 50,
+                'settings' => ['seeded_by' => 'AcademicDemoDataSeeder'],
+            ],
+        );
+
+        $questionIds = $this->questionIdsForCourse((int) $section->course_id, $kind['type'] === 'course_final' ? 16 : 10);
+        if ($questionIds->isNotEmpty()) {
+            $quiz->questions()->sync(
+                $questionIds->mapWithKeys(fn (int $id, int $index): array => [
+                    $id => ['order' => $index + 1, 'points' => 1],
+                ])->all()
+            );
+        }
+        $quiz->unsetRelation('questions');
+
+        $finalComponent = GradeComponent::query()
+            ->where('course_id', $section->course_id)
+            ->where('name', 'Cuối kỳ')
+            ->first();
+        $midComponent = GradeComponent::query()
+            ->where('course_id', $section->course_id)
+            ->where('name', 'Giữa kỳ')
+            ->first();
+
+        foreach ($section->enrollments as $enrollment) {
+            ExamEnrollment::query()->updateOrCreate(
+                ['exam_id' => $exam->id, 'user_id' => $enrollment->user_id],
                 [
-                    'description' => "Kỳ thi demo cho {$section->code}.",
-                    'type' => 'course_final',
-                    'status' => $isHistorical
-                        ? 'closed'
-                        : ($startsAt?->isPast() ? 'active' : 'scheduled'),
-                    'duration' => 90,
-                    'pass_score' => 50,
-                    'max_attempts' => 1,
-                    'shuffle_questions' => false,
-                    'shuffle_answers' => false,
-                    'review_options' => Exam::defaultReviewOptions(),
-                    'starts_at' => $startsAt,
-                    'ends_at' => $startsAt?->copy()->addMinutes(90),
-                    'room' => 'P'.(200 + ($section->id % 20)),
-                    'proctoring_enabled' => true,
-                    'created_by' => $section->lecturer_id,
+                    'enrolled_by' => $section->lecturer_id,
+                    'enrolled_at' => $section->term->start_date,
                 ],
             );
-            $this->stats['exams']++;
+            $this->stats['exam_enrollments']++;
 
-            $quiz = Quiz::query()->updateOrCreate(
-                ['exam_id' => $exam->id],
-                [
-                    'lesson_id' => null,
-                    'course_id' => $section->course_id,
-                    'scope' => 'exam',
-                    'title' => $title,
-                    'time_limit' => 90,
-                    'pass_score' => 50,
-                    'settings' => ['seeded_by' => 'AcademicDemoDataSeeder'],
-                ],
-            );
-
-            if ($questionIds->isNotEmpty()) {
-                $quiz->questions()->sync(
-                    $questionIds->mapWithKeys(fn (int $id, int $index): array => [
-                        $id => ['order' => $index + 1, 'points' => 1],
-                    ])->all()
-                );
+            $shouldAttempt = $isHistorical || ($status === 'active' && ($enrollment->user_id % 5) !== 0);
+            if (! $shouldAttempt) {
+                continue;
             }
 
-            foreach ($section->enrollments as $enrollment) {
-                ExamEnrollment::query()->updateOrCreate(
-                    ['exam_id' => $exam->id, 'user_id' => $enrollment->user_id],
+            $component = $kind['type'] === 'course_final' ? $finalComponent : $midComponent;
+            $score10 = $component
+                ? GradeEntry::query()
+                    ->where('enrollment_id', $enrollment->id)
+                    ->where('grade_component_id', $component->id)
+                    ->value('score')
+                : null;
+            $score10 = $score10 !== null
+                ? (float) $score10
+                : $this->stableScore((int) $enrollment->user_id, (int) $section->course_id);
+            if ($kind['type'] !== 'course_final') {
+                $score10 = min(10, max(4, $score10 + ((($enrollment->user_id + $exam->id) % 5) - 2) / 10));
+            }
+
+            $attempt = SeededQuizAttempt::upsert(
+                (int) $enrollment->user_id,
+                $quiz,
+                round($score10 * 10, 2),
+                $startsAt,
+                $startsAt?->copy()->addMinutes(max(20, $kind['minutes'] - 15)),
+            );
+            $this->stats['attempts']++;
+
+            if (($attempt->id + $enrollment->user_id) % 11 === 0) {
+                ExamViolation::query()->updateOrCreate(
                     [
-                        'enrolled_by' => $section->lecturer_id,
-                        'enrolled_at' => $section->term->start_date,
+                        'attempt_id' => $attempt->id,
+                        'user_id' => $enrollment->user_id,
+                        'type' => 'focus_lost',
+                    ],
+                    [
+                        'severity' => 'warning',
+                        'metadata' => ['seeded_by' => 'AcademicDemoDataSeeder'],
                     ],
                 );
-                $this->stats['exam_enrollments']++;
+                $this->stats['violations']++;
+            }
+        }
+    }
 
-                if (! $isHistorical) {
-                    continue;
-                }
+    private function questionIdsForCourse(int $courseId, int $limit): Collection
+    {
+        $ids = Question::query()
+            ->where('course_id', $courseId)
+            ->whereIn('type', ['single_choice', 'true_false', 'multiple_choice'])
+            ->orderBy('difficulty')
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id');
 
-                $finalComponent = GradeComponent::query()
-                    ->where('course_id', $section->course_id)
-                    ->where('name', 'Cuối kỳ')
-                    ->first();
-                $finalScore = $finalComponent
-                    ? GradeEntry::query()
-                        ->where('enrollment_id', $enrollment->id)
-                        ->where('grade_component_id', $finalComponent->id)
-                        ->value('score')
-                    : null;
-                if ($finalScore === null) {
-                    continue;
-                }
+        if ($ids->count() >= min(8, $limit)) {
+            return $ids;
+        }
 
-                $attempt = QuizAttempt::query()->updateOrCreate(
-                    ['user_id' => $enrollment->user_id, 'quiz_id' => $quiz->id],
-                    [
-                        'status' => 'submitted',
-                        'score' => round((float) $finalScore * 10, 2),
-                        'passed' => (float) $finalScore >= 5,
-                        'started_at' => $startsAt,
-                        'completed_at' => $startsAt?->copy()->addMinutes(70),
-                        'ip_address' => '127.0.0.1',
-                        'user_agent' => 'AcademicDemoDataSeeder',
-                    ],
-                );
-                $this->stats['attempts']++;
+        return Question::query()
+            ->whereIn('type', ['single_choice', 'true_false', 'multiple_choice'])
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id');
+    }
 
-                if (($attempt->id + $enrollment->user_id) % 11 === 0) {
-                    ExamViolation::query()->updateOrCreate(
+    private function seedCompletedCoursesAndCertificates(): void
+    {
+        $fulfillment = app(CareerPathFulfillmentService::class);
+
+        foreach (self::CERT_COURSE_COUNTS as $email => $count) {
+            $student = User::query()->where('email', $email)->where('user_type', 'student')->first();
+            if (! $student) {
+                continue;
+            }
+
+            $enrollments = Enrollment::query()
+                ->where('user_id', $student->id)
+                ->with(['course.lessons', 'course.certificateTemplate'])
+                ->get()
+                ->filter(fn (Enrollment $enrollment): bool => (bool) $enrollment->course)
+                ->sortBy(function (Enrollment $enrollment): array {
+                    $course = $enrollment->course;
+                    $marketplace = $enrollment->enrollment_source === 'marketplace' ? 0 : 1;
+                    $extension = ($course->course_mode ?? '') === 'extension' ? 0 : 1;
+                    $lessons = $course->lessons->count();
+
+                    return [$marketplace, $extension, $lessons, $course->id];
+                })
+                ->values()
+                ->take($count);
+
+            foreach ($enrollments as $enrollment) {
+                $this->completeEnrollmentForCertificate($student, $enrollment);
+                $this->stats['completed_courses']++;
+
+                $course = $enrollment->course;
+                $templateId = $course->certificate_template_id;
+                if ($templateId) {
+                    $cert = UserCertificate::query()->firstOrCreate(
                         [
-                            'attempt_id' => $attempt->id,
-                            'user_id' => $enrollment->user_id,
-                            'type' => 'focus_lost',
+                            'user_id' => $student->id,
+                            'course_id' => $course->id,
                         ],
                         [
-                            'severity' => 'warning',
-                            'metadata' => ['seeded_by' => 'AcademicDemoDataSeeder'],
+                            'certificate_template_id' => $templateId,
+                            'credential_id' => 'CERT-'.strtoupper(Str::random(10)),
+                            'issued_at' => now()->subDays(3 + ($student->id % 12)),
                         ],
                     );
-                    $this->stats['violations']++;
+                    if ($cert->wasRecentlyCreated) {
+                        $this->stats['certificates']++;
+                    }
+                }
+
+                $fulfillment->refreshProgressForUserCourse($student->id, $course->id);
+            }
+        }
+    }
+
+    private function completeEnrollmentForCertificate(User $student, Enrollment $enrollment): void
+    {
+        $lessons = $enrollment->course?->lessons ?? collect();
+        foreach ($lessons as $index => $lesson) {
+            LessonProgress::query()->updateOrCreate(
+                [
+                    'user_id' => $student->id,
+                    'lesson_id' => $lesson->id,
+                ],
+                [
+                    'progress_percent' => 100,
+                    'watched_seconds' => max(60, (int) ($lesson->duration ?? 600)),
+                    'completed' => true,
+                    'completed_at' => now()->subDays(4 + ($index % 6)),
+                    'last_watched_at' => now()->subDays(1 + ($index % 3)),
+                    'metadata' => [
+                        'seeded_by' => 'AcademicDemoDataSeeder',
+                        'completed_for_certificate' => true,
+                    ],
+                ],
+            );
+
+            if ($lesson->type === 'quiz') {
+                $quiz = Quiz::query()->where('lesson_id', $lesson->id)->first();
+                if ($quiz) {
+                    $score = 82 + (($student->id + $quiz->id) % 16);
+                    SeededQuizAttempt::upsert(
+                        $student->id,
+                        $quiz,
+                        (float) $score,
+                        now()->subDays(5)->subMinutes(40),
+                        now()->subDays(5),
+                    );
+                    $this->stats['attempts']++;
+                }
+            }
+
+            if ($lesson->type === 'assignment') {
+                $assignment = LessonAssignment::query()->where('lesson_id', $lesson->id)->first();
+                if ($assignment) {
+                    AssignmentSubmission::query()->updateOrCreate(
+                        [
+                            'user_id' => $student->id,
+                            'lesson_assignment_id' => $assignment->id,
+                        ],
+                        [
+                            'file_url' => 'https://example.com/submissions/'.$student->id.'-'.$assignment->id.'.pdf',
+                            'student_note' => 'Bài nộp hoàn thành khóa — seed chứng chỉ.',
+                            'grade' => round(8.0 + (($student->id + $assignment->id) % 15) / 10, 1),
+                            'feedback' => 'Đạt yêu cầu, hoàn thành khóa học.',
+                            'submitted_at' => now()->subDays(6),
+                        ],
+                    );
                 }
             }
         }
@@ -889,6 +1100,130 @@ class AcademicDemoDataSeeder extends Seeder
             ->whereNotNull("child.{$foreignKey}")
             ->whereNull('parent.id')
             ->count();
+    }
+
+    /**
+     * HK1 demo: bắt đầu 01/08 thay vì 01/09 để kỳ hiện tại có khóa đang học.
+     */
+    private function shiftHk1StartsToAugust(): void
+    {
+        Term::query()
+            ->where('code', 'HK1')
+            ->whereMonth('start_date', 9)
+            ->whereDay('start_date', 1)
+            ->get()
+            ->each(function (Term $term): void {
+                $start = $term->start_date?->copy()->month(8)->day(1);
+                if (! $start) {
+                    return;
+                }
+                $term->forceFill([
+                    'start_date' => $start,
+                    'enrollment_start_at' => $start->copy()->subDays(17)->startOfDay(),
+                    'enrollment_end_at' => $start->copy()->addDays(5)->endOfDay(),
+                ])->save();
+            });
+    }
+
+    /**
+     * QR điểm danh theo từng lớp tín chỉ kỳ hiện tại: live workshop + buổi offline.
+     */
+    private function seedQrAttendanceSessions(Term $currentTerm): void
+    {
+        $sections = ClassSection::query()
+            ->where('term_id', $currentTerm->id)
+            ->with([
+                'course.lessons' => fn ($query) => $query->whereIn('type', ['offline', 'live'])->orderBy('order'),
+                'enrollments.user:id,email,user_type',
+            ])
+            ->get();
+
+        $workshopStart = now()->setTime(19, 30);
+        $labStart = now()->subMinutes(20)->seconds(0);
+
+        foreach ($sections as $section) {
+            $lessons = $section->course?->lessons ?? collect();
+            foreach ($lessons as $index => $lesson) {
+                $isLive = $lesson->type === 'live';
+                $session = OfflineSession::query()->updateOrCreate(
+                    [
+                        'class_section_id' => $section->id,
+                        'lesson_id' => $lesson->id,
+                    ],
+                    [
+                        'course_id' => $section->course_id,
+                        'administrative_class_id' => $section->administrative_class_id,
+                        'title' => $isLive
+                            ? 'Live workshop — '.$section->code
+                            : 'Buổi offline — '.$section->code,
+                        'location' => $isLive ? 'Google Meet / Workshop trực tuyến' : 'Phòng Lab PTIT - Tầng 5',
+                        'room' => $isLive ? 'ONLINE' : sprintf('LAB-%s', str_pad((string) (101 + ($section->id % 40)), 3, '0', STR_PAD_LEFT)),
+                        'start_at' => $isLive ? $workshopStart : $labStart,
+                        'duration' => $isLive ? 90 : 120,
+                        'max_participants' => max(40, (int) $section->capacity),
+                        'latitude' => null,
+                        'longitude' => null,
+                        'check_in_radius_meters' => OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS,
+                        'is_active' => true,
+                        'qr_enabled' => true,
+                        'qr_mode' => OfflineSession::QR_MODE_MANUAL,
+                        'qr_rotate_seconds' => 60,
+                    ],
+                );
+                $session->generateQrToken(14 * 24 * 60);
+                $this->stats['qr_sessions']++;
+
+                if ($isLive) {
+                    VirtualClass::query()->where('lesson_id', $lesson->id)->update([
+                        'start_at' => $workshopStart,
+                        'duration' => 90,
+                    ]);
+                }
+
+                $this->seedQrCheckins($session, $section);
+            }
+        }
+    }
+
+    private function seedQrCheckins(OfflineSession $session, ClassSection $section): void
+    {
+        $students = $section->enrollments
+            ->pluck('user')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        foreach ($students as $offset => $student) {
+            if ($student->user_type !== 'student') {
+                continue;
+            }
+            $email = strtolower((string) $student->email);
+            // Tài khoản demo gốc còn trống để quét QR live.
+            if (preg_match('/^student(?:[1-9]|1[0-6])@lms\.com$/', $email)) {
+                OfflineSessionAttendance::query()
+                    ->where('user_id', $student->id)
+                    ->where('offline_session_id', $session->id)
+                    ->delete();
+                continue;
+            }
+
+            $late = ($student->id + $session->id) % 7 === 0;
+            OfflineSessionAttendance::query()->updateOrCreate(
+                [
+                    'user_id' => $student->id,
+                    'offline_session_id' => $session->id,
+                ],
+                [
+                    'status' => $late ? 'late' : 'present',
+                    'checked_in_at' => $session->start_at?->copy()->addMinutes($late ? 15 : 4 + ($offset % 10)),
+                    'device_info' => 'seed-qr-demo',
+                    'latitude' => null,
+                    'longitude' => null,
+                    'distance_meters' => null,
+                ],
+            );
+            $this->stats['qr_checkins']++;
+        }
     }
 
     private function printSummary(Term $currentTerm, array $audit): void

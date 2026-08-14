@@ -41,6 +41,7 @@ interface CourseDetail {
   }>
   instructor?: { id?: number, name?: string, avatar?: string | null } | null
   category?: { name?: string } | null
+  course_mode?: string | null
   lessons?: LessonItem[]
   sections?: SectionItem[]
   path_suggestions?: PathSuggestion[]
@@ -67,6 +68,7 @@ interface PathSuggestion {
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const cart = useCartStore()
 const { isAdmin } = usePermissions()
 const toast = useToast()
 const { t, locale } = useI18n()
@@ -231,9 +233,35 @@ const ctaLabel = computed(() => {
   return t('student.catalog.buy')
 })
 
+const canAddToCart = computed(() => {
+  if (!course.value || course.value.is_enrolled || canBypassPurchase.value) return false
+  if ((course.value.price || 0) <= 0) return false
+  if (course.value.course_mode === 'core') return false
+  return true
+})
+
+function addToCart() {
+  if (!course.value || !canAddToCart.value) return
+  const added = cart.add({
+    id: course.value.id,
+    title: course.value.title,
+    price: course.value.price || 0,
+    thumbnail: course.value.thumbnail,
+    slug: course.value.slug,
+  })
+  toast.add({
+    severity: added ? 'success' : 'info',
+    summary: added ? t('student.cart.added') : t('student.cart.already'),
+    life: 2200,
+  })
+}
+
 const pathSuggestions = computed(() => course.value?.path_suggestions || [])
 
-onMounted(load)
+onMounted(() => {
+  cart.hydrate()
+  load()
+})
 </script>
 
 <template>
@@ -279,6 +307,15 @@ onMounted(load)
               class="offer-cta"
               :disabled="Boolean(course.is_enrolled) && lessonCount === 0"
               @click="primaryAction"
+            />
+            <Button
+              v-if="canAddToCart"
+              :label="cart.has(course.id) ? t('student.cart.already') : t('student.catalog.addToCart')"
+              class="offer-cta"
+              severity="secondary"
+              outlined
+              icon="pi pi-shopping-cart"
+              @click="addToCart"
             />
             <ul>
               <li>{{ t('student.detail.includesLessons', { n: lessonCount }) }}</li>

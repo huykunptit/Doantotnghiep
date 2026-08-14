@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\PaymentManagement;
 
 use App\Http\Controllers\Controller;
-use App\Models\Enrollment;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Services\CareerPathFulfillmentService;
+use App\Services\CheckoutService;
 use App\Services\PayOSService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +19,7 @@ class PayOSController extends Controller
     public function __construct(
         private readonly PayOSService $payOSService,
         private readonly CareerPathFulfillmentService $pathFulfillment,
+        private readonly CheckoutService $checkout,
     ) {}
 
     public function payosReturn(Request $request): JsonResponse
@@ -115,23 +116,25 @@ class PayOSController extends Controller
 
                 if ($order->career_path_id) {
                     $this->pathFulfillment->fulfillPaidOrder($order->fresh());
-                } elseif ($order->course_id) {
-                    Enrollment::firstOrCreate([
-                        'user_id' => $order->user_id,
-                        'course_id' => $order->course_id,
-                    ], [
-                        'enrolled_at' => now(),
-                        'order_id' => $order->id,
-                        'enrollment_source' => 'marketplace',
-                    ]);
+                } else {
+                    $this->checkout->fulfill($order->fresh());
                 }
             });
 
             $order->loadMissing(['course', 'careerPath', 'user']);
 
-            if (!$order->career_path_id && $order->course) {
-                Notification::send($order->user_id, 'enrollment', 'Thanh toán thành công', "Bạn đã ghi danh vào khóa học \"{$order->course->title}\".", "/learn/{$order->course_id}");
-                Notification::send($order->course->user_id, 'enrollment', 'Có học viên mới', "Học viên {$order->user->name} đã ghi danh vào khóa học \"{$order->course->title}\".", "/instructor/courses/{$order->course_id}/students");
+            if (!$order->career_path_id) {
+                $titles = collect($order->cart_items ?? [])->pluck('title')->filter()->implode(', ');
+                if ($titles === '' && $order->course) {
+                    $titles = $order->course->title;
+                }
+                if ($titles !== '') {
+                    $learnId = $order->course_id;
+                    Notification::send($order->user_id, 'enrollment', 'Thanh toán thành công', "Bạn đã ghi danh: {$titles}.", $learnId ? "/learn/{$learnId}" : '/student/courses');
+                }
+                if ($order->course) {
+                    Notification::send($order->course->user_id, 'enrollment', 'Có học viên mới', "Học viên {$order->user->name} đã ghi danh vào khóa học \"{$order->course->title}\".", "/instructor/courses/{$order->course_id}/students");
+                }
             }
 
             return;

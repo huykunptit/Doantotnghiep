@@ -40,6 +40,7 @@ onMounted(() => {
         </div>
         <div class="topbar-actions">
           <LocaleSwitcher />
+          <CommonCartButton />
           <StudentNotificationBell />
           <Button :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'" severity="secondary" text rounded :aria-label="t('common.theme')" @click="toggle" />
           <CommonAccountMenu />

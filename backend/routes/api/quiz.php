@@ -39,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/courses/{course}/exams/{exam}/quiz', [QuizController::class, 'showExamQuiz']);
         Route::post('/courses/{course}/exams/{exam}/quiz', [QuizController::class, 'storeOrUpdateExamQuiz']);
 
+        Route::get('/admin/exams', [ExamController::class, 'adminIndex']);
         Route::get('/exams/standalone', [ExamController::class, 'standaloneIndex']);
         Route::post('/exams/standalone', [ExamController::class, 'storeStandalone']);
         Route::get('/exams/{exam}/detail', [ExamController::class, 'showStandalone']);
@@ -51,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/exams/{exam}/enroll-class', [ExamController::class, 'enrollByAdminClass']);
         Route::delete('/exams/{exam}/unenroll/{targetUser}', [ExamController::class, 'unenrollUser']);
         Route::get('/exams/{exam}/enrolled-users', [ExamController::class, 'enrolledUsers']);
+        Route::get('/exams/{exam}/results', [ExamController::class, 'results']);
 
         Route::post('/attempts/{attempt}/pause', [ExamProctorController::class, 'pauseAttempt']);
         Route::post('/attempts/{attempt}/resume', [ExamProctorController::class, 'resumeAttempt']);

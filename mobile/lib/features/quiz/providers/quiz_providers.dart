@@ -7,6 +7,9 @@ import '../../../core/error/friendly_error.dart';
 part 'quiz_providers.g.dart';
 
 class ExamWorkspaceState {
+  static const Object _unset = Object();
+  static const int maxFocusLoss = 3;
+
   final bool isLoading;
   final String? error;
   final ExamModel? exam;
@@ -64,7 +67,7 @@ class ExamWorkspaceState {
     QuizAttemptModel? result,
     String? autoSaveStatus,
     bool? isSubmitting,
-    ProctorMessageModel? proctorAlert,
+    Object? proctorAlert = _unset,
     int? warnings,
     bool? isLessonQuiz,
     int? courseId,
@@ -85,7 +88,9 @@ class ExamWorkspaceState {
       result: result ?? this.result,
       autoSaveStatus: autoSaveStatus ?? this.autoSaveStatus,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      proctorAlert: proctorAlert ?? this.proctorAlert,
+      proctorAlert: identical(proctorAlert, _unset)
+          ? this.proctorAlert
+          : proctorAlert as ProctorMessageModel?,
       warnings: warnings ?? this.warnings,
       isLessonQuiz: isLessonQuiz ?? this.isLessonQuiz,
       courseId: courseId ?? this.courseId,
@@ -100,6 +105,7 @@ class ExamAttempt extends _$ExamAttempt {
   Timer? _pollTimer;
   Timer? _autoSaveDebounce;
   String? _lastMessageAt;
+  DateTime? _lastFocusLossAt;
   bool _hasUnsavedChanges = false;
 
   @override
@@ -460,24 +466,45 @@ class ExamAttempt extends _$ExamAttempt {
 
   // ── Proctoring (Cheating logs) ────────────────────────────────────
 
-  void incrementFocusLossViolation() {
-    if (state.isLessonQuiz || state.attemptId == null || state.status != 'in_progress') {
-      // In lesson quiz, just count locally in memory
-      state = state.copyWith(warnings: state.warnings + 1);
-      return;
+  /// Counts a real leave-app event. Returns the new warning count, or the
+  /// previous count when the event is ignored (lesson quiz, cooldown, cap).
+  int incrementFocusLossViolation() {
+    if (state.isLessonQuiz || state.status != 'in_progress') {
+      return state.warnings;
+    }
+    if (state.warnings >= ExamWorkspaceState.maxFocusLoss) {
+      return state.warnings;
     }
 
-    state = state.copyWith(warnings: state.warnings + 1);
-    
-    // Send to backend
-    ref.read(quizRepositoryProvider).logViolation(
-          state.attemptId!,
-          type: 'focus_lost',
-          severity: 'warning',
-          metadata: {
-            'message': 'Thí sinh rời khỏi màn hình ứng dụng thi lần ${state.warnings}.',
-            'timestamp': DateTime.now().toIso8601String(),
-          },
-        ).catchError((_) {});
+    final now = DateTime.now();
+    if (_lastFocusLossAt != null &&
+        now.difference(_lastFocusLossAt!) < const Duration(seconds: 2)) {
+      return state.warnings;
+    }
+    _lastFocusLossAt = now;
+
+    final next = state.warnings + 1;
+    final critical = next >= ExamWorkspaceState.maxFocusLoss;
+    state = state.copyWith(warnings: next);
+
+    final attemptId = state.attemptId;
+    if (attemptId != null) {
+      unawaited(() async {
+        try {
+          await ref.read(quizRepositoryProvider).logViolation(
+                attemptId,
+                type: 'focus_lost',
+                severity: critical ? 'critical' : 'warning',
+                metadata: {
+                  'count': next,
+                  'max': ExamWorkspaceState.maxFocusLoss,
+                  'timestamp': now.toIso8601String(),
+                },
+              );
+        } catch (_) {}
+      }());
+    }
+
+    return next;
   }
 }

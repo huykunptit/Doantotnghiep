@@ -141,13 +141,84 @@ class AssignmentController extends Controller
             return response()->json(['message' => 'Assignment not found'], 404);
         }
 
-        $submissions = $assignment->submissions()->with('user:id,name,email')->get();
-        
-        $submissions->map(function ($sub) {
-            $sub->file_url = $this->mediaService->getUrl($sub->file_path);
-            return $sub;
-        });
+        $submissions = $assignment->submissions()->with('user:id,name,email')->latest('submitted_at')->get();
 
         return response()->json($submissions);
     }
+
+    /**
+     * Instructor: all assignment submissions for a course (grading inbox).
+     */
+    public function courseSubmissions(Request $request, Course $course): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $lessons = $course->lessons()
+            ->where('type', 'assignment')
+            ->with(['assignment.submissions' => fn ($q) => $q->with('user:id,name,email')->latest('submitted_at')])
+            ->orderBy('order')
+            ->get();
+
+        $assignments = $lessons
+            ->filter(fn ($lesson) => $lesson->assignment)
+            ->map(function ($lesson) {
+                $assignment = $lesson->assignment;
+                $subs = $assignment->submissions;
+                return [
+                    'lesson_id' => $lesson->id,
+                    'lesson_title' => $lesson->title,
+                    'assignment_id' => $assignment->id,
+                    'due_at' => $assignment->due_at,
+                    'submissions_count' => $subs->count(),
+                    'ungraded_count' => $subs->whereNull('grade')->count(),
+                    'submissions' => $subs->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'course' => $course->only(['id', 'title']),
+            'assignments' => $assignments,
+            'summary' => [
+                'assignments' => $assignments->count(),
+                'submissions' => $assignments->sum('submissions_count'),
+                'ungraded' => $assignments->sum('ungraded_count'),
+            ],
+        ]);
+    }
+
+    /**
+     * Instructor: grade a submission.
+     */
+    public function grade(Request $request, Course $course, AssignmentSubmission $submission): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        if (!\App\Support\Authorize::isAdmin($user) && (int) $course->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $submission->load('assignment.lesson');
+        abort_unless((int) $submission->assignment?->lesson?->course_id === (int) $course->id, 404);
+
+        $validated = $request->validate([
+            'grade' => ['required', 'numeric', 'min:0', 'max:10'],
+            'feedback' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $submission->update([
+            'grade' => $validated['grade'],
+            'feedback' => $validated['feedback'] ?? $submission->feedback,
+        ]);
+
+        return response()->json([
+            'message' => 'Đã chấm điểm bài tập.',
+            'submission' => $submission->fresh()->load('user:id,name,email'),
+        ]);
+    }
 }
+

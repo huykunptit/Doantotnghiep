@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { profilePathFor } from '~/types/auth'
+import { dashboardFor, profilePathFor } from '~/types/auth'
 
 const auth = useAuthStore()
 const { t } = useI18n()
@@ -18,6 +18,7 @@ const userInitials = computed(() =>
 )
 
 const profileTo = computed(() => profilePathFor(auth.user))
+const dashboardTo = computed(() => dashboardFor(auth.user))
 
 function toggleAccountPanel(event: Event) {
   accountPanel.value?.toggle(event)
@@ -44,13 +45,13 @@ async function logout() {
 <template>
   <div class="account-wrap">
     <button type="button" class="account-trigger" :aria-label="t('common.myProfile')" @click="toggleAccountPanel">
-      <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
+      <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
       <Avatar v-else :label="userInitials" shape="circle" />
     </button>
     <Popover ref="accountPanel" class="account-pop">
       <div class="account-menu">
         <div class="account-menu-head">
-          <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
+          <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
           <Avatar v-else :label="userInitials" shape="circle" />
           <div class="account-menu-info">
             <strong>{{ auth.user?.name || '—' }}</strong>
@@ -58,8 +59,12 @@ async function logout() {
           </div>
         </div>
         <button type="button" class="account-menu-item" @click="go(profileTo)">
-          <i class="pi pi-user" />
+          <i class="pi pi-user-edit" />
           <span>{{ t('common.myProfile') }}</span>
+        </button>
+        <button type="button" class="account-menu-item" @click="go(dashboardTo)">
+          <i class="pi pi-th-large" />
+          <span>{{ t('common.dashboard') }}</span>
         </button>
         <button type="button" class="account-menu-item" @click="go('/')">
           <i class="pi pi-home" />

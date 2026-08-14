@@ -500,7 +500,7 @@ class CareerAdvisorController extends Controller
             'cv_text' => $cv->parsed_text,
             'target_job' => $jobTitle,
             'expected_salary' => $cv->expected_salary ? (int) $cv->expected_salary : null,
-        ], auth()->id(), '/evaluate-cv', timeout: 90);
+        ], auth()->id(), '/evaluate-cv', timeout: 90, maxTotalMs: 70000);
 
         if ($result['ok'] && is_array($result['data']) && filled($result['data']['overview'] ?? null)) {
             return $result['data'];
@@ -647,7 +647,7 @@ class CareerAdvisorController extends Controller
             'skills' => $skills,
             'cv_text' => $cv->parsed_text,
             'target_job' => $jobTitle,
-        ], auth()->id(), '/recommend', timeout: 60);
+        ], auth()->id(), '/recommend', timeout: 60, maxTotalMs: 55000);
 
         if ($result['ok'] && is_array($result['data'])) {
             return $result['data'];

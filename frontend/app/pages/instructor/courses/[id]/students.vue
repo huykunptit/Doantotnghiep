@@ -82,6 +82,12 @@ onMounted(load)
         <h1>{{ courseTitle || t('instructor.menu.courseStudents') }}</h1>
         <p>{{ t('instructor.students.subtitle') }}</p>
       </div>
+      <Button
+        :label="t('instructor.courses.assignments')"
+        icon="pi pi-file-edit"
+        outlined
+        @click="navigateTo(`/instructor/courses/${courseId}/assignments`)"
+      />
     </header>
 
     <section class="table-panel">
@@ -113,7 +119,7 @@ onMounted(load)
         <Column :header="t('instructor.students.name')">
           <template #body="{ data }">
             <div class="user-cell">
-              <Avatar v-if="data.user?.avatar" :image="data.user.avatar" shape="circle" />
+              <Avatar v-if="resolveMediaUrl(data.user?.avatar)" :image="resolveMediaUrl(data.user?.avatar)" shape="circle" />
               <Avatar v-else :label="(data.user?.name || '?').slice(0, 1)" shape="circle" />
               <div>
                 <strong>{{ data.user?.name || '—' }}</strong>
@@ -144,6 +150,7 @@ onMounted(load)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 14px; }
+.workspace-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
 .back { margin-left: -8px; margin-bottom: 4px; }
 .workspace-head h1 { margin: 0 0 4px; font-size: clamp(1.35rem, 2vw, 1.7rem); }
 .workspace-head p { margin: 0; color: var(--text-muted); font-weight: 500; }

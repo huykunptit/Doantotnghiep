@@ -918,7 +918,7 @@ onMounted(async () => {
         <Column field="name" :header="t('admin.users.colUser')" sortable style="min-width:220px">
           <template #body="{ data }">
             <div class="user-cell">
-              <Avatar v-if="data.avatar" :image="data.avatar" shape="circle" />
+              <Avatar v-if="resolveMediaUrl(data.avatar)" :image="resolveMediaUrl(data.avatar)" shape="circle" />
               <Avatar v-else :label="(data.name || '?').slice(0, 1).toUpperCase()" shape="circle" />
               <div>
                 <button type="button" class="name-link" @click="openView(data)">{{ data.name }}</button>
@@ -974,8 +974,8 @@ onMounted(async () => {
       <div class="modal-grid" :class="{ readonly: isReadonly }">
         <div class="avatar-block full">
           <Avatar
-            v-if="form.avatar"
-            :image="form.avatar"
+            v-if="resolveMediaUrl(form.avatar)"
+            :image="resolveMediaUrl(form.avatar)"
             shape="circle"
             size="xlarge"
             class="avatar-preview"

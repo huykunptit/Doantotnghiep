@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { textMatches } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
@@ -136,11 +137,11 @@ const mappedCourseIds = computed(() => {
 })
 
 const availableCourses = computed(() => {
-  const q = courseSearch.value.trim().toLowerCase()
+  const q = courseSearch.value
   return allCourses.value.filter((c) => {
     if (mappedCourseIds.value.has(c.id)) return false
-    if (!q) return true
-    return c.title.toLowerCase().includes(q)
+    if (!q.trim()) return true
+    return textMatches(c.title, q)
   })
 })
 

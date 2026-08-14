@@ -14,6 +14,7 @@ use App\Models\SiteSetting;
 use App\Models\User;
 use App\Services\MediaService;
 use App\Support\Enums\StudyStatus;
+use App\Support\SearchQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -559,13 +560,7 @@ class AdminController extends Controller
 
         $search = trim((string) ($request->query('q') ?: $request->query('search', '')));
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('student_code', 'like', "%{$search}%")
-                    ->orWhere('staff_code', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
-            });
+            SearchQuery::like($query, ['name', 'email', 'student_code', 'staff_code', 'phone'], $search);
         }
 
         foreach (['unit_id', 'program_id', 'major_id', 'cohort_id', 'advisor_id'] as $field) {
@@ -983,10 +978,8 @@ class AdminController extends Controller
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%')
-                    ->orWhere('slug', 'like', '%' . $search . '%')
-                    ->orWhere('description', 'like', '%' . $search . '%')
-                    ->orWhereHas('instructor', fn ($iq) => $iq->where('name', 'like', '%' . $search . '%'));
+                SearchQuery::like($q, ['title', 'slug', 'description'], $search);
+                $q->orWhereHas('instructor', fn ($iq) => SearchQuery::like($iq, ['name'], $search));
             });
         }
 
@@ -1201,10 +1194,10 @@ class AdminController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->whereHas('user', fn ($u) => $u->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('email', 'like', '%' . $request->search . '%'))
-                  ->orWhereHas('course', fn ($c) => $c->where('title', 'like', '%' . $request->search . '%'));
+            $search = (string) $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', fn ($u) => SearchQuery::like($u, ['name', 'email'], $search))
+                    ->orWhereHas('course', fn ($c) => SearchQuery::like($c, ['title'], $search));
             });
         }
 
@@ -1243,10 +1236,11 @@ class AdminController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('comment', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%' . $request->search . '%'))
-                  ->orWhereHas('course', fn ($c) => $c->where('title', 'like', '%' . $request->search . '%'));
+            $search = (string) $request->search;
+            $query->where(function ($q) use ($search) {
+                SearchQuery::like($q, ['comment'], $search);
+                $q->orWhereHas('user', fn ($u) => SearchQuery::like($u, ['name'], $search))
+                    ->orWhereHas('course', fn ($c) => SearchQuery::like($c, ['title'], $search));
             });
         }
 

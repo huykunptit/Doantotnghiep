@@ -5,6 +5,8 @@ namespace App\Http\Controllers\UserManagement;
 use App\Http\Controllers\Controller;
 
 use App\Models\User;
+use App\Services\MediaService;
+use App\Support\PublicMediaUrl;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\JsonResponse;
@@ -328,6 +330,57 @@ class AuthController extends Controller
             'message' => 'Xác nhận email thành công. Bạn có thể đăng nhập ngay bây giờ.',
             'verified' => true,
         ]);
+    }
+
+    public function uploadMedia(Request $request, MediaService $mediaService): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'image', 'max:5120'],
+            'folder' => ['nullable', 'string', 'in:users,settings,courses,faces'],
+            'old_path' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        $folderKey = $validated['folder'] ?? 'users';
+        $allowed = match ($folderKey) {
+            'users' => true,
+            'courses' => $user->hasRole('admin') || $user->can('manage_courses'),
+            'settings', 'faces' => $user->hasRole('admin'),
+            default => false,
+        };
+
+        if (! $allowed) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $folder = match ($folderKey) {
+            'settings' => 'admin/settings',
+            'courses' => 'admin/courses',
+            'faces' => 'admin/faces',
+            default => 'users/avatars',
+        };
+
+        $uploaded = $mediaService->upload($request->file('file'), $folder);
+
+        if (! empty($validated['old_path'])) {
+            $oldKey = PublicMediaUrl::toStorageKey($validated['old_path']);
+            if (
+                $oldKey
+                && ! str_contains($oldKey, 'seed/avatars')
+                && $mediaService->exists($oldKey)
+            ) {
+                $mediaService->delete($oldKey);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Upload successful',
+            'path' => $uploaded['path'],
+            'url' => $mediaService->getUrl($uploaded['path']),
+            'meta' => $uploaded,
+        ], 201);
     }
 
     private function assignDefaultRole(User $user): void

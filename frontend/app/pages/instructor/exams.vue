@@ -14,6 +14,7 @@ interface ExamRow {
   ends_at?: string | null
   exam_enrollments_count?: number
   variant_count?: number
+  proctoring_enabled?: boolean
   quiz?: { id: number } | null
 }
 
@@ -64,7 +65,7 @@ const form = reactive({
   starts_at: null as Date | null,
   ends_at: null as Date | null,
   administrative_class_id: null as number | null,
-  proctoring_enabled: true,
+  proctoring_enabled: false,
   variant_count: 1,
 })
 
@@ -213,7 +214,7 @@ function resetForm() {
   form.starts_at = null
   form.ends_at = null
   form.administrative_class_id = null
-  form.proctoring_enabled = true
+  form.proctoring_enabled = false
   form.variant_count = 1
   questionIds.value = []
   randomRules.value = []
@@ -351,7 +352,14 @@ onMounted(async () => {
       <Column :header="t('instructor.exams.enrolled')">
         <template #body="{ data }">{{ data.exam_enrollments_count || 0 }}</template>
       </Column>
-      <Column field="status" :header="t('instructor.exams.status')" />
+      <Column field="status" :header="t('instructor.exams.status')">
+        <template #body="{ data }">
+          <div class="status-cell">
+            <span>{{ data.status }}</span>
+            <Tag v-if="data.proctoring_enabled" :value="t('instructor.exams.faceCheckOn')" severity="warn" />
+          </div>
+        </template>
+      </Column>
       <Column :header="t('instructor.exams.actions')">
         <template #body="{ data }">
           <div class="row-actions">
@@ -433,7 +441,10 @@ onMounted(async () => {
         </label>
         <label class="field check">
           <Checkbox v-model="form.proctoring_enabled" :binary="true" input-id="proc" />
-          <label for="proc">{{ t('instructor.exams.proctoring') }}</label>
+          <div>
+            <label for="proc">{{ t('instructor.exams.proctoring') }}</label>
+            <small>{{ t('instructor.exams.proctoringHint') }}</small>
+          </div>
         </label>
       </div>
 
@@ -493,7 +504,10 @@ onMounted(async () => {
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
 .field.full { grid-column: 1 / -1; }
-.field.check { flex-direction: row; align-items: center; gap: 8px; grid-column: 1 / -1; }
+.field.check { flex-direction: row; align-items: flex-start; gap: 10px; grid-column: 1 / -1; }
+.field.check label { font-weight: 700; cursor: pointer; }
+.field.check small { display: block; margin-top: 2px; color: var(--text-muted); font-size: .8rem; font-weight: 500; }
+.status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .w-full { width: 100%; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .hint { margin: 8px 0 0; color: var(--text-muted); font-size: .84rem; font-weight: 600; }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { matchesAny } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
@@ -65,13 +66,9 @@ const studyStatusOptions = computed(() => [
 ])
 
 const filteredStudents = computed(() => {
-  const q = studentSearch.value.trim().toLowerCase()
-  if (!q) return students.value
-  return students.value.filter(s =>
-    s.name?.toLowerCase().includes(q)
-    || s.email?.toLowerCase().includes(q)
-    || s.student_code?.toLowerCase().includes(q),
-  )
+  const q = studentSearch.value
+  if (!q.trim()) return students.value
+  return students.value.filter(s => matchesAny(q, s.name, s.email, s.student_code))
 })
 
 function statusTone(status?: string | null) {
@@ -246,7 +243,7 @@ onMounted(load)
           <Column :header="t('admin.classes.detail.colStudent')" style="min-width:220px">
             <template #body="{ data }">
               <div class="student-cell">
-                <Avatar v-if="data.avatar" :image="data.avatar" shape="circle" />
+                <Avatar v-if="resolveMediaUrl(data.avatar)" :image="resolveMediaUrl(data.avatar)" shape="circle" />
                 <Avatar v-else :label="initials(data.name)" shape="circle" />
                 <div>
                   <strong>{{ data.name }}</strong>

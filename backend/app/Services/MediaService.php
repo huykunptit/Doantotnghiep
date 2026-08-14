@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -60,36 +61,45 @@ class MediaService
      */
     public function getUrl(string $path): string
     {
-        // Files uploaded via LessonController land on the `public_uploads` disk
-        // (root = public/uploads), not the default `public` disk. Detect which
-        // disk physically holds the file and serve from that one — otherwise
-        // the public/storage symlink won't find it and the browser hits 403.
-        if (Storage::disk('public_uploads')->exists($path)) {
-            return Storage::disk('public_uploads')->url($path);
+        $alreadyPublic = PublicMediaUrl::toPublic($path);
+        if ($alreadyPublic && (
+            str_starts_with($alreadyPublic, 'http://')
+            || str_starts_with($alreadyPublic, 'https://')
+            || str_starts_with($alreadyPublic, '/storage/')
+            || str_starts_with($alreadyPublic, '/uploads/')
+            || str_starts_with($alreadyPublic, '/minio/')
+            || str_starts_with($alreadyPublic, '/images/')
+        )) {
+            return $alreadyPublic;
+        }
+
+        $key = PublicMediaUrl::toStorageKey($path) ?? ltrim($path, '/');
+
+        if (Storage::disk('public_uploads')->exists($key) || Storage::disk('public_uploads')->exists($path)) {
+            $raw = Storage::disk('public_uploads')->exists($key) ? $key : $path;
+
+            return PublicMediaUrl::toPublic('/uploads/'.ltrim($raw, '/')) ?? '/uploads/'.ltrim($raw, '/');
         }
 
         $disk = $this->getDisk();
 
-        if ($disk === 'public') {
-            return Storage::disk($disk)->url($path);
+        if ($disk === 'minio') {
+            $bucket = (string) config('filesystems.disks.minio.bucket', 'lms-videos');
+
+            return '/minio/'.$bucket.'/'.ltrim($key, '/');
+        }
+
+        if ($disk === 'public' || $disk === 'local') {
+            return PublicMediaUrl::toPublic('/storage/'.ltrim($key, '/')) ?? '/storage/'.ltrim($key, '/');
         }
 
         try {
-            return Storage::disk($disk)->temporaryUrl(
-                $path,
-                now()->addMinutes(60)
-            );
+            return PublicMediaUrl::toPublic(Storage::disk($disk)->temporaryUrl($key, now()->addMinutes(60)))
+                ?? Storage::disk($disk)->url($key);
         } catch (\Throwable $e) {
-            return Storage::disk($disk)->url($path);
+            return PublicMediaUrl::toPublic(Storage::disk($disk)->url($key))
+                ?? '/storage/'.ltrim($key, '/');
         }
-    }
-
-    /**
-     * Delete a file from storage.
-     */
-    public function delete(string $path): bool
-    {
-        return Storage::disk($this->getDisk())->delete($path);
     }
 
     /**
@@ -97,6 +107,21 @@ class MediaService
      */
     public function exists(string $path): bool
     {
-        return Storage::disk($this->getDisk())->exists($path);
+        $key = PublicMediaUrl::toStorageKey($path) ?? ltrim($path, '/');
+
+        return Storage::disk($this->getDisk())->exists($key)
+            || Storage::disk($this->getDisk())->exists($path);
+    }
+
+    public function delete(string $path): bool
+    {
+        $key = PublicMediaUrl::toStorageKey($path) ?? ltrim($path, '/');
+        $disk = $this->getDisk();
+
+        if (Storage::disk($disk)->exists($key)) {
+            return Storage::disk($disk)->delete($key);
+        }
+
+        return Storage::disk($disk)->delete($path);
     }
 }

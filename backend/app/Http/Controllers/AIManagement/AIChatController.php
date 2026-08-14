@@ -348,7 +348,7 @@ class AIChatController extends Controller
                 'lesson_type' => $request->input('lesson_type'),
                 'progress_percent' => $request->input('progress_percent'),
             ],
-        ], $user->id, '/tutoring/recommend', timeout: 90);
+        ], $user->id, '/tutoring/recommend', timeout: 90, maxTotalMs: 70000);
 
         if ($result['ok']) {
             return response()->json(array_merge($result['data'], [
@@ -430,7 +430,7 @@ class AIChatController extends Controller
             'top_skills' => $evaluation['top_skills'] ?? [],
             'quiz_scores' => $this->recentQuizScores($user->id),
             'rule_based_narrative' => $evaluation['narrative'] ?? '',
-        ], $user->id, '/tutoring/study-advisor', timeout: 60);
+        ], $user->id, '/tutoring/study-advisor', timeout: 60, maxTotalMs: 55000);
 
         if ($result['ok'] && filled($result['data']['narrative'] ?? null)) {
             return response()->json([

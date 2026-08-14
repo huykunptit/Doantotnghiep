@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
+import { resolveMediaUrl } from '~/utils/media-url'
 
 definePageMeta({ layout: 'student', middleware: ['auth', 'student'] })
 
@@ -39,6 +40,10 @@ const { settings, load: loadSiteSettings } = useSiteSettings()
 
 const loading = ref(true)
 const profileUser = ref<LearnerProfileUser | null>(null)
+const photoInput = ref<HTMLInputElement | null>(null)
+const photoUploading = ref(false)
+
+const photoUrl = computed(() => resolveMediaUrl(auth.user?.avatar))
 
 const displayName = computed(() => profileUser.value?.name || auth.user?.name || '—')
 const studentCode = computed(() => profileUser.value?.student_code || auth.user?.student_code || '—')
@@ -125,6 +130,50 @@ function printCard() {
   window.print()
 }
 
+function pickPhoto() {
+  if (photoUploading.value) return
+  photoInput.value?.click()
+}
+
+async function onPhotoSelected(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    toast.add({ severity: 'warn', summary: t('student.idCard.photoError'), life: 2800 })
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    toast.add({ severity: 'warn', summary: t('student.idCard.photoError'), life: 2800 })
+    return
+  }
+
+  photoUploading.value = true
+  try {
+    const { uploadImage } = useAdminUpload()
+    const uploaded = await uploadImage(file, 'users')
+    const avatar = resolveMediaUrl(uploaded.url) || uploaded.url
+    await useApi('/auth/profile', {
+      method: 'PUT',
+      body: { name: auth.user?.name || displayName.value, avatar },
+    })
+    await auth.fetchMe()
+    toast.add({ severity: 'success', summary: t('student.idCard.photoSaved'), life: 2500 })
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('student.idCard.photoError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    photoUploading.value = false
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadLearnerProfile(), loadSiteSettings()])
 })
@@ -152,7 +201,7 @@ onMounted(async () => {
         <div class="card-header">
           <Avatar
             v-if="settings.site_logo || settings.brand_logo || settings.logo"
-            :image="settings.site_logo || settings.brand_logo || settings.logo"
+            :image="resolveMediaUrl(settings.site_logo || settings.brand_logo || settings.logo)"
             shape="square"
             class="inst-logo"
           />
@@ -170,10 +219,29 @@ onMounted(async () => {
         </div>
 
         <div class="card-body">
-          <div class="photo-frame">
-            <img v-if="auth.user?.avatar" :src="auth.user.avatar" :alt="displayName">
+          <div
+            class="photo-frame"
+            :class="{ uploading: photoUploading }"
+            role="button"
+            tabindex="0"
+            :aria-label="t('student.idCard.changePhoto')"
+            @click="pickPhoto"
+            @keydown.enter.prevent="pickPhoto"
+          >
+            <img v-if="photoUrl" :src="photoUrl" :alt="displayName">
             <i v-else class="pi pi-user photo-fallback" />
+            <span class="photo-edit">
+              <i class="pi pi-camera" />
+              {{ photoUploading ? t('upload.uploading') : t('student.idCard.changePhoto') }}
+            </span>
           </div>
+          <input
+            ref="photoInput"
+            type="file"
+            accept="image/*"
+            class="photo-input"
+            @change="onPhotoSelected"
+          >
 
           <dl class="card-fields">
             <div class="field-row">
@@ -231,6 +299,7 @@ onMounted(async () => {
       </div>
 
       <p class="card-hint">{{ t('student.idCard.hint') }}</p>
+      <p class="card-hint">{{ t('student.idCard.photoHint') }}</p>
     </div>
   </div>
 </template>
@@ -340,9 +409,24 @@ onMounted(async () => {
   width: 88px; height: 110px; border-radius: 4px; overflow: hidden; flex: 0 0 88px;
   background: #e8eef5; border: 1px solid #c5d0dc;
   display: grid; place-items: center;
+  position: relative;
+  cursor: pointer;
 }
 .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
 .photo-fallback { font-size: 2.2rem; color: #94a3b8; }
+.photo-edit {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  padding: 4px 2px;
+  background: rgba(15, 23, 42, .72);
+  color: #fff;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.photo-frame.uploading { pointer-events: none; opacity: .75; }
+.photo-input { display: none; }
 
 .card-fields {
   display: flex;
@@ -426,7 +510,7 @@ onMounted(async () => {
 .card-hint { color: var(--text-muted); font-size: .82rem; text-align: center; max-width: 360px; }
 
 @media print {
-  .workspace-head, .card-hint, .print-btn { display: none !important; }
+  .workspace-head, .card-hint, .print-btn, .photo-edit, .photo-input { display: none !important; }
   .page, .card-stage { padding: 0; gap: 0; }
   .id-card { box-shadow: none; border-color: #ccc; }
 }

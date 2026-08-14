@@ -15,13 +15,14 @@ export function useAdminUpload() {
     file: File,
     folder: 'users' | 'settings' | 'courses' | 'faces',
     oldPath?: string | null,
+    endpoint = '/auth/upload',
   ) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('folder', folder)
     if (oldPath) formData.append('old_path', oldPath)
 
-    return await useApi<AdminUploadResponse, FormData>('/admin/upload', {
+    return await useApi<AdminUploadResponse, FormData>(endpoint, {
       method: 'POST',
       body: formData,
     })

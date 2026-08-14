@@ -39,6 +39,7 @@ Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::put('/profile', [AuthController::class, 'updateProfile']);
+        Route::post('/upload', [AuthController::class, 'uploadMedia']);
         Route::put('/change-password', [AuthController::class, 'changePassword']);
     });
 });
@@ -91,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:manage_grades')->group(function () {
         Route::put('/instructor/sections/{classSection}/grades', [GradebookController::class, 'update']);
+        Route::post('/instructor/sections/{classSection}/students/{user}/warn', [GradebookController::class, 'warnStudent']);
         Route::put('/instructor/courses/{course}/grade-components', [GradebookController::class, 'upsertComponents']);
         Route::post('/instructor/courses/{course}/grade-components/preset', [GradebookController::class, 'presetComponents']);
     });

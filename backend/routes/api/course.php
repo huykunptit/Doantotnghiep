@@ -71,6 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/courses/{course}/lessons/{lesson}/assignment', [AssignmentController::class, 'store']);
         Route::get('/courses/{course}/lessons/{lesson}/assignment/submissions', [AssignmentController::class, 'indexSubmissions']);
+        Route::get('/courses/{course}/assignments/submissions', [AssignmentController::class, 'courseSubmissions']);
+        Route::put('/courses/{course}/assignments/submissions/{submission}', [AssignmentController::class, 'grade']);
     });
 
     // Learning Experience (enrolled student / owner)

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveMediaUrl } from '~/utils/media-url'
+
 type Folder = 'users' | 'settings' | 'courses' | 'faces'
 type Variant = 'avatar' | 'thumbnail' | 'banner' | 'square'
 
@@ -14,6 +16,7 @@ const props = withDefaults(
     placeholderInitial?: string
     disabled?: boolean
     cleanupPrevious?: boolean
+    endpoint?: string
   }>(),
   {
     label: 'Tải ảnh lên',
@@ -24,6 +27,7 @@ const props = withDefaults(
     placeholderInitial: '?',
     disabled: false,
     cleanupPrevious: true,
+    endpoint: '/auth/upload',
   },
 )
 
@@ -42,7 +46,7 @@ const isUploading = ref(false)
 const errorMessage = ref('')
 const lastPath = ref<string | null>(null)
 
-const currentUrl = computed(() => props.modelValue || null)
+const currentUrl = computed(() => resolveMediaUrl(props.modelValue) || null)
 const hasImage = computed(() => Boolean(currentUrl.value))
 const variantClass = computed(() => `preview--${props.variant}`)
 
@@ -97,10 +101,11 @@ async function handleFile(file: File) {
       file,
       props.folder,
       props.cleanupPrevious ? lastPath.value : null,
+      props.endpoint,
     )
     lastPath.value = response.path
-    emit('update:modelValue', response.url)
-    emit('uploaded', { url: response.url, path: response.path })
+    emit('update:modelValue', resolveMediaUrl(response.url) || response.url)
+    emit('uploaded', { url: resolveMediaUrl(response.url) || response.url, path: response.path })
   }
   catch (err: any) {
     fail(err?.data?.message || err?.message || t('upload.failed'))

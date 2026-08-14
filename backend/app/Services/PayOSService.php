@@ -31,11 +31,7 @@ class PayOSService
             returnUrl: (string) config('services.payos.return_url'),
             buyerName: (string) optional($order->user)->name,
             buyerEmail: (string) optional($order->user)->email,
-            items: [[
-                'name' => Str::limit($this->itemName($order), 25, ''),
-                'quantity' => 1,
-                'price' => (int) $order->amount,
-            ]],
+            items: $this->itemPayload($order),
             expiredAt: now()->addMinutes(15)->timestamp,
         );
 
@@ -94,9 +90,38 @@ class PayOSService
 
     private function buildDescription(Order $order): string
     {
-        $prefix = $order->career_path_id ? 'Lo trinh #' : 'Khoa hoc #';
+        $cartCount = count($order->cart_items ?? []);
+        $prefix = $order->career_path_id
+            ? 'Lo trinh #'
+            : ($cartCount > 1 ? 'Gio hang #' : 'Khoa hoc #');
 
         return Str::limit($prefix . $order->id, 25, '');
+    }
+
+    /**
+     * @return list<array{name: string, quantity: int, price: int}>
+     */
+    private function itemPayload(Order $order): array
+    {
+        $rows = collect($order->cart_items ?? [])
+            ->map(fn ($item) => [
+                'name' => Str::limit((string) ($item['title'] ?? 'Khoa hoc'), 25, ''),
+                'quantity' => 1,
+                'price' => (int) ($item['payable'] ?? $item['price'] ?? 0),
+            ])
+            ->filter(fn ($row) => $row['name'] !== '')
+            ->values();
+
+        $sum = (int) $rows->sum('price');
+        if ($rows->isNotEmpty() && $sum === (int) $order->amount) {
+            return $rows->all();
+        }
+
+        return [[
+            'name' => Str::limit($this->itemName($order), 25, ''),
+            'quantity' => 1,
+            'price' => (int) $order->amount,
+        ]];
     }
 
     private function itemName(Order $order): string
@@ -105,6 +130,11 @@ class PayOSService
 
         if ($order->career_path_id) {
             return (string) (optional($order->careerPath)->title ?: ('Path #' . $order->career_path_id));
+        }
+
+        $cartCount = count($order->cart_items ?? []);
+        if ($cartCount > 1) {
+            return 'Gio hang ('.$cartCount.' khoa)';
         }
 
         return (string) (optional($order->course)->title ?: ('Course #' . $order->course_id));

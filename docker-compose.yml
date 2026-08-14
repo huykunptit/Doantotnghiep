@@ -122,6 +122,7 @@ services:
       php artisan config:clear &&
       php artisan migrate --force &&
       [ -L public/storage ] || php artisan storage:link &&
+      php artisan avatars:publish || true &&
       ([ -f storage/.seeded ] || (php artisan db:seed --force && touch storage/.seeded) || true) &&
       ([ -f storage/.minio_setup ] || (php artisan minio:setup && touch storage/.minio_setup) || true) &&
       while true; do

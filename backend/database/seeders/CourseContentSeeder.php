@@ -49,12 +49,8 @@ class CourseContentSeeder extends Seeder
             ['description' => "Ngân hàng câu hỏi theo đề cương môn «{$course->title}»."],
         );
 
-        $group = QuestionGroup::query()->updateOrCreate(
-            ['course_id' => $course->id, 'question_bank_id' => $bank->id, 'name' => 'Nhóm kiến thức nền'],
-            ['description' => 'Câu hỏi bám nội dung chuyên môn của học phần.', 'sort_order' => 1],
-        );
-
-        $bankQuestions = $this->ensureBankQuestions($course, $bank, $group);
+        [$basicGroup, $advancedGroup] = $this->ensureQuestionGroups($course, $bank);
+        $bankQuestions = $this->ensureBankQuestions($course, $bank, $basicGroup, $advancedGroup);
 
         $quizLessons = Lesson::query()
             ->where('course_id', $course->id)
@@ -168,12 +164,8 @@ class CourseContentSeeder extends Seeder
             ['description' => 'Ngân hàng câu hỏi chuẩn hóa cho toàn khóa, dùng chung cho quiz và kiểm tra.'],
         );
 
-        $group = QuestionGroup::query()->updateOrCreate(
-            ['course_id' => $course->id, 'question_bank_id' => $bank->id, 'name' => 'Nhóm kiến thức nền'],
-            ['description' => 'Các câu hỏi cơ bản, áp dụng cho phần lớn bài quiz trong khóa.', 'sort_order' => 1],
-        );
-
-        $bankQuestions = $this->ensureBankQuestions($course, $bank, $group);
+        [$basicGroup, $advancedGroup] = $this->ensureQuestionGroups($course, $bank);
+        $bankQuestions = $this->ensureBankQuestions($course, $bank, $basicGroup, $advancedGroup);
 
         $lessonBlueprints = $this->lessonBlueprints($course);
 
@@ -262,22 +254,51 @@ class CourseContentSeeder extends Seeder
                         'meeting_password' => Str::upper(Str::random(6)),
                         'join_url' => 'https://meet.google.com/' . Str::lower(Str::random(3)) . '-' . Str::lower(Str::random(4)) . '-' . Str::lower(Str::random(3)),
                         'start_url' => 'https://meet.google.com/start/' . Str::lower(Str::random(12)),
-                        'start_at' => now()->addDays(3)->setTime(19, 30),
+                        'start_at' => now()->setTime(19, 30),
                         'duration' => 90,
                     ],
                 );
+                $workshop = OfflineSession::query()->updateOrCreate(
+                    ['lesson_id' => $lesson->id, 'class_section_id' => null],
+                    [
+                        'course_id' => $course->id,
+                        'title' => 'QR điểm danh live workshop - '.$course->title,
+                        'location' => 'Google Meet / Workshop trực tuyến',
+                        'room' => 'ONLINE',
+                        'start_at' => now()->setTime(19, 30),
+                        'duration' => 90,
+                        'max_participants' => 80,
+                        'latitude' => null,
+                        'longitude' => null,
+                        'check_in_radius_meters' => OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS,
+                        'is_active' => true,
+                        'qr_enabled' => true,
+                        'qr_mode' => OfflineSession::QR_MODE_MANUAL,
+                    ],
+                );
+                $workshop->generateQrToken(14 * 24 * 60);
             }
 
             if ($type === 'offline') {
-                OfflineSession::query()->updateOrCreate(
-                    ['lesson_id' => $lesson->id],
+                $lab = OfflineSession::query()->updateOrCreate(
+                    ['lesson_id' => $lesson->id, 'class_section_id' => null],
                     [
+                        'course_id' => $course->id,
                         'location' => $blueprint['location'] ?? 'Phòng Lab A3 - PTIT',
-                        'start_at' => now()->addDays(7)->setTime(8, 30),
+                        'title' => 'QR điểm danh buổi offline - '.$course->title,
+                        'room' => 'LAB-A3',
+                        'start_at' => now()->subMinutes(15),
                         'duration' => 120,
                         'max_participants' => 35,
+                        'latitude' => null,
+                        'longitude' => null,
+                        'check_in_radius_meters' => OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS,
+                        'is_active' => true,
+                        'qr_enabled' => true,
+                        'qr_mode' => OfflineSession::QR_MODE_MANUAL,
                     ],
                 );
+                $lab->generateQrToken(14 * 24 * 60);
             }
 
             if (!empty($blueprint['scorm'])) {
@@ -405,11 +426,29 @@ class CourseContentSeeder extends Seeder
         ];
     }
 
-    private function ensureBankQuestions(Course $course, QuestionBank $bank, QuestionGroup $group): array
+    /** @return array{0: QuestionGroup, 1: QuestionGroup} */
+    private function ensureQuestionGroups(Course $course, QuestionBank $bank): array
     {
+        $basic = QuestionGroup::query()->updateOrCreate(
+            ['course_id' => $course->id, 'question_bank_id' => $bank->id, 'name' => 'Nhóm kiến thức nền'],
+            ['description' => 'Câu hỏi nhận biết / thông hiểu theo đề cương học phần.', 'sort_order' => 1],
+        );
+        $advanced = QuestionGroup::query()->updateOrCreate(
+            ['course_id' => $course->id, 'question_bank_id' => $bank->id, 'name' => 'Vận dụng và tình huống'],
+            ['description' => 'Câu hỏi vận dụng, đúng/sai và tình huống nâng cao.', 'sort_order' => 2],
+        );
+
+        return [$basic, $advanced];
+    }
+
+    private function ensureBankQuestions(
+        Course $course,
+        QuestionBank $bank,
+        QuestionGroup $basicGroup,
+        QuestionGroup $advancedGroup,
+    ): array {
         $blueprints = SubjectQuizBank::forCourse($course);
 
-        // Xóa câu hỏi cũ (quiz linh tinh) để gắn bộ mới theo môn.
         $oldIds = Question::query()->where('question_bank_id', $bank->id)->pluck('id');
         if ($oldIds->isNotEmpty()) {
             DB::table('quiz_question')->whereIn('question_id', $oldIds)->delete();
@@ -417,16 +456,20 @@ class CourseContentSeeder extends Seeder
             Question::query()->whereIn('id', $oldIds)->delete();
         }
 
-        $questions = [];
+        $basic = [];
+        $advanced = [];
 
-        foreach ($blueprints as $index => $seed) {
+        foreach ($blueprints as $seed) {
+            $difficulty = (int) ($seed['difficulty'] ?? 1);
+            $group = $difficulty <= 2 ? $basicGroup : $advancedGroup;
             $question = Question::query()->create([
                 'course_id' => $course->id,
                 'question_bank_id' => $bank->id,
                 'question_group_id' => $group->id,
                 'content' => $seed['content'],
-                'type' => 'single_choice',
-                'difficulty' => $seed['difficulty'],
+                'type' => $seed['type'] ?? 'single_choice',
+                'difficulty' => $difficulty,
+                'default_score' => $difficulty >= 3 ? 1.5 : 1,
                 'explanation' => $seed['explanation'],
             ]);
 
@@ -442,10 +485,15 @@ class CourseContentSeeder extends Seeder
                 ]);
             }
 
-            $questions[] = $question->fresh();
+            $fresh = $question->fresh();
+            if ($difficulty <= 2) {
+                $basic[] = $fresh;
+            } else {
+                $advanced[] = $fresh;
+            }
         }
 
-        return $questions;
+        return array_values(array_merge($basic, $advanced));
     }
 
     private function seedQuiz(Course $course, Lesson $lesson, QuestionBank $bank, array $bankQuestions, array $blueprint): void
@@ -475,8 +523,8 @@ class CourseContentSeeder extends Seeder
         DB::table('quiz_question')->where('quiz_id', $quiz->id)->delete();
 
         $picks = $isFinal
-            ? $bankQuestions
-            : array_slice($bankQuestions, 0, min(5, count($bankQuestions)));
+            ? array_slice($bankQuestions, 0, min(16, count($bankQuestions)))
+            : array_slice($bankQuestions, 0, min(8, count($bankQuestions)));
 
         foreach ($picks as $index => $question) {
             DB::table('quiz_question')->insert([
@@ -510,7 +558,7 @@ class CourseContentSeeder extends Seeder
 
         DB::table('quiz_question')->where('quiz_id', $quiz->id)->delete();
 
-        foreach ($bankQuestions as $index => $question) {
+        foreach (array_slice($bankQuestions, 0, min(18, count($bankQuestions))) as $index => $question) {
             DB::table('quiz_question')->insert([
                 'quiz_id' => $quiz->id,
                 'question_id' => $question->id,

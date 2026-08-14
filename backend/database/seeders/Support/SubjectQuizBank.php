@@ -17,17 +17,23 @@ class SubjectQuizBank
         foreach (self::catalog() as $entry) {
             foreach ($entry['match'] as $needle) {
                 if ($needle !== '' && str_contains($title, mb_strtolower($needle))) {
-                    return $entry['questions'];
+                    return array_merge(
+                        $entry['questions'],
+                        SubjectQuizBankExtra::forNeedles($entry['match']),
+                    );
                 }
             }
         }
 
-        return self::fallbackQuestions($course->title);
+        return array_merge(
+            self::fallbackQuestions($course->title),
+            SubjectQuizBankExtra::fallback($course->title),
+        );
     }
 
-    private static function q(string $content, array $options, int $correct, int $difficulty, string $explanation): array
+    public static function q(string $content, array $options, int $correct, int $difficulty, string $explanation, string $type = 'single_choice'): array
     {
-        return compact('content', 'options', 'correct', 'difficulty', 'explanation');
+        return compact('content', 'options', 'correct', 'difficulty', 'explanation', 'type');
     }
 
     private static function catalog(): array

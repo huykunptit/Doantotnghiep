@@ -58,7 +58,7 @@ onMounted(load)
         :class="{ me: user.id === auth.user?.id }"
       >
         <span class="rank">{{ index + 1 }}</span>
-        <Avatar v-if="user.avatar" :image="user.avatar" shape="circle" />
+        <Avatar v-if="resolveMediaUrl(user.avatar)" :image="resolveMediaUrl(user.avatar)" shape="circle" />
         <Avatar v-else :label="(user.name || '?').slice(0, 1).toUpperCase()" shape="circle" />
         <div class="copy">
           <strong>{{ user.name }}</strong>

@@ -4,12 +4,11 @@ namespace App\Http\Controllers\PaymentManagement;
 
 use App\Http\Controllers\Controller;
 use App\Models\CareerPath;
-use App\Models\Course;
-use App\Models\Enrollment;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\UserCareerPath;
 use App\Services\CareerPathFulfillmentService;
+use App\Services\CheckoutService;
 use App\Services\PayOSService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +20,7 @@ class OrderController extends Controller
     public function __construct(
         private readonly PayOSService $payOSService,
         private readonly CareerPathFulfillmentService $pathFulfillment,
+        private readonly CheckoutService $checkout,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -56,114 +56,121 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
+    public function quote(Request $request): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'course_ids' => ['required', 'array', 'min:1'],
+            'course_ids.*' => ['integer', 'exists:courses,id'],
+            'user_voucher_id' => ['nullable', 'integer', 'exists:user_vouchers,id'],
+        ]);
+
+        try {
+            $quote = $this->checkout->quote(
+                $user,
+                $validated['course_ids'],
+                $validated['user_voucher_id'] ?? null,
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if ($quote['suggestions']) {
+            $quote['suggestions'][0]['recommended'] = true;
+        }
+
+        return response()->json($quote);
+    }
+
     public function store(Request $request): JsonResponse
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
 
         $validated = $request->validate([
-            'course_id' => ['nullable', 'integer', 'exists:courses,id', 'required_without:career_path_id'],
-            'career_path_id' => ['nullable', 'integer', 'exists:career_paths,id', 'required_without:course_id'],
+            'course_id' => ['nullable', 'integer', 'exists:courses,id', 'required_without_all:career_path_id,course_ids'],
+            'course_ids' => ['nullable', 'array', 'min:1', 'required_without_all:course_id,career_path_id'],
+            'course_ids.*' => ['integer', 'exists:courses,id'],
+            'career_path_id' => ['nullable', 'integer', 'exists:career_paths,id', 'required_without_all:course_id,course_ids'],
             'payment_method' => ['nullable', 'string', 'in:payos,momo,zalopay,bank_transfer'],
+            'user_voucher_id' => ['nullable', 'integer', 'exists:user_vouchers,id'],
         ]);
 
-        if (!empty($validated['career_path_id']) && !empty($validated['course_id'])) {
-            return response()->json(['message' => 'Provide either course_id or career_path_id, not both'], 422);
+        if (!empty($validated['career_path_id']) && (!empty($validated['course_id']) || !empty($validated['course_ids']))) {
+            return response()->json(['message' => 'Provide either course_id, course_ids or career_path_id'], 422);
         }
 
         if (!empty($validated['career_path_id'])) {
             return $this->storePathOrder($user, (int) $validated['career_path_id'], $validated['payment_method'] ?? 'payos');
         }
 
-        return $this->storeCourseOrder($user, (int) $validated['course_id'], $validated['payment_method'] ?? 'payos');
+        $courseIds = !empty($validated['course_ids'])
+            ? array_values(array_unique(array_map('intval', $validated['course_ids'])))
+            : [(int) $validated['course_id']];
+
+        return $this->storeCourseCart($user, $courseIds, $validated['payment_method'] ?? 'payos', $validated['user_voucher_id'] ?? null);
     }
 
-    private function storeCourseOrder($user, int $courseId, string $paymentMethod): JsonResponse
+    private function storeCourseCart($user, array $courseIds, string $paymentMethod, ?int $userVoucherId): JsonResponse
     {
-        $course = Course::findOrFail($courseId);
-
-        if ($course->status !== 'published') {
-            return response()->json(['message' => 'Course is not available'], 422);
+        try {
+            $quote = $this->checkout->quote($user, $courseIds, $userVoucherId);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        // CTĐT (core) không bán qua marketplace khi có phí — do phòng đào tạo ghi danh.
-        // Khóa miễn phí vẫn cho tự đăng ký trên web (enrollment_source=marketplace, không tính GPA CTĐT).
-        if ($course->course_mode === 'core' && (int) $course->price > 0) {
-            return response()->json([
-                'message' => 'Khóa thuộc chương trình đào tạo (có phí học vụ) không mua trên web. Liên hệ phòng đào tạo để được ghi danh.',
-            ], 422);
-        }
+        $items = $quote['items'];
+        $firstId = (int) ($items[0]['id'] ?? 0);
 
-        $alreadyEnrolled = Enrollment::where('user_id', $user->id)
-            ->where('course_id', $course->id)->exists();
-
-        if ($alreadyEnrolled) {
-            return response()->json(['message' => 'Already enrolled in this course'], 422);
-        }
-
-        $paidOrder = Order::where('user_id', $user->id)
-            ->where('course_id', $course->id)
-            ->whereNull('career_path_id')
-            ->where('status', 'paid')
-            ->first();
-
-        if ($paidOrder) {
-            return response()->json([
-                'message' => 'Order already paid',
-                'order' => $paidOrder,
-            ]);
-        }
-
-        $pendingOrder = Order::where('user_id', $user->id)
-            ->where('course_id', $course->id)
-            ->whereNull('career_path_id')
-            ->where('status', 'pending')
-            ->orderByDesc('id')
-            ->first();
-
-        if ($pendingOrder && $paymentMethod === 'payos' && $course->price > 0) {
-            return $this->reusePayosLink($pendingOrder, $course->price, [
-                'course:id,title,thumbnail,price',
-            ]);
-        }
-
-        if ($course->price <= 0) {
-            DB::transaction(function () use ($user, $course) {
+        $order = null;
+        if ($quote['total'] <= 0) {
+            DB::transaction(function () use ($user, $items, $quote, $firstId, $userVoucherId, &$order) {
                 $order = Order::create([
                     'user_id' => $user->id,
-                    'course_id' => $course->id,
+                    'course_id' => $firstId,
                     'amount' => 0,
+                    'original_amount' => $quote['subtotal'],
+                    'discount_amount' => $quote['discount'],
+                    'user_voucher_id' => $quote['applied']['id'] ?? $userVoucherId,
+                    'cart_items' => $items,
                     'status' => 'paid',
                     'payment_method' => 'free',
                     'payment_ref' => 'FREE_' . strtoupper(Str::random(8)),
                     'paid_at' => now(),
                 ]);
-
-                Enrollment::firstOrCreate([
-                    'user_id' => $user->id,
-                    'course_id' => $course->id,
-                ], [
-                    'enrolled_at' => now(),
-                    'order_id' => $order->id,
-                    'enrollment_source' => 'marketplace',
-                ]);
+                $this->checkout->fulfill($order);
             });
 
-            Notification::send($user->id, 'enrollment', 'Ghi danh thành công', "Bạn đã ghi danh vào khóa học \"{$course->title}\".", "/learn/{$course->id}");
-            Notification::send($course->user_id, 'enrollment', 'Có học viên mới', "Học viên {$user->name} đã ghi danh vào khóa học \"{$course->title}\".", "/instructor/courses/{$course->id}/students");
+            $titles = collect($items)->pluck('title')->implode(', ');
+            Notification::send($user->id, 'enrollment', 'Ghi danh thành công', "Bạn đã ghi danh: {$titles}.", '/student/courses');
 
-            return response()->json(['message' => 'Enrolled in free course', 'enrolled' => true]);
+            return response()->json([
+                'message' => 'Enrolled in free course',
+                'enrolled' => true,
+                'order' => $order?->fresh(['course:id,title,thumbnail,price']),
+                'quote' => $quote,
+            ]);
         }
 
         $order = Order::create([
             'user_id' => $user->id,
-            'course_id' => $course->id,
-            'amount' => $course->price,
+            'course_id' => $firstId,
+            'amount' => $quote['total'],
+            'original_amount' => $quote['subtotal'],
+            'discount_amount' => $quote['discount'],
+            'user_voucher_id' => $quote['applied']['id'] ?? null,
+            'cart_items' => $items,
             'status' => 'pending',
             'payment_method' => $paymentMethod,
         ]);
 
-        return $this->finalizeNewOrder($order, $paymentMethod, ['course:id,title,thumbnail,price']);
+        $response = $this->finalizeNewOrder($order, $paymentMethod, ['course:id,title,thumbnail,price']);
+        $payload = $response->getData(true);
+        $payload['quote'] = $quote;
+
+        return response()->json($payload, $response->status());
     }
 
     private function storePathOrder($user, int $pathId, string $paymentMethod): JsonResponse
@@ -323,14 +330,7 @@ class OrderController extends Controller
                 if ($isPath) {
                     $this->pathFulfillment->fulfillPaidOrder($order->fresh());
                 } else {
-                    Enrollment::firstOrCreate([
-                        'user_id' => $order->user_id,
-                        'course_id' => $order->course_id,
-                    ], [
-                        'enrolled_at' => now(),
-                        'order_id' => $order->id,
-                        'enrollment_source' => 'marketplace',
-                    ]);
+                    $this->checkout->fulfill($order->fresh());
                 }
             });
 

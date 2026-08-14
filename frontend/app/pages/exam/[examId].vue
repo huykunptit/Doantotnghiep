@@ -46,6 +46,10 @@ const answers = ref<Record<string, any>>({})
 const currentIndex = ref(0)
 const focusLoss = ref(0)
 const MAX_FOCUS_LOSS = 3
+const FOCUS_LOSS_COOLDOWN_MS = 1500
+const focusBannerVisible = ref(false)
+let lastFocusLogAt = 0
+let pendingFocusBanner = false
 const autoSaveStatus = ref('')
 
 let timerInterval: ReturnType<typeof setInterval> | null = null
@@ -142,8 +146,8 @@ async function loadExam() {
     status.value = data.status || 'in_progress'
     if (data.saved_answers) answers.value = { ...data.saved_answers }
     startTimer()
+    bindProctor()
     if (proctoring.value) {
-      bindProctor()
       startFaceMonitor()
       startPhoneMonitor()
     }
@@ -266,18 +270,29 @@ async function logViolation(type: string, severity: 'warning' | 'critical', meta
 }
 
 function onVisibility() {
-  if (document.hidden && status.value === 'in_progress') {
+  if (status.value !== 'in_progress') return
+
+  if (document.hidden) {
+    const now = Date.now()
+    if (now - lastFocusLogAt < FOCUS_LOSS_COOLDOWN_MS) return
+    lastFocusLogAt = now
+
     focusLoss.value++
     const critical = focusLoss.value >= MAX_FOCUS_LOSS
     logViolation('focus_lost', critical ? 'critical' : 'warning', { count: focusLoss.value, max: MAX_FOCUS_LOSS })
-    toast.add({
-      severity: 'warn',
-      summary: t('exam.focusWarn'),
-      detail: t('exam.focusCount', { n: focusLoss.value, max: MAX_FOCUS_LOSS }),
-      life: 4000,
-    })
+    pendingFocusBanner = true
     if (critical) submitExam(true)
+    return
   }
+
+  if (pendingFocusBanner) {
+    pendingFocusBanner = false
+    focusBannerVisible.value = true
+  }
+}
+
+function dismissFocusBanner() {
+  focusBannerVisible.value = false
 }
 
 function bindProctor() {
@@ -476,11 +491,28 @@ onBeforeUnmount(() => {
         <span v-if="proctoring" class="proctor-badge" :title="t('exam.proctoringActive')">
           <i class="pi pi-video" /> {{ t('exam.proctoringActive') }}
         </span>
+        <span v-if="focusLoss" class="focus-pill">{{ t('exam.focusPill', { n: focusLoss, max: MAX_FOCUS_LOSS }) }}</span>
         <span class="progress">{{ answeredCount }}/{{ questions.length }}</span>
         <span class="timer" :class="{ urgent: timerUrgent }"><i class="pi pi-clock" /> {{ timerDisplay }}</span>
         <Button :label="t('exam.submit')" icon="pi pi-send" :loading="submitting" :disabled="loading || !!error" @click="askSubmit" />
       </div>
     </header>
+
+    <div
+      v-if="focusBannerVisible && focusLoss"
+      class="focus-banner"
+      :class="{ critical: focusLoss >= MAX_FOCUS_LOSS }"
+    >
+      <i class="pi pi-exclamation-triangle" />
+      <span>
+        {{ focusLoss >= MAX_FOCUS_LOSS
+          ? t('exam.focusBannerCritical', { max: MAX_FOCUS_LOSS })
+          : t('exam.focusBanner', { n: focusLoss, max: MAX_FOCUS_LOSS }) }}
+      </span>
+      <button type="button" class="focus-dismiss" :aria-label="t('common.close')" @click="dismissFocusBanner">
+        <i class="pi pi-times" />
+      </button>
+    </div>
 
     <div v-if="preChecking" class="center">{{ t('exam.faceCheck.checkingAccess') }}</div>
     <div v-else-if="preCheckError" class="center error-box">
@@ -605,6 +637,24 @@ onBeforeUnmount(() => {
   background: color-mix(in srgb, #dc2626 12%, transparent); color: #b91c1c;
 }
 .proctor-badge i { font-size: .85rem; }
+.focus-pill {
+  display: inline-flex; align-items: center;
+  padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+  background: #fee2e2; color: #b91c1c;
+}
+.focus-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 18px; font-size: .88rem; font-weight: 600;
+  background: #fef3c7; color: #92400e; border-bottom: 1px solid #fde68a;
+}
+.focus-banner.critical { background: #fee2e2; color: #991b1b; border-bottom-color: #fecaca; }
+.focus-banner i { flex-shrink: 0; }
+.focus-banner span { flex: 1; }
+.focus-dismiss {
+  border: 0; background: transparent; color: inherit; cursor: pointer;
+  width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
+}
+.focus-dismiss:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
 .timer { font-weight: 800; font-variant-numeric: tabular-nums; display: inline-flex; gap: 6px; align-items: center; }
 .timer.urgent { color: #dc2626; }
 .center { min-height: 60vh; display: grid; place-content: center; gap: 12px; text-align: center; }

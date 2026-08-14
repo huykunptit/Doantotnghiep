@@ -20,6 +20,7 @@ use App\Models\Term;
 use App\Models\User;
 use App\Models\UserCareerPath;
 use App\Services\PointService;
+use Database\Seeders\Support\SeededQuizAttempt;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -685,18 +686,12 @@ class StudentLearningSeeder extends Seeder
                 $quiz = Quiz::query()->where('lesson_id', $lesson->id)->first();
                 if ($quiz && ($done || $engagement >= 0.55)) {
                     $quizScore = (int) round(max(35, min(100, ($targetScore / 10) * 100 + (($student->id + $quiz->id) % 8) - 3)));
-                    QuizAttempt::query()->updateOrCreate(
-                        [
-                            'user_id' => $student->id,
-                            'quiz_id' => $quiz->id,
-                        ],
-                        [
-                            'status' => 'submitted',
-                            'score' => $quizScore,
-                            'passed' => $quizScore >= (int) ($quiz->pass_score ?? 50),
-                            'started_at' => now()->subDays($daysAgo)->subMinutes(45),
-                            'completed_at' => now()->subDays($daysAgo),
-                        ]
+                    SeededQuizAttempt::upsert(
+                        $student->id,
+                        $quiz,
+                        (float) $quizScore,
+                        now()->subDays($daysAgo)->subMinutes(45),
+                        now()->subDays($daysAgo),
                     );
                     $out['attempts']++;
                 }
@@ -738,31 +733,48 @@ class StudentLearningSeeder extends Seeder
             $out['assignments']++;
         }
 
-        // Attendance: tao offline session qua khu + check-in theo attendance rate
-        $offlineLessons = $lessons->where('type', 'offline')->take(2);
-        foreach ($offlineLessons->values() as $oi => $oLesson) {
+        // Attendance: buổi offline + live workshop, QR còn hạn cho kỳ đang học
+        $sessionLessons = $lessons->whereIn('type', ['offline', 'live'])->take(3);
+        foreach ($sessionLessons->values() as $oi => $oLesson) {
+            $isLive = $oLesson->type === 'live';
+            $isOpen = ! $isPast;
             $session = OfflineSession::query()->updateOrCreate(
                 [
                     'lesson_id' => $oLesson->id,
-                    'title' => 'Buoi offline demo - '.($enrollment->course?->title ?? $oLesson->title),
+                    'title' => ($isLive ? 'Live workshop demo - ' : 'Buoi offline demo - ').($enrollment->course?->title ?? $oLesson->title),
                 ],
                 [
                     'class_section_id' => $enrollment->class_section_id,
-                    'location' => 'Phong Lab A'.(1 + ($oi % 3)).' - PTIT',
-                    'room' => 'A'.(201 + $oi),
-                    'start_at' => now()->subDays(5 + $oi * 7)->setTime(8, 30),
-                    'duration' => 120,
+                    'course_id' => $enrollment->course_id,
+                    'location' => $isLive ? 'Google Meet / Workshop' : 'Phong Lab A'.(1 + ($oi % 3)).' - PTIT',
+                    'room' => $isLive ? 'ONLINE' : 'A'.(201 + $oi),
+                    'start_at' => $isOpen
+                        ? ($isLive ? now()->setTime(19, 30) : now()->subMinutes(15))
+                        : now()->subDays(5 + $oi * 7)->setTime(8, 30),
+                    'duration' => $isLive ? 90 : 120,
                     'max_participants' => 40,
-                    'latitude' => 20.9808,
-                    'longitude' => 105.7874,
-                    'check_in_radius_meters' => 50,
-                    'is_active' => false,
+                    'latitude' => $isOpen ? null : 20.9808,
+                    'longitude' => $isOpen ? null : 105.7874,
+                    'check_in_radius_meters' => $isOpen ? OfflineSession::DEFAULT_CHECK_IN_RADIUS_METERS : 50,
+                    'is_active' => $isOpen,
                     'qr_enabled' => true,
                     'qr_mode' => OfflineSession::QR_MODE_MANUAL,
                     'qr_token' => Str::random(48),
-                    'qr_expires_at' => now()->subDays(4 + $oi * 7),
+                    'qr_expires_at' => $isOpen ? now()->addDays(14) : now()->subDays(4 + $oi * 7),
                 ]
             );
+            if ($isOpen) {
+                $session->generateQrToken(14 * 24 * 60);
+            }
+
+            $demoLogin = preg_match('/^student(?:[1-9]|1[0-6])@lms\.com$/i', (string) $student->email);
+            if ($isOpen && $demoLogin) {
+                OfflineSessionAttendance::query()
+                    ->where('user_id', $student->id)
+                    ->where('offline_session_id', $session->id)
+                    ->delete();
+                continue;
+            }
 
             $present = (($student->id + $session->id) % 100) < (int) round($persona['attendance'] * 100);
             if (! $present) {

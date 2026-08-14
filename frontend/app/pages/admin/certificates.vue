@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { textMatches } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
@@ -52,9 +53,9 @@ const form = reactive({
 })
 
 const filteredRows = computed(() => {
-  const q = tableSearch.value.trim().toLowerCase()
-  if (!q) return rows.value
-  return rows.value.filter(r => r.name.toLowerCase().includes(q))
+  const q = tableSearch.value
+  if (!q.trim()) return rows.value
+  return rows.value.filter(r => textMatches(r.name, q))
 })
 
 function fmtDate(value?: string | null) {
@@ -181,11 +182,19 @@ onMounted(load)
         <Column :header="t('admin.users.stt')" style="width:4rem">
           <template #body="{ index }">{{ index + 1 }}</template>
         </Column>
-        <Column :header="t('admin.certificates.template')" style="min-width:220px">
+        <Column :header="t('admin.certificates.template')" style="min-width:280px">
           <template #body="{ data }">
             <div class="tpl-cell">
-              <img v-if="data.background_image_url" :src="data.background_image_url" :alt="data.name" class="preview">
-              <div v-else class="preview placeholder"><i class="pi pi-image" /></div>
+              <div class="thumb">
+                <CertificatePreview
+                  compact
+                  student-name="Nguyễn Văn A"
+                  :course-title="data.name"
+                  credential-id="ERIPT-DEMO"
+                  issued-at="2026-08-14"
+                  :template="data"
+                />
+              </div>
               <strong>{{ data.name }}</strong>
             </div>
           </template>
@@ -223,8 +232,15 @@ onMounted(load)
           <span>{{ t('admin.certificates.backgroundUrl') }}</span>
           <InputText v-model="form.background_image_url" class="w-full" :placeholder="t('admin.certificates.backgroundPh')" />
         </label>
-        <div v-if="form.background_image_url" class="preview-box full">
-          <img :src="form.background_image_url" :alt="form.name">
+        <div class="preview-box full">
+          <CertificatePreview
+            compact
+            student-name="Nguyễn Văn A"
+            :course-title="form.name || t('admin.certificates.template')"
+            credential-id="ERIPT-DEMO"
+            issued-at="2026-08-14"
+            :template="{ name: form.name, background_image_url: form.background_image_url }"
+          />
         </div>
       </div>
       <template #footer>
@@ -255,14 +271,8 @@ onMounted(load)
 .form { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .form .full { grid-column: 1 / -1; }
 
-.tpl-cell { display: flex; align-items: center; gap: 10px; }
-.preview {
-  width: 72px; height: 48px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
-  border: 1px solid var(--border);
-}
-.preview.placeholder {
-  display: grid; place-items: center; background: var(--surface-hover, #f1f5f9); color: var(--text-muted);
-}
+.tpl-cell { display: flex; align-items: center; gap: 12px; }
+.thumb { width: 168px; flex-shrink: 0; }
 .preview-box img {
   width: 100%; max-height: 200px; object-fit: contain; border-radius: 10px;
   border: 1px solid var(--border); background: #fff;

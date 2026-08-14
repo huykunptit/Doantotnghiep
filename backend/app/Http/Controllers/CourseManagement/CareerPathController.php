@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\UserCareerPath;
 use App\Services\CareerPathFulfillmentService;
+use App\Support\SearchQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,17 +25,13 @@ class CareerPathController extends Controller
     {
         $q = CareerPath::query()
             ->published()
-            ->withCount(['pathCourses'])
+            ->withCount(['pathCourses', 'userCareerPaths'])
             ->with(['pathCourses' => fn ($qq) => $qq->orderBy('sort_order')->limit(4)
-                ->with('course:id,title,thumbnail,price')])
-            ->orderByDesc('published_at')
-            ->orderByDesc('id');
+                ->with('course:id,title,thumbnail,price')]);
 
         if ($search = trim((string) $request->query('search', ''))) {
-            $q->where(function ($w) use ($search) {
-                $w->where('title', 'like', "%{$search}%")
-                    ->orWhere('target_role', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+            $q->where(function ($w) use ($search): void {
+                SearchQuery::like($w, ['title', 'target_role', 'description'], $search);
             });
         }
 
@@ -42,9 +39,43 @@ class CareerPathController extends Controller
             $q->where('target_role', $role);
         }
 
-        return response()->json(
-            $q->paginate(min(50, max(1, (int) $request->query('per_page', 12))))
-        );
+        $pricing = trim((string) $request->query('pricing', ''));
+        if ($pricing === 'paid') {
+            $q->where('price', '>', 0);
+        } elseif ($pricing === 'free') {
+            $q->where(function ($w) {
+                $w->whereNull('price')->orWhere('price', '<=', 0);
+            });
+        }
+
+        switch ((string) $request->query('sort', 'newest')) {
+            case 'popular':
+                $q->orderByDesc('user_career_paths_count');
+                break;
+            case 'price_asc':
+                $q->orderBy('price');
+                break;
+            case 'price_desc':
+                $q->orderByDesc('price');
+                break;
+            default:
+                $q->orderByDesc('published_at')->orderByDesc('id');
+                break;
+        }
+
+        $paginated = $q->paginate(min(50, max(1, (int) $request->query('per_page', 12))));
+
+        $targetRoles = CareerPath::query()
+            ->published()
+            ->whereNotNull('target_role')
+            ->where('target_role', '!=', '')
+            ->distinct()
+            ->orderBy('target_role')
+            ->pluck('target_role');
+
+        return response()->json(array_merge($paginated->toArray(), [
+            'target_roles' => $targetRoles,
+        ]));
     }
 
     public function publicShow(Request $request, string $slug): JsonResponse
@@ -139,10 +170,8 @@ class CareerPathController extends Controller
             ->orderByDesc('id');
 
         if ($search = trim((string) $request->query('search', ''))) {
-            $q->where(function ($w) use ($search) {
-                $w->where('title', 'like', "%{$search}%")
-                    ->orWhere('slug', 'like', "%{$search}%")
-                    ->orWhere('target_role', 'like', "%{$search}%");
+            $q->where(function ($w) use ($search): void {
+                SearchQuery::like($w, ['title', 'slug', 'target_role'], $search);
             });
         }
 

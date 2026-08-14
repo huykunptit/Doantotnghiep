@@ -258,10 +258,10 @@ class OrgAcademicSeeder extends Seeder
                 ['academic_year_id' => $year->id, 'code' => 'HK1'],
                 [
                     'name' => 'Học kỳ 1',
-                    'start_date' => sprintf('%d-09-01', $yStart),
+                    'start_date' => sprintf('%d-08-01', $yStart),
                     'end_date' => sprintf('%d-01-15', $yEnd),
-                    'enrollment_start_at' => sprintf('%d-08-15 00:00:00', $yStart),
-                    'enrollment_end_at' => sprintf('%d-09-05 23:59:59', $yStart),
+                    'enrollment_start_at' => sprintf('%d-07-15 00:00:00', $yStart),
+                    'enrollment_end_at' => sprintf('%d-08-05 23:59:59', $yStart),
                     'exam_start_at' => sprintf('%d-12-15 00:00:00', $yStart),
                     'exam_end_at' => sprintf('%d-01-15 23:59:59', $yEnd),
                     'is_current' => $name === '2025-2026',

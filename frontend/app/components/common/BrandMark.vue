@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveMediaUrl } from '~/utils/media-url'
+
 withDefaults(defineProps<{
   size?: 'sm' | 'md' | 'lg'
 }>(), {
@@ -8,7 +10,7 @@ withDefaults(defineProps<{
 const { settings, load } = useSiteSettings()
 
 const src = computed(() =>
-  settings.value.site_logo || settings.value.brand_logo || settings.value.logo || '/images/eript-logo.png',
+  resolveMediaUrl(settings.value.site_logo || settings.value.brand_logo || settings.value.logo) || '/images/eript-logo.png',
 )
 
 onMounted(() => {

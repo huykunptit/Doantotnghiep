@@ -339,6 +339,7 @@ onMounted(async () => {
           <template #body="{ data }">
             <div class="row-actions">
               <Button icon="pi pi-pencil" text rounded severity="secondary" :title="t('instructor.courses.edit')" @click="navigateTo(`/instructor/courses/${data.id}/edit`)" />
+              <Button icon="pi pi-file-edit" text rounded severity="secondary" :title="t('instructor.courses.assignments')" @click="navigateTo(`/instructor/courses/${data.id}/assignments`)" />
               <Button icon="pi pi-users" text rounded severity="secondary" :title="t('instructor.courses.students')" @click="navigateTo(`/instructor/courses/${data.id}/students`)" />
               <Button icon="pi pi-wallet" text rounded severity="secondary" :title="t('instructor.courses.revenue')" @click="navigateTo(`/instructor/courses/${data.id}/revenue`)" />
               <a :href="`/courses/${data.id}`" target="_blank" rel="noopener">

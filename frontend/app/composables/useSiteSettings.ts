@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from '~/utils/media-url'
+
 export interface SiteSettings {
   site_name?: string
   site_description?: string
@@ -39,7 +41,7 @@ export function useSiteSettings() {
       document.documentElement.style.setProperty('--p-primary-active-color', darken(primary, 28))
     }
     if (settings.value.site_name) document.title = settings.value.site_name
-    const favicon = settings.value.site_favicon || settings.value.favicon
+    const favicon = resolveMediaUrl(settings.value.site_favicon || settings.value.favicon)
     if (favicon) {
       let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
       if (!link) {

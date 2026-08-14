@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { matchesAny } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
@@ -86,11 +87,11 @@ function groupName(groupId?: number | null) {
 }
 
 const filtered = computed(() => {
-  const q = tableSearch.value.trim().toLowerCase()
+  const q = tableSearch.value
   return questions.value.filter((item) => {
     if (groupFilter.value && item.question_group_id !== groupFilter.value) return false
-    if (!q) return true
-    return stripHtml(item.content).toLowerCase().includes(q) || item.type.toLowerCase().includes(q)
+    if (!q.trim()) return true
+    return matchesAny(q, stripHtml(item.content), item.type, typeLabel(item.type))
   })
 })
 

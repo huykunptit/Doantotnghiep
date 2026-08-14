@@ -37,6 +37,7 @@ const form = reactive({
   duration: 60,
   pass_score: 70,
   max_attempts: 1,
+  proctoring_enabled: false,
 })
 
 const typeOptions = computed(() => [
@@ -113,6 +114,7 @@ async function save() {
       pass_score: form.pass_score,
       max_attempts: form.max_attempts,
       type: form.type,
+      proctoring_enabled: form.proctoring_enabled,
     }
 
     let exam: { id: number, course_id?: number | null }
@@ -231,6 +233,13 @@ onMounted(async () => {
           <span>{{ t('admin.quiz.maxAttempts') }}</span>
           <InputNumber v-model="form.max_attempts" :min="1" :max="99" class="w-full" />
         </label>
+        <label class="field full face-check">
+          <Checkbox v-model="form.proctoring_enabled" :binary="true" input-id="face-check" />
+          <div>
+            <label for="face-check">{{ t('admin.quiz.faceCheck') }}</label>
+            <small>{{ t('admin.quiz.faceCheckHint') }}</small>
+          </div>
+        </label>
       </div>
     </section>
 
@@ -267,6 +276,9 @@ onMounted(async () => {
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
 .field.full { grid-column: 1 / -1; }
+.face-check { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
+.face-check label { font-weight: 700; cursor: pointer; }
+.face-check small { display: block; margin-top: 2px; color: var(--text-muted); font-size: .8rem; font-weight: 500; }
 .w-full { width: 100%; }
 
 @media (max-width: 720px) {

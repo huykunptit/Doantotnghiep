@@ -169,8 +169,8 @@ class _ExamCard extends StatelessWidget {
                   if (exam.proctoringEnabled) ...[
                     const SizedBox(width: 8),
                     _InfoChip(
-                      icon: Icons.videocam_outlined,
-                      label: 'Giám sát',
+                      icon: Icons.face_outlined,
+                      label: 'Check khuôn mặt',
                     ),
                   ],
                 ],

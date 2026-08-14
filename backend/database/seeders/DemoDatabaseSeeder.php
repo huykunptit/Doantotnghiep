@@ -35,6 +35,7 @@ class DemoDatabaseSeeder extends Seeder
             CareerPathSeeder::class,
             CourseFrameworkSeeder::class,
             AcademicDemoDataSeeder::class,
+            VoucherSeeder::class,
             NewsSeeder::class,
         ]);
     }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\PublicMediaUrl;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,6 +50,14 @@ class Course extends Model
         'benefits' => 'array',
         'requirements' => 'array',
     ];
+
+    protected function thumbnail(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => PublicMediaUrl::toPublic($value),
+            set: fn (?string $value) => PublicMediaUrl::toPublic($value),
+        );
+    }
 
     public function instructor(): BelongsTo
     {

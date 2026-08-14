@@ -11,6 +11,7 @@ use App\Models\Curriculum;
 use App\Models\CurriculumCourse;
 use App\Models\Enrollment;
 use App\Services\MediaService;
+use App\Support\SearchQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -24,7 +25,7 @@ class CourseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Course::with('instructor:id,name,avatar', 'category:id,name,slug')
-            ->withCount('lessons', 'enrollments')
+            ->withCount('lessons', 'enrollments', 'reviews')
             ->withAvg('reviews', 'rating');
 
         if ($request->filled('status')) {
@@ -34,19 +35,21 @@ class CourseController extends Controller
         }
 
         if ($request->filled('category')) {
-            if (is_numeric($request->category)) {
-                $query->where('category_id', $request->category);
+            $category = is_numeric($request->category)
+                ? Category::find($request->category)
+                : Category::where('slug', $request->category)->first();
+
+            if ($category) {
+                $query->whereIn('category_id', $this->categoryAndDescendantIds($category));
             } else {
-                $query->whereHas('category', function ($q) use ($request) {
-                    $q->where('slug', $request->category);
-                });
+                // Không tìm thấy danh mục → không có kết quả thay vì bỏ qua filter.
+                $query->whereRaw('1 = 0');
             }
         }
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%');
+                SearchQuery::like($q, ['title', 'description'], (string) $request->search);
             });
         }
 
@@ -58,14 +61,55 @@ class CourseController extends Controller
             $query->where('user_id', $request->instructor_id);
         }
 
+        if ($request->filled('level')) {
+            $query->where('level', $request->string('level'));
+        }
+
+        $pricing = trim((string) $request->query('pricing', ''));
+        if ($pricing === 'paid') {
+            $query->where('price', '>', 0);
+        } elseif ($pricing === 'free') {
+            $query->where(function ($q) {
+                $q->whereNull('price')->orWhere('price', '<=', 0);
+            });
+        }
+
         $perPage = max(1, min(100, $request->integer('per_page', 12)));
 
-        $courses = $query
-            ->orderByDesc('is_featured')
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
+        switch ((string) $request->query('sort', 'newest')) {
+            case 'popular':
+                $query->orderByDesc('is_featured')->orderByDesc('enrollments_count');
+                break;
+            case 'price_asc':
+                $query->orderBy('price');
+                break;
+            case 'price_desc':
+                $query->orderByDesc('price');
+                break;
+            case 'rating':
+                $query->orderByDesc('reviews_avg_rating')->orderByDesc('enrollments_count');
+                break;
+            default:
+                $query->orderByDesc('is_featured')->orderByDesc('created_at');
+                break;
+        }
+
+        $courses = $query->paginate($perPage);
 
         return response()->json($courses);
+    }
+
+    /** ID của category + toàn bộ danh mục con/cháu (tối đa 3 cấp), để filter theo danh mục cha vẫn ra khóa của danh mục con. */
+    protected function categoryAndDescendantIds(Category $category): array
+    {
+        $ids = [$category->id];
+        $childIds = Category::where('parent_id', $category->id)->pluck('id')->all();
+        $ids = array_merge($ids, $childIds);
+        if ($childIds) {
+            $ids = array_merge($ids, Category::whereIn('parent_id', $childIds)->pluck('id')->all());
+        }
+
+        return $ids;
     }
 
     public function myCoures(Request $request): JsonResponse
@@ -101,9 +145,8 @@ class CourseController extends Controller
         if ($request->filled('search')) {
             $search = trim((string) $request->search);
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%')
-                    ->orWhere('slug', 'like', '%' . $search . '%')
-                    ->orWhereHas('category', fn ($cq) => $cq->where('name', 'like', '%' . $search . '%'));
+                SearchQuery::like($q, ['title', 'slug'], $search);
+                $q->orWhereHas('category', fn ($cq) => SearchQuery::like($cq, ['name'], $search));
             });
         }
 

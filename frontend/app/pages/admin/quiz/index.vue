@@ -1,13 +1,14 @@
 ﻿<script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { matchesAny, normalizeSearch } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'admin'],
 })
 
-interface CourseItem { id: number, title: string }
+interface CourseItem { id: number, title: string, searchKey?: string }
 interface AdminClass { id: number, code: string, name: string }
 interface ExamItem {
   id: number
@@ -23,6 +24,9 @@ interface ExamItem {
   exam_enrollments_count?: number
   quiz?: { id?: number } | null
   course_id?: number | null
+  course?: { id: number, title: string } | null
+  proctoring_enabled?: boolean
+  room?: string | null
 }
 
 const { t, locale } = useI18n()
@@ -38,7 +42,7 @@ const enrollDialog = computed({
   set: (v: boolean) => { if (!v) enrollExamId.value = null },
 })
 
-const activeScope = ref<'standalone' | 'course'>('standalone')
+const activeScope = ref<'all' | 'standalone' | 'course'>('all')
 const courses = ref<CourseItem[]>([])
 const exams = ref<ExamItem[]>([])
 const selectedCourseId = ref<number | null>(null)
@@ -46,6 +50,10 @@ const loadingCourses = ref(false)
 const loading = ref(false)
 const tableSearch = ref('')
 const statusFilter = ref<string | null>(null)
+const typeFilter = ref<string | null>(null)
+const proctoringFilter = ref<string | null>(null)
+const dateFrom = ref('')
+const dateTo = ref('')
 
 const modalOpen = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
@@ -61,6 +69,7 @@ const form = reactive({
   max_attempts: 1,
   shuffle_questions: false,
   shuffle_answers: false,
+  proctoring_enabled: false,
   course_id: null as number | null,
 })
 
@@ -73,17 +82,60 @@ const statusOptions = computed(() => [
 ])
 
 const scopeOptions = computed(() => [
+  { label: t('admin.quiz.allScopes'), value: 'all' },
   { label: t('admin.quiz.standalone'), value: 'standalone' },
   { label: t('admin.quiz.courseExams'), value: 'course' },
 ])
 
+const typeOptions = computed(() => [
+  { label: t('admin.quiz.typeCourseFinal'), value: 'course_final' },
+  { label: t('admin.quiz.typeStandalone'), value: 'standalone' },
+])
+
+const proctoringOptions = computed(() => [
+  { label: t('admin.quiz.proctoringOn'), value: '1' },
+  { label: t('admin.quiz.proctoringOff'), value: '0' },
+])
+
+const courseOptions = computed(() => courses.value.map(course => ({
+  ...course,
+  searchKey: normalizeSearch(course.title),
+})))
+
+const classOptions = computed(() => classes.value.map(row => ({
+  ...row,
+  label: `${row.code} — ${row.name || ''}`.trim(),
+  searchKey: normalizeSearch(`${row.code} ${row.name || ''}`),
+})))
+
 const filtered = computed(() => {
-  const q = tableSearch.value.trim().toLowerCase()
+  const q = tableSearch.value
   return exams.value.filter((exam) => {
+    if (activeScope.value === 'standalone' && exam.course_id) return false
+    if (activeScope.value === 'course' && !exam.course_id) return false
+    if (selectedCourseId.value && (exam.course_id || exam.course?.id) !== selectedCourseId.value) return false
     if (statusFilter.value && (exam.status || 'draft') !== statusFilter.value) return false
-    if (!q) return true
-    return exam.title.toLowerCase().includes(q)
-      || (exam.description || '').toLowerCase().includes(q)
+    if (typeFilter.value && (exam.type || 'standalone') !== typeFilter.value) return false
+    if (proctoringFilter.value === '1' && !exam.proctoring_enabled) return false
+    if (proctoringFilter.value === '0' && exam.proctoring_enabled) return false
+    if (dateFrom.value) {
+      const start = (exam.starts_at || '').slice(0, 10)
+      if (!start || start < dateFrom.value) return false
+    }
+    if (dateTo.value) {
+      const start = (exam.starts_at || '').slice(0, 10)
+      if (!start || start > dateTo.value) return false
+    }
+    if (!q.trim()) return true
+    return matchesAny(
+      q,
+      exam.title,
+      exam.description,
+      exam.course?.title,
+      exam.room,
+      statusLabel(exam.status),
+      exam.type === 'course_final' ? t('admin.quiz.typeCourseFinal') : t('admin.quiz.typeStandalone'),
+    )
   })
 })
 
@@ -113,7 +165,7 @@ function statusTone(status?: string | null) {
 async function loadCourses() {
   loadingCourses.value = true
   try {
-    const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=100')
+    const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=500')
     courses.value = res.data || []
   }
   catch (error: any) {
@@ -132,15 +184,7 @@ async function loadCourses() {
 async function loadExams() {
   loading.value = true
   try {
-    if (activeScope.value === 'standalone') {
-      exams.value = await useApi<ExamItem[]>('/exams/standalone')
-    }
-    else if (selectedCourseId.value) {
-      exams.value = await useApi<ExamItem[]>(`/courses/${selectedCourseId.value}/exams`)
-    }
-    else {
-      exams.value = []
-    }
+    exams.value = await useApi<ExamItem[]>('/admin/exams')
   }
   catch (error: any) {
     toast.add({
@@ -155,11 +199,15 @@ async function loadExams() {
   }
 }
 
-function onScopeChange(value: 'standalone' | 'course') {
-  activeScope.value = value
-  if (value === 'standalone') loadExams()
-  else if (selectedCourseId.value) loadExams()
-  else exams.value = []
+function resetFilters() {
+  activeScope.value = 'all'
+  selectedCourseId.value = null
+  statusFilter.value = null
+  typeFilter.value = null
+  proctoringFilter.value = null
+  dateFrom.value = ''
+  dateTo.value = ''
+  tableSearch.value = ''
 }
 
 function resetForm() {
@@ -171,7 +219,14 @@ function resetForm() {
   form.max_attempts = 1
   form.shuffle_questions = false
   form.shuffle_answers = false
+  form.proctoring_enabled = false
   form.course_id = selectedCourseId.value
+}
+
+function examWritePath(exam: ExamItem) {
+  return exam.course_id
+    ? `/courses/${exam.course_id}/exams/${exam.id}`
+    : `/exams/${exam.id}`
 }
 
 function openCreate() {
@@ -193,6 +248,7 @@ function openEdit(exam: ExamItem) {
   form.max_attempts = exam.max_attempts ?? 1
   form.shuffle_questions = false
   form.shuffle_answers = false
+  form.proctoring_enabled = !!exam.proctoring_enabled
   form.course_id = exam.course_id || selectedCourseId.value
   modalOpen.value = true
 }
@@ -218,27 +274,20 @@ async function saveExam() {
       max_attempts: form.max_attempts,
       shuffle_questions: form.shuffle_questions,
       shuffle_answers: form.shuffle_answers,
+      proctoring_enabled: form.proctoring_enabled,
     }
 
     if (modalMode.value === 'create') {
-      if (activeScope.value === 'standalone') {
-        await useApi('/exams/standalone', { method: 'POST', body })
+      if (form.course_id) {
+        await useApi(`/courses/${form.course_id}/exams`, { method: 'POST', body })
       }
       else {
-        await useApi(`/courses/${form.course_id}/exams`, { method: 'POST', body })
+        await useApi('/exams/standalone', { method: 'POST', body })
       }
       toast.add({ severity: 'success', summary: t('admin.quiz.created'), life: 2500 })
     }
     else if (editing.value) {
-      if (activeScope.value === 'standalone' || !editing.value.course_id) {
-        await useApi(`/exams/${editing.value.id}`, { method: 'PUT', body })
-      }
-      else {
-        await useApi(`/courses/${editing.value.course_id}/exams/${editing.value.id}`, {
-          method: 'PUT',
-          body,
-        })
-      }
+      await useApi(examWritePath(editing.value), { method: 'PUT', body })
       toast.add({ severity: 'success', summary: t('admin.quiz.updated'), life: 2500 })
     }
 
@@ -266,12 +315,7 @@ function askDelete(exam: ExamItem) {
     acceptClass: 'p-button-danger',
     accept: async () => {
       try {
-        if (activeScope.value === 'standalone' || !exam.course_id) {
-          await useApi(`/exams/${exam.id}`, { method: 'DELETE' })
-        }
-        else {
-          await useApi(`/courses/${exam.course_id}/exams/${exam.id}`, { method: 'DELETE' })
-        }
+        await useApi(examWritePath(exam), { method: 'DELETE' })
         toast.add({ severity: 'success', summary: t('admin.quiz.deleted'), life: 2500 })
         await loadExams()
       }
@@ -288,7 +332,8 @@ function askDelete(exam: ExamItem) {
 }
 
 function goCreatePage() {
-  navigateTo(`/admin/quiz/create?type=${activeScope.value === 'standalone' ? 'standalone' : 'course_final'}`)
+  const type = selectedCourseId.value || activeScope.value === 'course' ? 'course_final' : 'standalone'
+  navigateTo(`/admin/quiz/create?type=${type}`)
 }
 
 async function loadClasses() {
@@ -351,26 +396,38 @@ onMounted(async () => {
           <label class="field">
             <span>{{ t('admin.quiz.scope') }}</span>
             <Select
-              :model-value="activeScope"
+              v-model="activeScope"
               :options="scopeOptions"
               option-label="label"
               option-value="value"
               class="w-full"
-              @update:model-value="onScopeChange"
             />
           </label>
-          <label v-if="activeScope === 'course'" class="field">
+          <label class="field">
             <span>{{ t('admin.quiz.course') }}</span>
             <Select
               v-model="selectedCourseId"
-              :options="courses"
+              :options="courseOptions"
               option-label="title"
               option-value="id"
+              :filter-fields="['title', 'searchKey']"
               filter
+              show-clear
               :loading="loadingCourses"
               :placeholder="t('admin.quiz.selectCourse')"
               class="w-full"
-              @change="loadExams"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.quiz.examType') }}</span>
+            <Select
+              v-model="typeFilter"
+              :options="typeOptions"
+              option-label="label"
+              option-value="value"
+              show-clear
+              :placeholder="t('common.all')"
+              class="w-full"
             />
           </label>
           <label class="field">
@@ -385,6 +442,26 @@ onMounted(async () => {
               class="w-full"
             />
           </label>
+          <label class="field">
+            <span>{{ t('admin.quiz.proctoring') }}</span>
+            <Select
+              v-model="proctoringFilter"
+              :options="proctoringOptions"
+              option-label="label"
+              option-value="value"
+              show-clear
+              :placeholder="t('common.all')"
+              class="w-full"
+            />
+          </label>
+          <label class="field">
+            <span>{{ t('admin.quiz.dateFrom') }}</span>
+            <input v-model="dateFrom" type="date" class="date-input">
+          </label>
+          <label class="field">
+            <span>{{ t('admin.quiz.dateTo') }}</span>
+            <input v-model="dateTo" type="date" class="date-input">
+          </label>
         </div>
         <div class="filter-actions">
           <Button :label="t('admin.quiz.apply')" icon="pi pi-filter" size="small" @click="loadExams" />
@@ -394,7 +471,7 @@ onMounted(async () => {
             size="small"
             severity="secondary"
             text
-            @click="statusFilter = null; tableSearch = ''"
+            @click="resetFilters"
           />
         </div>
       </div>
@@ -412,7 +489,6 @@ onMounted(async () => {
             :label="t('admin.quiz.add')"
             icon="pi pi-plus"
             size="small"
-            :disabled="activeScope === 'course' && !selectedCourseId"
             @click="openCreate"
           />
           <Button
@@ -443,8 +519,13 @@ onMounted(async () => {
           <template #body="{ data }">
             <div class="exam-cell">
               <strong>{{ data.title }}</strong>
-              <small>{{ data.description || '—' }}</small>
+              <small>{{ data.course?.title || t('admin.quiz.noCourse') }}</small>
             </div>
+          </template>
+        </Column>
+        <Column field="type" :header="t('admin.quiz.examType')" sortable style="min-width:120px">
+          <template #body="{ data }">
+            {{ data.type === 'course_final' ? t('admin.quiz.typeCourseFinal') : t('admin.quiz.typeStandalone') }}
           </template>
         </Column>
         <Column field="duration" :header="t('admin.quiz.duration')" sortable style="min-width:100px">
@@ -455,7 +536,10 @@ onMounted(async () => {
         </Column>
         <Column field="status" :header="t('admin.quiz.status')" sortable style="min-width:110px">
           <template #body="{ data }">
-            <span class="pill" :class="statusTone(data.status)">{{ statusLabel(data.status) }}</span>
+            <div class="status-cell">
+              <span class="pill" :class="statusTone(data.status)">{{ statusLabel(data.status) }}</span>
+              <Tag v-if="data.proctoring_enabled" :value="t('admin.quiz.faceCheckOn')" severity="warn" />
+            </div>
           </template>
         </Column>
         <Column :header="t('admin.quiz.enrolled')" style="min-width:90px">
@@ -466,6 +550,15 @@ onMounted(async () => {
         </Column>
         <Column :header="t('admin.users.actions')" style="width:12rem">
           <template #body="{ data }">
+            <Button
+              icon="pi pi-chart-bar"
+              text
+              rounded
+              severity="info"
+              :aria-label="t('admin.quiz.results')"
+              :title="t('admin.quiz.results')"
+              @click="navigateTo(`/admin/quiz/${data.id}/results`)"
+            />
             <Button
               icon="pi pi-users"
               text
@@ -481,7 +574,7 @@ onMounted(async () => {
         </Column>
         <template #empty>
           <div class="empty">
-            {{ activeScope === 'course' && !selectedCourseId ? t('admin.quiz.pickCourse') : t('common.noData') }}
+            {{ t('common.noData') }}
           </div>
         </template>
       </DataTable>
@@ -495,14 +588,16 @@ onMounted(async () => {
       :dismissable-mask="true"
     >
       <div class="modal-grid">
-        <label v-if="modalMode === 'create' && activeScope === 'course'" class="field full">
+        <label v-if="modalMode === 'create'" class="field full">
           <span>{{ t('admin.quiz.course') }}</span>
           <Select
             v-model="form.course_id"
-            :options="courses"
+            :options="courseOptions"
             option-label="title"
             option-value="id"
+            :filter-fields="['title', 'searchKey']"
             filter
+            show-clear
             class="w-full"
           />
         </label>
@@ -544,6 +639,13 @@ onMounted(async () => {
           <span>{{ t('admin.quiz.shuffleAnswers') }}</span>
           <ToggleSwitch v-model="form.shuffle_answers" />
         </label>
+        <label class="field switch-field full">
+          <span>
+            {{ t('admin.quiz.faceCheck') }}
+            <small class="switch-hint">{{ t('admin.quiz.faceCheckHint') }}</small>
+          </span>
+          <ToggleSwitch v-model="form.proctoring_enabled" />
+        </label>
       </div>
       <template #footer>
         <Button :label="t('common.cancel')" severity="secondary" text @click="modalOpen = false" />
@@ -561,9 +663,10 @@ onMounted(async () => {
         <span>{{ t('admin.quiz.adminClass') }}</span>
         <Select
           v-model="enrollClassId"
-          :options="classes"
-          option-label="code"
+          :options="classOptions"
+          option-label="label"
           option-value="id"
+          :filter-fields="['label', 'code', 'name', 'searchKey']"
           filter
           class="w-full"
           :placeholder="t('admin.quiz.selectClass')"
@@ -587,11 +690,15 @@ onMounted(async () => {
 }
 .filter-bar { margin-bottom: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-subtle); }
 .filter-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
 .filter-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 12px; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field > span { color: var(--text-muted); font-size: .72rem; font-weight: 700; }
 .w-full { width: 100%; }
+.date-input {
+  width: 100%; height: 2.6rem; padding: 0 10px; border: 1px solid var(--border);
+  border-radius: 8px; background: var(--surface); color: inherit; font: inherit;
+}
 
 .table-toolbar {
   display: flex; align-items: center; justify-content: space-between;
@@ -621,6 +728,8 @@ onMounted(async () => {
 .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field.full { grid-column: 1 / -1; }
 .switch-field { flex-direction: row; align-items: center; justify-content: space-between; }
+.switch-hint { display: block; margin-top: 2px; font-weight: 500; color: var(--text-muted); text-transform: none; }
+.status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 @media (max-width: 720px) {
   .modal-grid { grid-template-columns: 1fr; }

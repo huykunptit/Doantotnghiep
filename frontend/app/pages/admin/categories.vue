@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { textMatches } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
@@ -61,7 +62,7 @@ const treeRows = computed<TreeCategory[]>(() => {
         depth,
         parentLabel: child.parent?.name || t('admin.categories.root'),
       }
-      const match = !q || child.name.toLowerCase().includes(q)
+      const match = !q || textMatches(child.name, q)
       if (match) result.push(row)
       walk(child.id, depth + 1)
     }

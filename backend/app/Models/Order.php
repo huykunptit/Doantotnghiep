@@ -16,6 +16,10 @@ class Order extends Model
         'course_id',
         'career_path_id',
         'amount',
+        'original_amount',
+        'discount_amount',
+        'user_voucher_id',
+        'cart_items',
         'status',
         'payment_method',
         'payment_ref',
@@ -25,6 +29,9 @@ class Order extends Model
 
     protected $casts = [
         'amount'           => 'integer',
+        'original_amount'  => 'integer',
+        'discount_amount'  => 'integer',
+        'cart_items'       => 'array',
         'gateway_response' => 'array',
         'paid_at'          => 'datetime',
     ];
@@ -47,6 +54,11 @@ class Order extends Model
     public function enrollment(): HasOne
     {
         return $this->hasOne(Enrollment::class);
+    }
+
+    public function userVoucher(): BelongsTo
+    {
+        return $this->belongsTo(UserVoucher::class);
     }
 
     public function isPathOrder(): bool

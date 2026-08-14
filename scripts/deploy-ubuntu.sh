@@ -7,6 +7,9 @@
 #   DEPLOY_SKIP_PULL=1 ./scripts/deploy-ubuntu.sh   # chỉ rebuild
 #   DEPLOY_FORCE=1 ./scripts/deploy-ubuntu.sh       # bỏ qua working-tree bẩn
 #
+#   ./scripts/deploy-ubuntu.sh seed-fresh   # XÓA DB + migrate:fresh --seed (toàn bộ seeder)
+#   SEED_FRESH_YES=1 ./scripts/deploy-ubuntu.sh seed-fresh   # không hỏi confirm
+#
 #   sudo ./scripts/deploy-ubuntu.sh install # cài systemd + tạo .env.deploy
 #   ./scripts/deploy-ubuntu.sh agent        # web UI /update-lms (systemd dùng lệnh này)
 #
@@ -27,7 +30,7 @@ log() { printf '\n==> %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '2,14p' "$SELF" | sed 's/^# \?//'
+  sed -n '2,18p' "$SELF" | sed 's/^# \?//'
   exit "${1:-0}"
 }
 
@@ -86,6 +89,61 @@ cmd_run() {
 
   log "Xong. Build ID = $BUILD_ID"
   log "Hard refresh trình duyệt (Ctrl+Shift+R) nếu UI chưa đổi."
+}
+
+# ── XÓA DB rồi seed lại toàn bộ pipeline demo (User/Org/Course/Voucher/…) ────
+cmd_seed_fresh() {
+  command -v docker >/dev/null || die "Thiếu docker"
+  docker compose version >/dev/null 2>&1 || die "Thiếu docker compose v2"
+
+  local yes=0
+  local arg
+  for arg in "$@"; do
+    if [[ "$arg" == "--yes" || "$arg" == "-y" ]]; then
+      yes=1
+    fi
+  done
+  if [[ "${SEED_FRESH_YES:-0}" == "1" ]]; then
+    yes=1
+  fi
+
+  if [[ "$yes" != "1" ]]; then
+    if [[ -t 0 ]]; then
+      printf '\nCẢNH BÁO: lệnh này XÓA TOÀN BỘ dữ liệu MySQL rồi seed lại DemoDatabaseSeeder\n'
+      printf '(roles, users, khóa, CTĐT, học vụ, điểm thưởng, voucher 5%%–75%%, …).\n'
+      read -r -p "Gõ YES để tiếp tục: " ans
+      [[ "$ans" == "YES" ]] || die "Đã hủy seed-fresh."
+    else
+      die "Cần SEED_FRESH_YES=1 hoặc --yes (không có TTY để confirm)."
+    fi
+  fi
+
+  log "Đảm bảo mysql + backend đang chạy"
+  docker compose up -d mysql backend
+
+  local i=0
+  until docker compose exec -T backend php artisan --version >/dev/null 2>&1; do
+    i=$((i + 1))
+    if [[ "$i" -gt 60 ]]; then
+      die "Backend chưa sẵn sàng (artisan không chạy được)."
+    fi
+    sleep 2
+  done
+
+  # Tránh lần restart sau của container tự db:seed canonical đè lên bản demo.
+  rm -f "$ROOT/backend/storage/.seeded"
+
+  log "Publish avatar seed"
+  docker compose exec -T backend php artisan avatars:publish || true
+  docker compose exec -T backend php artisan storage:link || true
+
+  log "migrate:fresh --seed --seeder=DemoDatabaseSeeder (roles → users → khóa → học vụ → voucher 5%–75%)"
+  docker compose exec -T backend php artisan migrate:fresh --force --seeder=DemoDatabaseSeeder
+
+  docker compose exec -T backend php artisan avatars:publish || true
+  touch "$ROOT/backend/storage/.seeded"
+
+  log "Xong seed-fresh. Dữ liệu demo + voucher đã nạp lại."
 }
 
 # ── cài systemd agent (1 lần trên server) ────────────────────────────────────
@@ -208,7 +266,7 @@ def broadcast(line):
         ev.set()
 
 
-def run_deploy():
+def run_job(args, title):
     global _busy, _last_exit, _proc, _log_lines
     with _state_lock:
         if _busy:
@@ -222,15 +280,17 @@ def run_deploy():
     env["NUXT_PUBLIC_BUILD_ID"] = time.strftime("%Y%m%d-%H%M%S")
     env.setdefault("DEPLOY_BRANCH", "main")
     env.setdefault("DEPLOY_REMOTE", "origin")
+    env["SEED_FRESH_YES"] = "1"
 
+    cmd = ["bash", str(SCRIPT), *args]
     broadcast(f"$ cd {ROOT}")
-    broadcast(f"$ bash {SCRIPT} run")
-    broadcast("--- deploy started ---")
+    broadcast("$ " + " ".join(cmd))
+    broadcast("--- %s started ---" % title)
 
     try:
         LOCK.write_text(str(os.getpid()), encoding="utf-8")
         _proc = subprocess.Popen(
-            ["bash", str(SCRIPT), "run"],
+            cmd,
             cwd=str(ROOT),
             env=env,
             stdout=subprocess.PIPE,
@@ -243,7 +303,7 @@ def run_deploy():
             broadcast(line.rstrip("\n"))
         code = _proc.wait()
         _last_exit = code
-        broadcast(f"--- deploy finished (exit {code}) ---")
+        broadcast("--- %s finished (exit %s) ---" % (title, code))
     except Exception as exc:
         _last_exit = 1
         broadcast(f"ERROR: {exc}")
@@ -258,6 +318,14 @@ def run_deploy():
             events = list(_subscribers)
         for ev in events:
             ev.set()
+
+
+def run_deploy():
+    run_job(["run"], "deploy")
+
+
+def run_seed_fresh():
+    run_job(["seed-fresh", "--yes"], "seed-fresh")
 
 
 PAGE = r"""<!doctype html>
@@ -292,6 +360,8 @@ PAGE = r"""<!doctype html>
     }
     .go { background: #0f766e; color: #fff; }
     .go:disabled { opacity: .5; cursor: not-allowed; }
+    .seed { background: #b45309; color: #fff; }
+    .seed:disabled { opacity: .5; cursor: not-allowed; }
     .clear { background: #1f2937; color: #dbe4f3; }
     #status {
       display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px;
@@ -321,15 +391,16 @@ PAGE = r"""<!doctype html>
       <header>
         <div>
           <h1>LMS Deploy Console</h1>
-          <div class="meta">pull origin/main → docker compose build --no-cache → up</div>
+          <div class="meta">pull origin/main → docker compose build --no-cache → up · seed-fresh = XÓA DB</div>
         </div>
         <div class="actions">
           <span id="status" class="dot">idle</span>
           <button class="clear" id="btnClear" type="button">Xóa log</button>
+          <button class="seed" id="btnSeed" type="button">Seed fresh (xóa DB)</button>
           <button class="go" id="btnDeploy" type="button">Bắt đầu deploy</button>
         </div>
       </header>
-      <pre id="log">Sẵn sàng. Bấm "Bắt đầu deploy" để pull + build --no-cache.
+      <pre id="log">Sẵn sàng. Deploy = pull + build. Seed fresh = XÓA DB rồi nạp lại toàn bộ seeder demo.
 </pre>
     </div>
     <p class="warn">
@@ -341,11 +412,17 @@ PAGE = r"""<!doctype html>
     const logEl = document.getElementById('log');
     const statusEl = document.getElementById('status');
     const btn = document.getElementById('btnDeploy');
+    const btnSeed = document.getElementById('btnSeed');
     let es = null;
 
     function setStatus(text, cls) {
       statusEl.className = 'dot ' + (cls || '');
       statusEl.textContent = text;
+    }
+
+    function setBusy(busy) {
+      btn.disabled = busy;
+      btnSeed.disabled = busy;
     }
 
     function append(line) {
@@ -363,16 +440,16 @@ PAGE = r"""<!doctype html>
         if (data.type === 'state') {
           if (data.busy) {
             setStatus('running', 'running');
-            btn.disabled = true;
+            setBusy(true);
           } else if (data.exit_code === 0) {
             setStatus('success', 'ok');
-            btn.disabled = false;
+            setBusy(false);
           } else if (data.exit_code == null) {
             setStatus('idle', '');
-            btn.disabled = false;
+            setBusy(false);
           } else {
             setStatus('failed (' + data.exit_code + ')', 'fail');
-            btn.disabled = false;
+            setBusy(false);
           }
         }
       };
@@ -380,21 +457,30 @@ PAGE = r"""<!doctype html>
     }
 
     document.getElementById('btnClear').onclick = () => { logEl.textContent = ''; };
-    btn.onclick = async () => {
-      btn.disabled = true;
+
+    async function startJob(path, confirmMsg) {
+      if (confirmMsg && !confirm(confirmMsg)) return;
+      setBusy(true);
       setStatus('starting…', 'running');
-      const res = await fetch('./run?token=' + encodeURIComponent(token), { method: 'POST' });
+      const res = await fetch('./' + path + '?token=' + encodeURIComponent(token), { method: 'POST' });
       if (!res.ok) {
         const t = await res.text();
         append('ERROR: ' + t);
         setStatus('failed', 'fail');
-        btn.disabled = false;
+        setBusy(false);
       }
-    };
+    }
+
+    btn.onclick = () => startJob('run');
+    btnSeed.onclick = () => startJob(
+      'seed-fresh',
+      'XÓA TOÀN BỘ database rồi seed lại (user demo, khóa, CTĐT, voucher 5%–75%, …). Tiếp tục?'
+    );
 
     if (!token) {
       logEl.textContent = 'Thiếu token. Mở URL dạng /update-lms/?token=YOUR_SECRET\n';
       btn.disabled = true;
+      btnSeed.disabled = true;
       setStatus('unauthorized', 'fail');
     } else {
       connectStream();
@@ -455,7 +541,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
-        if not (path.endswith("/run") or path == "/run"):
+        action = path.split("/")[-1]
+        if action not in ("run", "seed-fresh"):
             self._send(404, b"Not found\n")
             return
         if not check_token(self):
@@ -466,11 +553,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         with _state_lock:
             if _busy:
-                self._send(409, b"Deploy already running\n")
+                self._send(409, b"Job already running\n")
                 return
-        threading.Thread(target=run_deploy, daemon=True).start()
+        target = run_deploy if action == "run" else run_seed_fresh
+        body = b"Deploy started\n" if action == "run" else b"Seed-fresh started\n"
+        threading.Thread(target=target, daemon=True).start()
         time.sleep(0.15)
-        self._send(202, b"Deploy started\n")
+        self._send(202, body)
 
     def _sse(self):
         self.send_response(200)
@@ -545,9 +634,10 @@ PY
 }
 
 case "$CMD" in
-  run|deploy)     cmd_run "$@" ;;
-  install)        cmd_install "$@" ;;
-  agent|serve)    cmd_agent "$@" ;;
-  -h|--help|help) usage 0 ;;
-  *) die "Lệnh không hợp lệ: $CMD (dùng: run | install | agent)" ;;
+  run|deploy)          cmd_run "$@" ;;
+  seed-fresh|seedfresh|db-fresh) cmd_seed_fresh "$@" ;;
+  install)             cmd_install "$@" ;;
+  agent|serve)         cmd_agent "$@" ;;
+  -h|--help|help)      usage 0 ;;
+  *) die "Lệnh không hợp lệ: $CMD (dùng: run | seed-fresh | install | agent)" ;;
 esac

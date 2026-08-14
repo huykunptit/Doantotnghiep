@@ -40,6 +40,29 @@ class Term extends Model
         return $this->belongsTo(AcademicYear::class);
     }
 
+    /**
+     * Cửa sổ khóa học = thời gian kỳ: hết hạn / đang học / sắp tới.
+     * Không có ngày thì coi như đang mở (marketplace, khóa không gắn kỳ).
+     */
+    public function windowStatus(?\Carbon\CarbonInterface $today = null): string
+    {
+        $today = ($today ?? now())->copy()->startOfDay();
+        $start = $this->start_date?->copy()->startOfDay();
+        $end = $this->end_date?->copy()->startOfDay();
+
+        if (! $start && ! $end) {
+            return 'current';
+        }
+        if ($end && $end->lt($today)) {
+            return 'expired';
+        }
+        if ($start && $start->gt($today)) {
+            return 'upcoming';
+        }
+
+        return 'current';
+    }
+
     /** Ví dụ: "Học kỳ 1 - Năm học 2025-2026" */
     public function displayName(): string
     {

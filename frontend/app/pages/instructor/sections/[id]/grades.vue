@@ -18,6 +18,10 @@ interface StudentRow {
   enrollment_id: number
   student: { id: number, name: string, email?: string, student_code?: string | null }
   final_score: number | null
+  letter_grade?: string | null
+  gpa4?: number | null
+  completed_courses_count?: number
+  evaluation?: 'pending' | 'fail' | 'warning' | 'pass' | 'excellent'
   entries: Array<{
     grade_component_id: number
     score: number | string | null
@@ -40,6 +44,18 @@ const loading = ref(true)
 const saving = ref(false)
 const applyingPreset = ref(false)
 const scoreMap = reactive<Record<string, string>>({})
+const detailStu = ref<StudentRow | null>(null)
+const warnStu = ref<StudentRow | null>(null)
+const warnMessage = ref('')
+const warning = ref(false)
+const detailOpen = computed({
+  get: () => detailStu.value !== null,
+  set: (open: boolean) => { if (!open) detailStu.value = null },
+})
+const warnOpen = computed({
+  get: () => warnStu.value !== null,
+  set: (open: boolean) => { if (!open) warnStu.value = null },
+})
 
 const sectionTitle = computed(() => {
   if (!data.value) return ''
@@ -93,6 +109,54 @@ function previewFinal(stu: StudentRow): string {
     weightSum += w
   }
   return weightSum > 0 ? (weighted / weightSum).toFixed(2) : '—'
+}
+
+function evalLabel(key?: string) {
+  const map: Record<string, string> = {
+    pending: t('instructor.grades.evalPending'),
+    fail: t('instructor.grades.evalFail'),
+    warning: t('instructor.grades.evalWarning'),
+    pass: t('instructor.grades.evalPass'),
+    excellent: t('instructor.grades.evalExcellent'),
+  }
+  return map[key || 'pending'] || key || '—'
+}
+
+function evalTone(key?: string) {
+  if (key === 'excellent') return 'success'
+  if (key === 'pass') return 'info'
+  if (key === 'warning') return 'warn'
+  if (key === 'fail') return 'danger'
+  return 'secondary'
+}
+
+function openWarn(stu: StudentRow) {
+  warnStu.value = stu
+  warnMessage.value = ''
+}
+
+async function sendWarn() {
+  if (!warnStu.value?.student?.id) return
+  warning.value = true
+  try {
+    const res = await useApi<{ message: string }>(
+      `/instructor/sections/${sectionId.value}/students/${warnStu.value.student.id}/warn`,
+      { method: 'POST', body: { message: warnMessage.value || null } },
+    )
+    toast.add({ severity: 'success', summary: res.message || t('instructor.grades.warnOk'), life: 2500 })
+    warnStu.value = null
+  }
+  catch (error: any) {
+    toast.add({
+      severity: 'error',
+      summary: t('instructor.grades.warnError'),
+      detail: error?.data?.message,
+      life: 3500,
+    })
+  }
+  finally {
+    warning.value = false
+  }
 }
 
 async function save() {
@@ -217,6 +281,9 @@ onMounted(load)
                 <small>/{{ c.max_score }} ({{ c.weight }}%)</small>
               </th>
               <th class="center">{{ t('instructor.grades.final') }}</th>
+              <th class="center">{{ t('instructor.grades.letter') }}</th>
+              <th class="center">{{ t('instructor.grades.completedCourses') }}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -237,11 +304,59 @@ onMounted(load)
               <td class="center">
                 <strong :class="Number(previewFinal(stu)) >= 5 ? 'pass' : 'fail'">{{ previewFinal(stu) }}</strong>
               </td>
+              <td class="center">
+                <Tag :value="evalLabel(stu.evaluation)" :severity="evalTone(stu.evaluation)" />
+                <small v-if="stu.letter_grade" class="letter">{{ stu.letter_grade }}</small>
+              </td>
+              <td class="center">{{ stu.completed_courses_count ?? 0 }}</td>
+              <td class="actions">
+                <Button icon="pi pi-eye" text rounded size="small" :aria-label="t('instructor.grades.detail')" @click="detailStu = stu" />
+                <Button
+                  v-if="stu.evaluation === 'fail' || stu.evaluation === 'warning'"
+                  icon="pi pi-send"
+                  text
+                  rounded
+                  size="small"
+                  severity="warn"
+                  :aria-label="t('instructor.grades.warn')"
+                  @click="openWarn(stu)"
+                />
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
+
+    <Dialog v-model:visible="detailOpen" modal :header="t('instructor.grades.detailTitle')" :style="{ width: 'min(480px, 96vw)' }">
+      <template v-if="detailStu">
+        <p class="dlg-name">{{ detailStu.student.name }} <small>{{ detailStu.student.student_code }}</small></p>
+        <ul class="detail-list">
+          <li v-for="c in data?.components || []" :key="c.id">
+            <span>{{ c.name }}</span>
+            <strong>{{ scoreMap[scoreKey(detailStu.enrollment_id, c.id)] || '—' }} / {{ c.max_score }}</strong>
+          </li>
+          <li>
+            <span>{{ t('instructor.grades.final') }}</span>
+            <strong>{{ previewFinal(detailStu) }} {{ detailStu.letter_grade ? `(${detailStu.letter_grade})` : '' }}</strong>
+          </li>
+          <li>
+            <span>{{ t('instructor.grades.completedCourses') }}</span>
+            <strong>{{ detailStu.completed_courses_count ?? 0 }}</strong>
+          </li>
+        </ul>
+      </template>
+    </Dialog>
+
+    <Dialog v-model:visible="warnOpen" modal :header="t('instructor.grades.warnTitle')" :style="{ width: 'min(480px, 96vw)' }">
+      <p v-if="warnStu" class="dlg-name">{{ warnStu.student.name }}</p>
+      <p class="hint">{{ t('instructor.grades.warnHint') }}</p>
+      <Textarea v-model="warnMessage" rows="4" class="w-full" />
+      <template #footer>
+        <Button :label="t('common.cancel')" severity="secondary" text @click="warnStu = null" />
+        <Button :label="t('instructor.grades.warnSend')" icon="pi pi-send" :loading="warning" @click="sendWarn" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -273,4 +388,12 @@ code { font-size: .8rem; background: var(--p-surface-100); padding: .1rem .35rem
   color: var(--p-text-color);
   font-weight: 600;
 }
+.actions { white-space: nowrap; }
+.letter { display: block; margin-top: 4px; color: var(--p-text-muted-color); font-size: .75rem; }
+.dlg-name { margin: 0 0 10px; font-weight: 700; }
+.dlg-name small { color: var(--p-text-muted-color); font-weight: 500; }
+.hint { margin: 0 0 10px; color: var(--p-text-muted-color); font-size: .88rem; }
+.detail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.detail-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--p-content-border-color); }
+.w-full { width: 100%; }
 </style>

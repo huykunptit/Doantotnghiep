@@ -78,7 +78,7 @@ onMounted(() => {
     </nav>
 
     <div class="account">
-      <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
+      <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
       <Avatar v-else :label="userInitials" shape="circle" />
       <div class="account-copy">
         <strong>{{ userName }}</strong>

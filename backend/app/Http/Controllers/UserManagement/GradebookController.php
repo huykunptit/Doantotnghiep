@@ -9,6 +9,8 @@ use App\Models\ClassSection;
 use App\Models\Enrollment;
 use App\Models\GradeComponent;
 use App\Models\GradeEntry;
+use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -43,26 +45,37 @@ class GradebookController extends Controller
                 'gradeEntries' => fn ($q) => $q->select('id', 'enrollment_id', 'grade_component_id', 'score', 'graded_by', 'graded_at', 'note'),
             ])
             ->orderBy('id')
-            ->get()
-            ->map(function (Enrollment $enrollment) use ($components) {
-                $byComponent = $enrollment->gradeEntries->keyBy('grade_component_id');
-                return [
-                    'enrollment_id' => $enrollment->id,
-                    'student' => $enrollment->user,
-                    'final_score' => $enrollment->final_score,
-                    'entries' => $components->map(fn ($c) => [
-                        'grade_component_id' => $c->id,
-                        'score' => $byComponent->get($c->id)?->score,
-                        'note' => $byComponent->get($c->id)?->note,
-                        'graded_at' => $byComponent->get($c->id)?->graded_at,
-                    ])->values(),
-                ];
-            })->values();
+            ->get();
+
+        $userIds = $enrollments->pluck('user_id')->unique()->filter()->all();
+        $completedByUser = $this->completedCourseCounts($userIds);
+
+        $rows = $enrollments->map(function (Enrollment $enrollment) use ($components, $completedByUser) {
+            $byComponent = $enrollment->gradeEntries->keyBy('grade_component_id');
+            $final = $enrollment->final_score;
+            $gradeInfo = $final !== null ? GpaCalculator::gradeInfo((float) $final) : ['letter' => null, 'gpa4' => null];
+
+            return [
+                'enrollment_id' => $enrollment->id,
+                'student' => $enrollment->user,
+                'final_score' => $final,
+                'letter_grade' => $gradeInfo['letter'],
+                'gpa4' => $gradeInfo['gpa4'],
+                'completed_courses_count' => (int) ($completedByUser[$enrollment->user_id] ?? 0),
+                'evaluation' => $this->evaluationOf($final),
+                'entries' => $components->map(fn ($c) => [
+                    'grade_component_id' => $c->id,
+                    'score' => $byComponent->get($c->id)?->score,
+                    'note' => $byComponent->get($c->id)?->note,
+                    'graded_at' => $byComponent->get($c->id)?->graded_at,
+                ])->values(),
+            ];
+        })->values();
 
         return response()->json([
             'class_section' => $classSection->load(['course:id,title,course_mode', 'term:id,name,code', 'cohort:id,name,code']),
             'components' => $components,
-            'students' => $enrollments,
+            'students' => $rows,
         ]);
     }
 
@@ -108,6 +121,44 @@ class GradebookController extends Controller
         });
 
         return response()->json(['message' => 'Đã lưu điểm', 'written' => $written]);
+    }
+
+    /**
+     * Send a private academic-warning notification to a student in this section.
+     */
+    public function warnStudent(Request $request, ClassSection $classSection, User $user): JsonResponse
+    {
+        $actor = $request->user();
+        if (!$this->canAccess($actor, $classSection)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $enrollment = Enrollment::query()
+            ->where('class_section_id', $classSection->id)
+            ->where('user_id', $user->id)
+            ->first();
+        abort_unless($enrollment, 404, 'Sinh viên không thuộc lớp này.');
+
+        $classSection->loadMissing('course:id,title');
+
+        $validated = $request->validate([
+            'message' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $courseTitle = $classSection->course?->title ?: $classSection->code;
+        $score = $enrollment->final_score;
+        $scoreText = $score === null ? 'chưa có điểm tổng kết' : "điểm tổng kết {$score}/10";
+        $body = $validated['message'] ?: "Kết quả học tập của bạn tại lớp {$classSection->code} ({$courseTitle}) đang ở mức kém ({$scoreText}). Vui lòng liên hệ giảng viên và tăng cường ôn tập.";
+
+        Notification::send(
+            $user->id,
+            'academic_warning',
+            'Cảnh cáo học tập',
+            $body,
+            '/student/transcript',
+        );
+
+        return response()->json(['message' => "Đã gửi cảnh cáo tới {$user->name}."]);
     }
 
     public function listComponents(Request $request, int $courseId): JsonResponse
@@ -272,6 +323,51 @@ class GradebookController extends Controller
                 ),
             ],
         ]);
+    }
+
+    private function completedCourseCounts(array $userIds): array
+    {
+        if (!$userIds) {
+            return [];
+        }
+
+        $lessonTotals = DB::table('lessons')
+            ->select('course_id', DB::raw('COUNT(*) as total'))
+            ->groupBy('course_id');
+
+        $rows = DB::table('lesson_progress')
+            ->join('lessons', 'lessons.id', '=', 'lesson_progress.lesson_id')
+            ->joinSub($lessonTotals, 'totals', 'totals.course_id', '=', 'lessons.course_id')
+            ->whereIn('lesson_progress.user_id', $userIds)
+            ->where('lesson_progress.completed', true)
+            ->select(
+                'lesson_progress.user_id',
+                'lessons.course_id',
+                'totals.total',
+                DB::raw('COUNT(DISTINCT lessons.id) as done'),
+            )
+            ->groupBy('lesson_progress.user_id', 'lessons.course_id', 'totals.total')
+            ->havingRaw('COUNT(DISTINCT lessons.id) >= totals.total')
+            ->get();
+
+        return $rows->groupBy('user_id')->map->count()->all();
+    }
+
+    private function evaluationOf(?float $score): string
+    {
+        if ($score === null) {
+            return 'pending';
+        }
+        if ($score < 4) {
+            return 'fail';
+        }
+        if ($score < 5.5) {
+            return 'warning';
+        }
+        if ($score >= 8) {
+            return 'excellent';
+        }
+        return 'pass';
     }
 
     private function canAccess($user, ClassSection $classSection): bool

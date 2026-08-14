@@ -27,6 +27,7 @@ const route = useRoute()
 const toast = useToast()
 const { t, locale } = useI18n()
 const courseId = computed(() => Number(route.params.courseId))
+const cart = useCartStore()
 
 const loading = ref(true)
 const paying = ref(false)
@@ -34,6 +35,18 @@ const course = ref<CourseDetail | null>(null)
 const paymentUrl = ref<string | null>(null)
 const alreadyEnrolled = ref(false)
 const method = ref<'payos'>('payos')
+const selectedVoucherId = ref<number | null>(null)
+const quote = ref<{
+  subtotal: number
+  discount: number
+  total: number
+  suggestions: Array<{
+    id: number
+    savings: number
+    recommended?: boolean
+    voucher?: { name?: string | null, type?: string | null, discount_value?: number | null } | null
+  }>
+} | null>(null)
 
 const methods = computed(() => [
   { value: 'payos' as const, label: t('student.checkout.payos'), note: t('student.checkout.payosNote') },
@@ -47,11 +60,33 @@ const formatPrice = (price = 0) => {
   return new Intl.NumberFormat(numberLocale.value, { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(price)
 }
 
+const payable = computed(() => quote.value?.total ?? course.value?.price ?? 0)
+const subtotal = computed(() => quote.value?.subtotal ?? course.value?.price ?? 0)
+const discount = computed(() => quote.value?.discount ?? 0)
+
+async function loadQuote() {
+  if (!courseId.value || alreadyEnrolled.value) return
+  try {
+    quote.value = await useApi('/checkout/quote', {
+      method: 'POST',
+      body: {
+        course_ids: [courseId.value],
+        user_voucher_id: selectedVoucherId.value,
+      },
+    })
+  }
+  catch (error: any) {
+    quote.value = null
+    toast.add({ severity: 'warn', summary: t('student.cart.quoteError'), detail: error?.data?.message, life: 3500 })
+  }
+}
+
 async function load() {
   loading.value = true
   try {
     course.value = await useApi<CourseDetail>(`/courses/${courseId.value}`)
     alreadyEnrolled.value = !!course.value.is_enrolled
+    if (!alreadyEnrolled.value && (course.value.price || 0) > 0) await loadQuote()
   }
   catch (error: any) {
     toast.add({ severity: 'error', summary: t('student.catalog.loadError'), detail: error?.data?.message, life: 3500 })
@@ -61,16 +96,21 @@ async function load() {
   }
 }
 
+watch(selectedVoucherId, (id, prev) => {
+  if (id !== prev) loadQuote()
+})
+
 async function pay() {
   if (!course.value) return
   paying.value = true
   try {
     const res = await useApi<{ enrolled?: boolean, payment_url?: string | null, message?: string }>('/orders', {
       method: 'POST',
-      body: { course_id: courseId.value, payment_method: 'payos' },
+      body: { course_id: courseId.value, payment_method: 'payos', user_voucher_id: selectedVoucherId.value },
     })
     if (res.enrolled) {
       alreadyEnrolled.value = true
+      cart.remove(courseId.value)
       toast.add({ severity: 'success', summary: t('student.checkout.success'), life: 2500 })
       await navigateTo(`/learn/${courseId.value}`)
       return
@@ -133,6 +173,13 @@ onMounted(load)
           </button>
         </div>
 
+        <CommonCheckoutVouchers
+          v-if="(course.price || 0) > 0 && !alreadyEnrolled"
+          v-model="selectedVoucherId"
+          :suggestions="quote?.suggestions || []"
+          :format-price="formatPrice"
+        />
+
         <aside v-if="pathSuggestion && !alreadyEnrolled" class="path-hint">
           <strong>{{ t('student.checkout.pathSuggestTitle') }}</strong>
           <p>
@@ -161,8 +208,10 @@ onMounted(load)
 
       <aside class="panel summary">
         <p>{{ t('student.checkout.summary') }}</p>
-        <strong class="price">{{ formatPrice(course.price || 0) }}</strong>
-        <div class="line"><span>{{ t('student.checkout.total') }}</span><span>{{ formatPrice(course.price || 0) }}</span></div>
+        <strong class="price">{{ formatPrice(payable) }}</strong>
+        <div class="line"><span>{{ t('student.checkout.subtotal') }}</span><span>{{ formatPrice(subtotal) }}</span></div>
+        <div v-if="discount" class="line save"><span>{{ t('student.checkout.discount') }}</span><span>− {{ formatPrice(discount) }}</span></div>
+        <div class="line"><span>{{ t('student.checkout.total') }}</span><span>{{ formatPrice(payable) }}</span></div>
 
         <div v-if="alreadyEnrolled" class="note">
           {{ t('student.checkout.already') }}
@@ -173,7 +222,7 @@ onMounted(load)
           <Button
             v-else
             class="w-full"
-            :label="(course.price || 0) > 0 ? t('student.checkout.pay') : t('student.checkout.enrollFree')"
+            :label="payable > 0 ? t('student.checkout.pay') : t('student.checkout.enrollFree')"
             :loading="paying"
             @click="pay"
           />
@@ -212,6 +261,7 @@ onMounted(load)
 .path-hint-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .summary .price { display: block; margin: 8px 0 14px; font-size: 1.8rem; font-family: var(--font-display); }
 .line { display: flex; justify-content: space-between; font-weight: 650; margin-bottom: 14px; }
+.line.save { color: #16a34a; }
 .note { padding: 12px; border-radius: 12px; background: var(--brand-soft); font-weight: 600; }
 .mt { margin-top: 10px; }
 .w-full { width: 100%; }

@@ -51,6 +51,7 @@ onMounted(() => {
         </nav>
 
         <div class="header-actions">
+          <CommonCartButton />
           <LocaleSwitcher />
           <Button
             :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
@@ -85,6 +86,7 @@ onMounted(() => {
         <NuxtLink to="/" @click="mobileOpen = false">{{ t('common.home') }}</NuxtLink>
         <NuxtLink to="/courses" @click="mobileOpen = false">{{ t('common.courses') }}</NuxtLink>
         <NuxtLink to="/paths" @click="mobileOpen = false">{{ t('common.paths') }}</NuxtLink>
+        <NuxtLink to="/cart" @click="mobileOpen = false">{{ t('common.cart') }}</NuxtLink>
         <NuxtLink v-if="auth.isAuthenticated" :to="dashboardPath" @click="mobileOpen = false">{{ t('common.dashboard') }}</NuxtLink>
         <template v-else>
           <NuxtLink to="/login" @click="mobileOpen = false">{{ t('common.login') }}</NuxtLink>

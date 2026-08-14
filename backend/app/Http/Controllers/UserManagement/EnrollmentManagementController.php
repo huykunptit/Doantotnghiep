@@ -15,6 +15,7 @@ use App\Models\Enrollment;
 use App\Models\Notification;
 use App\Models\Term;
 use App\Models\User;
+use App\Support\SearchQuery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,10 +64,8 @@ class EnrollmentManagementController extends Controller
             $query->where('user_id', (int) $request->input('user_id'));
         }
         if ($request->filled('search')) {
-            $q = $request->input('search');
-            $query->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$q}%")
-                ->orWhere('student_code', 'like', "%{$q}%")
-                ->orWhere('email', 'like', "%{$q}%"));
+            $q = (string) $request->input('search');
+            $query->whereHas('user', fn ($u) => SearchQuery::like($u, ['name', 'student_code', 'email'], $q));
         }
 
         $query = $this->scopeEnrollmentsByUnits($query, $user);
@@ -362,8 +361,10 @@ class EnrollmentManagementController extends Controller
                 ['academic_year_id' => $year->id, 'code' => 'HK1'],
                 [
                     'name' => 'Học kỳ 1',
-                    'start_date' => sprintf('%d-09-01', $yStart),
+                    'start_date' => sprintf('%d-08-01', $yStart),
                     'end_date' => sprintf('%d-01-15', $yEnd),
+                    'enrollment_start_at' => sprintf('%d-07-15 00:00:00', $yStart),
+                    'enrollment_end_at' => sprintf('%d-08-05 23:59:59', $yStart),
                     'is_current' => $year->is_current,
                     'status' => 'active',
                 ]
@@ -396,7 +397,7 @@ class EnrollmentManagementController extends Controller
         return $orderedTerms->get($index);
     }
 
-    /** Label dropdown: "HK1 — 2024-2025 (01/09/2024 – 15/01/2025)" */
+    /** Label dropdown: "HK1 — 2024-2025 (01/08/2024 – 15/01/2025)" */
     private function formatTermOptionLabel(Term $term): string
     {
         $code = trim((string) ($term->code ?: $term->name));
@@ -640,11 +641,7 @@ class EnrollmentManagementController extends Controller
             $query->where('status', $request->input('status'));
         }
         if ($request->filled('q')) {
-            $q = $request->input('q');
-            $query->where(function (Builder $w) use ($q) {
-                $w->where('code', 'like', "%{$q}%")
-                    ->orWhere('name', 'like', "%{$q}%");
-            });
+            SearchQuery::like($query, ['code', 'name'], (string) $request->input('q'));
         }
 
         if (!\App\Support\Authorize::isAdmin($user)) {

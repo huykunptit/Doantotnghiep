@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamEnrollment;
+use App\Models\QuizAttempt;
 use App\Models\User;
+use App\Support\Authorize;
+use App\Support\SearchQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -33,18 +36,67 @@ class ExamController extends Controller
     public function standaloneIndex(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_unless($user && \App\Support\Authorize::allows($user, 'manage_exams'), 403);
+        abort_unless($user && Authorize::allows($user, 'manage_exams'), 403);
 
         $query = Exam::standalone()->with('quiz', 'creator')->withCount('examEnrollments');
 
         // Instructors can only see their own standalone exams
-        if (!\App\Support\Authorize::isAdmin($user)) {
+        if (!Authorize::isAdmin($user)) {
             $query->where('created_by', $user->id);
         }
 
         $exams = $query->latest()->get();
 
         return response()->json($exams);
+    }
+
+    /**
+     * Admin/instructor exam list with search + filters (all types).
+     */
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && Authorize::allows($user, 'manage_exams'), 403);
+
+        $query = Exam::query()
+            ->with(['quiz:id,exam_id', 'course:id,title', 'creator:id,name'])
+            ->withCount('examEnrollments');
+
+        if (! Authorize::isAdmin($user)) {
+            $query->where(function ($inner) use ($user): void {
+                $inner->where('created_by', $user->id)
+                    ->orWhereHas('course', fn ($course) => $course->where('user_id', $user->id));
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+        if ($request->filled('type')) {
+            $query->where('type', $request->string('type'));
+        }
+        if ($request->filled('course_id')) {
+            $query->where('course_id', $request->integer('course_id'));
+        }
+        if ($request->has('proctoring') && $request->input('proctoring') !== '' && $request->input('proctoring') !== null) {
+            $query->where('proctoring_enabled', filter_var($request->input('proctoring'), FILTER_VALIDATE_BOOLEAN));
+        }
+        if ($request->filled('date_from')) {
+            $query->whereDate('starts_at', '>=', $request->date('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('starts_at', '<=', $request->date('date_to'));
+        }
+
+        $search = trim((string) ($request->query('search') ?: $request->query('q', '')));
+        if ($search !== '') {
+            $query->where(function ($inner) use ($search): void {
+                SearchQuery::like($inner, ['title', 'description', 'room'], $search);
+                $inner->orWhereHas('course', fn ($course) => SearchQuery::like($course, ['title'], $search));
+            });
+        }
+
+        return response()->json($query->latest('id')->limit(500)->get());
     }
 
     /**
@@ -257,6 +309,81 @@ class ExamController extends Controller
             ->get();
 
         return response()->json($enrollments);
+    }
+
+    /**
+     * Danh sách học viên + kết quả làm bài cho 1 kỳ thi (admin/giảng viên sở hữu).
+     * Gộp thí sinh đã ghi danh (chưa chắc đã thi) với thí sinh đã có attempt.
+     */
+    public function results(Request $request, Exam $exam): JsonResponse
+    {
+        $user = $request->user();
+        $isOwner = $user && (
+            Authorize::isAdmin($user)
+            || (int) $exam->created_by === (int) $user->id
+            || ($exam->course && (int) $exam->course->user_id === (int) $user->id)
+        );
+        abort_unless($isOwner, 403);
+
+        $quiz = $exam->quiz;
+        $attempts = $quiz
+            ? QuizAttempt::where('quiz_id', $quiz->id)
+                ->with('user:id,name,email,student_code,avatar')
+                ->orderByDesc('id')
+                ->get()
+            : collect();
+
+        $attemptsByUser = $attempts->groupBy('user_id');
+
+        $enrolledUsers = $exam->examEnrollments()
+            ->with('user:id,name,email,student_code,avatar')
+            ->get()
+            ->pluck('user')
+            ->filter();
+
+        $userIds = $attemptsByUser->keys()
+            ->merge($enrolledUsers->pluck('id'))
+            ->unique()
+            ->values();
+
+        $rows = $userIds->map(function ($uid) use ($attemptsByUser, $enrolledUsers) {
+            $userAttempts = $attemptsByUser->get($uid, collect());
+            $student = $userAttempts->first()?->user ?? $enrolledUsers->firstWhere('id', $uid);
+            $completed = $userAttempts->filter(fn ($a) => $a->isCompleted());
+            $best = $completed->sortByDesc('score')->first();
+            $latest = $userAttempts->first();
+
+            return [
+                'user' => $student,
+                'attempts_count' => $userAttempts->count(),
+                'best_score' => $best?->score,
+                'passed' => $best?->passed,
+                'latest_status' => $latest?->status ?? 'not_started',
+                'viewable_attempt_id' => $best?->id,
+                'last_activity_at' => $latest?->completed_at ?? $latest?->started_at,
+                'attempts' => $userAttempts->sortByDesc('id')->values()->map(fn ($a) => [
+                    'id' => $a->id,
+                    'status' => $a->status,
+                    'score' => $a->score,
+                    'passed' => $a->passed,
+                    'started_at' => $a->started_at,
+                    'completed_at' => $a->completed_at,
+                ])->values(),
+            ];
+        })->sortByDesc(fn ($r) => (string) $r['last_activity_at'])->values();
+
+        $completedRows = $rows->filter(fn ($r) => $r['best_score'] !== null);
+
+        return response()->json([
+            'exam' => $exam->only(['id', 'title', 'status', 'duration', 'pass_score', 'max_attempts', 'starts_at', 'ends_at']),
+            'rows' => $rows,
+            'summary' => [
+                'total_students' => $rows->count(),
+                'attempted' => $rows->filter(fn ($r) => $r['attempts_count'] > 0)->count(),
+                'passed' => $rows->filter(fn ($r) => $r['passed'] === true)->count(),
+                'avg_score' => $completedRows->count() ? round($completedRows->avg('best_score'), 2) : null,
+            ],
+        ]);
     }
 
     /**

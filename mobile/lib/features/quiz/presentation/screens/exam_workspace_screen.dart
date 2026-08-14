@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,11 @@ class ExamWorkspaceScreen extends ConsumerStatefulWidget {
 
 class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with WidgetsBindingObserver {
   bool _isInitialized = false;
+  bool _leftApp = false;
+  bool _showFocusBanner = false;
+  DateTime? _leftAt;
+  Timer? _bannerHideTimer;
+  String? _shownProctorAlertKey;
 
   @override
   void initState() {
@@ -59,6 +65,7 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
 
   @override
   void dispose() {
+    _bannerHideTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -69,28 +76,52 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
     if (!_isInitialized) return;
 
     final attemptState = ref.read(examAttemptProvider);
-    if (attemptState.isLoading || attemptState.status != 'in_progress') return;
+    if (attemptState.isLoading ||
+        attemptState.isLessonQuiz ||
+        attemptState.status != 'in_progress') {
+      return;
+    }
 
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      // Focus lost - switched app or minimized
-      ref.read(examAttemptProvider.notifier).incrementFocusLossViolation();
-      
-      // Post frame alert to user upon resumption
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'CẢNH BÁO GIAN LẬN: Bạn vừa rời khỏi ứng dụng! Lần vi phạm: ${attemptState.warnings + 1}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Colors.red.shade800,
-              duration: const Duration(seconds: 5),
-            ),
-          );
-        }
+    // Only treat a real background as leaving. `inactive` fires for the
+    // notification shade, keyboard, permission dialogs and even some
+    // in-app overlays — counting it makes the warning jump while the
+    // student is still answering.
+    if (state == AppLifecycleState.hidden || state == AppLifecycleState.paused) {
+      if (!_leftApp) {
+        _leftApp = true;
+        _leftAt = DateTime.now();
+      }
+      return;
+    }
+
+    if (state != AppLifecycleState.resumed || !_leftApp) return;
+    _leftApp = false;
+
+    final awayFor = DateTime.now().difference(_leftAt ?? DateTime.now());
+    if (awayFor < const Duration(milliseconds: 900)) return;
+
+    final before = ref.read(examAttemptProvider).warnings;
+    final count = ref.read(examAttemptProvider.notifier).incrementFocusLossViolation();
+    if (count <= before) return;
+
+    _revealFocusBanner();
+
+    if (count >= ExamWorkspaceState.maxFocusLoss) {
+      Future<void>.delayed(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        ref.read(examAttemptProvider.notifier).submitActiveAttempt(isAuto: true);
       });
     }
+  }
+
+  void _revealFocusBanner() {
+    ScaffoldMessenger.maybeOf(context)?.clearSnackBars();
+    _bannerHideTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _showFocusBanner = true);
+    _bannerHideTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _showFocusBanner = false);
+    });
   }
 
   String _formatTime(int? seconds) {
@@ -196,11 +227,16 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
       );
     }
 
-    // 4. Proctor alert modal overlay
-    if (state.proctorAlert != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showProctorAlertDialog(context, state.proctorAlert!);
-      });
+    // 4. Proctor alert — show once per message, not on every rebuild
+    final alert = state.proctorAlert;
+    if (alert != null) {
+      final key = '${alert.id}:${alert.createdAt}';
+      if (_shownProctorAlertKey != key) {
+        _shownProctorAlertKey = key;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showProctorAlertDialog(context, alert);
+        });
+      }
     }
 
     // 5. Result state (submitted)
@@ -283,6 +319,41 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
       ),
       body: Column(
         children: [
+          if (_showFocusBanner)
+            Material(
+              color: const Color(0xFFB91C1C),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        state.warnings >= ExamWorkspaceState.maxFocusLoss
+                            ? 'Đã rời ứng dụng ${ExamWorkspaceState.maxFocusLoss} lần — hệ thống đang nộp bài.'
+                            : 'Bạn vừa rời ứng dụng (${state.warnings}/${ExamWorkspaceState.maxFocusLoss}). Lần thứ ${ExamWorkspaceState.maxFocusLoss} sẽ tự nộp bài.',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () {
+                        _bannerHideTimer?.cancel();
+                        setState(() => _showFocusBanner = false);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Sub-header summary stats
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -296,7 +367,7 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
                 ),
                 if (state.warnings > 0)
                   Text(
-                    '⚠ Vi phạm: ${state.warnings} lần',
+                    'Rời app: ${state.warnings}/${ExamWorkspaceState.maxFocusLoss}',
                     style: TextStyle(
                       color: Colors.red.shade800,
                       fontWeight: FontWeight.bold,
@@ -410,11 +481,10 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
   // ── Show Proctor Alert Dialog ──────────────────────────────────────
 
   void _showProctorAlertDialog(BuildContext context, ProctorMessageModel alert) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
           final isCritical = alert.type == 'exam_force_stopped' || alert.title.contains('nghiêm trọng');
           return AlertDialog(
             title: Row(
@@ -444,8 +514,7 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
             ],
           );
         },
-      );
-    });
+    );
   }
 
   // ── Show Submit Confirmation Dialog ─────────────────────────────────

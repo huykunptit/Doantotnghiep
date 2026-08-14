@@ -3,6 +3,7 @@ definePageMeta({ layout: 'default' })
 
 const route = useRoute()
 const { t } = useI18n()
+const cart = useCartStore()
 
 onMounted(async () => {
   try {
@@ -10,6 +11,11 @@ onMounted(async () => {
     const result = await useApi<any>(`/payos/return?${queryString}`, { token: null })
     const status = String(result?.status || '').toLowerCase()
     const ok = status === 'paid' || result?.order?.status === 'paid'
+    if (ok && result?.order) {
+      const ids = (result.order.cart_items || []).map((item: { id?: number }) => Number(item.id)).filter(Boolean)
+      if (result.order.course_id) ids.push(Number(result.order.course_id))
+      cart.removeMany(ids)
+    }
     await navigateTo({
       path: '/payment/result',
       query: {

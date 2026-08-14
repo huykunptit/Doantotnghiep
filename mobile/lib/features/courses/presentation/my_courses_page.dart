@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../providers/my_courses_provider.dart';
 import '../data/models/enrollment_model.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -17,15 +18,19 @@ class MyCoursesPage extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return DefaultTabController(
-      length: 2,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Khoá học của tôi'),
           centerTitle: false,
           bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
-              Tab(text: 'CTĐT / Học vụ'),
-              Tab(text: 'Marketplace'),
+              Tab(text: 'Đang học'),
+              Tab(text: 'Sắp tới'),
+              Tab(text: 'Đã hết hạn'),
+              Tab(text: 'Tất cả các khoá'),
             ],
           ),
         ),
@@ -43,23 +48,28 @@ class MyCoursesPage extends ConsumerWidget {
               );
             }
 
-            final academic = enrollments
-                .where((e) => e.enrollmentSource == 'academic')
-                .toList();
-            final marketplace = enrollments
-                .where((e) => e.enrollmentSource != 'academic')
-                .toList();
+            final buckets = _bucket(enrollments);
 
             return TabBarView(
               children: [
                 _EnrollmentList(
-                  enrollments: academic,
-                  emptyLabel: 'Chưa có khóa thuộc CTĐT / lớp hành chính.',
+                  enrollments: buckets.current,
+                  emptyLabel: 'Không có khóa đang học trong kỳ này.',
                   onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
                 ),
                 _EnrollmentList(
-                  enrollments: marketplace,
-                  emptyLabel: 'Chưa có khóa mua trên Marketplace.',
+                  enrollments: buckets.upcoming,
+                  emptyLabel: 'Chưa có khóa sắp tới theo CTĐT.',
+                  onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
+                ),
+                _EnrollmentList(
+                  enrollments: buckets.expired,
+                  emptyLabel: 'Chưa có khóa đã hết hạn.',
+                  onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
+                ),
+                _EnrollmentList(
+                  enrollments: buckets.all,
+                  emptyLabel: 'Chưa có khoá học nào',
                   onRefresh: () async => ref.invalidate(myEnrollmentsProvider),
                   showExplore: true,
                 ),
@@ -70,6 +80,48 @@ class MyCoursesPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _Buckets {
+  const _Buckets({
+    required this.current,
+    required this.upcoming,
+    required this.expired,
+  });
+
+  final List<EnrollmentModel> current;
+  final List<EnrollmentModel> upcoming;
+  final List<EnrollmentModel> expired;
+
+  List<EnrollmentModel> get all => [...current, ...upcoming, ...expired];
+}
+
+_Buckets _bucket(List<EnrollmentModel> enrollments) {
+  final current = enrollments.where((e) => e.window == CourseWindow.current).toList();
+  final upcoming = enrollments.where((e) => e.window == CourseWindow.upcoming).toList();
+  final expired = enrollments.where((e) => e.window == CourseWindow.expired).toList();
+
+  int? dayMs(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(value);
+    if (match == null) return DateTime.tryParse(value)?.millisecondsSinceEpoch;
+    return DateTime(
+      int.parse(match.group(1)!),
+      int.parse(match.group(2)!),
+      int.parse(match.group(3)!),
+    ).millisecondsSinceEpoch;
+  }
+
+  current.sort((a, b) {
+    final ea = dayMs(a.endsAt) ?? 1 << 62;
+    final eb = dayMs(b.endsAt) ?? 1 << 62;
+    if (ea != eb) return ea.compareTo(eb);
+    return (dayMs(b.enrolledAt) ?? 0).compareTo(dayMs(a.enrolledAt) ?? 0);
+  });
+  upcoming.sort((a, b) => (dayMs(a.startsAt) ?? 1 << 62).compareTo(dayMs(b.startsAt) ?? 1 << 62));
+  expired.sort((a, b) => (dayMs(b.endsAt) ?? 0).compareTo(dayMs(a.endsAt) ?? 0));
+
+  return _Buckets(current: current, upcoming: upcoming, expired: expired);
 }
 
 class _EmptyState extends StatelessWidget {
@@ -183,6 +235,28 @@ class _EnrollmentCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final progress = enrollment.progress / 100;
     final isAcademic = enrollment.enrollmentSource == 'academic';
+    final window = enrollment.window;
+    final dateFmt = DateFormat('dd/MM/yyyy');
+
+    String? fmt(String? raw) {
+      if (raw == null || raw.isEmpty) return null;
+      final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(raw);
+      if (match == null) return raw;
+      return dateFmt.format(DateTime(
+        int.parse(match.group(1)!),
+        int.parse(match.group(2)!),
+        int.parse(match.group(3)!),
+      ));
+    }
+
+    final start = fmt(enrollment.startsAt);
+    final end = fmt(enrollment.endsAt);
+
+    final (badgeLabel, badgeBg, badgeFg) = switch (window) {
+      CourseWindow.upcoming => ('Sắp tới', const Color(0xFFFEF3C7), const Color(0xFFA16207)),
+      CourseWindow.expired => ('Đã hết hạn', const Color(0xFFE2E8F0), const Color(0xFF475569)),
+      CourseWindow.current => ('Đang học', const Color(0xFFDCFCE7), const Color(0xFF15803D)),
+    };
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -227,17 +301,43 @@ class _EnrollmentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      course.title,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            course.title,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: badgeBg,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            badgeLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: badgeFg,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     AppSpacing.h8,
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -254,35 +354,26 @@ class _EnrollmentCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        AppSpacing.w8,
-                        Icon(
-                          course.courseMode == 'online'
-                              ? Icons.wifi_rounded
-                              : Icons.location_on_outlined,
-                          size: 13,
-                          color: AppColors.primary400,
-                        ),
-                        AppSpacing.w4,
-                        Text(
-                          course.courseMode == 'online' ? 'Online' : 'Offline',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.primary400,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (course.creditValue != null) ...[
-                          AppSpacing.w8,
+                        if (enrollment.termName != null && enrollment.termName!.isNotEmpty)
                           Text(
-                            '• ${course.creditValue} TC',
+                            enrollment.termName!,
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontSize: 11,
-                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
                       ],
                     ),
+                    if (start != null || end != null) ...[
+                      AppSpacing.h4,
+                      Text(
+                        'Bắt đầu: ${start ?? '—'}  ·  Kết thúc: ${end ?? '—'}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                     AppSpacing.h8,
                     Row(
                       children: [

@@ -288,7 +288,7 @@ onMounted(async () => {
         <Column :header="t('admin.orders.buyer')" style="min-width:200px">
           <template #body="{ data }">
             <div class="user-cell">
-              <Avatar v-if="data.user?.avatar" :image="data.user.avatar" shape="circle" />
+              <Avatar v-if="resolveMediaUrl(data.user?.avatar)" :image="resolveMediaUrl(data.user?.avatar)" shape="circle" />
               <Avatar v-else :label="(data.user?.name || '?').slice(0, 1).toUpperCase()" shape="circle" />
               <div>
                 <button type="button" class="name-link" @click="openView(data)">{{ data.user?.name || '—' }}</button>

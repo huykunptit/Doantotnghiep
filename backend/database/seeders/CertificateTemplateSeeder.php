@@ -29,22 +29,22 @@ class CertificateTemplateSeeder extends Seeder
         $definitions = [
             [
                 'name'                 => 'Chứng chỉ Hoàn thành Khóa học',
-                'background_image_url' => 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1600&q=90',
+                'background_image_url' => '/certificates/classic.svg',
                 'fields_config'        => $defaultFields,
             ],
             [
                 'name'                 => 'Chứng nhận Xuất sắc',
-                'background_image_url' => 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1600&q=90',
+                'background_image_url' => '/certificates/excellence.svg',
                 'fields_config'        => $this->excellenceFieldsConfig(),
             ],
             [
                 'name'                 => 'Chứng chỉ Chính quy PTIT',
-                'background_image_url' => 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1600&q=90',
+                'background_image_url' => '/certificates/academic.svg',
                 'fields_config'        => $this->academicFieldsConfig(),
             ],
             [
                 'name'                 => 'Chứng nhận Kỹ năng Nghề',
-                'background_image_url' => 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1600&q=90',
+                'background_image_url' => '/certificates/professional.svg',
                 'fields_config'        => $this->professionalFieldsConfig(),
             ],
         ];

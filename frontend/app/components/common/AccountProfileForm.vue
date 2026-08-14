@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
+import { resolveMediaUrl } from '~/utils/media-url'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -110,8 +111,8 @@ onMounted(async () => {
   <div class="profile-form">
     <header class="hero">
       <Avatar
-        v-if="profileForm.avatar || auth.user?.avatar"
-        :image="profileForm.avatar || auth.user?.avatar || undefined"
+        v-if="resolveMediaUrl(profileForm.avatar) || auth.avatarUrl"
+        :image="resolveMediaUrl(profileForm.avatar) || auth.avatarUrl"
         shape="circle"
         size="xlarge"
         class="hero-avatar"

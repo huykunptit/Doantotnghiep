@@ -75,6 +75,9 @@ export function resolveInstructorTitle(path: string, t: TranslateFn) {
   if (path.includes('/students') && path !== '/instructor/students') {
     return t('instructor.menu.courseStudents')
   }
+  if (path.includes('/assignments')) {
+    return t('instructor.menu.courseAssignments')
+  }
   if (path.includes('/revenue') && path !== '/instructor/revenue') {
     return t('instructor.menu.courseRevenue')
   }
@@ -99,6 +102,12 @@ export function resolveInstructorBreadcrumb(path: string, t: TranslateFn) {
     return [
       { label: t('instructor.menu.courses'), to: '/instructor/courses' },
       { label: t('instructor.menu.courseStudents') },
+    ]
+  }
+  if (/^\/instructor\/courses\/\d+\/assignments/.test(path)) {
+    return [
+      { label: t('instructor.menu.courses'), to: '/instructor/courses' },
+      { label: t('instructor.menu.courseAssignments') },
     ]
   }
   if (/^\/instructor\/courses\/\d+\/revenue/.test(path)) {

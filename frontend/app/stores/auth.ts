@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { AuthResponse, AuthUser, RegisterResponse } from '~/types/auth'
+import { resolveMediaUrl } from '~/utils/media-url'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null)
@@ -8,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => Boolean(token.value && user.value))
   const roles = computed(() => user.value?.roles || (user.value?.role ? [user.value.role] : []))
+  const avatarUrl = computed(() => resolveMediaUrl(user.value?.avatar))
 
   function persist() {
     useCookie<string | null>('eript-token', {
@@ -121,6 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
     ready,
     roles,
     isAuthenticated,
+    avatarUrl,
     hydrate,
     login,
     googleLoginUrl,

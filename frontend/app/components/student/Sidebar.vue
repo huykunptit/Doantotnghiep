@@ -63,12 +63,14 @@ onMounted(() => {
     </nav>
 
     <div class="account">
-      <Avatar v-if="auth.user?.avatar" :image="auth.user.avatar" shape="circle" />
-      <Avatar v-else :label="userInitials" shape="circle" />
-      <div class="account-copy">
-        <strong>{{ userName }}</strong>
-        <span>{{ t('student.roleLabel') }}</span>
-      </div>
+      <NuxtLink to="/student/account" class="account-link" @click="emit('navigate')">
+        <Avatar v-if="auth.avatarUrl" :image="auth.avatarUrl" shape="circle" />
+        <Avatar v-else :label="userInitials" shape="circle" />
+        <div class="account-copy">
+          <strong>{{ userName }}</strong>
+          <span>{{ t('student.roleLabel') }}</span>
+        </div>
+      </NuxtLink>
       <Button icon="pi pi-sign-out" severity="secondary" text rounded :loading="loggingOut" :aria-label="t('common.logout')" @click="logout" />
     </div>
   </aside>
@@ -94,6 +96,7 @@ onMounted(() => {
 .link:hover { background: var(--surface-hover); color: var(--text); }
 .link.active { background: var(--brand-soft); color: var(--brand); font-weight: 700; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 18%, transparent); }
 .account { display: flex; align-items: center; gap: 10px; padding: 12px; border-top: 1px solid var(--border); }
+.account-link { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; color: inherit; }
 .account-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .account-copy strong { overflow: hidden; color: var(--text); font-size: .9rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .account-copy span { color: var(--text-muted); font-size: .76rem; font-weight: 500; }

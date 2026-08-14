@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import { matchesAny } from '~/utils/search'
 
 definePageMeta({
   layout: 'admin',
@@ -49,20 +50,18 @@ const form = reactive({
 })
 
 const filtered = computed(() => {
-  const q = tableSearch.value.trim().toLowerCase()
+  const q = tableSearch.value
   return banks.value.filter((bank) => {
     if (courseFilter.value && (bank.course_id || bank.course?.id) !== courseFilter.value) return false
-    if (!q) return true
-    return bank.name.toLowerCase().includes(q)
-      || (bank.description || '').toLowerCase().includes(q)
-      || (bank.course?.title || '').toLowerCase().includes(q)
+    if (!q.trim()) return true
+    return matchesAny(q, bank.name, bank.description, bank.course?.title)
   })
 })
 
 async function loadCourses() {
   loadingCourses.value = true
   try {
-    const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=100')
+    const res = await useApi<{ data: CourseItem[] }>('/admin/courses?per_page=500')
     courses.value = res.data || []
   }
   catch {

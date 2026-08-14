@@ -19,6 +19,7 @@ interface ExamRow {
   best_score?: number | null
   attempt_id?: number | null
   quiz_id?: number | null
+  proctoring_enabled?: boolean
 }
 
 const { t } = useI18n()
@@ -77,6 +78,7 @@ onMounted(load)
           <div class="title-row">
             <strong>{{ ex.title }}</strong>
             <Tag :severity="statusInfo(ex).severity" :value="statusInfo(ex).label" />
+            <Tag v-if="ex.proctoring_enabled" :value="t('student.exams.faceCheck')" severity="warn" />
           </div>
           <div v-if="ex.description" class="desc rich" v-html="ex.description" />
           <div class="meta">
