@@ -8,6 +8,7 @@ import '../data/models/career_path_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../core/error/friendly_error.dart';
+import '../../../core/utils/format_vnd.dart';
 
 class PathsCatalogPage extends ConsumerStatefulWidget {
   const PathsCatalogPage({super.key});
@@ -218,7 +219,7 @@ class _PathCard extends StatelessWidget {
                     ),
                     AppSpacing.h4,
                     Text(
-                      path.price > 0 ? '${path.price}đ' : 'Miễn phí',
+                      formatVnd(path.price),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,

@@ -268,11 +268,15 @@ class OrderController extends Controller
         try {
             $paymentLink = $this->payOSService->createPaymentLink($pendingOrder);
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'PayOS error: ' . $e->getMessage()], 502);
+            return response()->json([
+                'message' => 'Hệ thống thanh toán tạm thời chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
+            ], 502);
         }
 
         if (!$paymentLink) {
-            return response()->json(['message' => 'PayOS is not configured'], 422);
+            return response()->json([
+                'message' => 'Hệ thống thanh toán tạm thời chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
+            ], 422);
         }
 
         $pendingOrder->update([
@@ -296,11 +300,15 @@ class OrderController extends Controller
             try {
                 $paymentLink = $this->payOSService->createPaymentLink($order);
             } catch (\Throwable $e) {
-                return response()->json(['message' => 'PayOS error: ' . $e->getMessage()], 502);
+                return response()->json([
+                    'message' => 'Hệ thống thanh toán tạm thời chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
+                ], 502);
             }
 
             if (!$paymentLink) {
-                return response()->json(['message' => 'PayOS is not configured'], 422);
+                return response()->json([
+                    'message' => 'Hệ thống thanh toán tạm thời chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
+                ], 422);
             }
 
             $order->update([

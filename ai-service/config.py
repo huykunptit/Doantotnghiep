@@ -14,9 +14,9 @@ class Settings:
     APP_DESCRIPTION: str = "AI Service cho hệ thống quản lý học tập Eript LMS"
 
     # --- Provider defaults ---
-    DEFAULT_OPENAI_MODEL: str = "gpt-4o-mini"
-    DEFAULT_GEMINI_MODEL: str = "gemini-2.0-flash"
-    DEFAULT_OPENROUTER_MODEL: str = "deepseek/deepseek-chat:free"
+    DEFAULT_OPENAI_MODEL: str = "nghi/gpt-5.5"
+    DEFAULT_GEMINI_MODEL: str = "gemini-2.5-flash"
+    DEFAULT_OPENROUTER_MODEL: str = "deepseek/deepseek-chat"
     DEFAULT_CLAUDE_MODEL: str = "nghi/claude-haiku-4.5"
     DEFAULT_OLLAMA_MODEL: str = "qwen2.5:latest"
 
@@ -42,7 +42,7 @@ class Settings:
     RAG_SOURCE_REPO: str = "https://github.com/0xl4p/Giao-Trinh-PTIT"
 
     # --- Provider API URLs ---
-    OPENAI_API_URL: str = "https://api.openai.com/v1/chat/completions"
+    OPENAI_API_URL: str = "https://api.nghimmo.com/v1/chat/completions"
     GEMINI_API_URL: str = "https://generativelanguage.googleapis.com/v1beta/models"
     OPENROUTER_API_URL: str = "https://openrouter.ai/api/v1/chat/completions"
     # Claude qua proxy bên thứ 3 (nghimmo) — Anthropic Messages API
@@ -69,6 +69,9 @@ class Settings:
             "DEFAULT_CLAUDE_MODEL",
             "DEFAULT_OLLAMA_MODEL",
             "OLLAMA_BASE_URL",
+            "OPENAI_API_URL",
+            "GEMINI_API_URL",
+            "OPENROUTER_API_URL",
             "CLAUDE_API_URL",
             "CLAUDE_AUTH_MODE",
             "CLAUDE_API_VERSION",
@@ -81,6 +84,26 @@ class Settings:
         timeout = os.getenv("OLLAMA_TIMEOUT")
         if timeout and timeout.isdigit():
             settings.OLLAMA_TIMEOUT = int(timeout)
+
+        openai_model = os.getenv("OPENAI_MODEL") or os.getenv("DEFAULT_OPENAI_MODEL")
+        if openai_model:
+            settings.DEFAULT_OPENAI_MODEL = openai_model
+
+        gemini_model = os.getenv("GEMINI_MODEL") or os.getenv("DEFAULT_GEMINI_MODEL")
+        if gemini_model:
+            settings.DEFAULT_GEMINI_MODEL = gemini_model
+
+        openrouter_model = os.getenv("OPENROUTER_MODEL") or os.getenv("DEFAULT_OPENROUTER_MODEL")
+        if openrouter_model:
+            settings.DEFAULT_OPENROUTER_MODEL = openrouter_model
+
+        claude_model = os.getenv("CLAUDE_MODEL") or os.getenv("DEFAULT_CLAUDE_MODEL")
+        if claude_model:
+            settings.DEFAULT_CLAUDE_MODEL = claude_model
+
+        ollama_model = os.getenv("OLLAMA_MODEL") or os.getenv("DEFAULT_OLLAMA_MODEL")
+        if ollama_model:
+            settings.DEFAULT_OLLAMA_MODEL = ollama_model
 
         return settings
 

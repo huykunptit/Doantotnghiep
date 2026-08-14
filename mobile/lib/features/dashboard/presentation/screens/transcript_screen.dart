@@ -96,17 +96,20 @@ class TranscriptScreen extends ConsumerWidget {
                         letterSpacing: 1.2,
                       ),
                     ),
-                    AppSpacing.h12,
-                    Row(
+                    AppSpacing.h16,
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2.4,
                       children: [
                         _StatChip(label: 'Kỳ thi', value: '${s.totalExams}'),
-                        AppSpacing.w8,
                         _StatChip(label: 'Đã thi', value: '${s.taken}'),
-                        AppSpacing.w8,
                         _StatChip(label: 'Đạt', value: '${s.passed}'),
-                        AppSpacing.w8,
                         _StatChip(
-                          label: 'TB',
+                          label: 'Điểm TB',
                           value: s.averageScore != null ? s.averageScore!.toStringAsFixed(1) : '—',
                         ),
                       ],
@@ -141,19 +144,18 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
@@ -164,12 +166,31 @@ class _ExamResultCard extends StatelessWidget {
   final TranscriptExamResult result;
   final String dateLabel;
 
+  ({String? type, String title, String? code}) _splitTitle() {
+    var rest = result.examTitle.trim();
+    String? code;
+    final codeMatch = RegExp(r'\s*\(([^)]+)\)\s*$').firstMatch(rest);
+    if (codeMatch != null) {
+      code = codeMatch.group(1);
+      rest = rest.substring(0, codeMatch.start).trim();
+    }
+    final parts = rest.split(' - ');
+    if (parts.length >= 2) {
+      return (type: parts.first.trim(), title: parts.sublist(1).join(' - ').trim(), code: code);
+    }
+    return (type: result.examType, title: rest, code: code);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final hasScore = result.score != null;
     final passed = result.passed == true;
+    final split = _splitTitle();
+    final displayTitle = split.title.isNotEmpty
+        ? split.title
+        : (result.courseTitle ?? result.examTitle);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -180,34 +201,72 @@ class _ExamResultCard extends StatelessWidget {
         border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (split.type != null && split.type!.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary50,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      split.type!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary600,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.h8,
+                ],
                 Text(
-                  result.examTitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  displayTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.3),
                 ),
-                if (result.courseTitle != null) ...[
+                if (result.courseTitle != null && result.courseTitle != displayTitle) ...[
                   AppSpacing.h4,
                   Text(
                     result.courseTitle!,
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
                 AppSpacing.h8,
-                Text(dateLabel, style: theme.textTheme.bodySmall?.copyWith(color: AppColors.neutral400)),
+                Row(
+                  children: [
+                    Icon(Icons.event_outlined, size: 13, color: theme.colorScheme.onSurfaceVariant),
+                    AppSpacing.w4,
+                    Text(
+                      dateLabel,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
+          AppSpacing.w12,
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 hasScore ? result.score!.toStringAsFixed(1) : '—',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: !hasScore
                       ? AppColors.neutral400
@@ -216,21 +275,21 @@ class _ExamResultCard extends StatelessWidget {
               ),
               AppSpacing.h4,
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: !hasScore
                       ? AppColors.neutral100
-                      : (passed ? AppColors.primary50 : AppColors.error.withValues(alpha: 0.08)),
+                      : (passed ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   !hasScore ? 'Chưa thi' : (passed ? 'Đạt' : 'Chưa đạt'),
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: !hasScore
                         ? AppColors.neutral600
-                        : (passed ? AppColors.primary600 : AppColors.error),
+                        : (passed ? const Color(0xFF166534) : const Color(0xFFB91C1C)),
                   ),
                 ),
               ),

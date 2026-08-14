@@ -239,7 +239,7 @@ class CourseController extends Controller
                 ),
             ]),
         ]);
-        $course->loadCount('enrollments', 'reviews');
+        $course->loadCount('enrollments', 'reviews', 'lessons');
 
         $isEnrolled = false;
         $user = $request->user() ?? auth('sanctum')->user();
@@ -269,6 +269,8 @@ class CourseController extends Controller
             'is_enrolled'    => $isEnrolled,
             'has_reviewed'   => $hasReviewed,
             'avg_rating'     => round($avgRating ?? 0, 1),
+            'lessons_count'  => $course->lessons_count ?? $course->lessons->count(),
+            'enrollments_count' => $course->enrollments_count ?? $course->enrollments()->count(),
             'latest_reviews' => $latestReviews,
             'path_suggestions' => $this->buildPathSuggestions($course, $user?->id),
         ]);

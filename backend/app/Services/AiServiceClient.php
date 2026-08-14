@@ -18,7 +18,7 @@ class AiServiceClient
 
     /**
      * POST tới ai-service với chuỗi fallback provider.
-     * Primary → gemini → claude → openrouter → ollama.
+     * Primary → gemini → openrouter → chatgpt → claude → (ollama nếu bật).
      *
      * @param  array<string, mixed>  $basePayload  Payload không gồm provider/model/api_key
      * @return array{ok: bool, data: array, provider: string, model: ?string, fallback: bool, error: ?string}
@@ -95,6 +95,12 @@ class AiServiceClient
                 if ($response->successful() && is_array($responseData)) {
                     if ($requireJsonObject && $responseData === []) {
                         $lastError = 'Empty JSON response';
+                        continue;
+                    }
+
+                    $reply = (string) ($responseData['reply'] ?? '');
+                    if ($this->isUnusableAiReply($reply)) {
+                        $lastError = 'Provider returned a maintenance/placeholder reply.';
                         continue;
                     }
 
@@ -208,6 +214,10 @@ class AiServiceClient
                                 continue;
                             }
                             if (isset($parsed['delta']) && is_string($parsed['delta']) && $parsed['delta'] !== '') {
+                                if ($this->isUnusableAiReply($parsed['delta'])) {
+                                    $streamFailed = true;
+                                    break 2;
+                                }
                                 $forwardedDelta = true;
                                 yield $this->sseEvent(['delta' => $parsed['delta']]);
                                 continue;
@@ -335,5 +345,22 @@ class AiServiceClient
         }
 
         return 0;
+    }
+
+    /**
+     * Một số gateway bên thứ 3 (vd. nghimmo) trả HTTP 200 nhưng nội dung là
+     * thông báo bảo trì — không phải câu trả lời thật, nên phải fallback provider khác.
+     */
+    protected function isUnusableAiReply(string $reply): bool
+    {
+        $text = mb_strtolower($reply);
+
+        return $text !== '' && (
+            str_contains($text, 'đang bảo trì')
+            || str_contains($text, 'under maintenance')
+            || str_contains($text, 'tách trà')
+            || str_contains($text, 'cup of tea')
+            || str_contains($text, 'stay calm and enjoy')
+        );
     }
 }

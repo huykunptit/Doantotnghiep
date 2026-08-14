@@ -8,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../data/models/career_model.dart';
 import '../../providers/career_providers.dart';
 import '../../../../core/error/friendly_error.dart';
+import '../../../../core/utils/format_vnd.dart';
 
 class CareerAdvisorScreen extends ConsumerStatefulWidget {
   const CareerAdvisorScreen({super.key});
@@ -698,7 +699,7 @@ class _CareerAdvisorScreenState extends ConsumerState<CareerAdvisorScreen>
         onTap: () => context.push('/courses/${course.id}'),
         leading: const Icon(Icons.school_outlined),
         title: Text(course.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(course.recommendationReason ?? (course.price > 0 ? '${course.price}đ' : 'Miễn phí')),
+        subtitle: Text(course.recommendationReason ?? formatVnd(course.price)),
         trailing: const Icon(Icons.chevron_right),
       ),
     );

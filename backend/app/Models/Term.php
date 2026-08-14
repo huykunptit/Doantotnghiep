@@ -41,6 +41,23 @@ class Term extends Model
     }
 
     /**
+     * Học kỳ đang diễn ra theo ngày hôm nay; fallback cờ is_current / kỳ mới nhất.
+     */
+    public static function operational(): ?self
+    {
+        $today = now()->toDateString();
+
+        return static::query()
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->orderByDesc('is_current')
+            ->orderByDesc('start_date')
+            ->first()
+            ?? static::query()->where('is_current', true)->orderByDesc('start_date')->first()
+            ?? static::query()->orderByDesc('start_date')->first();
+    }
+
+    /**
      * Cửa sổ khóa học = thời gian kỳ: hết hạn / đang học / sắp tới.
      * Không có ngày thì coi như đang mở (marketplace, khóa không gắn kỳ).
      */

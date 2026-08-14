@@ -16,8 +16,31 @@ from fastapi import HTTPException
 
 from config import settings
 from models.schemas import EMPTY_TOKENS, TokenUsage
+from utils.providers import resolve_api_key
 
 logger = logging.getLogger(__name__)
+
+_MAINTENANCE_MARKERS = (
+    "đang bảo trì",
+    "under maintenance",
+    "tách trà",
+    "cup of tea",
+    "stay calm and enjoy",
+)
+
+
+def _is_maintenance_reply(reply: str | None) -> bool:
+    text = (reply or "").lower()
+    return bool(text) and any(marker in text for marker in _MAINTENANCE_MARKERS)
+
+
+def _reject_placeholder_reply(provider: str, reply: str | None) -> str | None:
+    if _is_maintenance_reply(reply):
+        raise HTTPException(
+            status_code=503,
+            detail=f"{provider} trả về thông báo bảo trì/placeholder, thử provider khác.",
+        )
+    return reply
 
 
 # =============================================================================
@@ -47,16 +70,21 @@ async def call_provider(
     """
     provider = provider.strip().lower()
     temp = temperature if temperature is not None else settings.DEFAULT_TEMPERATURE
+    api_key = resolve_api_key(provider, api_key)
 
     try:
         if provider == "chatgpt":
-            return await _call_openai(api_key, messages, model, temp)
+            reply, tokens = await _call_openai(api_key, messages, model, temp)
+            return _reject_placeholder_reply(provider, reply), tokens
         if provider == "gemini":
-            return await _call_gemini(api_key, messages, model, temp)
+            reply, tokens = await _call_gemini(api_key, messages, model, temp)
+            return _reject_placeholder_reply(provider, reply), tokens
         if provider == "openrouter":
-            return await _call_openrouter(api_key, messages, model, temp)
+            reply, tokens = await _call_openrouter(api_key, messages, model, temp)
+            return _reject_placeholder_reply(provider, reply), tokens
         if provider == "claude":
-            return await _call_claude(api_key, messages, model, temp)
+            reply, tokens = await _call_claude(api_key, messages, model, temp)
+            return _reject_placeholder_reply(provider, reply), tokens
         if provider == "ollama":
             return await _call_ollama(messages, model, temp)
         raise HTTPException(
@@ -371,6 +399,7 @@ async def stream_provider(
     """
     provider = provider.strip().lower()
     temp = temperature if temperature is not None else settings.DEFAULT_TEMPERATURE
+    api_key = resolve_api_key(provider, api_key)
 
     try:
         if provider == "chatgpt":
@@ -386,7 +415,16 @@ async def stream_provider(
         else:
             raise HTTPException(status_code=400, detail=f"Provider không hỗ trợ: {provider}")
 
+        accumulated = ""
         async for item in gen:
+            delta = item.get("delta") if isinstance(item, dict) else None
+            if isinstance(delta, str) and delta:
+                accumulated += delta
+                if _is_maintenance_reply(delta) or _is_maintenance_reply(accumulated):
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"{provider} trả về thông báo bảo trì/placeholder, thử provider khác.",
+                    )
             yield item
     except HTTPException:
         raise

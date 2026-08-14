@@ -58,31 +58,37 @@ class AcademicDemoDataSeeder extends Seeder
         'student16@lms.com' => 1,
     ];
 
+    /** Ca học trải theo thứ trước, rồi mới tới khung giờ — TKB đều T2–T7. */
     private const SLOTS = [
-        [1, '07:00', '09:30'],
-        [1, '09:45', '12:15'],
-        [1, '13:00', '15:30'],
-        [1, '15:45', '18:15'],
-        [2, '07:00', '09:30'],
-        [2, '09:45', '12:15'],
-        [2, '13:00', '15:30'],
-        [2, '15:45', '18:15'],
-        [3, '07:00', '09:30'],
-        [3, '09:45', '12:15'],
-        [3, '13:00', '15:30'],
-        [3, '15:45', '18:15'],
-        [4, '07:00', '09:30'],
-        [4, '09:45', '12:15'],
-        [4, '13:00', '15:30'],
-        [4, '15:45', '18:15'],
-        [5, '07:00', '09:30'],
-        [5, '09:45', '12:15'],
-        [5, '13:00', '15:30'],
-        [5, '15:45', '18:15'],
-        [6, '07:00', '09:30'],
-        [6, '09:45', '12:15'],
-        [6, '13:00', '15:30'],
-        [6, '15:45', '18:15'],
+        [1, '07:00:00', '09:30:00'],
+        [2, '07:00:00', '09:30:00'],
+        [3, '07:00:00', '09:30:00'],
+        [4, '07:00:00', '09:30:00'],
+        [5, '07:00:00', '09:30:00'],
+        [6, '07:00:00', '09:30:00'],
+        [1, '09:45:00', '12:15:00'],
+        [2, '09:45:00', '12:15:00'],
+        [3, '09:45:00', '12:15:00'],
+        [4, '09:45:00', '12:15:00'],
+        [5, '09:45:00', '12:15:00'],
+        [6, '09:45:00', '12:15:00'],
+        [1, '13:00:00', '15:30:00'],
+        [2, '13:00:00', '15:30:00'],
+        [3, '13:00:00', '15:30:00'],
+        [4, '13:00:00', '15:30:00'],
+        [5, '13:00:00', '15:30:00'],
+        [6, '13:00:00', '15:30:00'],
+        [1, '15:45:00', '18:15:00'],
+        [2, '15:45:00', '18:15:00'],
+        [3, '15:45:00', '18:15:00'],
+        [4, '15:45:00', '18:15:00'],
+        [5, '15:45:00', '18:15:00'],
+        [6, '15:45:00', '18:15:00'],
+        [1, '18:30:00', '21:00:00'],
+        [2, '18:30:00', '21:00:00'],
+        [3, '18:30:00', '21:00:00'],
+        [4, '18:30:00', '21:00:00'],
+        [5, '18:30:00', '21:00:00'],
     ];
 
     private array $stats = [
@@ -116,6 +122,7 @@ class AcademicDemoDataSeeder extends Seeder
         DB::transaction(function () use ($currentTerm): void {
             $this->completeStudentProfiles();
             $this->upsertTermMaps();
+            $this->synchronizeCurrentFlags($currentTerm);
             $this->upsertSectionsSchedulesAndEnrollments($currentTerm);
             $this->seedHistoricalGrades($currentTerm);
         });
@@ -199,8 +206,9 @@ class AcademicDemoDataSeeder extends Seeder
 
     private function synchronizeCurrentFlags(Term $currentTerm): void
     {
-        Term::query()->whereKeyNot($currentTerm->id)->update(['is_current' => false]);
-        $currentTerm->forceFill(['is_current' => true])->save();
+        Term::query()->update(['is_current' => false]);
+        Term::query()->whereKey($currentTerm->id)->update(['is_current' => true]);
+        $currentTerm->forceFill(['is_current' => true]);
 
         if ($currentTerm->academic_year_id) {
             DB::table('academic_years')->where('id', '!=', $currentTerm->academic_year_id)->update(['is_current' => false]);
@@ -335,7 +343,6 @@ class AcademicDemoDataSeeder extends Seeder
                 'enrollment_end_at' => $termStart->addDays(5)->endOfDay(),
                 'exam_start_at' => $termEnd->subMonth(),
                 'exam_end_at' => $termEnd->endOfDay(),
-                'is_current' => false,
                 'status' => $termEnd->isPast() ? 'completed' : ($termStart->isFuture() ? 'planned' : 'active'),
             ],
         );
@@ -380,7 +387,16 @@ class AcademicDemoDataSeeder extends Seeder
                     continue;
                 }
 
-                $courses = $rows->take(5)->values();
+                $isCurrent = (int) $mapped->term_id === (int) $currentTerm->id;
+                $courses = $rows->values();
+
+                ClassSchedule::query()
+                    ->where('administrative_class_id', $class->id)
+                    ->where('term_id', $mapped->term_id)
+                    ->delete();
+
+                $slotCursor = 0;
+                $courseCount = $courses->count();
                 foreach ($courses as $courseIndex => $curriculumCourse) {
                     $course = $curriculumCourse->course;
                     $lecturer = $this->lecturerFor(
@@ -422,28 +438,31 @@ class AcademicDemoDataSeeder extends Seeder
                         ],
                     );
 
-                    $slot = $this->reserveSlot(
-                        (int) $mapped->term_id,
-                        (int) $class->id,
-                        $lecturer?->id,
-                        (int) $course->id,
-                        $occupied,
-                    );
-                    ClassSchedule::query()->updateOrCreate(
-                        [
+                    $sessions = 1;
+                    if ($isCurrent && $courseCount > 0) {
+                        $sessions = max(2, min(3, intdiv(16, $courseCount)));
+                    }
+                    for ($session = 0; $session < $sessions; $session++) {
+                        $slot = $this->reserveSlot(
+                            (int) $mapped->term_id,
+                            (int) $class->id,
+                            $lecturer?->id,
+                            $slotCursor,
+                            $occupied,
+                        );
+                        $slotCursor++;
+                        ClassSchedule::query()->create([
                             'administrative_class_id' => $class->id,
                             'course_id' => $course->id,
                             'term_id' => $mapped->term_id,
-                        ],
-                        [
                             'lecturer_id' => $lecturer?->id,
                             'weekday' => $slot[0],
                             'start_time' => $slot[1],
                             'end_time' => $slot[2],
-                            'room' => sprintf('%s-%03d', $class->code, 101 + $courseIndex),
-                        ],
-                    );
-                    $this->stats['schedules']++;
+                            'room' => sprintf('%s-%03d', $class->code, 101 + $courseIndex + ($session * 20)),
+                        ]);
+                        $this->stats['schedules']++;
+                    }
 
                     $isFutureTerm = $mapped->term->start_date?->gt($currentTerm->start_date);
 
@@ -598,7 +617,7 @@ class AcademicDemoDataSeeder extends Seeder
         int $courseId,
         array &$occupied,
     ): array {
-        $start = abs(crc32("{$termId}|{$classId}|{$courseId}")) % count(self::SLOTS);
+        $start = $courseId % count(self::SLOTS);
 
         foreach (range(0, count(self::SLOTS) - 1) as $offset) {
             $slot = self::SLOTS[($start + $offset) % count(self::SLOTS)];
@@ -616,7 +635,21 @@ class AcademicDemoDataSeeder extends Seeder
             return $slot;
         }
 
-        throw new RuntimeException("No conflict-free schedule slot for class {$classId}, term {$termId}.");
+        foreach (range(0, count(self::SLOTS) - 1) as $offset) {
+            $slot = self::SLOTS[($start + $offset) % count(self::SLOTS)];
+            $classKey = "{$termId}|class|{$classId}|{$slot[0]}|{$slot[1]}";
+            if (isset($occupied[$classKey])) {
+                continue;
+            }
+            $occupied[$classKey] = true;
+
+            return $slot;
+        }
+
+        $slot = self::SLOTS[$start];
+        $occupied["{$termId}|class|{$classId}|{$slot[0]}|{$slot[1]}"] = true;
+
+        return $slot;
     }
 
     private function seedHistoricalGrades(Term $currentTerm): void

@@ -9,6 +9,8 @@ import '../data/repositories/course_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../core/error/friendly_error.dart';
+import '../../../core/utils/format_vnd.dart';
+import '../../../core/utils/html_text.dart';
 
 class CourseDetailPage extends ConsumerWidget {
   const CourseDetailPage({super.key, required this.courseId});
@@ -58,13 +60,10 @@ class _CourseDetailView extends ConsumerStatefulWidget {
 class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
   bool _isProcessing = false;
 
-  String _formatDuration(int? seconds) {
-    if (seconds == null) return '';
-    final m = seconds ~/ 60;
-    if (m < 60) return '$m phút';
-    final h = m ~/ 60;
-    final rem = m % 60;
-    return rem > 0 ? '${h}g ${rem}p' : '${h}g';
+  int get _lessonCount {
+    final listed = widget.course.lessons.length;
+    final counted = widget.course.lessonsCount;
+    return listed > counted ? listed : counted;
   }
 
   Future<void> _handleEnrollment() async {
@@ -134,38 +133,49 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
+            foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(56, 0, 16, 14),
               title: Text(
                 widget.course.title,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, shadows: [
-                  Shadow(color: Colors.black54, blurRadius: 8),
-                ]),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  height: 1.25,
+                  shadows: [
+                    Shadow(color: Colors.black87, blurRadius: 12, offset: Offset(0, 1)),
+                  ],
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              background: widget.course.thumbnail != null
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CachedNetworkImage(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  widget.course.thumbnail != null
+                      ? CachedNetworkImage(
                           imageUrl: widget.course.thumbnail!,
                           fit: BoxFit.cover,
                           errorWidget: (_, _, _) => _headerPlaceholder(isDark),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.6)],
-                              stops: const [0.4, 1.0],
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : _headerPlaceholder(isDark),
+                        )
+                      : _headerPlaceholder(isDark),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x66000000),
+                          Color(0x00000000),
+                          Color(0xCC000000),
+                        ],
+                        stops: [0.0, 0.38, 1.0],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -192,7 +202,7 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
                       ),
                       _StatBadge(
                         icon: Icons.play_circle_outline_rounded,
-                        label: '${widget.course.lessonsCount} bài học',
+                        label: '$_lessonCount bài học',
                       ),
                       if (widget.course.creditValue != null)
                         _StatBadge(
@@ -243,14 +253,16 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
                   ],
 
                   // Description
-                  if (widget.course.description != null) ...[
+                  if (htmlToPlainText(widget.course.description).isNotEmpty) ...[
                     AppSpacing.h20,
                     Text('Mô tả khoá học',
                         style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.2)),
                     AppSpacing.h8,
-                    Text(widget.course.description!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant, height: 1.6)),
+                    Text(
+                      htmlToPlainText(widget.course.description),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant, height: 1.6),
+                    ),
                   ],
 
                   // Curriculum header
@@ -266,7 +278,7 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
                           color: AppColors.primary50,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Text('${widget.course.lessons.length} bài',
+                        child: Text('$_lessonCount bài',
                             style: const TextStyle(fontSize: 11, color: AppColors.primary600, fontWeight: FontWeight.w700)),
                       ),
                     ],
@@ -296,7 +308,13 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
                       borderRadius: BorderRadius.circular(12),
                       onTap: widget.course.isEnrolled
                           ? () => context.push('/learn/${widget.course.id}/${lesson.id}')
-                          : null,
+                          : () => ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Mua khoá học để mở khoá bài học này.'),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
@@ -315,16 +333,17 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
                             ),
                             AppSpacing.w12,
                             Expanded(
-                              child: Text(lesson.title,
+                              child: Text(
+                                  displayLessonTitle(lesson.title, widget.course.title),
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: widget.course.isEnrolled
                                           ? Theme.of(context).colorScheme.onSurface
                                           : Theme.of(context).colorScheme.onSurfaceVariant)),
                             ),
-                            if (lesson.duration != null) ...[
+                            if (formatLessonDuration(lesson.duration).isNotEmpty) ...[
                               AppSpacing.w8,
-                              Text(_formatDuration(lesson.duration),
+                              Text(formatLessonDuration(lesson.duration),
                                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                       fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                             ],
@@ -372,7 +391,9 @@ class _CourseDetailViewState extends ConsumerState<_CourseDetailView> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: Text(
-                        widget.course.price > 0 ? 'Mua khoá học · ${widget.course.price}đ' : 'Ghi danh miễn phí',
+                        widget.course.price > 0
+                            ? 'Mua khoá học · ${formatVnd(widget.course.price)}'
+                            : 'Ghi danh miễn phí',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                       ),
                     ),

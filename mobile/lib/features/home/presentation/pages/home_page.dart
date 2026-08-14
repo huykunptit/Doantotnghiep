@@ -12,6 +12,7 @@ import '../../../notifications/providers/notification_providers.dart';
 import '../../../ai/presentation/widgets/recommendations_section.dart';
 import '../../../ai/providers/ai_providers.dart';
 import '../../../../core/error/friendly_error.dart';
+import '../../../../core/utils/format_vnd.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -550,7 +551,7 @@ class _CourseCard extends StatelessWidget {
             // Info
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -567,28 +568,29 @@ class _CourseCard extends StatelessWidget {
                     const Spacer(),
                     Row(
                       children: [
-                        Icon(Icons.star_rounded, color: Colors.amber.shade600, size: 13),
+                        Icon(Icons.star_rounded,
+                            color: course.reviewsCount > 0
+                                ? Colors.amber.shade600
+                                : theme.colorScheme.outline,
+                            size: 13),
                         AppSpacing.w4,
                         Text(
-                          course.avgRating.toStringAsFixed(1),
+                          course.reviewsCount > 0
+                              ? '${course.avgRating.toStringAsFixed(1)} (${course.reviewsCount})'
+                              : 'Chưa có đánh giá',
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w600,
                             fontSize: 11,
-                          ),
-                        ),
-                        AppSpacing.w8,
-                        Text(
-                          '(${course.enrollmentsCount})',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 11,
+                            color: course.reviewsCount > 0
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
                     ),
-                    AppSpacing.h4,
+                    AppSpacing.h8,
                     Text(
-                      course.price > 0 ? '${course.price}đ' : 'Miễn phí',
+                      formatVnd(course.price),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w800,

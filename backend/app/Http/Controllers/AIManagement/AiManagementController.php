@@ -165,15 +165,16 @@ class AiManagementController extends Controller
             'providers' => [
                 [
                     'id' => 'chatgpt',
-                    'name' => 'ChatGPT (OpenAI)',
+                    'name' => 'ChatGPT (via proxy)',
                     'icon' => 'smart_toy',
                     'color' => '#10a37f',
                     'models' => [
-                        ['id' => 'o3-mini', 'name' => 'o3-mini (Newest Reasoning)', 'tier' => 'premium'],
-                        ['id' => 'o1', 'name' => 'o1 (High Reasoning)', 'tier' => 'premium'],
-                        ['id' => 'gpt-4o', 'name' => 'GPT-4o (Omni)', 'tier' => 'standard'],
-                        ['id' => 'gpt-4o-mini', 'name' => 'GPT-4o Mini', 'tier' => 'economy'],
-                        ['id' => 'o1-mini', 'name' => 'o1-mini', 'tier' => 'standard'],
+                        ['id' => 'nghi/gpt-5.5', 'name' => 'GPT 5.5 (nghimmo, mặc định)', 'tier' => 'standard'],
+                        ['id' => 'nghi/gpt-5.6', 'name' => 'GPT 5.6', 'tier' => 'standard'],
+                        ['id' => 'nghi/gpt-5.6-luna', 'name' => 'GPT 5.6 Luna (nhanh)', 'tier' => 'economy'],
+                        ['id' => 'nghi/gpt-5.6-terra', 'name' => 'GPT 5.6 Terra (cân bằng)', 'tier' => 'standard'],
+                        ['id' => 'nghi/gpt-5.6-sol', 'name' => 'GPT 5.6 Sol (mạnh)', 'tier' => 'premium'],
+                        ['id' => 'nghi/gpt-5.4-mini', 'name' => 'GPT 5.4 Mini', 'tier' => 'economy'],
                     ],
                 ],
                 [
@@ -182,10 +183,14 @@ class AiManagementController extends Controller
                     'icon' => 'auto_awesome',
                     'color' => '#4285f4',
                     'models' => [
-                        ['id' => 'gemini-2.0-flash', 'name' => 'Gemini 2.0 Flash', 'tier' => 'standard'],
-                        ['id' => 'gemini-2.0-pro-exp-02-05', 'name' => 'Gemini 2.0 Pro (Exp)', 'tier' => 'premium'],
-                        ['id' => 'gemini-1.5-pro', 'name' => 'Gemini 1.5 Pro', 'tier' => 'premium'],
-                        ['id' => 'gemini-1.5-flash', 'name' => 'Gemini 1.5 Flash', 'tier' => 'economy'],
+                        ['id' => 'gemini-2.5-flash', 'name' => 'Gemini 2.5 Flash (ổn định)', 'tier' => 'standard'],
+                        ['id' => 'gemini-flash-latest', 'name' => 'Gemini Flash Latest', 'tier' => 'standard'],
+                        ['id' => 'gemini-flash-lite-latest', 'name' => 'Gemini Flash Lite Latest', 'tier' => 'economy'],
+                        ['id' => 'gemini-3-flash-preview', 'name' => 'Gemini 3 Flash Preview', 'tier' => 'standard'],
+                        ['id' => 'gemini-3.5-flash', 'name' => 'Gemini 3.5 Flash', 'tier' => 'standard'],
+                        ['id' => 'gemini-3.5-flash-lite', 'name' => 'Gemini 3.5 Flash Lite', 'tier' => 'economy'],
+                        ['id' => 'gemini-3.6-flash', 'name' => 'Gemini 3.6 Flash', 'tier' => 'standard'],
+                        ['id' => 'gemini-3.1-flash-lite', 'name' => 'Gemini 3.1 Flash Lite', 'tier' => 'economy'],
                     ],
                 ],
                 [
@@ -207,12 +212,10 @@ class AiManagementController extends Controller
                     'icon' => 'hub',
                     'color' => '#7c3aed',
                     'models' => [
-                        ['id' => 'deepseek/deepseek-chat:free', 'name' => 'DeepSeek V3 (Free)', 'tier' => 'free'],
-                        ['id' => 'meta-llama/llama-3.3-70b-instruct:free', 'name' => 'Llama 3.3 70B (Free)', 'tier' => 'free'],
-                        ['id' => 'google/gemini-2.0-flash-exp:free', 'name' => 'Gemini 2.0 Flash (Free)', 'tier' => 'free'],
-                        ['id' => 'qwen/qwen-2.5-72b-instruct:free', 'name' => 'Qwen 2.5 72B (Free)', 'tier' => 'free'],
-                        ['id' => 'google/gemini-2.5-pro', 'name' => 'Gemini 2.5 Pro', 'tier' => 'premium'],
-                        ['id' => 'anthropic/claude-sonnet-4', 'name' => 'Claude Sonnet 4', 'tier' => 'premium'],
+                        ['id' => 'deepseek/deepseek-chat', 'name' => 'DeepSeek Chat', 'tier' => 'standard'],
+                        ['id' => 'openai/gpt-4o-mini', 'name' => 'GPT-4o Mini', 'tier' => 'economy'],
+                        ['id' => 'qwen/qwen-2.5-7b-instruct', 'name' => 'Qwen 2.5 7B Instruct', 'tier' => 'economy'],
+                        ['id' => 'openrouter/auto', 'name' => 'OpenRouter Auto', 'tier' => 'standard'],
                     ],
                 ],
                 [

@@ -153,7 +153,9 @@ class _ExamCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   _InfoChip(
                     icon: Icons.timer_outlined,
@@ -161,18 +163,15 @@ class _ExamCard extends StatelessWidget {
                         ? '${exam.duration} phút'
                         : 'Không giới hạn',
                   ),
-                  const SizedBox(width: 8),
                   _InfoChip(
                     icon: Icons.check_circle_outline,
                     label: 'Đạt: ${exam.passScore}%',
                   ),
-                  if (exam.proctoringEnabled) ...[
-                    const SizedBox(width: 8),
-                    _InfoChip(
+                  if (exam.proctoringEnabled)
+                    const _InfoChip(
                       icon: Icons.face_outlined,
                       label: 'Check khuôn mặt',
                     ),
-                  ],
                 ],
               ),
               if (exam.startTime != null || exam.endTime != null) ...[
@@ -360,16 +359,53 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final copy = switch (tab) {
+      'Sắp tới' => (
+          'Chưa có kỳ thi sắp diễn ra',
+          'Khi có lịch thi mới, kỳ thi sẽ xuất hiện tại đây.'
+        ),
+      'Đang mở' => (
+          'Hiện không có kỳ thi đang mở',
+          'Các kỳ thi trong thời gian làm bài sẽ hiện ở tab này.'
+        ),
+      'Đã làm' => (
+          'Bạn chưa hoàn thành kỳ thi nào',
+          'Kết quả các bài đã nộp sẽ được lưu tại đây.'
+        ),
+      _ => (
+          'Chưa có kỳ thi nào',
+          'Kỳ thi được phân công sẽ xuất hiện tại đây.'
+        ),
+    };
+
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.assignment_outlined, size: 64,
-              color: Colors.grey),
-          const SizedBox(height: 12),
-          Text('Không có kỳ thi nào ($tab)',
-              style: const TextStyle(color: Colors.grey)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppColors.primary50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.assignment_outlined,
+                  size: 36, color: AppColors.primary400),
+            ),
+            const SizedBox(height: 16),
+            Text(copy.$1,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(copy.$2,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant, height: 1.45)),
+          ],
+        ),
       ),
     );
   }
@@ -382,18 +418,31 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 8),
-          Text(message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.neutral400),
+            const SizedBox(height: 12),
+            Text('Không tải được danh sách kỳ thi',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant, height: 1.4)),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
       ),
     );
   }

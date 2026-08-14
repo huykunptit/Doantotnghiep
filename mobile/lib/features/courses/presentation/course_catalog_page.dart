@@ -8,6 +8,7 @@ import '../data/models/course_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/error_state.dart';
+import '../../../../core/utils/format_vnd.dart';
 
 class CourseCatalogPage extends ConsumerStatefulWidget {
   const CourseCatalogPage({super.key});
@@ -152,7 +153,7 @@ class _CourseCatalogPageState extends ConsumerState<CourseCatalogPage> {
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 0.72,
+                      childAspectRatio: 0.68,
                     ),
                     itemCount: courses.length,
                     itemBuilder: (context, index) => _CatalogCourseCard(course: courses[index]),
@@ -206,7 +207,7 @@ class _CatalogCourseCard extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -218,20 +219,31 @@ class _CatalogCourseCard extends StatelessWidget {
                     const Spacer(),
                     Row(
                       children: [
-                        Icon(Icons.star_rounded, color: Colors.amber.shade600, size: 12),
+                        Icon(Icons.star_rounded,
+                            color: course.reviewsCount > 0
+                                ? Colors.amber.shade600
+                                : theme.colorScheme.outline,
+                            size: 12),
                         AppSpacing.w4,
-                        Text(course.avgRating.toStringAsFixed(1),
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
-                        AppSpacing.w4,
-                        Text('(${course.enrollmentsCount})',
-                            style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant)),
+                        Text(
+                          course.reviewsCount > 0
+                              ? '${course.avgRating.toStringAsFixed(1)} (${course.reviewsCount})'
+                              : 'Chưa có đánh giá',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: course.reviewsCount > 0
+                                ? theme.colorScheme.onSurface
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
-                    AppSpacing.h4,
+                    AppSpacing.h8,
                     Text(
-                      course.price > 0 ? '${course.price}đ' : 'Miễn phí',
+                      formatVnd(course.price),
                       style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w800,
+                        fontSize: 13, fontWeight: FontWeight.w800,
                         color: course.price > 0 ? AppColors.primary600 : AppColors.success,
                       ),
                     ),

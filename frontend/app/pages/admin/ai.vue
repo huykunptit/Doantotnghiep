@@ -66,8 +66,8 @@ const recentLogs = ref<RecentLog[]>([])
 const providers = ref<Provider[]>([])
 
 const form = reactive({
-  provider: 'chatgpt',
-  model: 'gpt-4o-mini',
+  provider: 'gemini',
+  model: 'gemini-2.5-flash',
   api_key: '',
   monthly_token_quota: 1_000_000,
   max_requests_per_minute: 60,

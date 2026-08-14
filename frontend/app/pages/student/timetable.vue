@@ -85,7 +85,12 @@ const byDay = computed(() => {
   const map: Record<number, ScheduleItem[]> = {}
   for (let d = 1; d <= 7; d++) map[d] = []
   for (const s of schedules.value) {
-    if (map[s.weekday]) map[s.weekday].push(s)
+    const day = Number(s.weekday)
+    if (!map[day]) continue
+    map[day].push(s)
+  }
+  for (const day of Object.keys(map)) {
+    map[Number(day)].sort((a, b) => a.start_time.localeCompare(b.start_time))
   }
   return map
 })

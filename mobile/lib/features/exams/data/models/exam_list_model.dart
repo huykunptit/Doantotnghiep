@@ -103,10 +103,14 @@ class AttemptSummary {
 
   factory AttemptSummary.fromJson(Map<String, dynamic> json) {
     return AttemptSummary(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       status: json['status']?.toString() ?? '',
       score: (json['score'] as num?)?.toDouble(),
-      passed: json['passed'] as bool?,
+      passed: json['passed'] is bool
+          ? json['passed'] as bool
+          : json['passed'] == null
+              ? null
+              : (json['passed'] == 1 || json['passed'] == '1'),
       submittedAt: json['submitted_at']?.toString(),
     );
   }
@@ -121,7 +125,7 @@ class CourseRef {
 
   factory CourseRef.fromJson(Map<String, dynamic> json) {
     return CourseRef(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title']?.toString() ?? '',
       thumbnail: json['thumbnail']?.toString(),
     );

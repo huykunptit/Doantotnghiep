@@ -32,8 +32,7 @@ class AdvisorController extends Controller
             ->orderBy('student_code')
             ->get();
 
-        $currentTerm = Term::where('is_current', true)->latest('id')->first()
-            ?? Term::latest('id')->first();
+        $currentTerm = Term::operational();
 
         $rows = $advisees->map(function (User $student) use ($currentTerm) {
             $enrollments = Enrollment::query()
@@ -74,8 +73,7 @@ class AdvisorController extends Controller
         }
 
         $threshold = (float) $request->input('threshold', self::RISK_THRESHOLD);
-        $currentTerm = Term::where('is_current', true)->latest('id')->first()
-            ?? Term::latest('id')->first();
+        $currentTerm = Term::operational();
 
         $studentsQuery = User::query()->whereNotNull('cohort_id');
         // Non-admin advisors only see their own advisees

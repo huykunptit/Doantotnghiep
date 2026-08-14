@@ -2,10 +2,12 @@
 # =============================================================================
 # LMS deploy (Ubuntu, chạy trên HOST — không trong container)
 #
-#   ./scripts/deploy-ubuntu.sh              # pull main + build --no-cache + up
+#   ./scripts/deploy-ubuntu.sh              # fetch + reset --hard origin/main + build --no-cache + up
 #   ./scripts/deploy-ubuntu.sh run          # giống trên
-#   DEPLOY_SKIP_PULL=1 ./scripts/deploy-ubuntu.sh   # chỉ rebuild
-#   DEPLOY_FORCE=1 ./scripts/deploy-ubuntu.sh       # bỏ qua working-tree bẩn
+#   DEPLOY_SKIP_PULL=1 ./scripts/deploy-ubuntu.sh   # chỉ rebuild, không đụng git
+#
+#   Server luôn khớp GitHub: sửa local (kể cả scripts/deploy-ubuntu.sh) bị bỏ khi deploy.
+#   File untracked (.env, .env.deploy, storage) không bị xóa.
 #
 #   ./scripts/deploy-ubuntu.sh seed-fresh   # XÓA DB + migrate:fresh --seed (toàn bộ seeder)
 #   SEED_FRESH_YES=1 ./scripts/deploy-ubuntu.sh seed-fresh   # không hỏi confirm
@@ -59,21 +61,14 @@ cmd_run() {
   log "Branch: $REMOTE/$BRANCH"
   log "Build ID: $BUILD_ID"
 
-  # Bỏ qua thay đổi chỉ permission (chmod +x hay làm bẩn tree)
-  if [[ "${DEPLOY_FORCE:-0}" != "1" ]]; then
-    dirty="$(git -c core.fileMode=false status --porcelain)"
-    if [[ -n "$dirty" ]]; then
-      printf '%s\n' "$dirty"
-      die "Working tree đang bẩn. Commit/stash trước, hoặc DEPLOY_FORCE=1 $SELF"
-    fi
-  fi
-
   if [[ "${DEPLOY_SKIP_PULL:-0}" != "1" ]]; then
-    log "Fetch + pull $REMOTE/$BRANCH"
+    log "Fetch + reset --hard $REMOTE/$BRANCH (bỏ sửa local trên server)"
     git fetch "$REMOTE" "$BRANCH"
     git checkout "$BRANCH"
-    git pull --ff-only "$REMOTE" "$BRANCH"
+    git reset --hard "$REMOTE/$BRANCH"
+    chmod +x "$SELF" || true
     git log -1 --oneline
+    git status --short || true
   else
     log "Bỏ qua git pull (DEPLOY_SKIP_PULL=1)"
   fi

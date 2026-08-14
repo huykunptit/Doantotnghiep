@@ -9,6 +9,8 @@ import '../../courses/providers/my_courses_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../core/error/friendly_error.dart';
+import '../../../core/utils/format_vnd.dart';
+import '../../../core/utils/html_text.dart';
 
 class PathDetailPage extends ConsumerWidget {
   const PathDetailPage({super.key, required this.slug});
@@ -226,7 +228,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
                       ),
                       _StatBadge(
                         icon: Icons.payments_outlined,
-                        label: path.price > 0 ? '${path.price}đ' : 'Miễn phí',
+                        label: formatVnd(path.price),
                         iconColor: path.price > 0 ? AppColors.primary400 : AppColors.success,
                       ),
                       if (path.isPurchased)
@@ -237,7 +239,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
                         ),
                     ],
                   ),
-                  if (path.description != null) ...[
+                  if (htmlToPlainText(path.description).isNotEmpty) ...[
                     AppSpacing.h20,
                     Text(
                       'Mô tả lộ trình',
@@ -248,7 +250,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
                     ),
                     AppSpacing.h8,
                     Text(
-                      path.description!,
+                      htmlToPlainText(path.description),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         height: 1.6,
@@ -435,7 +437,7 @@ class _PathDetailViewState extends ConsumerState<_PathDetailView> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: Text(
-          'Mua lộ trình · ${path.price}đ',
+          'Mua lộ trình · ${formatVnd(path.price)}',
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       );

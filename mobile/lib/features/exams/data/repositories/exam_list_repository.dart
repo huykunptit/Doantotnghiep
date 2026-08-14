@@ -25,10 +25,15 @@ class ExamListRepository {
       final data = response.data ?? <String, dynamic>{};
       final raw = data['exams'] ?? data['data'] ?? data['items'];
       final list = raw is List ? raw : <dynamic>[];
-      var exams = list
-          .whereType<Map>()
-          .map((e) => ExamListItemModel.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
+      var exams = <ExamListItemModel>[];
+      for (final item in list) {
+        if (item is! Map) continue;
+        try {
+          exams.add(ExamListItemModel.fromJson(Map<String, dynamic>.from(item)));
+        } catch (_) {
+          // Skip malformed rows so one bad exam cannot blank the whole list.
+        }
+      }
 
       // Backend returns all exams; filter tabs on client.
       switch (tab) {

@@ -87,8 +87,8 @@ class ChatRequest(BaseModel):
     message: str
     user_id: int | None = None
     course_id: int | None = None
-    provider: str | None = "chatgpt"
-    model: str | None = "gpt-4o-mini"
+    provider: str | None = "gemini"
+    model: str | None = "gemini-2.5-flash"
     api_key: str | None = None
     role: str | None = None
     context: ChatContext | None = None

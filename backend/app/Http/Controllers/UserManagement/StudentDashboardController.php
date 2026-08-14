@@ -377,8 +377,7 @@ class StudentDashboardController extends Controller
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $currentTerm = Term::where('is_current', true)->latest('id')->first()
-            ?? Term::latest('id')->first();
+        $currentTerm = Term::operational();
 
         $schedules = collect();
         if ($user->administrative_class_id) {
@@ -431,8 +430,7 @@ class StudentDashboardController extends Controller
         $user = $request->user();
         if (!$user) return response()->json(['message' => 'Unauthorized'], 401);
 
-        $currentTerm = Term::where('is_current', true)->latest('id')->first()
-            ?? Term::latest('id')->first();
+        $currentTerm = Term::operational();
 
         $currentEnrollments = collect();
         if ($currentTerm) {
@@ -662,63 +660,65 @@ class StudentDashboardController extends Controller
 
         $examsData = [];
         foreach ($enrollments as $enrollment) {
-            $exam = $enrollment->exam;
-            if (!$exam) continue;
+            try {
+                $exam = $enrollment->exam;
+                if (!$exam) continue;
 
-            // Fetch the quiz associated with this exam
-            $quiz = \App\Models\Quiz::where('exam_id', $exam->id)->first();
-            
-            $attemptsCount = 0;
-            $bestScore = null;
-            $attemptId = null;
-            $status = 'scheduled'; // scheduled, active, closed, completed
+                $quiz = \App\Models\Quiz::where('exam_id', $exam->id)->first();
 
-            if ($quiz) {
-                // Fetch attempts by user on this quiz
-                $attempts = \App\Models\QuizAttempt::where('user_id', $user->id)
-                    ->where('quiz_id', $quiz->id)
-                    ->get();
-                
-                $attemptsCount = $attempts->count();
-                if ($attemptsCount > 0) {
-                    $bestScore = $attempts->max('score');
-                    $latestAttempt = $attempts->sortByDesc('created_at')->first();
-                    $attemptId = $latestAttempt ? $latestAttempt->id : null;
-                    $status = 'completed';
+                $attemptsCount = 0;
+                $bestScore = null;
+                $attemptId = null;
+                $status = 'scheduled';
+
+                if ($quiz) {
+                    $attempts = \App\Models\QuizAttempt::where('user_id', $user->id)
+                        ->where('quiz_id', $quiz->id)
+                        ->get();
+
+                    $attemptsCount = $attempts->count();
+                    if ($attemptsCount > 0) {
+                        $bestScore = $attempts->max('score');
+                        $latestAttempt = $attempts->sortByDesc('created_at')->first();
+                        $attemptId = $latestAttempt ? $latestAttempt->id : null;
+                        $status = 'completed';
+                    }
                 }
-            }
 
-            $now = now();
-            if ($status !== 'completed') {
-                if ($exam->starts_at && $now->lt($exam->starts_at)) {
-                    $status = 'scheduled';
-                } elseif ($exam->ends_at && $now->gt($exam->ends_at)) {
-                    $status = 'closed';
-                } else {
-                    $status = 'active';
+                $now = now();
+                if ($status !== 'completed') {
+                    if ($exam->starts_at && $now->lt($exam->starts_at)) {
+                        $status = 'scheduled';
+                    } elseif ($exam->ends_at && $now->gt($exam->ends_at)) {
+                        $status = 'closed';
+                    } else {
+                        $status = 'active';
+                    }
                 }
+
+                $isOpen = ($status === 'active' && $exam->status !== 'closed' && $exam->status !== 'draft');
+
+                $examsData[] = [
+                    'id' => $exam->id,
+                    'title' => $exam->title,
+                    'description' => $exam->description,
+                    'type' => $exam->type,
+                    'status' => $status,
+                    'is_open' => $isOpen,
+                    'duration' => $exam->duration,
+                    'pass_score' => $exam->pass_score,
+                    'starts_at' => $exam->starts_at ? $exam->starts_at->toIso8601String() : null,
+                    'ends_at' => $exam->ends_at ? $exam->ends_at->toIso8601String() : null,
+                    'room' => $exam->room,
+                    'proctoring_enabled' => (bool) $exam->proctoring_enabled,
+                    'attempts_count' => $attemptsCount,
+                    'best_score' => $bestScore,
+                    'attempt_id' => $attemptId,
+                    'quiz_id' => $quiz ? $quiz->id : null,
+                ];
+            } catch (\Throwable) {
+                continue;
             }
-
-            $isOpen = ($status === 'active' && $exam->status !== 'closed' && $exam->status !== 'draft');
-
-            $examsData[] = [
-                'id' => $exam->id,
-                'title' => $exam->title,
-                'description' => $exam->description,
-                'type' => $exam->type,
-                'status' => $status,
-                'is_open' => $isOpen,
-                'duration' => $exam->duration,
-                'pass_score' => $exam->pass_score,
-                'starts_at' => $exam->starts_at ? $exam->starts_at->toIso8601String() : null,
-                'ends_at' => $exam->ends_at ? $exam->ends_at->toIso8601String() : null,
-                'room' => $exam->room,
-                'proctoring_enabled' => $exam->proctoring_enabled,
-                'attempts_count' => $attemptsCount,
-                'best_score' => $bestScore,
-                'attempt_id' => $attemptId,
-                'quiz_id' => $quiz ? $quiz->id : null,
-            ];
         }
 
         return response()->json([

@@ -31,7 +31,7 @@ class ProfilePage extends ConsumerWidget {
             slivers: [
               // Header with avatar
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: 220,
                 pinned: true,
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
@@ -48,13 +48,13 @@ class ProfilePage extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          AppSpacing.h16,
+                          const SizedBox(height: 8),
                           Stack(
                             alignment: Alignment.bottomRight,
                             children: [
                               CircleAvatar(
                                 radius: 44,
-                                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                backgroundColor: Colors.white.withValues(alpha: 0.22),
                                 backgroundImage: user.avatar != null
                                     ? CachedNetworkImageProvider(user.avatar!)
                                     : null,
@@ -69,29 +69,37 @@ class ProfilePage extends ConsumerWidget {
                               GestureDetector(
                                 onTap: () => _showEditDialog(context, ref, user.name, user.phone),
                                 child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.white,
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary400,
                                     shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.18),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
-                                  child: const Icon(Icons.edit_rounded, size: 14, color: AppColors.primary600),
+                                  child: const Icon(Icons.edit_rounded, size: 14, color: Colors.white),
                                 ),
                               ),
                             ],
                           ),
-                          AppSpacing.h12,
+                          AppSpacing.h8,
                           Text(user.name,
                               style: const TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.3)),
-                          AppSpacing.h4,
+                          AppSpacing.h8,
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(_roleLabel(user.role),
-                                style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
+                                style: const TextStyle(fontSize: 12, color: AppColors.primary600, fontWeight: FontWeight.w700)),
                           ),
                         ],
                       ),

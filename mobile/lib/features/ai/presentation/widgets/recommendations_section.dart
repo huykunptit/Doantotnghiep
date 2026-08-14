@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/utils/format_vnd.dart';
 import '../../providers/ai_providers.dart';
 
 class RecommendationsSection extends ConsumerWidget {
@@ -142,9 +143,7 @@ class RecommendationsSection extends ConsumerWidget {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      course.price > 0
-                                          ? '${course.price}đ'
-                                          : 'Miễn phí',
+                                      formatVnd(course.price),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w800,

@@ -22,8 +22,7 @@ class InstructorDashboardController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $currentTerm = Term::where('is_current', true)->latest('id')->first()
-            ?? Term::latest('id')->first();
+        $currentTerm = Term::operational();
 
         $sectionsQuery = ClassSection::query()
             ->with([

@@ -179,7 +179,7 @@ class _CertificateCard extends StatelessWidget {
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: AspectRatio(
-              aspectRatio: 16 / 9,
+              aspectRatio: 2.2,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -244,28 +244,48 @@ class _CertificateCard extends StatelessWidget {
 
           // Credential ID + actions
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Mã chứng nhận',
                     style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
-                        fontSize: 10, letterSpacing: 0.8, fontWeight: FontWeight.w700)),
+                        fontSize: 11, letterSpacing: 0.4, fontWeight: FontWeight.w700)),
                 AppSpacing.h8,
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkBg.withValues(alpha: 0.5) : AppColors.neutral50,
+                Material(
+                  color: isDark ? AppColors.darkBg.withValues(alpha: 0.5) : AppColors.neutral50,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    onTap: () async {
+                      await Clipboard.setData(ClipboardData(text: cert.credentialId));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Đã sao chép mã chứng nhận'),
+                          backgroundColor: AppColors.success,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    },
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(cert.credentialId,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 12,
+                                  letterSpacing: 0.4,
+                                )),
+                          ),
+                          Icon(Icons.copy_rounded, size: 16, color: theme.colorScheme.onSurfaceVariant),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Text(cert.credentialId,
-                      style: const TextStyle(
-                        fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 12,
-                        letterSpacing: 0.5,
-                      )),
                 ),
                 AppSpacing.h12,
                 Row(
@@ -276,9 +296,10 @@ class _CertificateCard extends StatelessWidget {
                         icon: const Icon(Icons.link_rounded, size: 16),
                         label: const Text('Sao chép link', style: TextStyle(fontSize: 12)),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          foregroundColor: AppColors.primary600,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          side: BorderSide(color: theme.colorScheme.outlineVariant),
+                          side: const BorderSide(color: AppColors.primary200),
                         ),
                       ),
                     ),
@@ -286,11 +307,11 @@ class _CertificateCard extends StatelessWidget {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: onVerify,
-                        icon: const Icon(Icons.verified_outlined, size: 16),
+                        icon: const Icon(Icons.verified_rounded, size: 16),
                         label: const Text('Xác minh', style: TextStyle(fontSize: 12)),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primary400,
-                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
