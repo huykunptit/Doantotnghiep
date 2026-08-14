@@ -118,30 +118,26 @@ cmd_seed_fresh() {
     fi
   fi
 
-  log "Đảm bảo mysql + backend đang chạy"
-  docker compose up -d mysql backend
+  log "MySQL + Redis lên, tạm dừng backend (tránh đua migrate với entrypoint)"
+  docker compose up -d --wait mysql redis
+  docker compose stop backend
 
-  local i=0
-  until docker compose exec -T backend php artisan --version >/dev/null 2>&1; do
-    i=$((i + 1))
-    if [[ "$i" -gt 60 ]]; then
-      die "Backend chưa sẵn sàng (artisan không chạy được)."
-    fi
-    sleep 2
-  done
-
-  # Tránh lần restart sau của container tự db:seed canonical đè lên bản demo.
+  # Tránh lần start sau của container tự db:seed canonical đè lên bản demo.
   rm -f "$ROOT/backend/storage/.seeded"
 
+  artisan=(docker compose run --rm --no-deps --entrypoint php backend artisan)
+
   log "Publish avatar seed"
-  docker compose exec -T backend php artisan avatars:publish || true
-  docker compose exec -T backend php artisan storage:link || true
+  "${artisan[@]}" avatars:publish || true
 
-  log "migrate:fresh --seed --seeder=DemoDatabaseSeeder (roles → users → khóa → học vụ → voucher 5%–75%)"
-  docker compose exec -T backend php artisan migrate:fresh --force --seeder=DemoDatabaseSeeder
+  log "migrate:fresh --seeder=DemoDatabaseSeeder (roles → users → khóa → học vụ → voucher 5%–75%)"
+  "${artisan[@]}" migrate:fresh --force --seeder=DemoDatabaseSeeder
+  "${artisan[@]}" avatars:publish || true
 
-  docker compose exec -T backend php artisan avatars:publish || true
   touch "$ROOT/backend/storage/.seeded"
+
+  log "Bật lại backend"
+  docker compose up -d backend
 
   log "Xong seed-fresh. Dữ liệu demo + voucher đã nạp lại."
 }
