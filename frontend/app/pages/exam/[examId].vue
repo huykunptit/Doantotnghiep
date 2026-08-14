@@ -2,6 +2,7 @@
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import type { GazeOffset } from '~/composables/useFaceApi'
+import { resolveMediaUrl } from '~/utils/media-url'
 
 definePageMeta({ layout: false, middleware: ['auth'] })
 
@@ -28,6 +29,7 @@ const preChecking = ref(true)
 const preCheckError = ref('')
 const requiresFaceCheck = ref(false)
 const hasFaceUrl = ref(false)
+const canEnrollFace = ref(false)
 const facePhotoUrl = ref<string | null>(null)
 const faceVerified = ref(false)
 const gazeBaseline = ref<GazeOffset | null>(null)
@@ -96,11 +98,14 @@ async function runPreCheck() {
       exam: { title: string, proctoring_enabled?: boolean }
       requires_face_check: boolean
       has_face_url: boolean
+      face_photo_usable?: boolean
+      can_enroll_face?: boolean
       face_photo_url: string | null
     }>(`/exams/${examId.value}/pre-check`)
 
     hasFaceUrl.value = !!data.has_face_url
-    facePhotoUrl.value = data.face_photo_url
+    canEnrollFace.value = data.can_enroll_face ?? !data.face_photo_usable
+    facePhotoUrl.value = resolveMediaUrl(data.face_photo_url) || data.face_photo_url
     requiresFaceCheck.value = !!data.requires_face_check
 
     if (requiresFaceCheck.value) {
@@ -522,14 +527,12 @@ onBeforeUnmount(() => {
 
     <div v-else-if="requiresFaceCheck && !faceVerified" class="center face-gate">
       <div class="face-gate-card">
-        <ExamFaceVerification :exam-id="examId" :has-face-url="hasFaceUrl" :face-photo-url="facePhotoUrl" @verified="onFaceVerified" />
-        <Button
-          v-if="!hasFaceUrl"
-          :label="t('exam.faceCheck.backToExams')"
-          severity="secondary"
-          outlined
-          class="mt"
-          @click="navigateTo('/student/exams')"
+        <ExamFaceVerification
+          :exam-id="examId"
+          :has-face-url="hasFaceUrl"
+          :face-photo-url="facePhotoUrl"
+          :can-enroll-face="canEnrollFace"
+          @verified="onFaceVerified"
         />
       </div>
     </div>

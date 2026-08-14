@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class ExamListItemModel {
   final int id;
   final String title;
@@ -127,7 +129,7 @@ class CourseRef {
     return CourseRef(
       id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title']?.toString() ?? '',
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
     );
   }
 }
@@ -289,7 +291,7 @@ class OrderCourseRef {
     return OrderCourseRef(
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
     );
   }
 }

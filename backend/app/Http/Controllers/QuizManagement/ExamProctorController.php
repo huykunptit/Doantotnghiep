@@ -310,7 +310,10 @@ class ExamProctorController extends Controller
 
         $validated = $request->validate([
             'image' => ['required', 'string'],
-            'score' => ['required', 'numeric', 'min:0', 'max:1'],
+            'score' => ['nullable', 'numeric', 'min:0', 'max:1'],
+            'enroll' => ['nullable', 'boolean'],
+            'face_detected' => ['nullable', 'boolean'],
+            'platform' => ['nullable', 'in:web,mobile'],
         ]);
 
         // If the student already has an in-progress attempt for this exam,
@@ -324,50 +327,137 @@ class ExamProctorController extends Controller
                 ->first()
             : null;
 
-        if (empty($user->face_url)) {
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Chưa có ảnh khuôn mặt trên hồ sơ. Vui lòng liên hệ quản trị viên/giảng viên để cập nhật ảnh trước khi thi.',
-            ], 422);
-        }
-
-        if (!$this->isValidCapturedImage($validated['image'])) {
+        if (! $this->isValidCapturedImage($validated['image'])) {
             if ($attempt) {
                 ExamViolation::create([
                     'attempt_id' => $attempt->id,
-                    'user_id'    => $user->id,
-                    'type'       => 'no_face',
-                    'severity'   => 'warning',
-                    'metadata'   => ['reason' => 'invalid_or_empty_capture'],
+                    'user_id' => $user->id,
+                    'type' => 'no_face',
+                    'severity' => 'warning',
+                    'metadata' => ['reason' => 'invalid_or_empty_capture'],
                 ]);
             }
 
             return response()->json([
-                'ok'      => false,
+                'ok' => false,
                 'message' => 'Không nhận diện được khuôn mặt trong ảnh chụp. Vui lòng thử lại với đủ ánh sáng.',
             ], 422);
         }
 
-        $score = (float) $validated['score'];
+        $mediaService = app(MediaService::class);
+        $referenceUsable = ! empty($user->face_url) && $this->isUsableFacePhoto((string) $user->face_url, $mediaService);
+        $wantsEnroll = (bool) ($validated['enroll'] ?? false) || ! $referenceUsable;
+        $isMobile = ($validated['platform'] ?? 'web') === 'mobile';
+        $faceDetected = (bool) ($validated['face_detected'] ?? false);
+
+        // Missing / placeholder seed badges: first valid selfie becomes the ID face photo.
+        if ($wantsEnroll && ! $referenceUsable) {
+            $savedUrl = $this->storeFaceEnrollment($validated['image'], (int) $user->id, $mediaService);
+            if (! $savedUrl) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Không lưu được ảnh khuôn mặt. Vui lòng thử lại.',
+                ], 422);
+            }
+
+            $user->face_url = $savedUrl;
+            $user->save();
+
+            return response()->json([
+                'ok' => true,
+                'enrolled' => true,
+                'score' => 1.0,
+                'face_url' => $mediaService->getUrl($savedUrl),
+                'message' => 'Đã lưu ảnh khuôn mặt vào hồ sơ và xác thực thành công.',
+            ]);
+        }
+
+        // Mobile app has no face-api embeddings — require a live detected face
+        // (liveness) when a usable reference photo already exists.
+        if ($isMobile) {
+            if (! $faceDetected) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Không phát hiện khuôn mặt trong khung hình. Vui lòng nhìn thẳng vào camera.',
+                ], 422);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'score' => 1.0,
+                'liveness' => true,
+                'message' => 'Xác thực khuôn mặt thành công.',
+            ]);
+        }
+
+        $score = (float) ($validated['score'] ?? 0);
         $matched = $score >= self::FACE_MATCH_THRESHOLD;
 
-        if (!$matched && $attempt) {
+        if (! $matched && $attempt) {
             ExamViolation::create([
                 'attempt_id' => $attempt->id,
-                'user_id'    => $user->id,
-                'type'       => 'suspicious',
-                'severity'   => 'warning',
-                'metadata'   => ['reason' => 'face_mismatch', 'score' => $score],
+                'user_id' => $user->id,
+                'type' => 'suspicious',
+                'severity' => 'warning',
+                'metadata' => ['reason' => 'face_mismatch', 'score' => $score],
             ]);
         }
 
         return response()->json([
-            'ok'      => $matched,
-            'score'   => $score,
+            'ok' => $matched,
+            'score' => $score,
             'message' => $matched
                 ? 'Xác thực khuôn mặt thành công.'
                 : 'Khuôn mặt không khớp với ảnh hồ sơ. Vui lòng thử lại với đủ ánh sáng và nhìn thẳng vào camera.',
         ]);
+    }
+
+    /**
+     * Seed badge JPGs (~2–3KB) and other tiny placeholders cannot be used for matching.
+     */
+    private function isUsableFacePhoto(string $path, MediaService $mediaService): bool
+    {
+        $key = \App\Support\PublicMediaUrl::toStorageKey($path)
+            ?? ltrim(str_replace('/storage/', '', $path), '/');
+        $absolute = storage_path('app/public/'.$key);
+
+        if (! is_file($absolute)) {
+            return $mediaService->exists($path);
+        }
+
+        if (filesize($absolute) < 8000) {
+            return false;
+        }
+
+        $info = @getimagesize($absolute);
+        if (! $info || ($info[0] ?? 0) < 120 || ($info[1] ?? 0) < 120) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function storeFaceEnrollment(string $rawImage, int $userId, MediaService $mediaService): ?string
+    {
+        $decoded = $this->decodeValidatedImage($rawImage);
+        if (! $decoded) {
+            return null;
+        }
+
+        $owner = \App\Models\User::query()->find($userId);
+        $old = $owner?->face_url;
+        if ($old
+            && $mediaService->exists($old)
+            && ! str_contains((string) $old, 'seed/avatars')
+        ) {
+            $mediaService->delete($old);
+        }
+
+        $disk = $mediaService->getDisk();
+        $path = 'faces/'.$userId.'/'.now()->timestamp.'_'.Str::random(8).'.'.$decoded['ext'];
+        Storage::disk($disk)->put($path, $decoded['binary']);
+
+        return $path;
     }
 
     /**

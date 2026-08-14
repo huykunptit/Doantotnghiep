@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { GazeOffset } from '~/composables/useFaceApi'
+import { resolveMediaUrl } from '~/utils/media-url'
 
 const props = defineProps<{
   examId: string | number
   hasFaceUrl: boolean
   facePhotoUrl: string | null
+  canEnrollFace?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -13,7 +15,14 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
-const { loadModels, descriptorFromImageUrl, descriptorFromVideo, detectFacesWithLandmarks, estimateGazeOffset, similarityFromDescriptors } = useFaceApi()
+const {
+  loadModels,
+  descriptorFromImageUrl,
+  descriptorFromVideo,
+  detectFacesWithLandmarks,
+  estimateGazeOffset,
+  similarityFromDescriptors,
+} = useFaceApi()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -23,6 +32,7 @@ const verifying = ref(false)
 const verified = ref(false)
 const cameraError = ref('')
 const statusMessage = ref('')
+const enrollMode = ref(!!props.canEnrollFace)
 
 let referenceDescriptor: Float32Array | null = null
 
@@ -32,7 +42,6 @@ function stopCamera() {
 }
 
 async function startCamera() {
-  if (!props.hasFaceUrl) return
   cameraError.value = ''
   statusMessage.value = ''
 
@@ -58,15 +67,22 @@ async function startCamera() {
   }
 }
 
-/** Loads face-api.js models + computes the reference descriptor from the enrolled profile photo, once. */
+/** Loads face-api.js models + optional reference descriptor from the enrolled profile photo. */
 async function prepareModels() {
-  if (!props.hasFaceUrl || !props.facePhotoUrl) return
   try {
     await loadModels()
-    referenceDescriptor = await descriptorFromImageUrl(props.facePhotoUrl)
     modelsReady.value = true
+
+    const photo = resolveMediaUrl(props.facePhotoUrl) || props.facePhotoUrl
+    if (!photo || props.canEnrollFace) {
+      enrollMode.value = true
+      return
+    }
+
+    referenceDescriptor = await descriptorFromImageUrl(photo)
     if (!referenceDescriptor) {
-      cameraError.value = t('exam.faceCheck.noReferenceFace')
+      enrollMode.value = true
+      statusMessage.value = t('exam.faceCheck.enrollHint')
     }
   }
   catch {
@@ -102,10 +118,7 @@ async function verifyFace() {
   if (cameraError.value) return
 
   if (!modelsReady.value) await prepareModels()
-  if (!referenceDescriptor) {
-    cameraError.value = t('exam.faceCheck.noReferenceFace')
-    return
-  }
+  if (!modelsReady.value) return
 
   const image = captureFrame()
   if (!image) {
@@ -116,12 +129,6 @@ async function verifyFace() {
   verifying.value = true
   statusMessage.value = ''
   try {
-    // Real comparison happens here, in the browser: the live webcam frame's
-    // face descriptor vs. the enrolled reference photo's descriptor. Only the
-    // resulting similarity score (plus the captured image, for audit) goes to
-    // the server, which independently thresholds it — see
-    // ExamProctorController::verifyFace for why the server still decides
-    // pass/fail rather than trusting a client-sent boolean.
     const liveDescriptor = videoRef.value ? await descriptorFromVideo(videoRef.value) : null
     if (!liveDescriptor) {
       statusMessage.value = t('exam.faceCheck.noFaceInFrame')
@@ -129,11 +136,14 @@ async function verifyFace() {
       return
     }
 
-    const score = similarityFromDescriptors(referenceDescriptor, liveDescriptor)
+    const shouldEnroll = enrollMode.value || !referenceDescriptor
+    const score = shouldEnroll
+      ? 1
+      : similarityFromDescriptors(referenceDescriptor!, liveDescriptor)
 
-    const res = await useApi<{ ok: boolean, message?: string }>(`/exams/${props.examId}/verify-face`, {
+    const res = await useApi<{ ok: boolean, message?: string, enrolled?: boolean }>(`/exams/${props.examId}/verify-face`, {
       method: 'POST',
-      body: { image, score },
+      body: { image, score, enroll: shouldEnroll },
     })
 
     if (!res.ok) {
@@ -143,11 +153,10 @@ async function verifyFace() {
     }
 
     verified.value = true
-    statusMessage.value = t('exam.faceCheck.verified')
+    statusMessage.value = res.enrolled
+      ? t('exam.faceCheck.enrolled')
+      : t('exam.faceCheck.verified')
 
-    // Baseline gaze pose from this same (frontal, well-lit, identity-confirmed)
-    // frame — the continuous in-exam monitor compares against this to flag
-    // sustained deviation ("looking_away"), instead of guessing a fixed pose.
     let gazeBaseline: GazeOffset | null = null
     try {
       if (videoRef.value) {
@@ -155,7 +164,7 @@ async function verifyFace() {
         if (faces[0]) gazeBaseline = estimateGazeOffset(faces[0].landmarks)
       }
     }
-    catch { /* baseline is best-effort — monitor just skips gaze checks without it */ }
+    catch { /* baseline is best-effort */ }
 
     stopCamera()
     emit('verified', gazeBaseline)
@@ -178,55 +187,45 @@ onBeforeUnmount(stopCamera)
 
 <template>
   <div class="face-check">
-    <div v-if="!hasFaceUrl" class="no-face">
-      <i class="pi pi-exclamation-triangle" />
+    <div class="head">
       <div>
-        <strong>{{ t('exam.faceCheck.noFaceTitle') }}</strong>
-        <p>{{ t('exam.faceCheck.noFaceDetail') }}</p>
+        <strong>{{ t('exam.faceCheck.title') }}</strong>
+        <p>{{ enrollMode ? t('exam.faceCheck.enrollDescription') : t('exam.faceCheck.description') }}</p>
       </div>
+      <Tag
+        v-if="verified || cameraError || verifying"
+        :value="verified ? t('exam.faceCheck.verified') : cameraError ? t('exam.faceCheck.failed') : verifying ? t('exam.faceCheck.verifying') : ''"
+        :severity="verified ? 'success' : cameraError ? 'danger' : 'info'"
+      />
     </div>
 
-    <template v-else>
-      <div class="head">
-        <div>
-          <strong>{{ t('exam.faceCheck.title') }}</strong>
-          <p>{{ t('exam.faceCheck.description') }}</p>
-        </div>
-        <Tag
-          :value="verified ? t('exam.faceCheck.verified') : cameraError ? t('exam.faceCheck.failed') : verifying ? t('exam.faceCheck.verifying') : ''"
-          :severity="verified ? 'success' : cameraError ? 'danger' : 'info'"
-          v-if="verified || cameraError || verifying"
-        />
-      </div>
+    <div class="cam-shell">
+      <video ref="videoRef" autoplay playsinline muted class="cam" />
+      <div v-if="verified" class="cam-overlay success"><i class="pi pi-check-circle" /></div>
+      <div v-if="!modelsReady && !cameraError" class="cam-overlay loading"><i class="pi pi-spin pi-spinner" /></div>
+    </div>
 
-      <div class="cam-shell">
-        <video ref="videoRef" autoplay playsinline muted class="cam" />
-        <div v-if="verified" class="cam-overlay success"><i class="pi pi-check-circle" /></div>
-        <div v-if="!modelsReady && !cameraError" class="cam-overlay loading"><i class="pi pi-spin pi-spinner" /></div>
-      </div>
+    <p v-if="cameraError" class="msg error">{{ cameraError }}</p>
+    <p v-else-if="statusMessage" class="msg">{{ statusMessage }}</p>
 
-      <p v-if="cameraError" class="msg error">{{ cameraError }}</p>
-      <p v-else-if="statusMessage" class="msg">{{ statusMessage }}</p>
-
-      <div class="actions">
-        <Button
-          :label="t('exam.faceCheck.restartCamera')"
-          icon="pi pi-refresh"
-          severity="secondary"
-          outlined
-          :disabled="verifying || verified"
-          @click="startCamera"
-        />
-        <Button
-          v-if="!verified"
-          :label="t('exam.faceCheck.verifyNow')"
-          icon="pi pi-camera"
-          :loading="verifying"
-          :disabled="!modelsReady"
-          @click="verifyFace"
-        />
-      </div>
-    </template>
+    <div class="actions">
+      <Button
+        :label="t('exam.faceCheck.restartCamera')"
+        icon="pi pi-refresh"
+        severity="secondary"
+        outlined
+        :disabled="verifying || verified"
+        @click="startCamera"
+      />
+      <Button
+        v-if="!verified"
+        :label="enrollMode ? t('exam.faceCheck.enrollNow') : t('exam.faceCheck.verifyNow')"
+        icon="pi pi-camera"
+        :loading="verifying"
+        :disabled="!modelsReady"
+        @click="verifyFace"
+      />
+    </div>
 
     <canvas ref="canvasRef" class="hidden" />
   </div>
@@ -234,13 +233,6 @@ onBeforeUnmount(stopCamera)
 
 <style scoped>
 .face-check { display: grid; gap: 14px; }
-.no-face {
-  display: flex; gap: 12px; align-items: flex-start; padding: 16px;
-  border: 1px solid #fde68a; border-radius: 14px; background: #fffbeb; color: #92400e;
-}
-.no-face i { font-size: 1.3rem; margin-top: 2px; }
-.no-face strong { display: block; margin-bottom: 4px; }
-.no-face p { margin: 0; font-size: .9rem; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
 .head strong { font-size: 1.05rem; }
 .head p { margin: 4px 0 0; color: var(--text-muted, #5b6f6b); font-size: .88rem; max-width: 46ch; }

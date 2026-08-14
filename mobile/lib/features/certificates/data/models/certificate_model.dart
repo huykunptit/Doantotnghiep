@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class CertificateTemplateModel {
   final int id;
   final String? name;
@@ -13,7 +15,7 @@ class CertificateTemplateModel {
     return CertificateTemplateModel(
       id: json['id'] as int? ?? 0,
       name: json['name']?.toString(),
-      backgroundImageUrl: json['background_image_url']?.toString(),
+      backgroundImageUrl: resolveMediaUrl(json['background_image_url']?.toString()),
     );
   }
 }

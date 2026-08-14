@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class UserModel {
   const UserModel({
     required this.id,
@@ -23,7 +25,7 @@ class UserModel {
       id: user['id'] as int? ?? 0,
       name: user['name']?.toString() ?? '',
       email: user['email']?.toString() ?? '',
-      avatar: user['avatar']?.toString(),
+      avatar: resolveMediaUrl(user['avatar']?.toString()),
       role: user['role']?.toString() ?? 'student',
       studentCode: user['student_code']?.toString(),
       phone: user['phone']?.toString(),

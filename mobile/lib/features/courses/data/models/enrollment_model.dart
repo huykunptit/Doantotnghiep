@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class CourseSimpleModel {
   const CourseSimpleModel({
     required this.id,
@@ -17,7 +19,7 @@ class CourseSimpleModel {
     return CourseSimpleModel(
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
       courseMode: json['course_mode']?.toString() ?? 'online',
       creditValue: json['credit_value'] as int?,
     );

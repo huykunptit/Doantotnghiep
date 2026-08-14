@@ -118,18 +118,49 @@ class QuizController extends Controller
             ->whereIn('status', ['in_progress', 'paused'])
             ->exists();
 
+        $hasFaceUrl = ! empty($user->face_url);
+        $faceUsable = $hasFaceUrl && $this->isUsableFacePhoto((string) $user->face_url, $mediaService);
+
         return response()->json([
             'exam' => $exam->only(['id', 'title', 'duration', 'proctoring_enabled']),
             'is_open' => $exam->isOpen() || \App\Support\Authorize::isAdmin($user),
-            'has_face_url' => !empty($user->face_url),
+            'has_face_url' => $hasFaceUrl,
+            'face_photo_usable' => $faceUsable,
             // Resolved URL of the student's enrolled reference photo, needed
             // client-side to compute a face descriptor for comparison against
             // the live webcam capture (see FaceVerification.vue).
-            'face_photo_url' => !empty($user->face_url) ? $mediaService->getUrl($user->face_url) : null,
+            'face_photo_url' => $hasFaceUrl ? $mediaService->getUrl($user->face_url) : null,
             // Only gate on face check for a *fresh* start — resuming an
             // already in-progress attempt shouldn't re-block the student.
-            'requires_face_check' => (bool) $exam->proctoring_enabled && !$hasActiveAttempt,
+            'requires_face_check' => (bool) $exam->proctoring_enabled && ! $hasActiveAttempt,
+            // Seed placeholders / missing photos: first capture becomes face_url.
+            'can_enroll_face' => ! $faceUsable,
         ]);
+    }
+
+    /**
+     * Seed badges (~2–3KB / tiny canvas) are not usable for face matching.
+     */
+    private function isUsableFacePhoto(string $path, MediaService $mediaService): bool
+    {
+        $key = \App\Support\PublicMediaUrl::toStorageKey($path) ?? ltrim(str_replace('/storage/', '', $path), '/');
+        $absolute = storage_path('app/public/'.$key);
+
+        if (! is_file($absolute)) {
+            // MinIO / remote disk — treat as usable if the media layer says it exists.
+            return $mediaService->exists($path);
+        }
+
+        if (filesize($absolute) < 8000) {
+            return false;
+        }
+
+        $info = @getimagesize($absolute);
+        if (! $info || ($info[0] ?? 0) < 120 || ($info[1] ?? 0) < 120) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class InstructorModel {
   const InstructorModel({
     required this.id,
@@ -14,7 +16,7 @@ class InstructorModel {
     return InstructorModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name']?.toString() ?? '',
-      avatar: (avatar == null || avatar.isEmpty) ? null : avatar,
+      avatar: resolveMediaUrl((avatar == null || avatar.isEmpty) ? null : avatar),
     );
   }
 }
@@ -82,7 +84,7 @@ class CourseDetailModel {
       id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString(),
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
       price: (json['price'] as num?)?.toInt() ?? 0,
       courseMode: json['course_mode']?.toString() ?? 'online',
       isCreditBearing: json['is_credit_bearing'] as bool? ?? false,
@@ -156,7 +158,7 @@ class CourseListItemModel {
     return CourseListItemModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       title: json['title']?.toString() ?? '',
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
       price: (json['price'] as num?)?.toInt() ?? 0,
       courseMode: json['course_mode']?.toString() ?? 'online',
       creditValue: (json['credit_value'] as num?)?.toInt(),

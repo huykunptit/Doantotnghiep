@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class UserCvModel {
   final int id;
   final int userId;
@@ -191,7 +193,7 @@ class CareerRecommendationCourseModel {
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString(),
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
       price: json['price'] as int? ?? 0,
       courseMode: json['course_mode']?.toString() ?? 'online',
       creditValue: json['credit_value'] as int?,

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
+import '../models/exam_precheck_model.dart';
 import '../models/quiz_model.dart';
 
 part 'quiz_repository.g.dart';
@@ -63,6 +64,41 @@ class QuizRepository {
   }
 
   // ── Exam Workspaces ────────────────────────────────────────────────
+
+  Future<ExamPrecheckModel> preCheckExam(int examId) async {
+    try {
+      final response = await dio.get<Map<String, dynamic>>(
+        '/exams/$examId/pre-check',
+      );
+      return ExamPrecheckModel.fromJson(response.data ?? {});
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
+
+  Future<FaceVerifyResultModel> verifyFace(
+    int examId, {
+    required String imageDataUrl,
+    required bool enroll,
+    required bool faceDetected,
+    double? score,
+  }) async {
+    try {
+      final response = await dio.post<Map<String, dynamic>>(
+        '/exams/$examId/verify-face',
+        data: {
+          'image': imageDataUrl,
+          'enroll': enroll,
+          'face_detected': faceDetected,
+          'platform': 'mobile',
+          if (score != null) 'score': score,
+        },
+      );
+      return FaceVerifyResultModel.fromJson(response.data ?? {});
+    } on DioException catch (e) {
+      throw AppException.fromDioException(e);
+    }
+  }
 
   Future<Map<String, dynamic>> startExam(int examId) async {
     try {

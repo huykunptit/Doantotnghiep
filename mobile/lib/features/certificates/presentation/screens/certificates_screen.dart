@@ -3,36 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../providers/certificate_providers.dart';
 import '../../data/models/certificate_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/error/friendly_error.dart';
+import '../../../auth/providers/auth_provider.dart';
+
+const _verifyBaseUrl = 'https://eript-lms.io.vn/certificates/verify';
 
 class CertificatesScreen extends ConsumerWidget {
   const CertificatesScreen({super.key});
   static const routeName = '/certificates';
 
-  Future<void> _openVerifyUrl(BuildContext context, String credentialId) async {
-    final url = Uri.parse('https://eriptlms.wetech.vn/certificates/verify/$credentialId');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Không thể mở liên kết xác minh.'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    }
+  void _viewCertificate(BuildContext context, WidgetRef ref, UserCertificateModel cert) {
+    final studentName = ref.read(authNotifierProvider).valueOrNull?.name;
+    showDialog(
+      context: context,
+      builder: (_) => _CertificateViewDialog(cert: cert, studentName: studentName),
+    );
   }
 
   Future<void> _copyLink(BuildContext context, String credentialId) async {
-    final url = 'https://eriptlms.wetech.vn/certificates/verify/$credentialId';
+    final url = '$_verifyBaseUrl/$credentialId';
     await Clipboard.setData(ClipboardData(text: url));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -128,7 +121,7 @@ class CertificatesScreen extends ConsumerWidget {
             itemBuilder: (context, index) => _CertificateCard(
               cert: certs[index],
               onCopyLink: () => _copyLink(context, certs[index].credentialId),
-              onVerify: () => _openVerifyUrl(context, certs[index].credentialId),
+              onView: () => _viewCertificate(context, ref, certs[index]),
             ),
           );
         },
@@ -141,12 +134,12 @@ class _CertificateCard extends StatelessWidget {
   const _CertificateCard({
     required this.cert,
     required this.onCopyLink,
-    required this.onVerify,
+    required this.onView,
   });
 
   final UserCertificateModel cert;
   final VoidCallback onCopyLink;
-  final VoidCallback onVerify;
+  final VoidCallback onView;
 
   @override
   Widget build(BuildContext context) {
@@ -306,9 +299,9 @@ class _CertificateCard extends StatelessWidget {
                     AppSpacing.w8,
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: onVerify,
-                        icon: const Icon(Icons.verified_rounded, size: 16),
-                        label: const Text('Xác minh', style: TextStyle(fontSize: 12)),
+                        onPressed: onView,
+                        icon: const Icon(Icons.visibility_rounded, size: 16),
+                        label: const Text('Xem chứng chỉ', style: TextStyle(fontSize: 12)),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primary400,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -335,6 +328,128 @@ class _CertificateCard extends StatelessWidget {
         ),
       ),
       child: const Icon(Icons.workspace_premium_rounded, size: 56, color: Colors.white24),
+    );
+  }
+}
+
+class _CertificateViewDialog extends StatelessWidget {
+  const _CertificateViewDialog({required this.cert, this.studentName});
+
+  final UserCertificateModel cert;
+  final String? studentName;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    String issuedDateStr = '';
+    try {
+      final parsed = DateTime.parse(cert.issuedAt);
+      issuedDateStr = '${parsed.day}/${parsed.month}/${parsed.year}';
+    } catch (_) {
+      issuedDateStr = cert.issuedAt;
+    }
+
+    return Dialog(
+      insetPadding: const EdgeInsets.all(16),
+      backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: AspectRatio(
+                aspectRatio: 1.6,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    cert.template?.backgroundImageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: cert.template!.backgroundImageUrl!,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [AppColors.primary600, AppColors.primary400],
+                                  begin: Alignment.topLeft, end: Alignment.bottomRight,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.primary600, AppColors.primary400],
+                                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                              ),
+                            ),
+                          ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black.withValues(alpha: 0.78)],
+                          stops: const [0.45, 1.0],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 18, right: 18, bottom: 16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (studentName != null && studentName!.isNotEmpty)
+                            Text(studentName!,
+                                style: const TextStyle(color: Colors.white, fontSize: 18,
+                                    fontWeight: FontWeight.w800, shadows: [
+                                  Shadow(color: Colors.black54, blurRadius: 4),
+                                ])),
+                          AppSpacing.h4,
+                          Text(cert.courseTitle,
+                              style: const TextStyle(color: Colors.white, fontSize: 14,
+                                  fontWeight: FontWeight.w600, shadows: [
+                                Shadow(color: Colors.black54, blurRadius: 4),
+                              ]),
+                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                          AppSpacing.h4,
+                          Text('Cấp ngày $issuedDateStr',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            AppSpacing.h16,
+            Text('Mã chứng nhận',
+                style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 11, letterSpacing: 0.4, fontWeight: FontWeight.w700)),
+            AppSpacing.h4,
+            SelectableText(cert.credentialId,
+                style: const TextStyle(
+                  fontFamily: 'monospace', fontWeight: FontWeight.w700, fontSize: 13,
+                  letterSpacing: 0.4,
+                )),
+            AppSpacing.h16,
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary400,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

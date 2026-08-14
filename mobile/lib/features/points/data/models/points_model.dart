@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class PointSummaryModel {
   final int balance;
   final int streakDays;
@@ -139,7 +141,7 @@ class VoucherCourseRef {
     return VoucherCourseRef(
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
     );
   }
 }

@@ -25,28 +25,81 @@ async function loadModels() {
   return loadingPromise
 }
 
-function detectorOptions() {
-  return new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 })
+function detectorOptions(inputSize = 416, scoreThreshold = 0.3) {
+  return new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
 }
 
-/** Loads a same-origin image URL into an <img> element for face-api to read. */
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('image load failed'))
-    img.src = src
-  })
+/** Loads an image as a blob URL so face-api can read pixels without CORS tainting. */
+async function loadImage(src: string): Promise<HTMLImageElement> {
+  const response = await fetch(src, { credentials: 'same-origin', cache: 'no-store' })
+  if (!response.ok) throw new Error('image load failed')
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('image load failed'))
+      el.src = objectUrl
+    })
+
+    // Copy onto a canvas before revoking the blob URL (some browsers clear img pixels).
+    const canvas = document.createElement('canvas')
+    canvas.width = img.naturalWidth || img.width
+    canvas.height = img.naturalHeight || img.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx || !canvas.width || !canvas.height) return img
+    ctx.drawImage(img, 0, 0)
+
+    const baked = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image()
+      el.onload = () => resolve(el)
+      el.onerror = () => reject(new Error('image bake failed'))
+      el.src = canvas.toDataURL('image/jpeg', 0.92)
+    })
+    return baked
+  }
+  finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+function upscaleForDetection(source: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement) {
+  const width = 'videoWidth' in source ? source.videoWidth || source.width : source.width
+  const height = 'videoHeight' in source ? source.videoHeight || source.height : source.height
+  if (!width || !height) return source
+  if (width >= 320 && height >= 320) return source
+
+  const scale = Math.max(320 / width, 320 / height)
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(width * scale)
+  canvas.height = Math.round(height * scale)
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return source
+  ctx.imageSmoothingEnabled = true
+  ctx.drawImage(source as CanvasImageSource, 0, 0, canvas.width, canvas.height)
+  return canvas
 }
 
 /** Face descriptor (128-d embedding) for the single most prominent face, or null if none found. */
-async function descriptorFromElement(el: HTMLImageElement | HTMLVideoElement) {
-  const result = await faceapi
-    .detectSingleFace(el, detectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor()
-  return result?.descriptor ?? null
+async function descriptorFromElement(el: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement) {
+  const input = upscaleForDetection(el)
+  const attempts = [
+    detectorOptions(416, 0.3),
+    detectorOptions(320, 0.25),
+    detectorOptions(512, 0.2),
+  ]
+
+  for (const options of attempts) {
+    const result = await faceapi
+      .detectSingleFace(input, options)
+      .withFaceLandmarks()
+      .withFaceDescriptor()
+    if (result?.descriptor) return result.descriptor
+  }
+
+  return null
 }
 
 async function descriptorFromImageUrl(url: string) {

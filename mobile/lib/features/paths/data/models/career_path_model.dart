@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class PathCourseInfoModel {
   const PathCourseInfoModel({
     required this.id,
@@ -17,7 +19,7 @@ class PathCourseInfoModel {
     return PathCourseInfoModel(
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
       price: json['price'] as int? ?? 0,
       lessonsCount: json['lessons_count'] as int? ?? 0,
     );
@@ -81,7 +83,7 @@ class CareerPathListItem {
       slug: json['slug']?.toString() ?? '',
       description: json['description']?.toString(),
       price: json['price'] as int? ?? 0,
-      coverUrl: json['cover_url']?.toString(),
+      coverUrl: resolveMediaUrl(json['cover_url']?.toString()),
       pathCoursesCount: json['path_courses_count'] as int? ?? 0,
     );
   }
@@ -121,7 +123,7 @@ class CareerPathDetail {
       slug: json['slug']?.toString() ?? '',
       description: json['description']?.toString(),
       price: json['price'] as int? ?? 0,
-      coverUrl: json['cover_url']?.toString(),
+      coverUrl: resolveMediaUrl(json['cover_url']?.toString()),
       pathCoursesCount: json['path_courses_count'] as int? ?? 0,
       isPurchased: json['is_purchased'] as bool? ?? false,
       isFollowing: json['is_following'] as bool? ?? false,

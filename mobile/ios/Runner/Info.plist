@@ -5,7 +5,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>ERIPT LMS cần camera để quét mã QR điểm danh tại lớp học / workshop.</string>
+	<string>ERIPT LMS cần camera để quét mã QR điểm danh và xác thực khuôn mặt trước khi thi.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>ERIPT LMS cần vị trí GPS để xác minh bạn đang trong bán kính 15m quanh lớp học khi điểm danh.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

@@ -5,7 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/quiz_providers.dart';
 import '../widgets/question_display.dart';
+import '../widgets/face_verification_gate.dart';
+import '../../data/models/exam_precheck_model.dart';
 import '../../data/models/quiz_model.dart';
+import '../../data/repositories/quiz_repository.dart';
+import '../../../../core/error/friendly_error.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 
@@ -33,6 +37,11 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
   Timer? _bannerHideTimer;
   String? _shownProctorAlertKey;
 
+  bool _prechecking = false;
+  bool _faceVerified = false;
+  ExamPrecheckModel? _precheck;
+  String? _precheckError;
+
   @override
   void initState() {
     super.initState();
@@ -44,13 +53,42 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
     });
   }
 
-  void _loadData() {
+  Future<void> _loadData() async {
     if (widget.examId > 0) {
-      ref.read(examAttemptProvider.notifier).startExam(widget.examId);
+      setState(() {
+        _prechecking = true;
+        _precheckError = null;
+        _precheck = null;
+      });
+      try {
+        final precheck =
+            await ref.read(quizRepositoryProvider).preCheckExam(widget.examId);
+        if (!mounted) return;
+        setState(() {
+          _precheck = precheck;
+          _prechecking = false;
+        });
+        if (precheck.requiresFaceCheck && !_faceVerified) {
+          _isInitialized = true;
+          return;
+        }
+        await ref.read(examAttemptProvider.notifier).startExam(widget.examId);
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _prechecking = false;
+          _precheckError = friendlyErrorMessage(e);
+        });
+      }
     } else {
       ref.read(examAttemptProvider.notifier).startLessonQuiz(widget.courseId, widget.lessonId);
     }
     _isInitialized = true;
+  }
+
+  void _onFaceVerified() {
+    setState(() => _faceVerified = true);
+    ref.read(examAttemptProvider.notifier).startExam(widget.examId);
   }
 
   @override
@@ -59,6 +97,9 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
     if (oldWidget.examId != widget.examId ||
         oldWidget.courseId != widget.courseId ||
         oldWidget.lessonId != widget.lessonId) {
+      _faceVerified = false;
+      _precheck = null;
+      _precheckError = null;
       _loadData();
     }
   }
@@ -144,6 +185,62 @@ class _ExamWorkspaceScreenState extends ConsumerState<ExamWorkspaceScreen> with 
   Widget build(BuildContext context) {
     final state = ref.watch(examAttemptProvider);
     final theme = Theme.of(context);
+
+    if (_prechecking) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              AppSpacing.h16,
+              Text('Đang kiểm tra quyền vào thi…'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_precheckError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Lỗi')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                AppSpacing.h16,
+                Text(_precheckError!, textAlign: TextAlign.center),
+                AppSpacing.h24,
+                FilledButton(
+                  onPressed: () => _loadData(),
+                  child: const Text('Thử lại'),
+                ),
+                AppSpacing.h8,
+                TextButton(
+                  onPressed: () => context.pop(),
+                  child: const Text('Quay lại'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (widget.examId > 0 &&
+        _precheck != null &&
+        _precheck!.requiresFaceCheck &&
+        !_faceVerified) {
+      return FaceVerificationGate(
+        examId: widget.examId,
+        precheck: _precheck!,
+        onVerified: _onFaceVerified,
+        onCancel: () => context.pop(),
+      );
+    }
 
     // 1. Loading state
     if (state.isLoading) {

@@ -1,3 +1,5 @@
+import '../../../../core/utils/media_url.dart';
+
 class LearningPathCourseModel {
   final int id;
   final String title;
@@ -28,7 +30,7 @@ class LearningPathCourseModel {
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
       slug: json['slug']?.toString(),
-      thumbnail: json['thumbnail']?.toString(),
+      thumbnail: resolveMediaUrl(json['thumbnail']?.toString()),
       credits: json['credits'] as int? ?? 0,
       isRequired: json['is_required'] as bool? ?? false,
       courseMode: json['course_mode']?.toString(),
