@@ -35,6 +35,8 @@ const faceVerified = ref(false)
 const gazeBaseline = ref<GazeOffset | null>(null)
 const { loadModels: loadFaceModels, detectFacesWithLandmarks, estimateGazeOffset } = useFaceApi()
 const { detectPhone } = usePhoneDetector()
+const monitorVideoRef = ref<HTMLVideoElement | null>(null)
+const monitorActive = ref(false)
 let monitorStream: MediaStream | null = null
 let monitorVideo: HTMLVideoElement | null = null
 let monitorCanvas: HTMLCanvasElement | null = null
@@ -340,11 +342,14 @@ async function startFaceMonitor() {
       video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 360 } },
       audio: false,
     })
-    monitorVideo = document.createElement('video')
+    await nextTick()
+    monitorVideo = monitorVideoRef.value
+    if (!monitorVideo) return
     monitorVideo.srcObject = monitorStream
     monitorVideo.muted = true
     monitorVideo.playsInline = true
     await monitorVideo.play().catch(() => {})
+    monitorActive.value = true
   }
   catch {
     // No camera available for continuous monitoring — proctoring still
@@ -419,9 +424,11 @@ function stopFaceMonitor() {
     monitorInterval = null
   }
   monitorVideo?.pause()
+  if (monitorVideoRef.value) monitorVideoRef.value.srcObject = null
   monitorVideo = null
   monitorStream?.getTracks().forEach(track => track.stop())
   monitorStream = null
+  monitorActive.value = false
 }
 
 // ── Phone detection (separate, thinner pipeline) ────────────────────────────
@@ -486,6 +493,11 @@ onBeforeUnmount(() => {
   <div class="exam-shell">
     <ConfirmDialog />
     <Toast />
+
+    <div class="monitor-widget" :class="{ show: monitorActive }">
+      <video ref="monitorVideoRef" autoplay playsinline muted class="monitor-video" />
+      <div class="monitor-badge"><span class="monitor-dot" />{{ t('exam.proctoringActive') }}</div>
+    </div>
 
     <header class="exam-bar">
       <div class="left">
@@ -658,6 +670,25 @@ onBeforeUnmount(() => {
   width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
 }
 .focus-dismiss:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+.monitor-widget {
+  position: fixed; right: 18px; bottom: 18px; z-index: 40;
+  width: 160px; border-radius: 14px; overflow: hidden;
+  background: #0b1220; box-shadow: 0 8px 24px -8px rgba(0, 0, 0, .35);
+  border: 1px solid rgba(255, 255, 255, .12);
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.monitor-widget.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.monitor-video { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transform: scaleX(-1); }
+.monitor-badge {
+  position: absolute; left: 8px; bottom: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 999px; font-size: .68rem; font-weight: 700;
+  background: rgba(0, 0, 0, .55); color: #fff;
+}
+.monitor-dot { width: 7px; height: 7px; border-radius: 50%; background: #ef4444; animation: monitor-pulse 1.6s ease-in-out infinite; }
+@keyframes monitor-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (max-width: 720px) { .monitor-widget { width: 108px; right: 10px; bottom: 10px; } }
 .timer { font-weight: 800; font-variant-numeric: tabular-nums; display: inline-flex; gap: 6px; align-items: center; }
 .timer.urgent { color: #dc2626; }
 .center { min-height: 60vh; display: grid; place-content: center; gap: 12px; text-align: center; }

@@ -166,6 +166,10 @@ async function verifyFace() {
     }
     catch { /* baseline is best-effort */ }
 
+    // Let the "verified" checkmark actually be visible before the exam
+    // replaces this screen — otherwise it flashes for a frame and is gone.
+    await new Promise(resolve => setTimeout(resolve, 900))
+
     stopCamera()
     emit('verified', gazeBaseline)
   }
