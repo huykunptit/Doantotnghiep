@@ -96,6 +96,17 @@ class CourseController extends Controller
 
         $courses = $query->paginate($perPage);
 
+        $courses->getCollection()->transform(function (Course $course) {
+            $course->lessons_count = (int) $course->lessons_count;
+            $course->enrollments_count = (int) $course->enrollments_count;
+            $course->reviews_count = (int) $course->reviews_count;
+            $course->reviews_avg_rating = $course->reviews_avg_rating !== null
+                ? round((float) $course->reviews_avg_rating, 1)
+                : null;
+
+            return $course;
+        });
+
         return response()->json($courses);
     }
 

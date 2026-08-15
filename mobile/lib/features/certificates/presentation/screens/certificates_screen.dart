@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/certificate_providers.dart';
 import '../../data/models/certificate_model.dart';
@@ -11,6 +12,25 @@ import '../../../../core/error/friendly_error.dart';
 import '../../../auth/providers/auth_provider.dart';
 
 const _verifyBaseUrl = 'https://eript-lms.io.vn/certificates/verify';
+
+Widget _certificateBackgroundImage({
+  required String url,
+  required BoxFit fit,
+  required Widget Function() errorBuilder,
+}) {
+  if (url.toLowerCase().endsWith('.svg')) {
+    return SvgPicture.network(
+      url,
+      fit: fit,
+      placeholderBuilder: (_) => errorBuilder(),
+    );
+  }
+  return CachedNetworkImage(
+    imageUrl: url,
+    fit: fit,
+    errorWidget: (_, _, _) => errorBuilder(),
+  );
+}
 
 class CertificatesScreen extends ConsumerWidget {
   const CertificatesScreen({super.key});
@@ -177,10 +197,10 @@ class _CertificateCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   cert.template?.backgroundImageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: cert.template!.backgroundImageUrl!,
+                      ? _certificateBackgroundImage(
+                          url: cert.template!.backgroundImageUrl!,
                           fit: BoxFit.cover,
-                          errorWidget: (_, _, _) => _placeholder(),
+                          errorBuilder: _placeholder,
                         )
                       : _placeholder(),
                   Container(
@@ -369,10 +389,10 @@ class _CertificateViewDialog extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     cert.template?.backgroundImageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: cert.template!.backgroundImageUrl!,
+                        ? _certificateBackgroundImage(
+                            url: cert.template!.backgroundImageUrl!,
                             fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Container(
+                            errorBuilder: () => Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [AppColors.primary600, AppColors.primary400],

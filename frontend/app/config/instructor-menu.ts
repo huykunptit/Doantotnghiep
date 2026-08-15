@@ -45,7 +45,7 @@ export const instructorMenu: InstructorMenuItem[] = [
   },
   {
     key: 'attendance',
-    labelKey: 'instructor.menu.attendance',
+    labelKey: 'admin.menu.attendance',
     icon: 'pi pi-qrcode',
     to: '/instructor/attendance',
     permission: ['manage_courses', 'manage_grades'],
@@ -66,7 +66,7 @@ export const instructorMenu: InstructorMenuItem[] = [
   },
   {
     key: 'academic-calendar',
-    labelKey: 'instructor.menu.academicCalendar',
+    labelKey: 'admin.menu.academicCalendar',
     icon: 'pi pi-calendar',
     to: '/instructor/academic-calendar',
     permission: ['manage_academic', 'manage_courses'],
