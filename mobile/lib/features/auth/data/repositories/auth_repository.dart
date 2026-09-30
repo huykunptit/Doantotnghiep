@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_constants.dart';
@@ -11,9 +10,9 @@ part 'auth_repository.g.dart';
 
 @riverpod
 AuthRepository authRepository(AuthRepositoryRef ref) => AuthRepository(
-      dio: ref.read(apiClientProvider),
-      storage: ref.read(secureStorageProvider),
-    );
+  dio: ref.read(apiClientProvider),
+  storage: ref.read(secureStorageProvider),
+);
 
 class AuthRepository {
   const AuthRepository({required this.dio, required this.storage});
@@ -32,7 +31,9 @@ class AuthRepository {
       );
       final data = response.data!;
       final token = data['access_token']?.toString() ?? '';
-      if (token.isEmpty) throw const AppException('Không nhận được token từ máy chủ.');
+      if (token.isEmpty) {
+        throw const AppException('Không nhận được token từ máy chủ.');
+      }
       await storage.saveToken(token);
       return UserModel.fromJson(data);
     } on DioException catch (e) {
@@ -58,16 +59,18 @@ class AuthRepository {
     }
   }
 
-  Future<UserModel> updateProfile({
-    required String name,
-    String? phone,
-  }) async {
+  Future<UserModel> updateProfile({required String name, String? phone}) async {
     try {
       final response = await dio.put<Map<String, dynamic>>(
         ApiConstants.updateProfilePath,
-        data: {'name': name, ...?phone != null ? {'phone': phone} : null},
+        data: {
+          'name': name,
+          ...?phone != null ? {'phone': phone} : null,
+        },
       );
-      return UserModel.fromJson((response.data!['user'] as Map<String, dynamic>?) ?? response.data!);
+      return UserModel.fromJson(
+        (response.data!['user'] as Map<String, dynamic>?) ?? response.data!,
+      );
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
@@ -106,7 +109,8 @@ class AuthRepository {
           'password_confirmation': password,
         },
       );
-      return response.data!['message']?.toString() ?? 'Đăng ký thành công. Vui lòng kiểm tra email.';
+      return response.data!['message']?.toString() ??
+          'Đăng ký thành công. Vui lòng kiểm tra email.';
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
@@ -118,7 +122,8 @@ class AuthRepository {
         ApiConstants.forgotPasswordPath,
         data: {'email': email},
       );
-      return response.data!['message']?.toString() ?? 'Liên kết reset mật khẩu đã được gửi.';
+      return response.data!['message']?.toString() ??
+          'Liên kết reset mật khẩu đã được gửi.';
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
@@ -130,7 +135,8 @@ class AuthRepository {
         ApiConstants.resendVerificationEmailPath,
         data: {'email': email},
       );
-      return response.data!['message']?.toString() ?? 'Đã gửi lại email xác nhận.';
+      return response.data!['message']?.toString() ??
+          'Đã gửi lại email xác nhận.';
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
@@ -138,7 +144,9 @@ class AuthRepository {
 
   Future<String> getGoogleLoginUrl() async {
     try {
-      final response = await dio.get<Map<String, dynamic>>(ApiConstants.googleLoginUrlPath);
+      final response = await dio.get<Map<String, dynamic>>(
+        ApiConstants.googleLoginUrlPath,
+      );
       return response.data!['url']?.toString() ?? '';
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
@@ -152,7 +160,9 @@ class AuthRepository {
       );
       final data = response.data!;
       final token = data['access_token']?.toString() ?? '';
-      if (token.isEmpty) throw const AppException('Không nhận được token từ máy chủ.');
+      if (token.isEmpty) {
+        throw const AppException('Không nhận được token từ máy chủ.');
+      }
       await storage.saveToken(token);
       return UserModel.fromJson(data);
     } on DioException catch (e) {

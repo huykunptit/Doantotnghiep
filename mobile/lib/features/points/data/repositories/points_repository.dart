@@ -21,12 +21,13 @@ class PointsRepository {
   }
 
   Future<List<PointTransactionModel>> getTransactions({int page = 1}) async {
-    final res = await _dio.get('/points/transactions',
-        queryParameters: {'page': page});
+    final res = await _dio.get(
+      '/points/transactions',
+      queryParameters: {'page': page},
+    );
     final list = (res.data['data'] as List<dynamic>? ?? []);
     return list
-        .map((e) =>
-            PointTransactionModel.fromJson(e as Map<String, dynamic>))
+        .map((e) => PointTransactionModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
@@ -37,21 +38,30 @@ class PointsRepository {
 
   Future<List<VoucherModel>> getShop() async {
     final res = await _dio.get('/points/shop');
-    final list = res.data['data'] as List<dynamic>? ?? res.data as List<dynamic>? ?? [];
+    final list =
+        res.data['data'] as List<dynamic>? ?? res.data as List<dynamic>? ?? [];
     return list
         .map((e) => VoucherModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<UserVoucherModel> redeemVoucher(int voucherId) async {
-    final res = await _dio.post('/points/redeem', data: {'voucher_id': voucherId});
-    return UserVoucherModel.fromJson(res.data['user_voucher'] as Map<String, dynamic>);
+    final res = await _dio.post(
+      '/points/redeem',
+      data: {'voucher_id': voucherId},
+    );
+    return UserVoucherModel.fromJson(
+      res.data['user_voucher'] as Map<String, dynamic>,
+    );
   }
 
   Future<List<UserVoucherModel>> getMyVouchers({String? status}) async {
-    final res = await _dio.get('/points/my-vouchers',
-        queryParameters: status != null ? {'status': status} : null);
-    final list = res.data['data'] as List<dynamic>? ?? res.data as List<dynamic>? ?? [];
+    final res = await _dio.get(
+      '/points/my-vouchers',
+      queryParameters: status != null ? {'status': status} : null,
+    );
+    final list =
+        res.data['data'] as List<dynamic>? ?? res.data as List<dynamic>? ?? [];
     return list
         .map((e) => UserVoucherModel.fromJson(e as Map<String, dynamic>))
         .toList();

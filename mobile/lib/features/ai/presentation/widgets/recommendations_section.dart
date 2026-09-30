@@ -2,10 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/format_vnd.dart';
 import '../../providers/ai_providers.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class RecommendationsSection extends ConsumerWidget {
   const RecommendationsSection({super.key});
@@ -61,11 +61,14 @@ class RecommendationsSection extends ConsumerWidget {
                   TextButton(
                     onPressed: () => context.go('/catalog'),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary600,
+                      foregroundColor: context.cs.primary,
                     ),
                     child: const Text(
                       'Catalog',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -118,9 +121,9 @@ class RecommendationsSection extends ConsumerWidget {
                                       imageUrl: course.thumbnail!,
                                       fit: BoxFit.cover,
                                       errorWidget: (_, _, _) =>
-                                          _thumbFallback(),
+                                          _thumbFallback(context),
                                     )
-                                  : _thumbFallback(),
+                                  : _thumbFallback(context),
                             ),
                           ),
                           Padding(
@@ -143,26 +146,26 @@ class RecommendationsSection extends ConsumerWidget {
                                     Icon(
                                       Icons.auto_awesome,
                                       size: 14,
-                                      color: AppColors.primary600,
+                                      color: context.cs.primary,
                                     ),
                                     AppSpacing.w4,
                                     Text(
                                       'Điểm ${item.score}',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w700,
-                                        color: AppColors.primary600,
+                                        color: context.cs.primary,
                                       ),
                                     ),
                                     const Spacer(),
                                     Text(
                                       formatVnd(course.price),
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.w800,
                                         color: course.price > 0
-                                            ? AppColors.primary600
-                                            : AppColors.success,
+                                            ? context.cs.primary
+                                            : context.sem.success,
                                       ),
                                     ),
                                   ],
@@ -184,11 +187,11 @@ class RecommendationsSection extends ConsumerWidget {
     );
   }
 
-  Widget _thumbFallback() {
+  Widget _thumbFallback(BuildContext context) {
     return Container(
-      color: AppColors.primary50,
+      color: context.cs.primaryContainer,
       alignment: Alignment.center,
-      child: const Icon(Icons.school_rounded, color: AppColors.primary200),
+      child: Icon(Icons.school_rounded, color: context.cs.primary),
     );
   }
 }

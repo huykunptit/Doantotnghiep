@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/branding.dart';
 import '../theme/app_colors.dart';
+import '../theme/theme_context.dart';
 
 /// Branded loading indicator — pulsing logo + soft orbit ring.
 class AppLoader extends StatefulWidget {
@@ -24,7 +25,8 @@ class AppLoader extends StatefulWidget {
   State<AppLoader> createState() => _AppLoaderState();
 }
 
-class _AppLoaderState extends State<AppLoader> with SingleTickerProviderStateMixin {
+class _AppLoaderState extends State<AppLoader>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
@@ -44,7 +46,7 @@ class _AppLoaderState extends State<AppLoader> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final accent = widget.color ?? AppColors.primary600;
+    final accent = widget.color ?? context.cs.primary;
     final logoBox = widget.compact ? widget.size * 0.72 : widget.size;
 
     return Column(
@@ -65,16 +67,10 @@ class _AppLoaderState extends State<AppLoader> with SingleTickerProviderStateMix
                     angle: t * math.pi * 2,
                     child: CustomPaint(
                       size: Size.square(widget.size),
-                      painter: _OrbitPainter(
-                        progress: t,
-                        color: accent,
-                      ),
+                      painter: _OrbitPainter(progress: t, color: accent),
                     ),
                   ),
-                  Transform.scale(
-                    scale: pulse,
-                    child: child,
-                  ),
+                  Transform.scale(scale: pulse, child: child),
                 ],
               );
             },
@@ -84,9 +80,7 @@ class _AppLoaderState extends State<AppLoader> with SingleTickerProviderStateMix
               decoration: BoxDecoration(
                 color: AppColors.brandInk,
                 borderRadius: BorderRadius.circular(logoBox * 0.22),
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.28),
-                ),
+                border: Border.all(color: accent.withValues(alpha: 0.28)),
                 boxShadow: [
                   BoxShadow(
                     color: accent.withValues(alpha: 0.18),

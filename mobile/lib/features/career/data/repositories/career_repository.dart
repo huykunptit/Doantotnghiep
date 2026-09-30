@@ -18,14 +18,19 @@ class CareerRepository {
 
   Future<CareerAdvisorStatusModel> getAdvisorStatus() async {
     try {
-      final response = await dio.get<Map<String, dynamic>>(ApiConstants.careerAdvisorPath);
+      final response = await dio.get<Map<String, dynamic>>(
+        ApiConstants.careerAdvisorPath,
+      );
       return CareerAdvisorStatusModel.fromJson(response.data!);
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
   }
 
-  Future<CareerAdvisorStatusModel> uploadCV(String filePath, String fileName) async {
+  Future<CareerAdvisorStatusModel> uploadCV(
+    String filePath,
+    String fileName,
+  ) async {
     try {
       final formData = FormData.fromMap({
         'cv': await MultipartFile.fromFile(filePath, filename: fileName),
@@ -62,7 +67,8 @@ class CareerRepository {
       final response = await dio.post<Map<String, dynamic>>(
         ApiConstants.careerEvaluatePath,
         data: {
-          if (targetRole != null && targetRole.isNotEmpty) 'target_role': targetRole,
+          if (targetRole != null && targetRole.isNotEmpty)
+            'target_role': targetRole,
           if (expectedSalary != null) 'expected_salary': expectedSalary,
         },
       );

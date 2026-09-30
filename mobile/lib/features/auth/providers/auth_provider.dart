@@ -17,9 +17,10 @@ class AuthNotifier extends _$AuthNotifier {
     );
     if (token == null) return null;
     try {
-      return await ref.read(authRepositoryProvider).getMe().timeout(
-        const Duration(seconds: 12),
-      );
+      return await ref
+          .read(authRepositoryProvider)
+          .getMe()
+          .timeout(const Duration(seconds: 12));
     } catch (_) {
       await storage.deleteToken();
       return null;
@@ -29,7 +30,9 @@ class AuthNotifier extends _$AuthNotifier {
   Future<void> login({required String email, required String password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).login(email: email, password: password),
+      () => ref
+          .read(authRepositoryProvider)
+          .login(email: email, password: password),
     );
   }
 
@@ -50,11 +53,9 @@ class AuthNotifier extends _$AuthNotifier {
     required String email,
     required String password,
   }) {
-    return ref.read(authRepositoryProvider).register(
-          name: name,
-          email: email,
-          password: password,
-        );
+    return ref
+        .read(authRepositoryProvider)
+        .register(name: name, email: email, password: password);
   }
 
   Future<String> forgotPassword({required String email}) {
@@ -62,7 +63,9 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   Future<String> resendVerificationEmail({required String email}) {
-    return ref.read(authRepositoryProvider).resendVerificationEmail(email: email);
+    return ref
+        .read(authRepositoryProvider)
+        .resendVerificationEmail(email: email);
   }
 
   Future<String> getGoogleLoginUrl() {

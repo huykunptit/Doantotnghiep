@@ -27,7 +27,8 @@ class ExamModel {
       type: json['type']?.toString(),
       proctoringEnabled: json['proctoring_enabled'] is bool
           ? json['proctoring_enabled'] as bool
-          : (json['proctoring_enabled'] == 1 || json['proctoring_enabled'] == '1'),
+          : (json['proctoring_enabled'] == 1 ||
+                json['proctoring_enabled'] == '1'),
     );
   }
 }
@@ -37,11 +38,7 @@ class QuizDetailModel {
   final String title;
   final int? timeLimit; // in minutes
 
-  QuizDetailModel({
-    required this.id,
-    required this.title,
-    this.timeLimit,
-  });
+  QuizDetailModel({required this.id, required this.title, this.timeLimit});
 
   factory QuizDetailModel.fromJson(Map<String, dynamic> json) {
     return QuizDetailModel(
@@ -83,7 +80,8 @@ class QuizAnswerOptionModel {
 class QuestionModel {
   final int id;
   final String content;
-  final String type; // e.g. single_choice, multiple_choice, true_false, essay, short_answer, numerical, ordering, matching
+  final String
+  type; // e.g. single_choice, multiple_choice, true_false, essay, short_answer, numerical, ordering, matching
   final List<QuizAnswerOptionModel> answers;
 
   QuestionModel({
@@ -98,8 +96,12 @@ class QuestionModel {
       id: json['id'] as int? ?? 0,
       content: json['content']?.toString() ?? '',
       type: json['type']?.toString() ?? 'single_choice',
-      answers: (json['answers'] as List<dynamic>?)
-              ?.map((e) => QuizAnswerOptionModel.fromJson(e as Map<String, dynamic>))
+      answers:
+          (json['answers'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    QuizAnswerOptionModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -24,7 +23,10 @@ class StudentRepository {
       final raw = response.data;
       List<dynamic> list;
       if (raw is Map<String, dynamic>) {
-        list = raw['data'] as List<dynamic>? ?? raw['tasks'] as List<dynamic>? ?? [];
+        list =
+            raw['data'] as List<dynamic>? ??
+            raw['tasks'] as List<dynamic>? ??
+            [];
       } else {
         list = raw as List<dynamic>? ?? [];
       }
@@ -71,23 +73,31 @@ class StudentRepository {
       for (final enroll in enrollments.take(20)) {
         final e = enroll as Map<String, dynamic>;
         final courseId = e['course_id'] as int? ?? 0;
-        final courseTitle = (e['course'] as Map<String, dynamic>?)?['title']?.toString() ?? '';
+        final courseTitle =
+            (e['course'] as Map<String, dynamic>?)?['title']?.toString() ?? '';
         if (courseId == 0) continue;
         try {
-          final attRes = await dio.get<dynamic>('/courses/$courseId/attachments');
+          final attRes = await dio.get<dynamic>(
+            '/courses/$courseId/attachments',
+          );
           final rawAtt = attRes.data;
           List<dynamic> attList;
           if (rawAtt is Map<String, dynamic>) {
-            attList = rawAtt['data'] as List<dynamic>? ?? rawAtt['attachments'] as List<dynamic>? ?? [];
+            attList =
+                rawAtt['data'] as List<dynamic>? ??
+                rawAtt['attachments'] as List<dynamic>? ??
+                [];
           } else {
             attList = rawAtt as List<dynamic>? ?? [];
           }
           for (final att in attList) {
-            allAttachments.add(LibraryAttachmentModel.fromJson(
-              att as Map<String, dynamic>,
-              courseTitle: courseTitle,
-              courseId: courseId,
-            ));
+            allAttachments.add(
+              LibraryAttachmentModel.fromJson(
+                att as Map<String, dynamic>,
+                courseTitle: courseTitle,
+                courseId: courseId,
+              ),
+            );
           }
         } catch (_) {
           // Skip courses with no attachment endpoint

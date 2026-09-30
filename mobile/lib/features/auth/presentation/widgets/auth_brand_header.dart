@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/branding.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/theme/app_brand.dart';
 
 class AuthBrandHeader extends StatelessWidget {
   const AuthBrandHeader({
@@ -26,17 +27,10 @@ class AuthBrandHeader extends StatelessWidget {
           width: logoSize,
           height: logoSize,
           decoration: BoxDecoration(
-            color: AppColors.brandBlack,
+            color: AppBrand.ink,
             borderRadius: BorderRadius.circular(compact ? 18 : 28),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary400.withValues(alpha: 0.28),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
-              ),
-            ],
             border: Border.all(
-              color: AppColors.primary200.withValues(alpha: 0.35),
+              color: context.cs.primaryContainer.withValues(alpha: 0.35),
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -48,7 +42,7 @@ class AuthBrandHeader extends StatelessWidget {
               errorBuilder: (_, _, _) => Icon(
                 Icons.park_rounded,
                 size: logoSize * 0.45,
-                color: AppColors.secondary400,
+                color: context.cs.onSurfaceVariant,
               ),
             ),
           ),
@@ -80,11 +74,7 @@ class AuthBrandHeader extends StatelessWidget {
 }
 
 class AuthBackgroundScaffold extends StatelessWidget {
-  const AuthBackgroundScaffold({
-    super.key,
-    required this.child,
-    this.appBar,
-  });
+  const AuthBackgroundScaffold({super.key, required this.child, this.appBar});
 
   final Widget child;
   final PreferredSizeWidget? appBar;
@@ -100,7 +90,7 @@ class AuthBackgroundScaffold extends StatelessWidget {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkBg : AppColors.neutral50,
+              color: context.cs.surface,
               image: isDark
                   ? null
                   : const DecorationImage(
@@ -117,8 +107,8 @@ class AuthBackgroundScaffold extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.primary50.withValues(alpha: 0.55),
-                    AppColors.neutral50.withValues(alpha: 0.92),
+                    context.cs.primaryContainer.withValues(alpha: 0.55),
+                    context.cs.surfaceContainerLow.withValues(alpha: 0.92),
                   ],
                 ),
               ),

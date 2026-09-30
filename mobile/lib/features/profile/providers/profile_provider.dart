@@ -15,10 +15,14 @@ class ProfileNotifier extends _$ProfileNotifier {
   Future<void> updateProfile({required String name, String? phone}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(profileRepositoryProvider).updateProfile(name: name, phone: phone),
+      () => ref
+          .read(profileRepositoryProvider)
+          .updateProfile(name: name, phone: phone),
     );
     if (state.hasValue) {
-      await ref.read(authNotifierProvider.notifier).updateProfile(name: name, phone: phone);
+      await ref
+          .read(authNotifierProvider.notifier)
+          .updateProfile(name: name, phone: phone);
     }
   }
 
@@ -27,7 +31,9 @@ class ProfileNotifier extends _$ProfileNotifier {
     required String newPassword,
   }) async {
     try {
-      await ref.read(profileRepositoryProvider).changePassword(
+      await ref
+          .read(profileRepositoryProvider)
+          .changePassword(
             currentPassword: currentPassword,
             newPassword: newPassword,
           );

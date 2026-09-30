@@ -8,10 +8,10 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/error/friendly_error.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../data/models/exam_precheck_model.dart';
 import '../../data/repositories/quiz_repository.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 /// Pre-exam face gate: camera preview → detect face → verify/enroll via API.
 class FaceVerificationGate extends ConsumerStatefulWidget {
@@ -132,7 +132,11 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
   Future<void> _captureAndVerify() async {
     final cam = _controller;
     final detector = _detector;
-    if (_verifying || _verified || cam == null || !cam.value.isInitialized || detector == null) {
+    if (_verifying ||
+        _verified ||
+        cam == null ||
+        !cam.value.isInitialized ||
+        detector == null) {
       return;
     }
 
@@ -149,13 +153,15 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
 
       if (faces.isEmpty) {
         setState(() {
-          _status = 'Không phát hiện khuôn mặt. Hãy nhìn thẳng camera và thử lại.';
+          _status =
+              'Không phát hiện khuôn mặt. Hãy nhìn thẳng camera và thử lại.';
         });
         return;
       }
       if (faces.length > 1) {
         setState(() {
-          _status = 'Phát hiện nhiều khuôn mặt. Chỉ một người trong khung hình.';
+          _status =
+              'Phát hiện nhiều khuôn mặt. Chỉ một người trong khung hình.';
         });
         return;
       }
@@ -167,7 +173,9 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
       }
 
       final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-      final result = await ref.read(quizRepositoryProvider).verifyFace(
+      final result = await ref
+          .read(quizRepositoryProvider)
+          .verifyFace(
             widget.examId,
             imageDataUrl: dataUrl,
             enroll: _enrollMode,
@@ -177,9 +185,11 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
 
       if (!mounted) return;
       if (!result.ok) {
-        setState(() => _status = result.message.isNotEmpty
-            ? result.message
-            : 'Xác thực thất bại. Vui lòng thử lại.');
+        setState(
+          () => _status = result.message.isNotEmpty
+              ? result.message
+              : 'Xác thực thất bại. Vui lòng thử lại.',
+        );
         return;
       }
 
@@ -188,8 +198,8 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
         _status = result.enrolled
             ? 'Đã lưu ảnh khuôn mặt và xác thực thành công.'
             : (result.message.isNotEmpty
-                ? result.message
-                : 'Xác thực khuôn mặt thành công.');
+                  ? result.message
+                  : 'Xác thực khuôn mặt thành công.');
       });
       await Future<void>.delayed(const Duration(milliseconds: 600));
       if (mounted) widget.onVerified();
@@ -208,13 +218,16 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Xác thực khuôn mặt',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Xác thực khuôn mặt',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
         leading: widget.onCancel == null
             ? null
             : IconButton(
+                tooltip: 'Đóng',
                 icon: const Icon(Icons.close_rounded),
                 onPressed: _verifying ? null : widget.onCancel,
               ),
@@ -250,7 +263,9 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
                   _status!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: _verified ? AppColors.success : theme.colorScheme.error,
+                    color: _verified
+                        ? context.sem.success
+                        : theme.colorScheme.error,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -272,7 +287,8 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
               ],
               AppSpacing.h12,
               FilledButton.icon(
-                onPressed: (_initializing ||
+                onPressed:
+                    (_initializing ||
                         _verifying ||
                         _verified ||
                         _controller == null ||
@@ -288,19 +304,21 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
                           color: Colors.white,
                         ),
                       )
-                    : Icon(_enrollMode
-                        ? Icons.camera_alt_rounded
-                        : Icons.verified_user_rounded),
+                    : Icon(
+                        _enrollMode
+                            ? Icons.camera_alt_rounded
+                            : Icons.verified_user_rounded,
+                      ),
                 label: Text(
                   _verifying
                       ? 'Đang xác thực…'
                       : _enrollMode
-                          ? 'Chụp & lưu ảnh thẻ'
-                          : 'Chụp & xác thực',
+                      ? 'Chụp & lưu ảnh thẻ'
+                      : 'Chụp & xác thực',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary400,
+                  backgroundColor: context.cs.primary,
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -316,7 +334,9 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
 
   Widget _buildCameraPane(ThemeData theme) {
     if (_initializing) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
     }
     final cam = _controller;
     if (cam == null || !cam.value.isInitialized) {
@@ -342,10 +362,13 @@ class _FaceVerificationGateState extends ConsumerState<FaceVerificationGate>
         ),
         if (_verified)
           ColoredBox(
-            color: Colors.green.withValues(alpha: 0.28),
+            color: context.sem.success.withValues(alpha: 0.28),
             child: const Center(
-              child: Icon(Icons.check_circle_rounded,
-                  color: Colors.white, size: 72),
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 72,
+              ),
             ),
           ),
         if (_verifying && !_verified)

@@ -17,7 +17,8 @@ class AttachmentModel {
     return AttachmentModel(
       id: json['id'] as int? ?? 0,
       title: json['title']?.toString() ?? '',
-      fileUrl: json['file_url']?.toString() ?? json['file_path']?.toString() ?? '',
+      fileUrl:
+          json['file_url']?.toString() ?? json['file_path']?.toString() ?? '',
       fileType: json['file_type']?.toString() ?? json['extension']?.toString(),
       fileSize: json['file_size'] as int?,
     );

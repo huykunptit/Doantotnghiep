@@ -34,13 +34,19 @@ class UserCvModel {
       filePath: json['file_path']?.toString() ?? '',
       fileName: json['file_name']?.toString() ?? '',
       parsedText: json['parsed_text']?.toString(),
-      skills: (json['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      skills:
+          (json['skills'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       createdAt: json['created_at']?.toString() ?? '',
       source: json['source']?.toString(),
       targetRole: json['target_role']?.toString(),
       expectedSalary: (json['expected_salary'] as num?)?.toInt(),
       evaluation: json['evaluation_json'] is Map<String, dynamic>
-          ? CareerEvaluationModel.fromJson(json['evaluation_json'] as Map<String, dynamic>)
+          ? CareerEvaluationModel.fromJson(
+              json['evaluation_json'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -94,12 +100,24 @@ class CareerEvaluationModel {
   factory CareerEvaluationModel.fromJson(Map<String, dynamic> json) {
     return CareerEvaluationModel(
       score: (json['score'] as num?)?.toInt() ?? 0,
-      checks: (json['checks'] as List<dynamic>?)
-              ?.map((e) => CareerEvaluationCheck.fromJson(e as Map<String, dynamic>))
+      checks:
+          (json['checks'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    CareerEvaluationCheck.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
-      warnings: (json['warnings'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      fixes: (json['fixes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      warnings:
+          (json['warnings'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      fixes:
+          (json['fixes'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       targetRole: json['target_role']?.toString(),
       expectedSalary: (json['expected_salary'] as num?)?.toInt(),
       salaryNote: json['salary_note']?.toString(),
@@ -123,18 +141,24 @@ class CareerEvaluateResult {
 
   factory CareerEvaluateResult.fromJson(Map<String, dynamic> json) {
     return CareerEvaluateResult(
-      cv: json['cv'] != null ? UserCvModel.fromJson(json['cv'] as Map<String, dynamic>) : null,
+      cv: json['cv'] != null
+          ? UserCvModel.fromJson(json['cv'] as Map<String, dynamic>)
+          : null,
       evaluation: CareerEvaluationModel.fromJson(
         json['evaluation'] as Map<String, dynamic>? ?? {},
       ),
-      suggestedCourses: (json['suggested_courses'] as List<dynamic>?)
-              ?.map((e) => CareerRecommendationCourseModel.fromJson(e as Map<String, dynamic>))
+      suggestedCourses:
+          (json['suggested_courses'] as List<dynamic>?)
+              ?.map(
+                (e) => CareerRecommendationCourseModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
               .toList() ??
           [],
     );
   }
 }
-
 
 class ExpertAnalysisModel {
   final String overview;
@@ -156,11 +180,31 @@ class ExpertAnalysisModel {
   factory ExpertAnalysisModel.fromJson(Map<String, dynamic> json) {
     return ExpertAnalysisModel(
       overview: json['overview']?.toString() ?? '',
-      strengths: (json['strengths'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      weaknesses: (json['weaknesses'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      cvAdditions: (json['cv_additions'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      cvImprovements: (json['cv_improvements'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-      learningPriorities: (json['learning_priorities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      strengths:
+          (json['strengths'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      weaknesses:
+          (json['weaknesses'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      cvAdditions:
+          (json['cv_additions'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      cvImprovements:
+          (json['cv_improvements'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      learningPriorities:
+          (json['learning_priorities'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 }
@@ -228,22 +272,36 @@ class CareerRecommendationModel {
 
   factory CareerRecommendationModel.fromJson(Map<String, dynamic> json) {
     final rawCourses = json['suggested_courses'] as List<dynamic>? ?? [];
-    final parsedCourses = rawCourses.map((e) {
-      if (e is int) return e;
-      return int.tryParse(e.toString()) ?? 0;
-    }).where((e) => e > 0).toList();
+    final parsedCourses = rawCourses
+        .map((e) {
+          if (e is int) return e;
+          return int.tryParse(e.toString()) ?? 0;
+        })
+        .where((e) => e > 0)
+        .toList();
 
     return CareerRecommendationModel(
       id: json['id'] as int? ?? 0,
       userId: json['user_id'] as int? ?? 0,
       matchScore: json['match_score'] as int? ?? 0,
-      skillGaps: (json['skill_gaps'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      skillGaps:
+          (json['skill_gaps'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       suggestedCourses: parsedCourses,
       aiSummary: json['ai_summary']?.toString() ?? '',
       createdAt: json['created_at']?.toString() ?? '',
-      expertAnalysis: ExpertAnalysisModel.fromJson(json['expert_analysis'] as Map<String, dynamic>? ?? {}),
-      suggestedCoursesData: (json['suggested_courses_data'] as List<dynamic>?)
-              ?.map((e) => CareerRecommendationCourseModel.fromJson(e as Map<String, dynamic>))
+      expertAnalysis: ExpertAnalysisModel.fromJson(
+        json['expert_analysis'] as Map<String, dynamic>? ?? {},
+      ),
+      suggestedCoursesData:
+          (json['suggested_courses_data'] as List<dynamic>?)
+              ?.map(
+                (e) => CareerRecommendationCourseModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
               .toList() ??
           [],
     );
@@ -254,16 +312,20 @@ class CareerAdvisorStatusModel {
   final UserCvModel? cv;
   final List<CareerRecommendationModel> recommendations;
 
-  CareerAdvisorStatusModel({
-    this.cv,
-    required this.recommendations,
-  });
+  CareerAdvisorStatusModel({this.cv, required this.recommendations});
 
   factory CareerAdvisorStatusModel.fromJson(Map<String, dynamic> json) {
     return CareerAdvisorStatusModel(
-      cv: json['cv'] != null ? UserCvModel.fromJson(json['cv'] as Map<String, dynamic>) : null,
-      recommendations: (json['recommendations'] as List<dynamic>?)
-              ?.map((e) => CareerRecommendationModel.fromJson(e as Map<String, dynamic>))
+      cv: json['cv'] != null
+          ? UserCvModel.fromJson(json['cv'] as Map<String, dynamic>)
+          : null,
+      recommendations:
+          (json['recommendations'] as List<dynamic>?)
+              ?.map(
+                (e) => CareerRecommendationModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
               .toList() ??
           [],
     );

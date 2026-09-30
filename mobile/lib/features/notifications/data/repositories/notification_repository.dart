@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -21,7 +20,9 @@ class NotificationRepository {
       final response = await dio.get<Map<String, dynamic>>('/notifications');
       final data = response.data!;
       final list = data['data'] as List<dynamic>? ?? [];
-      return list.map((e) => NotificationModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => NotificationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }
@@ -29,7 +30,9 @@ class NotificationRepository {
 
   Future<int> getUnreadCount() async {
     try {
-      final response = await dio.get<Map<String, dynamic>>('/notifications/unread-count');
+      final response = await dio.get<Map<String, dynamic>>(
+        '/notifications/unread-count',
+      );
       return response.data?['count'] as int? ?? 0;
     } on DioException catch (e) {
       throw AppException.fromDioException(e);

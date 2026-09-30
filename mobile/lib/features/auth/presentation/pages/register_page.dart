@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../widgets/auth_brand_header.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -37,21 +37,28 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isLoading = true);
     try {
-      await ref.read(authNotifierProvider.notifier).register(
+      await ref
+          .read(authNotifierProvider.notifier)
+          .register(
             name: _nameCtrl.text.trim(),
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
       if (!mounted) return;
-      context.pushReplacement('/verify-email-prompt', extra: _emailCtrl.text.trim());
+      context.pushReplacement(
+        '/verify-email-prompt',
+        extra: _emailCtrl.text.trim(),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString()),
-          backgroundColor: AppColors.error,
+          backgroundColor: context.cs.error,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     } finally {
@@ -69,6 +76,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
+          tooltip: 'Quay lại',
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => context.go('/login'),
         ),
@@ -95,114 +103,139 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   ),
                 ),
                 AppSpacing.h24,
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isDark ? AppColors.darkBorder : AppColors.neutral200,
-                      ),
-                      boxShadow: isDark ? [] : [
-                        BoxShadow(
-                          color: AppColors.neutral800.withValues(alpha: 0.06),
-                          blurRadius: 24, offset: const Offset(0, 4),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: context.cs.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: context.cs.outlineVariant),
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildField(
+                          controller: _nameCtrl,
+                          label: 'Họ và tên',
+                          icon: Icons.person_outline_rounded,
+                          action: TextInputAction.next,
+                          isDark: isDark,
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Vui lòng nhập họ tên'
+                              : null,
+                        ),
+                        AppSpacing.h12,
+                        _buildField(
+                          controller: _emailCtrl,
+                          label: 'Email',
+                          icon: Icons.mail_outline_rounded,
+                          type: TextInputType.emailAddress,
+                          action: TextInputAction.next,
+                          isDark: isDark,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Vui lòng nhập email';
+                            }
+                            if (!v.contains('@')) return 'Email không hợp lệ';
+                            return null;
+                          },
+                        ),
+                        AppSpacing.h12,
+                        _buildPasswordField(
+                          controller: _passwordCtrl,
+                          label: 'Mật khẩu',
+                          obscure: _obscurePassword,
+                          isDark: isDark,
+                          action: TextInputAction.next,
+                          onToggle: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                          validator: (v) => (v == null || v.length < 6)
+                              ? 'Tối thiểu 6 ký tự'
+                              : null,
+                        ),
+                        AppSpacing.h12,
+                        _buildPasswordField(
+                          controller: _confirmPasswordCtrl,
+                          label: 'Xác nhận mật khẩu',
+                          obscure: _obscureConfirm,
+                          isDark: isDark,
+                          action: TextInputAction.done,
+                          onToggle: () => setState(
+                            () => _obscureConfirm = !_obscureConfirm,
+                          ),
+                          onSubmitted: (_) => _submit(),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) {
+                              return 'Vui lòng xác nhận mật khẩu';
+                            }
+                            if (v != _passwordCtrl.text) {
+                              return 'Mật khẩu không khớp';
+                            }
+                            return null;
+                          },
+                        ),
+                        AppSpacing.h20,
+                        FilledButton(
+                          onPressed: _isLoading ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: context.cs.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Tạo tài khoản',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildField(
-                            controller: _nameCtrl,
-                            label: 'Họ và tên',
-                            icon: Icons.person_outline_rounded,
-                            action: TextInputAction.next,
-                            isDark: isDark,
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Vui lòng nhập họ tên' : null,
-                          ),
-                          AppSpacing.h12,
-                          _buildField(
-                            controller: _emailCtrl,
-                            label: 'Email',
-                            icon: Icons.mail_outline_rounded,
-                            type: TextInputType.emailAddress,
-                            action: TextInputAction.next,
-                            isDark: isDark,
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Vui lòng nhập email';
-                              if (!v.contains('@')) return 'Email không hợp lệ';
-                              return null;
-                            },
-                          ),
-                          AppSpacing.h12,
-                          _buildPasswordField(
-                            controller: _passwordCtrl,
-                            label: 'Mật khẩu',
-                            obscure: _obscurePassword,
-                            isDark: isDark,
-                            action: TextInputAction.next,
-                            onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
-                            validator: (v) => (v == null || v.length < 6) ? 'Tối thiểu 6 ký tự' : null,
-                          ),
-                          AppSpacing.h12,
-                          _buildPasswordField(
-                            controller: _confirmPasswordCtrl,
-                            label: 'Xác nhận mật khẩu',
-                            obscure: _obscureConfirm,
-                            isDark: isDark,
-                            action: TextInputAction.done,
-                            onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                            onSubmitted: (_) => _submit(),
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'Vui lòng xác nhận mật khẩu';
-                              if (v != _passwordCtrl.text) return 'Mật khẩu không khớp';
-                              return null;
-                            },
-                          ),
-                          AppSpacing.h20,
-                          FilledButton(
-                            onPressed: _isLoading ? null : _submit,
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.primary400,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20, width: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text('Tạo tài khoản',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
-                          ),
-                        ],
+                  ),
+                ),
+                AppSpacing.h20,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Đã có tài khoản?',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
-                  AppSpacing.h20,
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('Đã có tài khoản?',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant)),
-                      TextButton(
-                        onPressed: () => context.go('/login'),
-                        style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary600,
-                            padding: const EdgeInsets.symmetric(horizontal: 6)),
-                        child: const Text('Đăng nhập', style: TextStyle(fontWeight: FontWeight.w700)),
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: context.cs.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                      child: const Text(
+                        'Đăng nhập',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -224,8 +257,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         prefixIcon: Icon(icon, size: 20),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
-        fillColor: isDark ? AppColors.darkBg.withValues(alpha: 0.5) : AppColors.neutral50,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       validator: validator,
     );
@@ -250,13 +285,19 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         labelText: label,
         prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
         suffixIcon: IconButton(
-          icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+          tooltip: 'Hiện/ẩn mật khẩu',
+          icon: Icon(
+            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            size: 20,
+          ),
           onPressed: onToggle,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
-        fillColor: isDark ? AppColors.darkBg.withValues(alpha: 0.5) : AppColors.neutral50,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       validator: validator,
     );

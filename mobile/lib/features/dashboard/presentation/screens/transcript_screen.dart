@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../data/models/transcript_model.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/theme/app_brand.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class TranscriptScreen extends ConsumerWidget {
   const TranscriptScreen({super.key});
@@ -27,6 +28,7 @@ class TranscriptScreen extends ConsumerWidget {
         title: const Text('Bảng điểm'),
         actions: [
           IconButton(
+            tooltip: 'Làm mới',
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(studentTranscriptProvider),
           ),
@@ -34,24 +36,9 @@ class TranscriptScreen extends ConsumerWidget {
       ),
       body: transcriptAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                AppSpacing.h12,
-                Text('Lỗi: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
-                AppSpacing.h16,
-                FilledButton.icon(
-                  onPressed: () => ref.invalidate(studentTranscriptProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Thử lại'),
-                ),
-              ],
-            ),
-          ),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.invalidate(studentTranscriptProvider),
         ),
         data: (transcript) {
           if (transcript.results.isEmpty) {
@@ -59,11 +46,17 @@ class TranscriptScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 64, color: theme.colorScheme.outline),
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: theme.colorScheme.outline,
+                  ),
                   AppSpacing.h16,
                   Text(
                     'Chưa có kết quả thi trên LMS.',
-                    style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -78,7 +71,7 @@ class TranscriptScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppColors.primary600, AppColors.primary400],
+                    colors: AppBrand.heroColors,
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -90,7 +83,7 @@ class TranscriptScreen extends ConsumerWidget {
                     const Text(
                       'KẾT QUẢ THI TRÊN LMS',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: Colors.white70,
                         letterSpacing: 1.2,
@@ -110,7 +103,9 @@ class TranscriptScreen extends ConsumerWidget {
                         _StatChip(label: 'Đạt', value: '${s.passed}'),
                         _StatChip(
                           label: 'Điểm TB',
-                          value: s.averageScore != null ? s.averageScore!.toStringAsFixed(1) : '—',
+                          value: s.averageScore != null
+                              ? s.averageScore!.toStringAsFixed(1)
+                              : '—',
                         ),
                       ],
                     ),
@@ -127,7 +122,10 @@ class TranscriptScreen extends ConsumerWidget {
               ),
               AppSpacing.h12,
               ...transcript.results.map(
-                (r) => _ExamResultCard(result: r, dateLabel: _fmtDate(r.examDate ?? r.takenAt)),
+                (r) => _ExamResultCard(
+                  result: r,
+                  dateLabel: _fmtDate(r.examDate ?? r.takenAt),
+                ),
               ),
             ],
           );
@@ -153,8 +151,22 @@ class _StatChip extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -176,7 +188,11 @@ class _ExamResultCard extends StatelessWidget {
     }
     final parts = rest.split(' - ');
     if (parts.length >= 2) {
-      return (type: parts.first.trim(), title: parts.sublist(1).join(' - ').trim(), code: code);
+      return (
+        type: parts.first.trim(),
+        title: parts.sublist(1).join(' - ').trim(),
+        code: code,
+      );
     }
     return (type: result.examType, title: rest, code: code);
   }
@@ -184,7 +200,6 @@ class _ExamResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final hasScore = result.score != null;
     final passed = result.passed == true;
     final split = _splitTitle();
@@ -196,9 +211,9 @@ class _ExamResultCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : Colors.white,
+        color: context.cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
+        border: Border.all(color: context.cs.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,17 +224,20 @@ class _ExamResultCard extends StatelessWidget {
               children: [
                 if (split.type != null && split.type!.isNotEmpty) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary50,
+                      color: context.cs.primaryContainer,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       split.type!,
-                      style: const TextStyle(
-                        fontSize: 11,
+                      style: TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary600,
+                        color: context.cs.primary,
                       ),
                     ),
                   ),
@@ -229,9 +247,13 @@ class _ExamResultCard extends StatelessWidget {
                   displayTitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, height: 1.3),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
                 ),
-                if (result.courseTitle != null && result.courseTitle != displayTitle) ...[
+                if (result.courseTitle != null &&
+                    result.courseTitle != displayTitle) ...[
                   AppSpacing.h4,
                   Text(
                     result.courseTitle!,
@@ -245,7 +267,11 @@ class _ExamResultCard extends StatelessWidget {
                 AppSpacing.h8,
                 Row(
                   children: [
-                    Icon(Icons.event_outlined, size: 13, color: theme.colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.event_outlined,
+                      size: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     AppSpacing.w4,
                     Text(
                       dateLabel,
@@ -269,8 +295,8 @@ class _ExamResultCard extends StatelessWidget {
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
                   color: !hasScore
-                      ? AppColors.neutral400
-                      : (passed ? AppColors.primary400 : AppColors.error),
+                      ? context.cs.outline
+                      : (passed ? context.cs.primary : context.cs.error),
                 ),
               ),
               AppSpacing.h4,
@@ -278,18 +304,20 @@ class _ExamResultCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: !hasScore
-                      ? AppColors.neutral100
-                      : (passed ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2)),
+                      ? context.cs.surfaceContainerLow
+                      : (passed ? context.sem.successBg : context.sem.dangerBg),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   !hasScore ? 'Chưa thi' : (passed ? 'Đạt' : 'Chưa đạt'),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: !hasScore
-                        ? AppColors.neutral600
-                        : (passed ? const Color(0xFF166534) : const Color(0xFFB91C1C)),
+                        ? context.cs.onSurfaceVariant
+                        : (passed
+                              ? context.sem.successFg
+                              : context.sem.dangerFg),
                   ),
                 ),
               ),

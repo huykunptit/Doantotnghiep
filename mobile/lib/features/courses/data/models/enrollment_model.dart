@@ -67,7 +67,8 @@ class EnrollmentModel {
       enrolledAt: json['enrolled_at']?.toString(),
       enrollmentSource: json['enrollment_source']?.toString(),
       progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
-      startsAt: json['starts_at']?.toString() ?? term?['start_date']?.toString(),
+      startsAt:
+          json['starts_at']?.toString() ?? term?['start_date']?.toString(),
       endsAt: json['ends_at']?.toString() ?? term?['end_date']?.toString(),
       windowStatus: json['window_status']?.toString(),
       isPlanned: json['is_planned'] == true,

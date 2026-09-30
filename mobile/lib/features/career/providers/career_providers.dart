@@ -14,7 +14,9 @@ class CareerAdvisorNotifier extends _$CareerAdvisorNotifier {
   Future<void> uploadCV(String filePath, String fileName) async {
     state = const AsyncValue.loading();
     try {
-      final result = await ref.read(careerRepositoryProvider).uploadCV(filePath, fileName);
+      final result = await ref
+          .read(careerRepositoryProvider)
+          .uploadCV(filePath, fileName);
       state = AsyncValue.data(result);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
@@ -24,7 +26,9 @@ class CareerAdvisorNotifier extends _$CareerAdvisorNotifier {
 
   Future<CareerEvaluateResult> saveCvForm(Map<String, dynamic> payload) async {
     final result = await ref.read(careerRepositoryProvider).saveCvForm(payload);
-    final updatedStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
+    final updatedStatus = await ref
+        .read(careerRepositoryProvider)
+        .getAdvisorStatus();
     state = AsyncValue.data(updatedStatus);
     return result;
   }
@@ -33,11 +37,12 @@ class CareerAdvisorNotifier extends _$CareerAdvisorNotifier {
     String? targetRole,
     int? expectedSalary,
   }) async {
-    final result = await ref.read(careerRepositoryProvider).evaluate(
-          targetRole: targetRole,
-          expectedSalary: expectedSalary,
-        );
-    final updatedStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
+    final result = await ref
+        .read(careerRepositoryProvider)
+        .evaluate(targetRole: targetRole, expectedSalary: expectedSalary);
+    final updatedStatus = await ref
+        .read(careerRepositoryProvider)
+        .getAdvisorStatus();
     state = AsyncValue.data(updatedStatus);
     return result;
   }
@@ -48,16 +53,19 @@ class CareerAdvisorNotifier extends _$CareerAdvisorNotifier {
   }) async {
     state = const AsyncValue.loading();
     try {
-      final recommendation = await ref.read(careerRepositoryProvider).getRecommendation(
-            jobTitle,
-            expectedSalary: expectedSalary,
-          );
-      final updatedStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
+      final recommendation = await ref
+          .read(careerRepositoryProvider)
+          .getRecommendation(jobTitle, expectedSalary: expectedSalary);
+      final updatedStatus = await ref
+          .read(careerRepositoryProvider)
+          .getAdvisorStatus();
       state = AsyncValue.data(updatedStatus);
       return recommendation;
     } catch (e, stack) {
       try {
-        final currentStatus = await ref.read(careerRepositoryProvider).getAdvisorStatus();
+        final currentStatus = await ref
+            .read(careerRepositoryProvider)
+            .getAdvisorStatus();
         state = AsyncValue.data(currentStatus);
       } catch (_) {
         state = AsyncValue.error(e, stack);

@@ -18,7 +18,8 @@ class AuthUser {
       id: json['id']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       name: json['name']?.toString() ?? json['fullName']?.toString() ?? '',
-      accessToken: json['accessToken']?.toString() ?? json['token']?.toString() ?? '',
+      accessToken:
+          json['accessToken']?.toString() ?? json['token']?.toString() ?? '',
       refreshToken: json['refreshToken']?.toString(),
     );
   }

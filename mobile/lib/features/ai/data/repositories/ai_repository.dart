@@ -30,9 +30,11 @@ class AiRepository {
       return RecommendationsBundle(
         items: list
             .whereType<Map>()
-            .map((e) => CourseRecommendationItem.fromJson(
-                  Map<String, dynamic>.from(e),
-                ))
+            .map(
+              (e) => CourseRecommendationItem.fromJson(
+                Map<String, dynamic>.from(e),
+              ),
+            )
             .where((e) => e.course.id > 0)
             .toList(),
         profileSparse: context['profile_sparse'] == true,
@@ -75,9 +77,7 @@ class AiRepository {
           if (lessonType != null) 'lesson_type': lessonType,
           if (progressPercent != null) 'progress_percent': progressPercent,
         },
-        options: Options(
-          receiveTimeout: const Duration(seconds: 45),
-        ),
+        options: Options(receiveTimeout: const Duration(seconds: 45)),
       );
       return TutoringTipModel.fromJson(response.data ?? {});
     } on DioException catch (e) {

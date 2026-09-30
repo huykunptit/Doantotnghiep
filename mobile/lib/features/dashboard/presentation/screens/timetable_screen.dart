@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../data/models/portal_models.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class TimetableScreen extends ConsumerWidget {
   const TimetableScreen({super.key});
   static const routeName = '/timetable';
 
-  static const _weekdays = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+  static const _weekdays = [
+    'Thứ 2',
+    'Thứ 3',
+    'Thứ 4',
+    'Thứ 5',
+    'Thứ 6',
+    'Thứ 7',
+    'CN',
+  ];
 
   String _fmtDateTime(String? raw) {
     if (raw == null || raw.isEmpty) return '—';
@@ -29,6 +37,7 @@ class TimetableScreen extends ConsumerWidget {
         title: const Text('Thời khóa biểu'),
         actions: [
           IconButton(
+            tooltip: 'Làm mới',
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => ref.invalidate(studentTimetableProvider),
           ),
@@ -36,7 +45,10 @@ class TimetableScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Lỗi: ${friendlyErrorMessage(e)}')),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.invalidate(studentTimetableProvider),
+        ),
         data: (data) {
           final byDay = <int, List<TimetableScheduleItem>>{};
           for (var d = 1; d <= 7; d++) {
@@ -63,7 +75,7 @@ class TimetableScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.neutral200),
+                    border: Border.all(color: context.cs.outlineVariant),
                   ),
                   child: const Text('Chưa có lịch học cho lớp hành chính.'),
                 )
@@ -76,16 +88,24 @@ class TimetableScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.neutral200),
-                      color: theme.brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+                      border: Border.all(color: context.cs.outlineVariant),
+                      color: context.cs.surfaceContainerLowest,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(_weekdays[i], style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(
+                          _weekdays[i],
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                         AppSpacing.h8,
                         if (slots.isEmpty)
-                          Text('—', style: TextStyle(color: theme.colorScheme.onSurfaceVariant))
+                          Text(
+                            '—',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          )
                         else
                           ...slots.map(
                             (s) => Padding(
@@ -95,16 +115,27 @@ class TimetableScreen extends ConsumerWidget {
                                 children: [
                                   Text(
                                     '${s.startTime}–${s.endTime}',
-                                    style: const TextStyle(
-                                      color: AppColors.primary400,
+                                    style: TextStyle(
+                                      color: context.cs.primary,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                  Text(s.courseTitle ?? '—', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  Text(
+                                    s.courseTitle ?? '—',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                   if (s.room != null)
-                                    Text('Phòng ${s.room}', style: theme.textTheme.bodySmall),
+                                    Text(
+                                      'Phòng ${s.room}',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
                                   if (s.lecturerName != null)
-                                    Text(s.lecturerName!, style: theme.textTheme.bodySmall),
+                                    Text(
+                                      s.lecturerName!,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
                                 ],
                               ),
                             ),
@@ -115,13 +146,24 @@ class TimetableScreen extends ConsumerWidget {
                 }),
               if (data.exams.isNotEmpty) ...[
                 AppSpacing.h12,
-                Text('Lịch thi sắp tới', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  'Lịch thi sắp tới',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 AppSpacing.h8,
                 ...data.exams.map(
                   (ex) => ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.edit_document, color: AppColors.primary400),
-                    title: Text(ex.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    leading: Icon(
+                      Icons.edit_document,
+                      color: context.cs.primary,
+                    ),
+                    title: Text(
+                      ex.title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     subtitle: Text(_fmtDateTime(ex.startsAt)),
                   ),
                 ),

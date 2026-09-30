@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../error/friendly_error.dart';
-import '../theme/app_colors.dart';
+import '../theme/theme_context.dart';
 import '../theme/app_spacing.dart';
 
 /// Standard "something went wrong" panel for AsyncValue.error branches.
@@ -25,7 +25,7 @@ class ErrorStateWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 48, color: AppColors.error),
+            Icon(icon, size: 48, color: context.cs.error),
             AppSpacing.h12,
             Text(
               friendlyErrorMessage(error),

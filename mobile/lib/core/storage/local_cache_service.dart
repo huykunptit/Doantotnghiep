@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'secure_storage.dart';
 
@@ -34,7 +33,9 @@ class LocalCacheService {
       final data = wrapper['data'];
 
       if (maxAge != null) {
-        final age = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(cachedAt));
+        final age = DateTime.now().difference(
+          DateTime.fromMillisecondsSinceEpoch(cachedAt),
+        );
         if (age > maxAge) {
           await deleteCache(key);
           return null;

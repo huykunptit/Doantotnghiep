@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_constants.dart';
@@ -13,9 +12,9 @@ part 'course_repository.g.dart';
 
 @riverpod
 CourseRepository courseRepository(CourseRepositoryRef ref) => CourseRepository(
-      dio: ref.read(apiClientProvider),
-      cache: ref.read(localCacheServiceProvider),
-    );
+  dio: ref.read(apiClientProvider),
+  cache: ref.read(localCacheServiceProvider),
+);
 
 class CourseRepository {
   const CourseRepository({required this.dio, required this.cache});
@@ -65,7 +64,10 @@ class CourseRepository {
     }
   }
 
-  Future<List<CourseListItemModel>> getCourses({String? search, int? categoryId}) async {
+  Future<List<CourseListItemModel>> getCourses({
+    String? search,
+    int? categoryId,
+  }) async {
     final cacheKey = 'courses_${search ?? ""}_${categoryId ?? ""}';
     try {
       final queryParams = <String, dynamic>{

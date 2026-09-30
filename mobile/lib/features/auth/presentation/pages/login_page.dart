@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/error/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../widgets/auth_brand_header.dart';
 import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -32,10 +32,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    await ref.read(authNotifierProvider.notifier).login(
-          email: _emailCtrl.text.trim(),
-          password: _passwordCtrl.text,
-        );
+    await ref
+        .read(authNotifierProvider.notifier)
+        .login(email: _emailCtrl.text.trim(), password: _passwordCtrl.text);
     if (!mounted) return;
     final authState = ref.read(authNotifierProvider);
     authState.whenOrNull(
@@ -44,14 +43,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       },
       error: (e, _) {
         if (e is AppException && e.requiresVerification) {
-          context.push('/verify-email-prompt', extra: e.email ?? _emailCtrl.text.trim());
+          context.push(
+            '/verify-email-prompt',
+            extra: e.email ?? _emailCtrl.text.trim(),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(friendlyErrorMessage(e)),
-              backgroundColor: AppColors.error,
+              backgroundColor: context.cs.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -84,21 +88,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? AppColors.darkSurface.withValues(alpha: 0.92)
-                        : Colors.white.withValues(alpha: 0.94),
+                        ? context.cs.surfaceContainerLowest.withValues(
+                            alpha: 0.92,
+                          )
+                        : context.cs.surfaceContainerLowest.withValues(
+                            alpha: 0.94,
+                          ),
                     borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.neutral200,
-                    ),
-                    boxShadow: isDark
-                        ? []
-                        : [
-                            BoxShadow(
-                              color: AppColors.primary800.withValues(alpha: 0.08),
-                              blurRadius: 28,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
+                    border: Border.all(color: context.cs.outlineVariant),
                   ),
                   child: Form(
                     key: _formKey,
@@ -135,16 +132,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkBg.withValues(alpha: 0.5)
-                                : AppColors.neutral50,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.trim().isEmpty) return 'Vui lòng nhập email';
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Vui lòng nhập email';
+                            }
                             if (!v.contains('@')) return 'Email không hợp lệ';
                             return null;
                           },
@@ -163,6 +159,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                             suffixIcon: IconButton(
+                              tooltip: 'Hiện/ẩn mật khẩu',
                               icon: Icon(
                                 _obscure
                                     ? Icons.visibility_outlined
@@ -170,22 +167,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 size: 20,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
-                              onPressed: () => setState(() => _obscure = !_obscure),
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: isDark
-                                ? AppColors.darkBg.withValues(alpha: 0.5)
-                                : AppColors.neutral50,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.length < 6) return 'Mật khẩu tối thiểu 6 ký tự';
+                            if (v == null || v.length < 6) {
+                              return 'Mật khẩu tối thiểu 6 ký tự';
+                            }
                             return null;
                           },
                         ),
@@ -194,12 +191,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           child: TextButton(
                             onPressed: () => context.push('/forgot-password'),
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                              foregroundColor: AppColors.primary600,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 8,
+                              ),
+                              foregroundColor: context.cs.primary,
                             ),
                             child: const Text(
                               'Quên mật khẩu?',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -207,7 +210,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         FilledButton(
                           onPressed: isLoading ? null : _submit,
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary400,
+                            backgroundColor: context.cs.primary,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -238,7 +241,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 AppSpacing.h20,
                 Row(
                   children: [
-                    Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                    Expanded(
+                      child: Divider(color: theme.colorScheme.outlineVariant),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
@@ -248,19 +253,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       ),
                     ),
-                    Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                    Expanded(
+                      child: Divider(color: theme.colorScheme.outlineVariant),
+                    ),
                   ],
                 ),
                 AppSpacing.h16,
                 OutlinedButton(
-                  onPressed: isLoading ? null : () => context.push('/google-login-webview'),
+                  onPressed: isLoading
+                      ? null
+                      : () => context.push('/google-login-webview'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     side: BorderSide(color: theme.colorScheme.outlineVariant),
                     backgroundColor: isDark
-                        ? AppColors.darkSurface.withValues(alpha: 0.7)
-                        : Colors.white.withValues(alpha: 0.8),
+                        ? context.cs.surfaceContainerLowest.withValues(
+                            alpha: 0.7,
+                          )
+                        : context.cs.surfaceContainerLowest.withValues(
+                            alpha: 0.8,
+                          ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -269,7 +284,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png',
                         height: 20,
                         width: 20,
-                        errorBuilder: (_, _, _) => const Icon(Icons.g_mobiledata, size: 20),
+                        errorBuilder: (_, _, _) =>
+                            const Icon(Icons.g_mobiledata, size: 20),
                       ),
                       AppSpacing.w12,
                       Text(
@@ -284,8 +300,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
                 AppSpacing.h24,
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       'Chưa có tài khoản?',
@@ -296,7 +313,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     TextButton(
                       onPressed: () => context.push('/register'),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.primary600,
+                        foregroundColor: context.cs.primary,
                         padding: const EdgeInsets.symmetric(horizontal: 6),
                       ),
                       child: const Text(

@@ -32,11 +32,7 @@ class UserModel {
     );
   }
 
-  UserModel copyWith({
-    String? name,
-    String? avatar,
-    String? phone,
-  }) {
+  UserModel copyWith({String? name, String? avatar, String? phone}) {
     return UserModel(
       id: id,
       name: name ?? this.name,

@@ -107,11 +107,11 @@ class LibraryAttachmentModel {
   });
 
   factory LibraryAttachmentModel.fromJson(
-      Map<String, dynamic> json, {
-      String courseTitle = '',
-      String lessonTitle = '',
-      int courseId = 0,
-      int lessonId = 0,
+    Map<String, dynamic> json, {
+    String courseTitle = '',
+    String lessonTitle = '',
+    int courseId = 0,
+    int lessonId = 0,
   }) {
     return LibraryAttachmentModel(
       id: json['id'] as int? ?? 0,
@@ -141,7 +141,9 @@ class LibraryAttachmentModel {
   String get fileSizeText {
     if (fileSize == null) return '';
     if (fileSize! < 1024) return '${fileSize}B';
-    if (fileSize! < 1024 * 1024) return '${(fileSize! / 1024).toStringAsFixed(1)}KB';
+    if (fileSize! < 1024 * 1024) {
+      return '${(fileSize! / 1024).toStringAsFixed(1)}KB';
+    }
     return '${(fileSize! / 1024 / 1024).toStringAsFixed(1)}MB';
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../data/models/ai_models.dart';
 import '../../data/repositories/ai_repository.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class AiChatScreen extends ConsumerStatefulWidget {
   const AiChatScreen({super.key, this.courseId});
@@ -25,11 +25,11 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   bool _restored = false;
 
   AiChatMessage get _welcome => AiChatMessage(
-        role: 'assistant',
-        text: widget.courseId != null
-            ? 'Xin chào! Tôi đang hỗ trợ bạn trong khóa học này — hỏi về bài học, quiz hoặc mẹo học tập nhé.'
-            : 'Xin chào! Tôi có thể gợi ý khóa học, lộ trình học hoặc giải đáp thắc mắc về hệ thống.',
-      );
+    role: 'assistant',
+    text: widget.courseId != null
+        ? 'Xin chào! Tôi đang hỗ trợ bạn trong khóa học này — hỏi về bài học, quiz hoặc mẹo học tập nhé.'
+        : 'Xin chào! Tôi có thể gợi ý khóa học, lộ trình học hoặc giải đáp thắc mắc về hệ thống.',
+  );
 
   int? get _userId => ref.read(authNotifierProvider).valueOrNull?.id;
 
@@ -40,10 +40,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   }
 
   Future<void> _restore() async {
-    final saved = await ref.read(aiChatHistoryStoreProvider).load(
-          userId: _userId,
-          courseId: widget.courseId,
-        );
+    final saved = await ref
+        .read(aiChatHistoryStoreProvider)
+        .load(userId: _userId, courseId: widget.courseId);
     if (!mounted) return;
     setState(() {
       _messages
@@ -56,11 +55,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
 
   Future<void> _persist() async {
     if (!_restored) return;
-    await ref.read(aiChatHistoryStoreProvider).save(
-          messages: _messages,
-          userId: _userId,
-          courseId: widget.courseId,
-        );
+    await ref
+        .read(aiChatHistoryStoreProvider)
+        .save(messages: _messages, userId: _userId, courseId: widget.courseId);
   }
 
   @override
@@ -91,7 +88,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           .skip(1)
           .map((m) => {'role': m.role, 'content': m.text})
           .toList();
-      final reply = await ref.read(aiRepositoryProvider).chat(
+      final reply = await ref
+          .read(aiRepositoryProvider)
+          .chat(
             message: text,
             courseId: widget.courseId,
             history: history.length > 10
@@ -122,10 +121,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
   }
 
   Future<void> _clear() async {
-    await ref.read(aiChatHistoryStoreProvider).clear(
-          userId: _userId,
-          courseId: widget.courseId,
-        );
+    await ref
+        .read(aiChatHistoryStoreProvider)
+        .clear(userId: _userId, courseId: widget.courseId);
     if (!mounted) return;
     setState(() {
       _messages
@@ -162,9 +160,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
           children: [
             const Text('Trợ lý AI'),
             Text(
-              widget.courseId != null
-                  ? 'Ngữ cảnh khóa học'
-                  : 'Hỗ trợ học tập',
+              widget.courseId != null ? 'Ngữ cảnh khóa học' : 'Hỗ trợ học tập',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -199,8 +195,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                 final msg = _messages[index];
                 final isUser = msg.role == 'user';
                 return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: isUser
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.symmetric(
@@ -212,7 +209,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: isUser
-                          ? AppColors.primary600
+                          ? context.cs.primary
                           : theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
@@ -243,10 +240,8 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                 runSpacing: 8,
                 children: _quick
                     .map(
-                      (q) => ActionChip(
-                        label: Text(q),
-                        onPressed: () => _send(q),
-                      ),
+                      (q) =>
+                          ActionChip(label: Text(q), onPressed: () => _send(q)),
                     )
                     .toList(),
               ),

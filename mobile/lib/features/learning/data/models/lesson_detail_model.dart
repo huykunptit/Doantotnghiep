@@ -26,7 +26,9 @@ class LessonDetailModel {
   });
 
   factory LessonDetailModel.fromJson(Map<String, dynamic> json) {
-    final progress = json['progress'] as Map<String, dynamic>? ?? json['user_progress'] as Map<String, dynamic>?;
+    final progress =
+        json['progress'] as Map<String, dynamic>? ??
+        json['user_progress'] as Map<String, dynamic>?;
     return LessonDetailModel(
       id: json['id'] as int? ?? 0,
       courseId: json['course_id'] as int? ?? 0,

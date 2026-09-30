@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../data/models/student_models.dart';
 import '../../providers/student_providers.dart';
-import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/widgets/skeleton.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -29,26 +30,18 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tài liệu học tập',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Tài liệu học tập',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
       ),
       body: libraryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 8),
-              Text(friendlyErrorMessage(e), textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              FilledButton(
-                  onPressed: () => ref.invalidate(myLibraryProvider),
-                  child: const Text('Thử lại')),
-            ],
-          ),
+        loading: () => const SkeletonList(),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.invalidate(myLibraryProvider),
         ),
         data: (attachments) {
           final filtered = _search.isEmpty
@@ -77,6 +70,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     prefixIcon: const Icon(Icons.search, size: 20),
                     suffixIcon: _search.isNotEmpty
                         ? IconButton(
+                            tooltip: 'Xóa',
                             icon: const Icon(Icons.clear, size: 18),
                             onPressed: () {
                               _controller.clear();
@@ -88,50 +82,58 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant,
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .outlineVariant,
+                        color: Theme.of(context).colorScheme.outlineVariant,
                       ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                   ),
                   onChanged: (v) => setState(() => _search = v),
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 child: Row(
                   children: [
-                    Text('${filtered.length} tài liệu',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant)),
+                    Text(
+                      '${filtered.length} tài liệu',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Expanded(
                 child: filtered.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.folder_open,
-                                size: 64, color: Colors.grey),
+                            Icon(
+                              Icons.folder_open,
+                              size: 64,
+                              color: context.cs.onSurfaceVariant,
+                            ),
                             SizedBox(height: 12),
-                            Text('Không tìm thấy tài liệu nào',
-                                style: TextStyle(color: Colors.grey)),
+                            Text(
+                              'Không tìm thấy tài liệu nào',
+                              style: TextStyle(
+                                color: context.cs.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
                       )
@@ -142,8 +144,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                           itemCount: grouped.length,
                           itemBuilder: (context, i) {
-                            final courseTitle =
-                                grouped.keys.elementAt(i);
+                            final courseTitle = grouped.keys.elementAt(i);
                             final items = grouped[courseTitle]!;
                             return _CourseSection(
                               courseTitle: courseTitle,
@@ -162,8 +163,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 }
 
 class _CourseSection extends StatefulWidget {
-  const _CourseSection(
-      {required this.courseTitle, required this.items});
+  const _CourseSection({required this.courseTitle, required this.items});
   final String courseTitle;
   final List<LibraryAttachmentModel> items;
 
@@ -187,28 +187,32 @@ class _CourseSectionState extends State<_CourseSection> {
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.folder, size: 18, color: AppColors.warning),
+                Icon(Icons.folder, size: 18, color: context.sem.warning),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     widget.courseTitle,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary400.withOpacity(0.1),
+                    color: context.cs.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '${widget.items.length}',
-                    style: const TextStyle(
-                        color: AppColors.primary400,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12),
+                    style: TextStyle(
+                      color: context.cs.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -223,9 +227,7 @@ class _CourseSectionState extends State<_CourseSection> {
           ),
         ),
         if (_expanded)
-          ...widget.items
-              .map((item) => _AttachmentTile(item: item))
-              .toList(),
+          ...widget.items.map((item) => _AttachmentTile(item: item)),
         const SizedBox(height: 4),
       ],
     );
@@ -236,14 +238,14 @@ class _AttachmentTile extends StatelessWidget {
   const _AttachmentTile({required this.item});
   final LibraryAttachmentModel item;
 
-  static const _typeIconData = {
-    'PDF': (Icons.picture_as_pdf, AppColors.error),
-    'Word': (Icons.article, AppColors.secondary400),
-    'Excel': (Icons.table_chart, AppColors.success),
-    'PowerPoint': (Icons.slideshow, AppColors.warning),
-    'Archive': (Icons.archive, Colors.brown),
-    'Video': (Icons.videocam, AppColors.primary400),
-    'Hình ảnh': (Icons.image, AppColors.secondary400),
+  static Map<String, (IconData, Color)> _typeIconData(BuildContext context) => {
+    'PDF': (Icons.picture_as_pdf, context.cs.error),
+    'Word': (Icons.article, context.cs.onSurfaceVariant),
+    'Excel': (Icons.table_chart, context.sem.success),
+    'PowerPoint': (Icons.slideshow, context.sem.warning),
+    'Archive': (Icons.archive, context.sem.warningFg),
+    'Video': (Icons.videocam, context.cs.primary),
+    'Hình ảnh': (Icons.image, context.cs.onSurfaceVariant),
   };
 
   Future<void> _open() async {
@@ -257,9 +259,9 @@ class _AttachmentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final typeInfo = _typeIconData[item.displayFileType];
+    final typeInfo = _typeIconData(context)[item.displayFileType];
     final icon = typeInfo?.$1 ?? Icons.insert_drive_file;
-    final color = typeInfo?.$2 ?? AppColors.primary400;
+    final color = typeInfo?.$2 ?? context.cs.primary;
 
     return Card(
       elevation: 0,
@@ -279,7 +281,7 @@ class _AttachmentTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
@@ -292,8 +294,9 @@ class _AttachmentTile extends StatelessWidget {
                   children: [
                     Text(
                       item.title,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -303,7 +306,8 @@ class _AttachmentTile extends StatelessWidget {
                           ? item.lessonTitle
                           : item.courseTitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant),
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -312,7 +316,9 @@ class _AttachmentTile extends StatelessWidget {
                       Text(
                         '${item.displayFileType} • ${item.fileSizeText}',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade500),
+                          fontSize: 12,
+                          color: context.cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],

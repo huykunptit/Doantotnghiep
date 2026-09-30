@@ -4,7 +4,10 @@ import 'package:intl/intl.dart';
 import '../../providers/points_providers.dart';
 import '../../data/models/points_model.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/theme/app_brand.dart';
+import 'package:eript_lms/core/widgets/skeleton.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class MyVouchersScreen extends ConsumerStatefulWidget {
   const MyVouchersScreen({super.key});
@@ -34,11 +37,13 @@ class _MyVouchersScreenState extends ConsumerState<MyVouchersScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: context.cs.surface,
       appBar: AppBar(
-        title: const Text('Voucher của tôi',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1565C0),
+        title: const Text(
+          'Voucher của tôi',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppBrand.heroStart,
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
@@ -51,9 +56,7 @@ class _MyVouchersScreenState extends ConsumerState<MyVouchersScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: _statuses
-            .map((s) => _VoucherTab(status: s))
-            .toList(),
+        children: _statuses.map((s) => _VoucherTab(status: s)).toList(),
       ),
     );
   }
@@ -70,15 +73,20 @@ class _VoucherTab extends ConsumerWidget {
 
     return provider.when(
       data: (vouchers) => vouchers.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.receipt_long_outlined,
-                      size: 64, color: Colors.grey),
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: context.cs.onSurfaceVariant,
+                  ),
                   SizedBox(height: 12),
-                  Text('Không có voucher nào',
-                      style: TextStyle(color: Colors.grey)),
+                  Text(
+                    'Không có voucher nào',
+                    style: TextStyle(color: context.cs.onSurfaceVariant),
+                  ),
                 ],
               ),
             )
@@ -90,24 +98,10 @@ class _VoucherTab extends ConsumerWidget {
                 itemBuilder: (ctx, i) => _UserVoucherCard(uv: vouchers[i]),
               ),
             ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-              const SizedBox(height: 12),
-              Text('Lỗi: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(myVouchersProvider),
-                child: const Text('Thử lại'),
-              ),
-            ],
-          ),
-        ),
+      loading: () => const SkeletonList(),
+      error: (e, _) => ErrorStateWidget(
+        error: e,
+        onRetry: () => ref.invalidate(myVouchersProvider(status: status)),
       ),
     );
   }
@@ -118,16 +112,16 @@ class _UserVoucherCard extends StatelessWidget {
 
   const _UserVoucherCard({required this.uv});
 
-  Color get _statusColor {
+  Color _statusColor(BuildContext context) {
     switch (uv.status) {
       case 'unused':
-        return const Color(0xFF2E7D32);
+        return context.sem.success;
       case 'used':
-        return Colors.grey;
+        return context.cs.onSurfaceVariant;
       case 'expired':
-        return Colors.red;
+        return context.sem.danger;
       default:
-        return Colors.grey;
+        return context.cs.onSurfaceVariant;
     }
   }
 
@@ -152,19 +146,12 @@ class _UserVoucherCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
         border: Border.all(
           color: isUnused
-              ? const Color(0xFF1565C0).withOpacity(0.3)
-              : Colors.grey.withOpacity(0.2),
+              ? context.cs.primary.withValues(alpha: 0.3)
+              : context.cs.onSurfaceVariant.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -179,15 +166,15 @@ class _UserVoucherCard extends StatelessWidget {
                   height: 48,
                   decoration: BoxDecoration(
                     color: isUnused
-                        ? const Color(0xFF1565C0).withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
+                        ? context.cs.primary.withValues(alpha: 0.1)
+                        : context.cs.onSurfaceVariant.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.local_offer_outlined,
                     color: isUnused
-                        ? const Color(0xFF1565C0)
-                        : Colors.grey,
+                        ? context.cs.primary
+                        : context.cs.onSurfaceVariant,
                     size: 24,
                   ),
                 ),
@@ -206,7 +193,7 @@ class _UserVoucherCard extends StatelessWidget {
                                 fontSize: 14,
                                 color: isUnused
                                     ? Colors.black87
-                                    : Colors.grey,
+                                    : context.cs.onSurfaceVariant,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -215,17 +202,22 @@ class _UserVoucherCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: _statusColor.withOpacity(0.1),
+                              color: _statusColor(
+                                context,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               _statusLabel,
                               style: TextStyle(
-                                  fontSize: 10,
-                                  color: _statusColor,
-                                  fontWeight: FontWeight.w600),
+                                fontSize: 12,
+                                color: _statusColor(context),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -235,10 +227,11 @@ class _UserVoucherCard extends StatelessWidget {
                         Text(
                           voucher!.typeLabel,
                           style: TextStyle(
-                              fontSize: 12,
-                              color: isUnused
-                                  ? const Color(0xFF1565C0)
-                                  : Colors.grey),
+                            fontSize: 12,
+                            color: isUnused
+                                ? context.cs.primary
+                                : context.cs.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ],
@@ -248,30 +241,32 @@ class _UserVoucherCard extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: isUnused
-                  ? const Color(0xFFF0F4FF)
-                  : Colors.grey[50],
+                  ? context.cs.primaryContainer
+                  : context.cs.surfaceContainerLow,
               borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(12)),
+                bottom: Radius.circular(12),
+              ),
             ),
             child: Row(
               children: [
-                Icon(Icons.confirmation_number_outlined,
-                    size: 14,
-                    color: isUnused
-                        ? const Color(0xFF1565C0)
-                        : Colors.grey),
+                Icon(
+                  Icons.confirmation_number_outlined,
+                  size: 14,
+                  color: isUnused
+                      ? context.cs.primary
+                      : context.cs.onSurfaceVariant,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     uv.code,
                     style: AppTypography.mono.copyWith(
                       color: isUnused
-                          ? const Color(0xFF1565C0)
-                          : Colors.grey,
+                          ? context.cs.primary
+                          : context.cs.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -281,29 +276,37 @@ class _UserVoucherCard extends StatelessWidget {
                       // TODO: copy to clipboard
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Đã sao chép mã voucher'),
-                            duration: Duration(seconds: 1)),
+                          content: Text('Đã sao chép mã voucher'),
+                          duration: Duration(seconds: 1),
+                        ),
                       );
                     },
-                    child: const Icon(Icons.copy,
-                        size: 16, color: Color(0xFF1565C0)),
+                    child: Icon(
+                      Icons.copy,
+                      size: 16,
+                      color: context.cs.primary,
+                    ),
                   ),
               ],
             ),
           ),
           if (uv.expiresAt != null && isUnused)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               child: Row(
                 children: [
-                  Icon(Icons.access_time,
-                      size: 12, color: Colors.orange[700]),
+                  Icon(
+                    Icons.access_time,
+                    size: 12,
+                    color: context.sem.warningFg,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Hết hạn: ${_formatDate(uv.expiresAt!)}',
                     style: TextStyle(
-                        fontSize: 11, color: Colors.orange[700]),
+                      fontSize: 12,
+                      color: context.sem.warningFg,
+                    ),
                   ),
                 ],
               ),

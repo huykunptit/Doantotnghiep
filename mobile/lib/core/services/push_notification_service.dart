@@ -7,7 +7,9 @@ class PushNotificationService {
     debugPrint("--------------------------------------------------");
     debugPrint("🌿 [Eript LMS] Khởi tạo dịch vụ thông báo Push...");
     debugPrint("🔑 Mock FCM Token: eript_fcm_token_mock_123456789");
-    debugPrint("💡 Để tích hợp Firebase thật, hãy thêm cấu hình google-services.json / GoogleService-Info.plist và mở các dependencies trong pubspec.");
+    debugPrint(
+      "💡 Để tích hợp Firebase thật, hãy thêm cấu hình google-services.json / GoogleService-Info.plist và mở các dependencies trong pubspec.",
+    );
     debugPrint("--------------------------------------------------");
   }
 }

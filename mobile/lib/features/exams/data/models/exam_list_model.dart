@@ -63,12 +63,13 @@ class ExamListItemModel {
       type: json['type']?.toString() ?? 'standalone',
       duration: (json['duration'] as num?)?.toInt(),
       passScore: (json['pass_score'] as num?)?.toInt() ?? 50,
-      startTime: json['start_time']?.toString() ?? json['starts_at']?.toString(),
+      startTime:
+          json['start_time']?.toString() ?? json['starts_at']?.toString(),
       endTime: json['end_time']?.toString() ?? json['ends_at']?.toString(),
       proctoringEnabled: json['proctoring_enabled'] is bool
           ? json['proctoring_enabled'] as bool
           : (json['proctoring_enabled'] == 1 ||
-              json['proctoring_enabled'] == '1'),
+                json['proctoring_enabled'] == '1'),
       isOpen: isOpenFlag,
       myAttempt: attempt,
       course: json['course'] is Map
@@ -111,8 +112,8 @@ class AttemptSummary {
       passed: json['passed'] is bool
           ? json['passed'] as bool
           : json['passed'] == null
-              ? null
-              : (json['passed'] == 1 || json['passed'] == '1'),
+          ? null
+          : (json['passed'] == 1 || json['passed'] == '1'),
       submittedAt: json['submitted_at']?.toString(),
     );
   }
@@ -168,8 +169,11 @@ class ExamResultDetailModel {
       wrongCount: json['wrong_count'] as int? ?? 0,
       skippedCount: json['skipped_count'] as int? ?? 0,
       timeSpent: json['time_spent'] as int? ?? 0,
-      questions: (json['questions'] as List<dynamic>?)
-              ?.map((e) => QuestionResultModel.fromJson(e as Map<String, dynamic>))
+      questions:
+          (json['questions'] as List<dynamic>?)
+              ?.map(
+                (e) => QuestionResultModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -213,8 +217,11 @@ class QuestionResultModel {
       userAnswer: json['user_answer'],
       correctAnswer: json['correct_answer'],
       explanation: json['explanation']?.toString(),
-      answers: (json['answers'] as List<dynamic>?)
-              ?.map((e) => AnswerOptionResult.fromJson(e as Map<String, dynamic>))
+      answers:
+          (json['answers'] as List<dynamic>?)
+              ?.map(
+                (e) => AnswerOptionResult.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
       points: (json['points'] as num?)?.toDouble() ?? 1,

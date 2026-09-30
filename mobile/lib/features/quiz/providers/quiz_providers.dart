@@ -126,11 +126,19 @@ class ExamAttempt extends _$ExamAttempt {
   // ── Start Lesson-bound Quiz ────────────────────────────────────────
 
   Future<void> startLessonQuiz(int courseId, int lessonId) async {
-    state = ExamWorkspaceState(isLoading: true, isLessonQuiz: true, courseId: courseId, lessonId: lessonId);
+    state = ExamWorkspaceState(
+      isLoading: true,
+      isLessonQuiz: true,
+      courseId: courseId,
+      lessonId: lessonId,
+    );
     try {
-      final quizData = await ref.read(quizRepositoryProvider).getLessonQuiz(courseId, lessonId);
+      final quizData = await ref
+          .read(quizRepositoryProvider)
+          .getLessonQuiz(courseId, lessonId);
       final QuizDetailModel quiz = quizData['quiz'] as QuizDetailModel;
-      final List<QuestionModel> questions = quizData['questions'] as List<QuestionModel>;
+      final List<QuestionModel> questions =
+          quizData['questions'] as List<QuestionModel>;
       final int attemptId = quizData['attempt_id'] as int;
 
       // Initialize default answers
@@ -170,11 +178,13 @@ class ExamAttempt extends _$ExamAttempt {
       final examData = await ref.read(quizRepositoryProvider).startExam(examId);
       final ExamModel exam = examData['exam'] as ExamModel;
       final QuizDetailModel quiz = examData['quiz'] as QuizDetailModel;
-      final List<QuestionModel> questions = examData['questions'] as List<QuestionModel>;
+      final List<QuestionModel> questions =
+          examData['questions'] as List<QuestionModel>;
       final int attemptId = examData['attempt_id'] as int;
       final int remainingTime = examData['remaining_time'] as int;
       final String attemptStatus = examData['status'] as String;
-      final Map<String, dynamic> savedAnswers = examData['saved_answers'] as Map<String, dynamic>;
+      final Map<String, dynamic> savedAnswers =
+          examData['saved_answers'] as Map<String, dynamic>;
 
       // Initialize answers from saved list or default
       final answers = <int, dynamic>{};
@@ -188,7 +198,10 @@ class ExamAttempt extends _$ExamAttempt {
             final List<dynamic> savedIds = savedVal as List<dynamic>;
             final ordered = <QuizAnswerOptionModel>[];
             for (final id in savedIds) {
-              final opt = q.answers.firstWhere((a) => a.id == id, orElse: () => q.answers.first);
+              final opt = q.answers.firstWhere(
+                (a) => a.id == id,
+                orElse: () => q.answers.first,
+              );
               ordered.add(opt);
             }
             // Append missing ones just in case
@@ -264,20 +277,21 @@ class ExamAttempt extends _$ExamAttempt {
       if (attemptId == null || state.status == 'submitted') return;
 
       try {
-        final statusRes = await ref.read(quizRepositoryProvider).getExamStatus(
-              attemptId,
-              since: _lastMessageAt,
-            );
-        
+        final statusRes = await ref
+            .read(quizRepositoryProvider)
+            .getExamStatus(attemptId, since: _lastMessageAt);
+
         final newStatus = statusRes['status']?.toString() ?? state.status;
         final newTime = statusRes['remaining_time'] as int?;
         final timeExpired = statusRes['time_expired'] as bool? ?? false;
-        
+
         // Proctor alerts / messages
         final messages = statusRes['messages'] as List<dynamic>?;
         ProctorMessageModel? alert;
         if (messages != null && messages.isNotEmpty) {
-          alert = ProctorMessageModel.fromJson(messages.first as Map<String, dynamic>);
+          alert = ProctorMessageModel.fromJson(
+            messages.first as Map<String, dynamic>,
+          );
           _lastMessageAt = alert.createdAt;
         }
 
@@ -315,14 +329,16 @@ class ExamAttempt extends _$ExamAttempt {
     if (state.status != 'in_progress') return;
 
     final updatedAnswers = Map<int, dynamic>.from(state.answers);
-    final currentList = List<int>.from(updatedAnswers[questionId] as List<dynamic>? ?? <int>[]);
-    
+    final currentList = List<int>.from(
+      updatedAnswers[questionId] as List<dynamic>? ?? <int>[],
+    );
+
     if (currentList.contains(choiceId)) {
       currentList.remove(choiceId);
     } else {
       currentList.add(choiceId);
     }
-    
+
     updatedAnswers[questionId] = currentList;
     state = state.copyWith(answers: updatedAnswers);
 
@@ -334,8 +350,10 @@ class ExamAttempt extends _$ExamAttempt {
     if (state.status != 'in_progress') return;
 
     final updatedAnswers = Map<int, dynamic>.from(state.answers);
-    final currentList = List<QuizAnswerOptionModel>.from(updatedAnswers[questionId] as Iterable<dynamic>);
-    
+    final currentList = List<QuizAnswerOptionModel>.from(
+      updatedAnswers[questionId] as Iterable<dynamic>,
+    );
+
     final newIndex = oldIndex + direction;
     if (newIndex < 0 || newIndex >= currentList.length) return;
 
@@ -367,7 +385,9 @@ class ExamAttempt extends _$ExamAttempt {
   // ── Auto-save logic ────────────────────────────────────────────────
 
   void _triggerAutoSaveDebounce() {
-    if (state.isLessonQuiz) return; // Lesson-bound quizzes do not auto-save via poll
+    if (state.isLessonQuiz) {
+      return; // Lesson-bound quizzes do not auto-save via poll
+    }
 
     _autoSaveDebounce?.cancel();
     _autoSaveDebounce = Timer(const Duration(seconds: 5), () {
@@ -377,15 +397,18 @@ class ExamAttempt extends _$ExamAttempt {
 
   Future<void> _executeAutoSave() async {
     final attemptId = state.attemptId;
-    if (attemptId == null || state.status != 'in_progress' || !_hasUnsavedChanges) return;
+    if (attemptId == null ||
+        state.status != 'in_progress' ||
+        !_hasUnsavedChanges) {
+      return;
+    }
 
     state = state.copyWith(autoSaveStatus: 'Đang lưu...');
     try {
       final formattedAnswers = _formatAnswersForSubmit();
-      final res = await ref.read(quizRepositoryProvider).autoSaveExam(
-            attemptId,
-            answers: formattedAnswers,
-          );
+      final res = await ref
+          .read(quizRepositoryProvider)
+          .autoSaveExam(attemptId, answers: formattedAnswers);
       _hasUnsavedChanges = false;
       state = state.copyWith(
         autoSaveStatus: 'Đã lưu tự động',
@@ -431,7 +454,9 @@ class ExamAttempt extends _$ExamAttempt {
       QuizAttemptModel attemptResult;
 
       if (state.isLessonQuiz) {
-        attemptResult = await ref.read(quizRepositoryProvider).submitLessonQuiz(
+        attemptResult = await ref
+            .read(quizRepositoryProvider)
+            .submitLessonQuiz(
               state.courseId!,
               state.lessonId!,
               state.quiz!.id,
@@ -439,7 +464,9 @@ class ExamAttempt extends _$ExamAttempt {
               answers: formattedAnswers,
             );
       } else {
-        attemptResult = await ref.read(quizRepositoryProvider).submitExam(
+        attemptResult = await ref
+            .read(quizRepositoryProvider)
+            .submitExam(
               state.exam!.id,
               attemptId: attemptId,
               answers: formattedAnswers,
@@ -454,7 +481,9 @@ class ExamAttempt extends _$ExamAttempt {
     } catch (e) {
       state = state.copyWith(
         isSubmitting: false,
-        error: isAuto ? 'Tự động nộp bài lỗi: ${friendlyErrorMessage(e)}' : friendlyErrorMessage(e),
+        error: isAuto
+            ? 'Tự động nộp bài lỗi: ${friendlyErrorMessage(e)}'
+            : friendlyErrorMessage(e),
       );
       // Restart timers if it wasn't auto
       if (!isAuto) {
@@ -491,7 +520,9 @@ class ExamAttempt extends _$ExamAttempt {
     if (attemptId != null) {
       unawaited(() async {
         try {
-          await ref.read(quizRepositoryProvider).logViolation(
+          await ref
+              .read(quizRepositoryProvider)
+              .logViolation(
                 attemptId,
                 type: 'focus_lost',
                 severity: critical ? 'critical' : 'warning',

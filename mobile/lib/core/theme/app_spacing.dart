@@ -40,6 +40,15 @@ class AppSpacing {
   static const SizedBox w32 = SizedBox(width: space8);
 }
 
+class AppInsets {
+  AppInsets._();
+
+  /// Horizontal page gutter.
+  static const EdgeInsets screen = EdgeInsets.symmetric(
+    horizontal: AppSpacing.space4,
+  );
+}
+
 class AppRadius {
   AppRadius._();
 
@@ -54,5 +63,7 @@ class AppRadius {
   static BorderRadius get rLg => BorderRadius.circular(lg);
   static BorderRadius get rXl => BorderRadius.circular(xl);
   static BorderRadius get r2Xl => BorderRadius.circular(radius2xl);
+  static BorderRadius get rSheet =>
+      const BorderRadius.vertical(top: Radius.circular(20));
   static BorderRadius get rFull => BorderRadius.circular(9999.0);
 }
