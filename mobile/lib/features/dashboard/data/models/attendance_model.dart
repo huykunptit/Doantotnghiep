@@ -24,7 +24,8 @@ class AttendanceSessionModel {
       startAt: json['start_at']?.toString(),
       duration: json['duration'] as int?,
       title: json['title']?.toString(),
-      lessonTitle: json['lesson_title']?.toString() ?? json['title']?.toString(),
+      lessonTitle:
+          json['lesson_title']?.toString() ?? json['title']?.toString(),
       courseTitle: json['course_title']?.toString(),
     );
   }
@@ -55,7 +56,9 @@ class AttendanceHistoryItemModel {
       checkedInAt: json['checked_in_at']?.toString(),
       deviceInfo: json['device_info']?.toString(),
       distanceMeters: (json['distance_meters'] as num?)?.toDouble(),
-      offlineSession: sessionData != null ? AttendanceSessionModel.fromJson(sessionData) : null,
+      offlineSession: sessionData != null
+          ? AttendanceSessionModel.fromJson(sessionData)
+          : null,
     );
   }
 }
@@ -64,15 +67,14 @@ class CheckInResultModel {
   final String message;
   final AttendanceHistoryItemModel attendance;
 
-  CheckInResultModel({
-    required this.message,
-    required this.attendance,
-  });
+  CheckInResultModel({required this.message, required this.attendance});
 
   factory CheckInResultModel.fromJson(Map<String, dynamic> json) {
     return CheckInResultModel(
       message: json['message']?.toString() ?? '',
-      attendance: AttendanceHistoryItemModel.fromJson(json['attendance'] as Map<String, dynamic>? ?? {}),
+      attendance: AttendanceHistoryItemModel.fromJson(
+        json['attendance'] as Map<String, dynamic>? ?? {},
+      ),
     );
   }
 }

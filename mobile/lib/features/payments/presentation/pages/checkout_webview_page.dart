@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/loading_overlay.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class CheckoutWebviewPage extends StatefulWidget {
   const CheckoutWebviewPage({super.key, required this.checkoutUrl});
@@ -72,11 +72,13 @@ class _CheckoutWebviewPageState extends State<CheckoutWebviewPage> {
     final params = uri.queryParameters;
     final status = (params['status'] ?? '').toUpperCase();
     final code = params['code'];
-    final isCancelled = (params['cancel'] ?? '').toLowerCase() == 'true' ||
+    final isCancelled =
+        (params['cancel'] ?? '').toLowerCase() == 'true' ||
         params['cancelled'] == '1' ||
         status == 'CANCELLED';
     final isFailed = status == 'FAILED' || status == 'EXPIRED';
-    final isSuccess = !isCancelled &&
+    final isSuccess =
+        !isCancelled &&
         !isFailed &&
         (status == 'PAID' || status == 'SUCCESS' || code == '00');
 
@@ -100,9 +102,7 @@ class _CheckoutWebviewPageState extends State<CheckoutWebviewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Thanh toán khóa học'),
-      ),
+      appBar: AppBar(title: const Text('Thanh toán khóa học')),
       body: Stack(
         children: [
           if (_controller != null) WebViewWidget(controller: _controller!),
@@ -115,7 +115,11 @@ class _CheckoutWebviewPageState extends State<CheckoutWebviewPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.error),
+                    Icon(
+                      Icons.wifi_off_rounded,
+                      size: 48,
+                      color: context.cs.error,
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'Không thể tải trang thanh toán. Vui lòng kiểm tra kết nối mạng và thử lại.',

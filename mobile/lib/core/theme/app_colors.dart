@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Raw palette. Only `app/theme/` may reference this; widgets read colors via
+/// `context.cs` / `context.sem` (see `theme_context.dart`) so dark mode works.
 class AppColors {
   AppColors._();
 
@@ -46,6 +48,13 @@ class AppColors {
   static const Color darkPrimary = Color(0xFF2DD4BF);
   static const Color darkPrimaryHover = Color(0xFF5EEAD4);
   static const Color darkAccent = Color(0xFFF0997B);
+  static const Color darkOnPrimary = Color(0xFF04211E);
+  static const Color darkPrimaryContainer = Color(0xFF123A36);
+  static const Color darkTertiaryContainer = Color(0xFF3A1F16);
+  static const Color darkSurfaceLow = Color(0xFF141B24);
+  static const Color darkSurfaceHigh = Color(0xFF232E3B);
+  static const Color darkError = Color(0xFFF87171);
+  static const Color darkOnError = Color(0xFF2A0A0A);
 
   static const Color brandBlack = Color(0xFF0B1220);
   static const Color brandInk = Color(0xFF0F172A);

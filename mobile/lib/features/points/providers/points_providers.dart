@@ -11,7 +11,9 @@ Future<PointSummaryModel> pointsSummary(PointsSummaryRef ref) {
 
 @riverpod
 Future<List<PointTransactionModel>> pointsTransactions(
-    PointsTransactionsRef ref, {int page = 1}) {
+  PointsTransactionsRef ref, {
+  int page = 1,
+}) {
   return ref.watch(pointsRepositoryProvider).getTransactions(page: page);
 }
 
@@ -21,7 +23,6 @@ Future<List<VoucherModel>> voucherShop(VoucherShopRef ref) {
 }
 
 @riverpod
-Future<List<UserVoucherModel>> myVouchers(
-    MyVouchersRef ref, {String? status}) {
+Future<List<UserVoucherModel>> myVouchers(MyVouchersRef ref, {String? status}) {
   return ref.watch(pointsRepositoryProvider).getMyVouchers(status: status);
 }

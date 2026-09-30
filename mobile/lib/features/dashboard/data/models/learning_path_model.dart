@@ -56,8 +56,12 @@ class LearningPathTermModel {
     return LearningPathTermModel(
       termNumber: json['term_number'] as int? ?? 0,
       credits: json['credits'] as int? ?? 0,
-      courses: (json['courses'] as List<dynamic>?)
-              ?.map((e) => LearningPathCourseModel.fromJson(e as Map<String, dynamic>))
+      courses:
+          (json['courses'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    LearningPathCourseModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -88,8 +92,12 @@ class LearningPathModel {
       curriculumCode: json['curriculum_code']?.toString(),
       totalCreditsRequired: json['total_credits_required'] as int? ?? 0,
       totalCreditsEarned: json['total_credits_earned'] as int? ?? 0,
-      terms: (json['terms'] as List<dynamic>?)
-              ?.map((e) => LearningPathTermModel.fromJson(e as Map<String, dynamic>))
+      terms:
+          (json['terms'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    LearningPathTermModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );

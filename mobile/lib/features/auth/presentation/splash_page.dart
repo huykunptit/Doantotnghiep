@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/branding.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_loader.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/theme/app_brand.dart';
 
 class SplashPage extends StatelessWidget {
   const SplashPage({super.key});
@@ -12,7 +13,7 @@ class SplashPage extends StatelessWidget {
   Widget build(BuildContext context) {
     // Navigation is handled by GoRouter redirect once auth settles.
     return Scaffold(
-      backgroundColor: AppColors.brandBlack,
+      backgroundColor: AppBrand.ink,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -22,8 +23,8 @@ class SplashPage extends StatelessWidget {
                 center: const Alignment(0, -0.2),
                 radius: 1.1,
                 colors: [
-                  AppColors.primary800.withValues(alpha: 0.55),
-                  AppColors.brandBlack,
+                  AppBrand.heroDeepEnd.withValues(alpha: 0.55),
+                  AppBrand.ink,
                 ],
               ),
             ),
@@ -40,7 +41,7 @@ class SplashPage extends StatelessWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
-                    color: AppColors.primary100.withValues(alpha: 0.95),
+                    color: context.cs.primaryContainer.withValues(alpha: 0.95),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -50,7 +51,7 @@ class SplashPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     letterSpacing: 0.3,
-                    color: AppColors.primary100.withValues(alpha: 0.72),
+                    color: context.cs.primaryContainer.withValues(alpha: 0.72),
                   ),
                 ),
               ],

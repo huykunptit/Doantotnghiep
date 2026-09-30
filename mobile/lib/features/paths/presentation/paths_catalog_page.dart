@@ -5,10 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/paths_catalog_provider.dart';
 import '../data/models/career_path_model.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../core/error/friendly_error.dart';
 import '../../../core/utils/format_vnd.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/widgets/skeleton.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class PathsCatalogPage extends ConsumerStatefulWidget {
   const PathsCatalogPage({super.key});
@@ -39,9 +40,9 @@ class _PathsCatalogPageState extends ConsumerState<PathsCatalogPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pathsAsync = ref.watch(pathsCatalogProvider(
-      search: _searchQuery.isEmpty ? null : _searchQuery,
-    ));
+    final pathsAsync = ref.watch(
+      pathsCatalogProvider(search: _searchQuery.isEmpty ? null : _searchQuery),
+    );
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -59,6 +60,7 @@ class _PathsCatalogPageState extends ConsumerState<PathsCatalogPage> {
                 prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
+                        tooltip: 'Xóa',
                         icon: const Icon(Icons.clear_rounded, size: 18),
                         onPressed: () {
                           _searchCtrl.clear();
@@ -67,12 +69,17 @@ class _PathsCatalogPageState extends ConsumerState<PathsCatalogPage> {
                       )
                     : null,
                 filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
               ),
             ),
           ),
@@ -80,26 +87,20 @@ class _PathsCatalogPageState extends ConsumerState<PathsCatalogPage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(pathsCatalogProvider(
-            search: _searchQuery.isEmpty ? null : _searchQuery,
-          ));
+          ref.invalidate(
+            pathsCatalogProvider(
+              search: _searchQuery.isEmpty ? null : _searchQuery,
+            ),
+          );
         },
         child: pathsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                AppSpacing.h12,
-                Text('Lỗi tải danh sách: ${friendlyErrorMessage(e)}', textAlign: TextAlign.center),
-                AppSpacing.h16,
-                FilledButton.icon(
-                  onPressed: () => ref.invalidate(pathsCatalogProvider()),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Thử lại'),
-                ),
-              ],
+          loading: () => const SkeletonList(),
+          error: (e, _) => ErrorStateWidget(
+            error: e,
+            onRetry: () => ref.invalidate(
+              pathsCatalogProvider(
+                search: _searchQuery.isEmpty ? null : _searchQuery,
+              ),
             ),
           ),
           data: (paths) {
@@ -110,16 +111,25 @@ class _PathsCatalogPageState extends ConsumerState<PathsCatalogPage> {
                   Center(
                     child: Column(
                       children: [
-                        Icon(Icons.search_off_outlined,
-                            size: 64, color: theme.colorScheme.outline),
+                        Icon(
+                          Icons.search_off_outlined,
+                          size: 64,
+                          color: theme.colorScheme.outline,
+                        ),
                         AppSpacing.h16,
-                        Text('Không tìm thấy lộ trình nào',
-                            style: theme.textTheme.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w600)),
+                        Text(
+                          'Không tìm thấy lộ trình nào',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         AppSpacing.h8,
-                        Text('Thử từ khoá khác',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant)),
+                        Text(
+                          'Thử từ khoá khác',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -151,39 +161,31 @@ class _PathCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () => context.push('/paths/${path.slug}'),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : Colors.white,
+          color: context.cs.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isDark ? AppColors.darkBorder : AppColors.neutral200),
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: AppColors.neutral800.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          border: Border.all(color: context.cs.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: path.coverUrl != null
                     ? CachedNetworkImage(
                         imageUrl: path.coverUrl!,
                         fit: BoxFit.cover,
-                        errorWidget: (_, _, _) => _placeholder(),
+                        errorWidget: (_, _, _) => _placeholder(context),
                       )
-                    : _placeholder(),
+                    : _placeholder(context),
               ),
             ),
             Expanded(
@@ -205,13 +207,16 @@ class _PathCard extends StatelessWidget {
                     const Spacer(),
                     Row(
                       children: [
-                        Icon(Icons.menu_book_outlined,
-                            size: 12, color: theme.colorScheme.onSurfaceVariant),
+                        Icon(
+                          Icons.menu_book_outlined,
+                          size: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                         AppSpacing.w4,
                         Text(
                           '${path.pathCoursesCount} khoá',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -223,7 +228,9 @@ class _PathCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
-                        color: path.price > 0 ? AppColors.primary600 : AppColors.success,
+                        color: path.price > 0
+                            ? context.cs.primary
+                            : context.sem.success,
                       ),
                     ),
                   ],
@@ -236,10 +243,10 @@ class _PathCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() {
+  Widget _placeholder(BuildContext context) {
     return Container(
-      color: AppColors.primary50,
-      child: const Icon(Icons.route_rounded, color: AppColors.primary200, size: 32),
+      color: context.cs.primaryContainer,
+      child: Icon(Icons.route_rounded, color: context.cs.primary, size: 32),
     );
   }
 }

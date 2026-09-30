@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_constants.dart';
@@ -11,9 +10,9 @@ part 'path_repository.g.dart';
 
 @riverpod
 PathRepository pathRepository(PathRepositoryRef ref) => PathRepository(
-      dio: ref.read(apiClientProvider),
-      cache: ref.read(localCacheServiceProvider),
-    );
+  dio: ref.read(apiClientProvider),
+  cache: ref.read(localCacheServiceProvider),
+);
 
 class PathListResult {
   const PathListResult({required this.items, required this.total});
@@ -80,10 +79,7 @@ class PathRepository {
     try {
       final response = await dio.post<Map<String, dynamic>>(
         ApiConstants.ordersPath,
-        data: {
-          'career_path_id': pathId,
-          'payment_method': 'payos',
-        },
+        data: {'career_path_id': pathId, 'payment_method': 'payos'},
       );
       return response.data!;
     } on DioException catch (e) {

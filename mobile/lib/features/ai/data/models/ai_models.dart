@@ -22,11 +22,13 @@ class CourseRecommendationItem {
     return CourseRecommendationItem(
       course: CourseListItemModel.fromJson(courseJson),
       score: (json['score'] as num?)?.toInt() ?? 0,
-      matchedSkills: (json['matched_skills'] as List<dynamic>?)
+      matchedSkills:
+          (json['matched_skills'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
-      reasons: (json['reasons'] as List<dynamic>?)
+      reasons:
+          (json['reasons'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
@@ -66,7 +68,8 @@ class StudyAdvisorAdvice {
   factory StudyAdvisorAdvice.fromJson(Map<String, dynamic> json) {
     return StudyAdvisorAdvice(
       narrative: json['narrative']?.toString() ?? '',
-      studyTips: (json['study_tips'] as List<dynamic>?)
+      studyTips:
+          (json['study_tips'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
@@ -108,11 +111,13 @@ class TutoringTipModel {
   factory TutoringTipModel.fromJson(Map<String, dynamic> json) {
     return TutoringTipModel(
       summary: json['summary']?.toString() ?? '',
-      studyTips: (json['study_tips'] as List<dynamic>?)
+      studyTips:
+          (json['study_tips'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
-      reviewLessons: (json['review_lessons'] as List<dynamic>?)
+      reviewLessons:
+          (json['review_lessons'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],
@@ -128,7 +133,8 @@ class AiChatReply {
 
   factory AiChatReply.fromJson(Map<String, dynamic> json) {
     return AiChatReply(
-      reply: json['reply']?.toString() ??
+      reply:
+          json['reply']?.toString() ??
           json['message']?.toString() ??
           'Không có phản hồi.',
     );

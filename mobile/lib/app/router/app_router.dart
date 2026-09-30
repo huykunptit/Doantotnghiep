@@ -67,7 +67,8 @@ GoRouter appRouter(AppRouterRef ref) {
       final isAuthenticated = authState.valueOrNull != null;
       final matched = state.matchedLocation;
 
-      final isPublicRoute = matched == '/login' ||
+      final isPublicRoute =
+          matched == '/login' ||
           matched == '/register' ||
           matched == '/forgot-password' ||
           matched == '/verify-email-prompt' ||
@@ -86,14 +87,8 @@ GoRouter appRouter(AppRouterRef ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const SplashPage(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterPage(),
@@ -123,33 +118,39 @@ GoRouter appRouter(AppRouterRef ref) {
       GoRoute(
         path: '/learn/:courseId/:lessonId',
         builder: (context, state) {
-          final courseId = int.tryParse(state.pathParameters['courseId'] ?? '') ?? 0;
-          final lessonId = int.tryParse(state.pathParameters['lessonId'] ?? '') ?? 0;
+          final courseId =
+              int.tryParse(state.pathParameters['courseId'] ?? '') ?? 0;
+          final lessonId =
+              int.tryParse(state.pathParameters['lessonId'] ?? '') ?? 0;
           return LessonPlayerScreen(courseId: courseId, lessonId: lessonId);
         },
       ),
       GoRoute(
         path: '/learn/quiz/:courseId/:lessonId',
         builder: (context, state) {
-          final courseId = int.tryParse(state.pathParameters['courseId'] ?? '') ?? 0;
-          final lessonId = int.tryParse(state.pathParameters['lessonId'] ?? '') ?? 0;
-          return ExamWorkspaceScreen(courseId: courseId, lessonId: lessonId, examId: 0);
+          final courseId =
+              int.tryParse(state.pathParameters['courseId'] ?? '') ?? 0;
+          final lessonId =
+              int.tryParse(state.pathParameters['lessonId'] ?? '') ?? 0;
+          return ExamWorkspaceScreen(
+            courseId: courseId,
+            lessonId: lessonId,
+            examId: 0,
+          );
         },
       ),
       GoRoute(
         path: '/exam/:examId',
         builder: (context, state) {
-          final examId = int.tryParse(state.pathParameters['examId'] ?? '') ?? 0;
+          final examId =
+              int.tryParse(state.pathParameters['examId'] ?? '') ?? 0;
           return ExamWorkspaceScreen(courseId: 0, lessonId: 0, examId: examId);
         },
       ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
-          GoRoute(
-            path: '/home',
-            builder: (context, state) => const HomePage(),
-          ),
+          GoRoute(path: '/home', builder: (context, state) => const HomePage()),
           GoRoute(
             path: '/catalog',
             builder: (context, state) => const CourseCatalogPage(),
@@ -248,10 +249,7 @@ GoRouter appRouter(AppRouterRef ref) {
         builder: (context, state) => const OrderHistoryScreen(),
       ),
       // Sprint 2 routes
-      GoRoute(
-        path: '/tasks',
-        builder: (context, state) => const TasksScreen(),
-      ),
+      GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
       GoRoute(
         path: '/exam-calendar',
         builder: (context, state) => const ExamCalendarScreen(),

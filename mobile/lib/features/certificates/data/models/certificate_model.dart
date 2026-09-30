@@ -15,7 +15,9 @@ class CertificateTemplateModel {
     return CertificateTemplateModel(
       id: json['id'] as int? ?? 0,
       name: json['name']?.toString(),
-      backgroundImageUrl: resolveMediaUrl(json['background_image_url']?.toString()),
+      backgroundImageUrl: resolveMediaUrl(
+        json['background_image_url']?.toString(),
+      ),
     );
   }
 }
@@ -37,14 +39,18 @@ class UserCertificateModel {
 
   factory UserCertificateModel.fromJson(Map<String, dynamic> json) {
     final course = json['course'] as Map<String, dynamic>? ?? {};
-    final templateJson = json['certificate_template'] as Map<String, dynamic>? ?? json['certificateTemplate'] as Map<String, dynamic>?;
+    final templateJson =
+        json['certificate_template'] as Map<String, dynamic>? ??
+        json['certificateTemplate'] as Map<String, dynamic>?;
 
     return UserCertificateModel(
       id: json['id'] as int? ?? 0,
       credentialId: json['credential_id']?.toString() ?? '',
       issuedAt: json['issued_at']?.toString() ?? '',
       courseTitle: course['title']?.toString() ?? 'Khoá học',
-      template: templateJson != null ? CertificateTemplateModel.fromJson(templateJson) : null,
+      template: templateJson != null
+          ? CertificateTemplateModel.fromJson(templateJson)
+          : null,
     );
   }
 }

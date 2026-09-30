@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -12,7 +11,8 @@ import '../models/attachment_model.dart';
 part 'learning_repository.g.dart';
 
 @riverpod
-LearningRepository learningRepository(LearningRepositoryRef ref) => LearningRepository(
+LearningRepository learningRepository(LearningRepositoryRef ref) =>
+    LearningRepository(
       dio: ref.read(apiClientProvider),
       cache: ref.read(localCacheServiceProvider),
       syncManager: ref.read(offlineSyncManagerProvider),
@@ -38,19 +38,17 @@ class LearningRepository {
       final lessonRes = await dio.get<Map<String, dynamic>>(
         '/courses/$courseId/lessons/$lessonId',
       );
-      
+
       Map<String, dynamic>? progressData;
       try {
         final progRes = await dio.get<Map<String, dynamic>>(
           '/courses/$courseId/lessons/$lessonId/progress',
         );
-        progressData = progRes.data?['progress'] as Map<String, dynamic>? ?? progRes.data;
+        progressData =
+            progRes.data?['progress'] as Map<String, dynamic>? ?? progRes.data;
       } catch (_) {}
 
-      final mergedJson = {
-        ...lessonRes.data!,
-        'progress': ?progressData,
-      };
+      final mergedJson = {...lessonRes.data!, 'progress': ?progressData};
 
       await cache.cacheData(cacheKey, mergedJson);
       return LessonDetailModel.fromJson(mergedJson);
@@ -74,10 +72,7 @@ class LearningRepository {
     bool? completed,
   }) async {
     final path = '/courses/$courseId/lessons/$lessonId/progress';
-    final data = {
-      'watched_seconds': watchedSeconds,
-      'completed': ?completed,
-    };
+    final data = {'watched_seconds': watchedSeconds, 'completed': ?completed};
 
     try {
       await dio.post<void>(path, data: data);
@@ -87,7 +82,7 @@ class LearningRepository {
           e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         await syncManager.queueMutation(method: 'POST', path: path, data: data);
-        
+
         final cacheKey = 'lesson_detail_${courseId}_$lessonId';
         final cached = await cache.getCachedData(cacheKey);
         if (cached != null && cached is Map<String, dynamic>) {
@@ -134,13 +129,13 @@ class LearningRepository {
     required int timeSeconds,
   }) async {
     final path = '/courses/$courseId/lessons/$lessonId/notes';
-    final requestData = {
-      'content': content,
-      'position_seconds': timeSeconds,
-    };
+    final requestData = {'content': content, 'position_seconds': timeSeconds};
 
     try {
-      final response = await dio.post<Map<String, dynamic>>(path, data: requestData);
+      final response = await dio.post<Map<String, dynamic>>(
+        path,
+        data: requestData,
+      );
       syncManager.syncOfflineData();
       final body = response.data ?? <String, dynamic>{};
       final noteJson = body['note'];
@@ -161,7 +156,11 @@ class LearningRepository {
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
-        await syncManager.queueMutation(method: 'POST', path: path, data: requestData);
+        await syncManager.queueMutation(
+          method: 'POST',
+          path: path,
+          data: requestData,
+        );
 
         final localNote = NoteModel(
           id: -DateTime.now().millisecondsSinceEpoch,
@@ -173,7 +172,9 @@ class LearningRepository {
 
         final cacheKey = 'lesson_notes_${courseId}_$lessonId';
         final cached = await cache.getCachedData(cacheKey);
-        final List<dynamic> currentList = cached is List ? List<dynamic>.from(cached) : <dynamic>[];
+        final List<dynamic> currentList = cached is List
+            ? List<dynamic>.from(cached)
+            : <dynamic>[];
         currentList.add({
           'id': localNote.id,
           'lesson_id': localNote.lessonId,
@@ -215,7 +216,10 @@ class LearningRepository {
     }
   }
 
-  Future<List<AttachmentModel>> getLessonAttachments(int courseId, int lessonId) async {
+  Future<List<AttachmentModel>> getLessonAttachments(
+    int courseId,
+    int lessonId,
+  ) async {
     final cacheKey = 'lesson_attachments_${courseId}_$lessonId';
     try {
       final response = await dio.get<dynamic>(
@@ -246,7 +250,9 @@ class LearningRepository {
     } else {
       list = [];
     }
-    return list.map((e) => NoteModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => NoteModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   List<AttachmentModel> _parseAttachmentsList(dynamic data) {
@@ -258,6 +264,8 @@ class LearningRepository {
     } else {
       list = [];
     }
-    return list.map((e) => AttachmentModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => AttachmentModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

@@ -29,7 +29,9 @@ Future<TuitionListModel> studentTuition(StudentTuitionRef ref) {
 }
 
 @riverpod
-Future<Map<String, dynamic>> studentCurriculumEvaluation(StudentCurriculumEvaluationRef ref) {
+Future<Map<String, dynamic>> studentCurriculumEvaluation(
+  StudentCurriculumEvaluationRef ref,
+) {
   return ref.read(dashboardRepositoryProvider).getCurriculumEvaluation();
 }
 
@@ -39,6 +41,8 @@ Future<LearningPathModel> studentLearningPath(StudentLearningPathRef ref) {
 }
 
 @riverpod
-Future<List<AttendanceHistoryItemModel>> studentAttendanceHistory(StudentAttendanceHistoryRef ref) {
+Future<List<AttendanceHistoryItemModel>> studentAttendanceHistory(
+  StudentAttendanceHistoryRef ref,
+) {
   return ref.read(dashboardRepositoryProvider).getAttendanceHistory();
 }

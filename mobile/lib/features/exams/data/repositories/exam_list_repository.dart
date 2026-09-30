@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -29,7 +28,9 @@ class ExamListRepository {
       for (final item in list) {
         if (item is! Map) continue;
         try {
-          exams.add(ExamListItemModel.fromJson(Map<String, dynamic>.from(item)));
+          exams.add(
+            ExamListItemModel.fromJson(Map<String, dynamic>.from(item)),
+          );
         } catch (_) {
           // Skip malformed rows so one bad exam cannot blank the whole list.
         }

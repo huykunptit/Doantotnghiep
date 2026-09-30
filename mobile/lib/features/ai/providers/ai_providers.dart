@@ -4,24 +4,26 @@ import '../data/repositories/ai_repository.dart';
 
 final recommendationsProvider =
     FutureProvider.autoDispose<RecommendationsBundle>((ref) {
-  return ref.watch(aiRepositoryProvider).getRecommendations();
-});
+      return ref.watch(aiRepositoryProvider).getRecommendations();
+    });
 
 final studyAdvisorAdviceProvider =
     FutureProvider.autoDispose<StudyAdvisorAdvice>((ref) {
-  return ref.watch(aiRepositoryProvider).getStudyAdvisorAdvice();
-});
+      return ref.watch(aiRepositoryProvider).getStudyAdvisorAdvice();
+    });
 
 final tutoringTipsProvider = FutureProvider.autoDispose
     .family<TutoringTipModel, TutoringTipQuery>((ref, query) {
-  return ref.watch(aiRepositoryProvider).getTutoringTips(
-        courseId: query.courseId,
-        lessonId: query.lessonId,
-        lessonTitle: query.lessonTitle,
-        lessonType: query.lessonType,
-        progressPercent: query.progressPercent,
-      );
-});
+      return ref
+          .watch(aiRepositoryProvider)
+          .getTutoringTips(
+            courseId: query.courseId,
+            lessonId: query.lessonId,
+            lessonTitle: query.lessonTitle,
+            lessonType: query.lessonType,
+            progressPercent: query.progressPercent,
+          );
+    });
 
 class TutoringTipQuery {
   const TutoringTipQuery({
@@ -49,11 +51,6 @@ class TutoringTipQuery {
   }
 
   @override
-  int get hashCode => Object.hash(
-        courseId,
-        lessonId,
-        lessonTitle,
-        lessonType,
-        progressPercent,
-      );
+  int get hashCode =>
+      Object.hash(courseId, lessonId, lessonTitle, lessonType, progressPercent);
 }

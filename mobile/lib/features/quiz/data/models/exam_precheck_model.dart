@@ -29,8 +29,8 @@ class ExamPrecheckModel {
       requiresFaceCheck: json['requires_face_check'] == true,
       hasFaceUrl: json['has_face_url'] == true,
       facePhotoUsable: json['face_photo_usable'] == true,
-      canEnrollFace: json['can_enroll_face'] == true ||
-          json['face_photo_usable'] == false,
+      canEnrollFace:
+          json['can_enroll_face'] == true || json['face_photo_usable'] == false,
       facePhotoUrl: json['face_photo_url']?.toString(),
       isOpen: json['is_open'] != false,
     );

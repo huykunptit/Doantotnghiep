@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -28,7 +27,9 @@ class CertificateRepository {
       } else {
         list = [];
       }
-      return list.map((e) => UserCertificateModel.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => UserCertificateModel.fromJson(e as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
     }

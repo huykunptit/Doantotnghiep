@@ -2,10 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../data/models/exam_list_model.dart';
 import '../../providers/exam_providers.dart';
-import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/widgets/skeleton.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class OrderHistoryScreen extends ConsumerWidget {
   const OrderHistoryScreen({super.key});
@@ -16,38 +17,35 @@ class OrderHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lịch sử mua hàng',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Lịch sử mua hàng',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
       ),
       body: ordersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 8),
-              Text(friendlyErrorMessage(e), textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              FilledButton(
-                  onPressed: () => ref.invalidate(myOrdersProvider),
-                  child: const Text('Thử lại')),
-            ],
-          ),
+        loading: () => const SkeletonList(),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.invalidate(myOrdersProvider),
         ),
         data: (orders) {
           if (orders.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.receipt_long_outlined,
-                      size: 64, color: Colors.grey),
+                  Icon(
+                    Icons.receipt_long_outlined,
+                    size: 64,
+                    color: context.cs.onSurfaceVariant,
+                  ),
                   SizedBox(height: 12),
-                  Text('Chưa có đơn hàng nào',
-                      style: TextStyle(color: Colors.grey)),
+                  Text(
+                    'Chưa có đơn hàng nào',
+                    style: TextStyle(color: context.cs.onSurfaceVariant),
+                  ),
                 ],
               ),
             );
@@ -57,7 +55,7 @@ class OrderHistoryScreen extends ConsumerWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: orders.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) => _OrderCard(order: orders[i]),
             ),
           );
@@ -77,15 +75,17 @@ class _OrderCard extends StatelessWidget {
     'failed': 'Thất bại',
   };
 
-  static const _statusColor = {
-    'paid': AppColors.success,
-    'pending': AppColors.warning,
-    'failed': AppColors.error,
+  static Map<String, Color> _statusColors(BuildContext context) => {
+    'paid': context.sem.success,
+    'pending': context.sem.warning,
+    'failed': context.cs.error,
   };
 
   String _fmtDate(String iso) {
     try {
-      return DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(iso).toLocal());
+      return DateFormat(
+        'dd/MM/yyyy HH:mm',
+      ).format(DateTime.parse(iso).toLocal());
     } catch (_) {
       return iso;
     }
@@ -93,17 +93,15 @@ class _OrderCard extends StatelessWidget {
 
   String _fmtAmount(double amount) {
     if (amount == 0) return 'Miễn phí';
-    return NumberFormat.currency(locale: 'vi_VN', symbol: '₫')
-        .format(amount);
+    return NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(amount);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final statusColor =
-        _statusColor[order.status] ?? Colors.grey;
-    final statusText =
-        _statusLabel[order.status] ?? order.status;
+        _statusColors(context)[order.status] ?? context.cs.onSurfaceVariant;
+    final statusText = _statusLabel[order.status] ?? order.status;
 
     return Card(
       elevation: 0,
@@ -128,18 +126,21 @@ class _OrderCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     statusText,
                     style: TextStyle(
-                        color: statusColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700),
+                      color: statusColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -157,7 +158,7 @@ class _OrderCard extends StatelessWidget {
                             width: 56,
                             height: 56,
                             fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) =>
+                            errorWidget: (_, _, _) =>
                                 _CoursePlaceholder(title: order.course!.title),
                           )
                         : _CoursePlaceholder(title: order.course!.title),
@@ -166,8 +167,9 @@ class _OrderCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       order.course!.title,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -186,13 +188,14 @@ class _OrderCard extends StatelessWidget {
                     Text(
                       'Tổng tiền',
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant),
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     Text(
                       _fmtAmount(order.amount),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: AppColors.primary400,
+                        color: context.cs.primary,
                       ),
                     ),
                   ],
@@ -206,12 +209,14 @@ class _OrderCard extends StatelessWidget {
                           ? 'Đã thanh toán lúc'
                           : 'Tạo lúc',
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant),
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     Text(
                       _fmtDate(order.paidAt ?? order.createdAt),
                       style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -221,12 +226,17 @@ class _OrderCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.payment, size: 14, color: Colors.grey),
+                  Icon(
+                    Icons.payment,
+                    size: 14,
+                    color: context.cs.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Thanh toán qua: ${order.paymentMethod}',
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: Colors.grey),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: context.cs.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -248,16 +258,17 @@ class _CoursePlaceholder extends StatelessWidget {
       width: 56,
       height: 56,
       decoration: BoxDecoration(
-        color: AppColors.primary400.withOpacity(0.12),
+        color: context.cs.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       alignment: Alignment.center,
       child: Text(
         title.isNotEmpty ? title[0].toUpperCase() : 'K',
-        style: const TextStyle(
-            color: AppColors.primary400,
-            fontWeight: FontWeight.w700,
-            fontSize: 20),
+        style: TextStyle(
+          color: context.cs.primary,
+          fontWeight: FontWeight.w700,
+          fontSize: 20,
+        ),
       ),
     );
   }

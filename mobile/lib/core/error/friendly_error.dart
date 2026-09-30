@@ -15,7 +15,9 @@ String friendlyErrorMessage(Object error) {
   if (error is Exception) {
     final msg = error.toString();
     const prefix = 'Exception: ';
-    return _sanitize(msg.startsWith(prefix) ? msg.substring(prefix.length) : msg);
+    return _sanitize(
+      msg.startsWith(prefix) ? msg.substring(prefix.length) : msg,
+    );
   }
   return 'Đã xảy ra lỗi. Vui lòng thử lại.';
 }
@@ -27,7 +29,10 @@ String _sanitize(String message) {
       lower.contains('payment gateway')) {
     return 'Hệ thống thanh toán tạm thời chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
   }
-  if (RegExp(r'type .+ is not a subtype', caseSensitive: false).hasMatch(message) ||
+  if (RegExp(
+        r'type .+ is not a subtype',
+        caseSensitive: false,
+      ).hasMatch(message) ||
       lower.contains('null check') ||
       lower.contains('nosuchmethod')) {
     return 'Đã xảy ra lỗi. Vui lòng thử lại.';

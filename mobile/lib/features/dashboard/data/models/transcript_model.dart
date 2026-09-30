@@ -71,18 +71,20 @@ class TranscriptModel {
   final List<TranscriptExamResult> results;
   final TranscriptSummary summary;
 
-  TranscriptModel({
-    required this.results,
-    required this.summary,
-  });
+  TranscriptModel({required this.results, required this.summary});
 
   factory TranscriptModel.fromJson(Map<String, dynamic> json) {
     return TranscriptModel(
-      results: (json['results'] as List<dynamic>?)
-              ?.map((e) => TranscriptExamResult.fromJson(e as Map<String, dynamic>))
+      results:
+          (json['results'] as List<dynamic>?)
+              ?.map(
+                (e) => TranscriptExamResult.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
-      summary: TranscriptSummary.fromJson(json['summary'] as Map<String, dynamic>?),
+      summary: TranscriptSummary.fromJson(
+        json['summary'] as Map<String, dynamic>?,
+      ),
     );
   }
 }

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/error/app_exception.dart';
@@ -25,13 +24,16 @@ class QuizRepository {
         '/courses/$courseId/lessons/$lessonId/quiz',
       );
       final data = response.data!;
-      
-      final quiz = QuizDetailModel.fromJson(data['quiz'] as Map<String, dynamic>);
-      final questionsList = (data['questions'] as List<dynamic>?)
+
+      final quiz = QuizDetailModel.fromJson(
+        data['quiz'] as Map<String, dynamic>,
+      );
+      final questionsList =
+          (data['questions'] as List<dynamic>?)
               ?.map((e) => QuestionModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
-      
+
       return {
         'quiz': quiz,
         'questions': questionsList,
@@ -52,10 +54,7 @@ class QuizRepository {
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/courses/$courseId/lessons/$lessonId/quiz/$quizId/submit',
-        data: {
-          'attempt_id': attemptId,
-          'answers': answers,
-        },
+        data: {'attempt_id': attemptId, 'answers': answers},
       );
       return QuizAttemptModel.fromJson(response.data!);
     } on DioException catch (e) {
@@ -106,14 +105,17 @@ class QuizRepository {
         '/exams/$examId/start',
       );
       final data = response.data!;
-      
+
       final exam = ExamModel.fromJson(data['exam'] as Map<String, dynamic>);
-      final quiz = QuizDetailModel.fromJson(data['quiz'] as Map<String, dynamic>);
-      final questionsList = (data['questions'] as List<dynamic>?)
+      final quiz = QuizDetailModel.fromJson(
+        data['quiz'] as Map<String, dynamic>,
+      );
+      final questionsList =
+          (data['questions'] as List<dynamic>?)
               ?.map((e) => QuestionModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [];
-      
+
       return {
         'exam': exam,
         'quiz': quiz,
@@ -135,9 +137,7 @@ class QuizRepository {
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/attempts/$attemptId/auto-save',
-        data: {
-          'answers': answers,
-        },
+        data: {'answers': answers},
       );
       return response.data ?? {};
     } on DioException catch (e) {
@@ -153,10 +153,7 @@ class QuizRepository {
     try {
       final response = await dio.post<Map<String, dynamic>>(
         '/exams/$examId/submit',
-        data: {
-          'attempt_id': attemptId,
-          'answers': answers,
-        },
+        data: {'attempt_id': attemptId, 'answers': answers},
       );
       return QuizAttemptModel.fromJson(response.data!);
     } on DioException catch (e) {
@@ -188,11 +185,7 @@ class QuizRepository {
     try {
       await dio.post<void>(
         '/attempts/$attemptId/violations',
-        data: {
-          'type': type,
-          'severity': severity,
-          'metadata': ?metadata,
-        },
+        data: {'type': type, 'severity': severity, 'metadata': ?metadata},
       );
     } on DioException catch (e) {
       throw AppException.fromDioException(e);

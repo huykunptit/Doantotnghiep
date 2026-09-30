@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../providers/auth_provider.dart';
 import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class GoogleOauthWebviewPage extends ConsumerStatefulWidget {
   const GoogleOauthWebviewPage({super.key});
@@ -11,10 +12,12 @@ class GoogleOauthWebviewPage extends ConsumerStatefulWidget {
   static const routeName = '/google-login-webview';
 
   @override
-  ConsumerState<GoogleOauthWebviewPage> createState() => _GoogleOauthWebviewPageState();
+  ConsumerState<GoogleOauthWebviewPage> createState() =>
+      _GoogleOauthWebviewPageState();
 }
 
-class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage> {
+class _GoogleOauthWebviewPageState
+    extends ConsumerState<GoogleOauthWebviewPage> {
   WebViewController? _controller;
   bool _fetchingUrl = true;
   String? _error;
@@ -27,7 +30,9 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
 
   Future<void> _fetchUrl() async {
     try {
-      final url = await ref.read(authNotifierProvider.notifier).getGoogleLoginUrl();
+      final url = await ref
+          .read(authNotifierProvider.notifier)
+          .getGoogleLoginUrl();
       if (!mounted) return;
       if (url.isEmpty) {
         setState(() {
@@ -36,7 +41,7 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
         });
         return;
       }
-      
+
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setNavigationDelegate(
@@ -83,7 +88,10 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
         },
         error: (e, _) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(friendlyErrorMessage(e)), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(friendlyErrorMessage(e)),
+              backgroundColor: context.sem.danger,
+            ),
           );
           context.go('/login');
         },
@@ -91,7 +99,10 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(friendlyErrorMessage(e)), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(friendlyErrorMessage(e)),
+          backgroundColor: context.sem.danger,
+        ),
       );
       context.go('/login');
     }
@@ -100,37 +111,39 @@ class _GoogleOauthWebviewPageState extends ConsumerState<GoogleOauthWebviewPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Đăng nhập với Google'),
-      ),
+      appBar: AppBar(title: const Text('Đăng nhập với Google')),
       body: _fetchingUrl
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 12),
-                        Text(_error!, textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _fetchingUrl = true;
-                              _error = null;
-                            });
-                            _fetchUrl();
-                          },
-                          child: const Text('Thử lại'),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: context.sem.danger,
                     ),
-                  ),
-                )
-              : WebViewWidget(controller: _controller!),
+                    const SizedBox(height: 12),
+                    Text(_error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _fetchingUrl = true;
+                          _error = null;
+                        });
+                        _fetchUrl();
+                      },
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : WebViewWidget(controller: _controller!),
     );
   }
 }

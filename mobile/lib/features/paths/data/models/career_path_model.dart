@@ -127,11 +127,13 @@ class CareerPathDetail {
       pathCoursesCount: json['path_courses_count'] as int? ?? 0,
       isPurchased: json['is_purchased'] as bool? ?? false,
       isFollowing: json['is_following'] as bool? ?? false,
-      pathCourses: (json['path_courses'] as List<dynamic>?)
+      pathCourses:
+          (json['path_courses'] as List<dynamic>?)
               ?.map((e) => PathCourseModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      enrolledCourseIds: (json['enrolled_course_ids'] as List<dynamic>?)
+      enrolledCourseIds:
+          (json['enrolled_course_ids'] as List<dynamic>?)
               ?.map((e) => e as int)
               .toList() ??
           [],

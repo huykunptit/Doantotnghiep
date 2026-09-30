@@ -1,11 +1,7 @@
 import '../../../../core/utils/media_url.dart';
 
 class InstructorModel {
-  const InstructorModel({
-    required this.id,
-    required this.name,
-    this.avatar,
-  });
+  const InstructorModel({required this.id, required this.name, this.avatar});
 
   final int id;
   final String name;
@@ -16,7 +12,9 @@ class InstructorModel {
     return InstructorModel(
       id: (json['id'] as num?)?.toInt() ?? 0,
       name: json['name']?.toString() ?? '',
-      avatar: resolveMediaUrl((avatar == null || avatar.isEmpty) ? null : avatar),
+      avatar: resolveMediaUrl(
+        (avatar == null || avatar.isEmpty) ? null : avatar,
+      ),
     );
   }
 }
@@ -91,21 +89,27 @@ class CourseDetailModel {
       creditValue: (json['credit_value'] as num?)?.toInt(),
       lessonsCount: counted > 0 ? counted : lessons.length,
       enrollmentsCount: (json['enrollments_count'] as num?)?.toInt() ?? 0,
-      avgRating: (json['avg_rating'] as num?)?.toDouble() ??
+      avgRating:
+          (json['avg_rating'] as num?)?.toDouble() ??
           (json['reviews_avg_rating'] as num?)?.toDouble() ??
           0.0,
       isEnrolled: json['is_enrolled'] as bool? ?? false,
       instructor: json['instructor'] is Map
-          ? InstructorModel.fromJson(Map<String, dynamic>.from(json['instructor'] as Map))
+          ? InstructorModel.fromJson(
+              Map<String, dynamic>.from(json['instructor'] as Map),
+            )
           : null,
       lessons: lessons,
     );
   }
 
   static List<LessonSummaryModel> _parseLessons(Map<String, dynamic> json) {
-    final fromRoot = (json['lessons'] as List<dynamic>?)
+    final fromRoot =
+        (json['lessons'] as List<dynamic>?)
             ?.whereType<Map>()
-            .map((e) => LessonSummaryModel.fromJson(Map<String, dynamic>.from(e)))
+            .map(
+              (e) => LessonSummaryModel.fromJson(Map<String, dynamic>.from(e)),
+            )
             .toList() ??
         [];
     if (fromRoot.isNotEmpty) return fromRoot;
@@ -165,11 +169,14 @@ class CourseListItemModel {
       lessonsCount: (json['lessons_count'] as num?)?.toInt() ?? 0,
       enrollmentsCount: (json['enrollments_count'] as num?)?.toInt() ?? 0,
       reviewsCount: (json['reviews_count'] as num?)?.toInt() ?? 0,
-      avgRating: (json['avg_rating'] as num?)?.toDouble() ??
+      avgRating:
+          (json['avg_rating'] as num?)?.toDouble() ??
           (json['reviews_avg_rating'] as num?)?.toDouble() ??
           0.0,
       instructor: json['instructor'] is Map
-          ? InstructorModel.fromJson(Map<String, dynamic>.from(json['instructor'] as Map))
+          ? InstructorModel.fromJson(
+              Map<String, dynamic>.from(json['instructor'] as Map),
+            )
           : null,
     );
   }

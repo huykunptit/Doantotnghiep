@@ -18,9 +18,12 @@ class PointSummaryModel {
       balance: json['balance'] as int? ?? 0,
       streakDays: json['streak_days'] as int? ?? 0,
       lastLoginDate: json['last_login_date']?.toString(),
-      recentTransactions: (json['recent_transactions'] as List<dynamic>?)
-              ?.map((e) => PointTransactionModel.fromJson(
-                  e as Map<String, dynamic>))
+      recentTransactions:
+          (json['recent_transactions'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    PointTransactionModel.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );

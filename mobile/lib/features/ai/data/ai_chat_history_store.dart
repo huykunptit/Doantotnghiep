@@ -35,9 +35,7 @@ class AiChatHistoryStore {
     int? userId,
     int? courseId,
   }) async {
-    final compact = messages
-        .where((m) => m.text.trim().isNotEmpty)
-        .toList();
+    final compact = messages.where((m) => m.text.trim().isNotEmpty).toList();
     final clipped = compact.length > _maxMessages
         ? compact.sublist(compact.length - _maxMessages)
         : compact;

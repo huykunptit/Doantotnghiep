@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../data/models/student_models.dart';
 import '../../providers/student_providers.dart';
-import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/widgets/skeleton.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
@@ -33,8 +34,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nhiệm vụ của tôi',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Nhiệm vụ của tôi',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
         bottom: TabBar(
@@ -48,10 +51,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          _TaskList(done: false),
-          _TaskList(done: true),
-        ],
+        children: const [_TaskList(done: false), _TaskList(done: true)],
       ),
     );
   }
@@ -66,20 +66,10 @@ class _TaskList extends ConsumerWidget {
     final tasksAsync = ref.watch(myTasksProvider(done: done));
 
     return tasksAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 8),
-            Text(friendlyErrorMessage(e), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(
-                onPressed: () => ref.invalidate(myTasksProvider(done: done)),
-                child: const Text('Thử lại')),
-          ],
-        ),
+      loading: () => const SkeletonList(),
+      error: (e, _) => ErrorStateWidget(
+        error: e,
+        onRetry: () => ref.invalidate(myTasksProvider(done: done)),
       ),
       data: (tasks) {
         if (tasks.isEmpty) {
@@ -88,18 +78,16 @@ class _TaskList extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  done
-                      ? Icons.task_alt
-                      : Icons.assignment_outlined,
+                  done ? Icons.task_alt : Icons.assignment_outlined,
                   size: 64,
-                  color: Colors.grey,
+                  color: context.cs.onSurfaceVariant,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   done
                       ? 'Chưa có nhiệm vụ nào hoàn thành'
                       : 'Không có nhiệm vụ nào cần làm',
-                  style: const TextStyle(color: Colors.grey),
+                  style: TextStyle(color: context.cs.onSurfaceVariant),
                 ),
               ],
             ),
@@ -110,7 +98,7 @@ class _TaskList extends ConsumerWidget {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: tasks.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, i) => _TaskCard(task: tasks[i]),
           ),
         );
@@ -137,11 +125,11 @@ class _TaskCard extends StatelessWidget {
     'survey': 'Khảo sát',
   };
 
-  static const _typeColor = {
-    'assignment': AppColors.secondary400,
-    'quiz': AppColors.warning,
-    'exam': AppColors.error,
-    'survey': AppColors.success,
+  static Map<String, Color> _typeColors(BuildContext context) => {
+    'assignment': context.cs.onSurfaceVariant,
+    'quiz': context.sem.warning,
+    'exam': context.cs.error,
+    'survey': context.sem.success,
   };
 
   bool get _isOverdue {
@@ -163,7 +151,7 @@ class _TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = _typeColor[task.type] ?? AppColors.primary400;
+    final color = _typeColors(context)[task.type] ?? context.cs.primary;
     final icon = _typeIcon[task.type] ?? Icons.task_outlined;
     final typeLabel = _typeLabel[task.type] ?? task.type;
     final overdue = _isOverdue;
@@ -174,7 +162,7 @@ class _TaskCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
           color: overdue
-              ? AppColors.error.withOpacity(0.4)
+              ? context.cs.error.withValues(alpha: 0.4)
               : theme.colorScheme.outlineVariant,
         ),
       ),
@@ -187,7 +175,7 @@ class _TaskCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               alignment: Alignment.center,
@@ -202,31 +190,41 @@ class _TaskCard extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(typeLabel,
-                            style: TextStyle(
-                                color: color,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
+                        child: Text(
+                          typeLabel,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                       if (overdue) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.error.withOpacity(0.1),
+                            color: context.cs.error.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text('Quá hạn',
-                              style: TextStyle(
-                                  color: AppColors.error,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700)),
+                          child: Text(
+                            'Quá hạn',
+                            style: TextStyle(
+                              color: context.cs.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
                       ],
                     ],
@@ -261,16 +259,16 @@ class _TaskCard extends StatelessWidget {
                           Icons.schedule,
                           size: 12,
                           color: overdue
-                              ? AppColors.error
+                              ? context.cs.error
                               : theme.colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'Hạn: ${_fmtDue()}',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: overdue
-                                ? AppColors.error
+                                ? context.cs.error
                                 : theme.colorScheme.onSurfaceVariant,
                             fontWeight: overdue ? FontWeight.w600 : null,
                           ),
@@ -282,8 +280,7 @@ class _TaskCard extends StatelessWidget {
               ),
             ),
             if (task.isDone)
-              const Icon(Icons.check_circle,
-                  color: AppColors.success, size: 20),
+              Icon(Icons.check_circle, color: context.sem.success, size: 20),
           ],
         ),
       ),

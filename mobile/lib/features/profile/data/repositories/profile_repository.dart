@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_constants.dart';
@@ -31,7 +30,9 @@ class ProfileRepository {
   /// fields are needed and the shape mirrors the web admin API.
   Future<Map<String, dynamic>> getLearnerProfile() async {
     try {
-      final response = await dio.get<Map<String, dynamic>>(ApiConstants.meLearnerProfilePath);
+      final response = await dio.get<Map<String, dynamic>>(
+        ApiConstants.meLearnerProfilePath,
+      );
       return response.data ?? {};
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
@@ -42,7 +43,10 @@ class ProfileRepository {
     try {
       final response = await dio.put<Map<String, dynamic>>(
         ApiConstants.updateProfilePath,
-        data: {'name': name, ...?phone != null ? {'phone': phone} : null},
+        data: {
+          'name': name,
+          ...?phone != null ? {'phone': phone} : null,
+        },
       );
       final data = response.data!;
       return UserModel.fromJson(data['user'] as Map<String, dynamic>? ?? data);

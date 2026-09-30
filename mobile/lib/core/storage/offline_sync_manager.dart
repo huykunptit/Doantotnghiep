@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../api/api_client.dart';
 import 'secure_storage.dart';
@@ -8,7 +7,8 @@ import 'secure_storage.dart';
 part 'offline_sync_manager.g.dart';
 
 @riverpod
-OfflineSyncManager offlineSyncManager(OfflineSyncManagerRef ref) => OfflineSyncManager(
+OfflineSyncManager offlineSyncManager(OfflineSyncManagerRef ref) =>
+    OfflineSyncManager(
       storage: ref.read(secureStorageProvider),
       dio: ref.read(apiClientProvider),
     );
@@ -29,14 +29,14 @@ class OfflineSyncManager {
     try {
       final listStr = await storage.read(_mutationsKey);
       final List<dynamic> list = listStr != null ? jsonDecode(listStr) : [];
-      
+
       list.add({
         'method': method,
         'path': path,
         'data': data,
         'queued_at': DateTime.now().millisecondsSinceEpoch,
       });
-      
+
       await storage.write(_mutationsKey, jsonEncode(list));
     } catch (_) {
       // Safe fallback

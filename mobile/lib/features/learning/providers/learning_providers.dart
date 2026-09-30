@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/models/lesson_detail_model.dart';
 import '../data/models/note_model.dart';
@@ -8,19 +7,32 @@ import '../data/repositories/learning_repository.dart';
 part 'learning_providers.g.dart';
 
 @riverpod
-Future<LessonDetailModel> lessonDetail(LessonDetailRef ref, int courseId, int lessonId) {
-  return ref.read(learningRepositoryProvider).getLessonDetail(courseId, lessonId);
+Future<LessonDetailModel> lessonDetail(
+  LessonDetailRef ref,
+  int courseId,
+  int lessonId,
+) {
+  return ref
+      .read(learningRepositoryProvider)
+      .getLessonDetail(courseId, lessonId);
 }
 
 @riverpod
 class LessonNotes extends _$LessonNotes {
   @override
   Future<List<NoteModel>> build(int courseId, int lessonId) {
-    return ref.read(learningRepositoryProvider).getLessonNotes(courseId, lessonId);
+    return ref
+        .read(learningRepositoryProvider)
+        .getLessonNotes(courseId, lessonId);
   }
 
-  Future<void> addNote({required String content, required int timeSeconds}) async {
-    final newNote = await ref.read(learningRepositoryProvider).createLessonNote(
+  Future<void> addNote({
+    required String content,
+    required int timeSeconds,
+  }) async {
+    final newNote = await ref
+        .read(learningRepositoryProvider)
+        .createLessonNote(
           courseId,
           lessonId,
           content: content,
@@ -30,12 +42,22 @@ class LessonNotes extends _$LessonNotes {
   }
 
   Future<void> removeNote(int noteId) async {
-    await ref.read(learningRepositoryProvider).deleteLessonNote(courseId, lessonId, noteId);
-    state = AsyncData((state.value ?? []).where((n) => n.id != noteId).toList());
+    await ref
+        .read(learningRepositoryProvider)
+        .deleteLessonNote(courseId, lessonId, noteId);
+    state = AsyncData(
+      (state.value ?? []).where((n) => n.id != noteId).toList(),
+    );
   }
 }
 
 @riverpod
-Future<List<AttachmentModel>> lessonAttachments(LessonAttachmentsRef ref, int courseId, int lessonId) {
-  return ref.read(learningRepositoryProvider).getLessonAttachments(courseId, lessonId);
+Future<List<AttachmentModel>> lessonAttachments(
+  LessonAttachmentsRef ref,
+  int courseId,
+  int lessonId,
+) {
+  return ref
+      .read(learningRepositoryProvider)
+      .getLessonAttachments(courseId, lessonId);
 }

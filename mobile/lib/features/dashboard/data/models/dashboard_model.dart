@@ -65,15 +65,20 @@ class DashboardModel {
 
   factory DashboardModel.fromJson(Map<String, dynamic> json) {
     return DashboardModel(
-      student: UserModel.fromJson(json['student'] as Map<String, dynamic>? ?? {}),
+      student: UserModel.fromJson(
+        json['student'] as Map<String, dynamic>? ?? {},
+      ),
       currentTerm: json['current_term'] != null
           ? TermModel.fromJson(json['current_term'] as Map<String, dynamic>)
           : null,
-      currentEnrollments: (json['current_enrollments'] as List<dynamic>?)
+      currentEnrollments:
+          (json['current_enrollments'] as List<dynamic>?)
               ?.map((e) => EnrollmentModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      totals: DashboardTotals.fromJson(json['totals'] as Map<String, dynamic>? ?? {}),
+      totals: DashboardTotals.fromJson(
+        json['totals'] as Map<String, dynamic>? ?? {},
+      ),
     );
   }
 }

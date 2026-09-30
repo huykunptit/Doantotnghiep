@@ -65,7 +65,9 @@ class DashboardRepository {
 
   Future<Map<String, dynamic>> getCurriculumEvaluation() async {
     try {
-      final response = await dio.get<Map<String, dynamic>>('/me/curriculum-evaluation');
+      final response = await dio.get<Map<String, dynamic>>(
+        '/me/curriculum-evaluation',
+      );
       return response.data ?? {};
     } on DioException catch (e) {
       throw AppException.fromDioException(e);
@@ -108,7 +110,10 @@ class DashboardRepository {
       final response = await dio.get<Map<String, dynamic>>('/me/attendance');
       final data = response.data!['history'] as List<dynamic>? ?? [];
       return data
-          .map((e) => AttendanceHistoryItemModel.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) =>
+                AttendanceHistoryItemModel.fromJson(e as Map<String, dynamic>),
+          )
           .toList();
     } on DioException catch (e) {
       throw AppException.fromDioException(e);

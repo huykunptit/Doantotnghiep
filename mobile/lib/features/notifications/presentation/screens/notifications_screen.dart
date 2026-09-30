@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/notification_providers.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/error_state.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/widgets/skeleton.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -14,7 +16,7 @@ class NotificationsScreen extends ConsumerWidget {
       final parsed = DateTime.parse(rawDate).toLocal();
       final now = DateTime.now();
       final diff = now.difference(parsed);
-      
+
       if (diff.inMinutes < 60) {
         return '${diff.inMinutes} phút trước';
       } else if (diff.inHours < 24) {
@@ -50,12 +52,12 @@ class NotificationsScreen extends ConsumerWidget {
     switch (type) {
       case 'exam_violation':
       case 'warning':
-        return Colors.red.shade600;
+        return context.sem.danger;
       case 'course_enrollment':
       case 'order_success':
-        return Colors.green.shade600;
+        return context.sem.success;
       case 'grade_published':
-        return Colors.amber.shade700;
+        return context.sem.warningFg;
       default:
         return theme.colorScheme.primary;
     }
@@ -73,18 +75,23 @@ class NotificationsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               try {
-                await ref.read(studentNotificationsProvider.notifier).markAllAsRead();
+                await ref
+                    .read(studentNotificationsProvider.notifier)
+                    .markAllAsRead();
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text('Đã đánh dấu đọc tất cả thông báo!'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: context.sem.success,
                   ),
                 );
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text('Lỗi: $e'),
+                    backgroundColor: context.sem.danger,
+                  ),
                 );
               }
             },
@@ -99,7 +106,7 @@ class NotificationsScreen extends ConsumerWidget {
           ref.invalidate(unreadNotificationsCountProvider);
         },
         child: notificationsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const SkeletonList(),
           error: (e, _) => ErrorStateWidget(
             error: e,
             onRetry: () {
@@ -148,7 +155,9 @@ class NotificationsScreen extends ConsumerWidget {
                 return InkWell(
                   onTap: () {
                     if (isUnread) {
-                      ref.read(studentNotificationsProvider.notifier).markAsRead(item.id);
+                      ref
+                          .read(studentNotificationsProvider.notifier)
+                          .markAsRead(item.id);
                     }
                     // Handle deep link if notification has link
                     if (item.link != null && item.link!.isNotEmpty) {
@@ -157,9 +166,14 @@ class NotificationsScreen extends ConsumerWidget {
                   },
                   child: Container(
                     color: isUnread
-                        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.2)
+                        ? theme.colorScheme.primaryContainer.withValues(
+                            alpha: 0.2,
+                          )
                         : Colors.transparent,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -189,10 +203,17 @@ class NotificationsScreen extends ConsumerWidget {
                                   Expanded(
                                     child: Text(
                                       item.title,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        fontWeight: isUnread ? FontWeight.bold : FontWeight.w500,
-                                        color: isUnread ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
-                                      ),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: isUnread
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            color: isUnread
+                                                ? theme.colorScheme.onSurface
+                                                : theme
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                          ),
                                     ),
                                   ),
                                   if (isUnread) ...[
@@ -213,7 +234,8 @@ class NotificationsScreen extends ConsumerWidget {
                               Text(
                                 item.message,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.8),
                                   height: 1.4,
                                 ),
                               ),
@@ -221,7 +243,7 @@ class NotificationsScreen extends ConsumerWidget {
                               Text(
                                 _formatTime(item.createdAt),
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   color: theme.colorScheme.outlineVariant,
                                   fontWeight: FontWeight.w500,
                                 ),

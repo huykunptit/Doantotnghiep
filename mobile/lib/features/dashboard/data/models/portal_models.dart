@@ -63,22 +63,25 @@ class TimetableModel {
   final List<TimetableScheduleItem> schedules;
   final List<TimetableExamItem> exams;
 
-  TimetableModel({
-    this.termName,
-    required this.schedules,
-    required this.exams,
-  });
+  TimetableModel({this.termName, required this.schedules, required this.exams});
 
   factory TimetableModel.fromJson(Map<String, dynamic> json) {
     final term = json['current_term'] as Map<String, dynamic>?;
     return TimetableModel(
       termName: term?['name']?.toString(),
-      schedules: (json['schedules'] as List<dynamic>?)
-              ?.map((e) => TimetableScheduleItem.fromJson(e as Map<String, dynamic>))
+      schedules:
+          (json['schedules'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    TimetableScheduleItem.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
-      exams: (json['exams'] as List<dynamic>?)
-              ?.map((e) => TimetableExamItem.fromJson(e as Map<String, dynamic>))
+      exams:
+          (json['exams'] as List<dynamic>?)
+              ?.map(
+                (e) => TimetableExamItem.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );
@@ -130,7 +133,8 @@ class TuitionListModel {
 
   factory TuitionListModel.fromJson(Map<String, dynamic> json) {
     return TuitionListModel(
-      items: (json['items'] as List<dynamic>?)
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => TuitionItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],

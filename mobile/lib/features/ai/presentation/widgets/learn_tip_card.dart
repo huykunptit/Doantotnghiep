@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../providers/ai_providers.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
 
 class LearnTipCard extends ConsumerWidget {
   const LearnTipCard({
@@ -43,10 +43,10 @@ class LearnTipCard extends ConsumerWidget {
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.primary50,
+            color: context.cs.primaryContainer,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: AppColors.primary200.withValues(alpha: 0.6),
+              color: context.cs.primaryContainer.withValues(alpha: 0.6),
             ),
           ),
           child: Column(
@@ -54,23 +54,26 @@ class LearnTipCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.lightbulb_outline,
-                      color: AppColors.primary600, size: 18),
+                  Icon(
+                    Icons.lightbulb_outline,
+                    color: context.cs.primary,
+                    size: 18,
+                  ),
                   AppSpacing.w8,
                   Text(
                     'Gợi ý học tập',
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary800,
+                      color: context.cs.onPrimaryContainer,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     tip.source == 'ai' ? 'AI' : 'Theo tiến độ',
-                    style: const TextStyle(
-                      fontSize: 11,
+                    style: TextStyle(
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary600,
+                      color: context.cs.primary,
                     ),
                   ),
                 ],
@@ -84,19 +87,24 @@ class LearnTipCard extends ConsumerWidget {
               ],
               if (tip.studyTips.isNotEmpty) ...[
                 AppSpacing.h8,
-                ...tip.studyTips.take(2).map(
+                ...tip.studyTips
+                    .take(2)
+                    .map(
                       (t) => Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('• ',
-                                style: TextStyle(color: AppColors.primary600)),
+                            Text(
+                              '• ',
+                              style: TextStyle(color: context.cs.primary),
+                            ),
                             Expanded(
                               child: Text(
                                 t,
-                                style: theme.textTheme.bodySmall
-                                    ?.copyWith(height: 1.35),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  height: 1.35,
+                                ),
                               ),
                             ),
                           ],

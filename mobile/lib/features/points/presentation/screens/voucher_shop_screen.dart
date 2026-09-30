@@ -5,6 +5,9 @@ import '../../providers/points_providers.dart';
 import '../../data/models/points_model.dart';
 import '../../data/repositories/points_repository.dart';
 import '../../../../core/error/friendly_error.dart';
+import 'package:eript_lms/core/theme/theme_context.dart';
+import 'package:eript_lms/core/theme/app_brand.dart';
+import 'package:eript_lms/core/widgets/error_state.dart';
 
 class VoucherShopScreen extends ConsumerWidget {
   const VoucherShopScreen({super.key});
@@ -14,39 +17,28 @@ class VoucherShopScreen extends ConsumerWidget {
     final shopAsync = ref.watch(voucherShopProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: context.cs.surface,
       appBar: AppBar(
-        title: const Text('Cửa hàng đổi quà',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1565C0),
+        title: const Text(
+          'Cửa hàng đổi quà',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppBrand.heroStart,
         foregroundColor: Colors.white,
       ),
       body: shopAsync.when(
         data: (vouchers) => vouchers.isEmpty
-            ? const Center(
-                child: Text('Hiện chưa có quà nào trong cửa hàng',
-                    style: TextStyle(color: Colors.grey)))
+            ? Center(
+                child: Text(
+                  'Hiện chưa có quà nào trong cửa hàng',
+                  style: TextStyle(color: context.cs.onSurfaceVariant),
+                ),
+              )
             : _VoucherGrid(vouchers: vouchers),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline,
-                    size: 48, color: Colors.grey),
-                const SizedBox(height: 12),
-                Text('Lỗi tải cửa hàng: ${friendlyErrorMessage(e)}',
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(voucherShopProvider),
-                  child: const Text('Thử lại'),
-                ),
-              ],
-            ),
-          ),
+        error: (e, _) => ErrorStateWidget(
+          error: e,
+          onRetry: () => ref.invalidate(voucherShopProvider),
         ),
       ),
     );
@@ -71,9 +63,9 @@ class _VoucherGridState extends ConsumerState<_VoucherGrid> {
 
     if (currentBalance < voucher.pointsCost) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Bạn không đủ điểm để đổi quà này'),
-          backgroundColor: Colors.red,
+          backgroundColor: context.sem.danger,
         ),
       );
       return;
@@ -88,14 +80,15 @@ class _VoucherGridState extends ConsumerState<_VoucherGrid> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huỷ')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Huỷ'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1565C0)),
-            child: const Text('Đổi quà',
-                style: TextStyle(color: Colors.white)),
+              backgroundColor: AppBrand.heroStart,
+            ),
+            child: const Text('Đổi quà', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -112,8 +105,9 @@ class _VoucherGridState extends ConsumerState<_VoucherGrid> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Đổi quà thành công! Kiểm tra "Voucher của tôi" để dùng.'),
-          backgroundColor: Colors.green,
+            'Đổi quà thành công! Kiểm tra "Voucher của tôi" để dùng.',
+          ),
+          backgroundColor: context.sem.success,
           action: SnackBarAction(
             label: 'Xem',
             textColor: Colors.white,
@@ -126,7 +120,7 @@ class _VoucherGridState extends ConsumerState<_VoucherGrid> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Lỗi đổi quà: ${friendlyErrorMessage(e)}'),
-          backgroundColor: Colors.red,
+          backgroundColor: context.sem.danger,
         ),
       );
     } finally {
@@ -145,12 +139,11 @@ class _VoucherGridState extends ConsumerState<_VoucherGrid> {
         childAspectRatio: 0.72,
       ),
       itemCount: widget.vouchers.length,
-      itemBuilder: (context, i) =>
-          _VoucherCard(
-            voucher: widget.vouchers[i],
-            isRedeeming: _redeeming.contains(widget.vouchers[i].id),
-            onRedeem: () => _redeem(widget.vouchers[i]),
-          ),
+      itemBuilder: (context, i) => _VoucherCard(
+        voucher: widget.vouchers[i],
+        isRedeeming: _redeeming.contains(widget.vouchers[i].id),
+        onRedeem: () => _redeem(widget.vouchers[i]),
+      ),
     );
   }
 }
@@ -166,19 +159,19 @@ class _VoucherCard extends StatelessWidget {
     required this.onRedeem,
   });
 
-  Color get _typeColor {
+  Color _typeColor(BuildContext context) {
     switch (voucher.type) {
       case 'discount_percent':
       case 'discount_fixed':
-        return const Color(0xFF1565C0);
+        return context.cs.primary;
       case 'free_course':
-        return const Color(0xFF2E7D32);
+        return context.sem.success;
       case 'physical_gift':
-        return const Color(0xFFE65100);
+        return context.sem.warning;
       case 'ai_quota':
-        return const Color(0xFF6A1B9A);
+        return context.sem.info;
       default:
-        return Colors.grey;
+        return context.cs.onSurfaceVariant;
     }
   }
 
@@ -205,15 +198,9 @@ class _VoucherCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: context.cs.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,27 +209,31 @@ class _VoucherCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _typeColor.withOpacity(0.1),
+              color: _typeColor(context).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12)),
+                top: Radius.circular(12),
+              ),
             ),
             child: Column(
               children: [
-                Icon(_typeIcon, color: _typeColor, size: 36),
+                Icon(_typeIcon, color: _typeColor(context), size: 36),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: _typeColor,
+                    color: _typeColor(context),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     voucher.typeLabel,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -260,7 +251,9 @@ class _VoucherCard extends StatelessWidget {
                   Text(
                     voucher.name,
                     style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.bold),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -269,7 +262,9 @@ class _VoucherCard extends StatelessWidget {
                     Text(
                       voucher.description!,
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey[600]),
+                        fontSize: 12,
+                        color: context.cs.onSurfaceVariant,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -279,10 +274,11 @@ class _VoucherCard extends StatelessWidget {
                     Text(
                       'Còn lại: $remaining',
                       style: TextStyle(
-                          fontSize: 10,
-                          color: remaining < 10
-                              ? Colors.red
-                              : Colors.grey[500]),
+                        fontSize: 12,
+                        color: remaining < 10
+                            ? context.sem.danger
+                            : context.cs.onSurfaceVariant,
+                      ),
                     ),
                   const SizedBox(height: 6),
                   SizedBox(
@@ -290,33 +286,40 @@ class _VoucherCard extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: isSoldOut || isRedeeming ? null : onRedeem,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _typeColor,
+                        backgroundColor: _typeColor(context),
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       child: isRedeeming
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 16,
                               height: 16,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white))
+                                strokeWidth: 2,
+                                color: context.cs.onPrimary,
+                              ),
+                            )
                           : Column(
                               children: [
                                 Text(
                                   isSoldOut ? 'Hết hàng' : 'Đổi ngay',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: context.cs.onPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 if (!isSoldOut)
                                   Text(
                                     '${NumberFormat('#,###').format(voucher.pointsCost)} điểm',
-                                    style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 10),
+                                    style: TextStyle(
+                                      color: context.cs.onPrimary.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                      fontSize: 12,
+                                    ),
                                   ),
                               ],
                             ),
